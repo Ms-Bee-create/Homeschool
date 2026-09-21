@@ -820,6 +820,7 @@ function cleanupMiniGame(){
   var mg = state.miniGame;
   if(mg){
     if(mg.raf) cancelAnimationFrame(mg.raf);
+    if(mg.timeoutId) clearTimeout(mg.timeoutId);
     if(mg._keydown) document.removeEventListener("keydown", mg._keydown);
     if(mg._keyup) document.removeEventListener("keyup", mg._keyup);
   }
@@ -838,7 +839,7 @@ function startMiniGame(type){
   }
   pool = pool.slice().sort(function(){ return Math.random()-.5; });
   state.miniGame = {
-    type: type, pool: pool, qIdx: 0, fuel: 0, score: 0, lives: 3, running: false, raf: null,
+    type: type, pool: pool, qIdx: 0, fuel: 0, score: 0, lives: 3, running: false, raf: null, timeoutId: null,
     ship: {}, asteroids: [], boosting: false,
     runner: {}, obstacles: []
   };
@@ -891,7 +892,10 @@ function answerMiniGameQuestion(choiceIdx, q){
     toast("Not quite — no fuel this round");
   }
   mg.qIdx++;
-  setTimeout(function(){ renderArena(); }, 900);
+  mg.timeoutId = setTimeout(function(){
+    if(state.miniGame!==mg) return; // kid navigated away before this fired
+    renderArena();
+  }, 900);
 }
 
 function renderMiniGame(){
@@ -959,7 +963,7 @@ function wireSpaceControls(ctr){
     left.addEventListener(ev, function(e){ e.preventDefault(); mv=-1; });
     right.addEventListener(ev, function(e){ e.preventDefault(); mv=1; });
   });
-  ["mouseup","mouseleave","touchend"].forEach(function(ev){
+  ["mouseup","mouseleave","touchend","touchcancel"].forEach(function(ev){
     left.addEventListener(ev, function(){ mv=null; });
     right.addEventListener(ev, function(){ mv=null; });
   });
@@ -1108,7 +1112,7 @@ function startQuiz(subject, studyGuide){
   });
   pool = pool.slice().sort(function(){return Math.random()-.5;});
   if(!studyGuide) pool = pool.slice(0,8); // subject quick-fire stays short; study guide mode covers everything so it can be replayed like a full study session
-  state.quiz = {subject: subject, studyGuide: studyGuide||null, pool: pool, idx:0, score:0, xpEarned:0, phase:"question", timer:studyGuide?25:15, timerHandle:null};
+  state.quiz = {subject: subject, studyGuide: studyGuide||null, pool: pool, idx:0, score:0, xpEarned:0, phase:"question", timer:studyGuide?25:15, timerHandle:null, timeoutId:null};
   renderArena();
   armTimer();
 }
@@ -1188,7 +1192,8 @@ function answerQuiz(choiceIdx){
     else if(i===choiceIdx) btn.classList.add("wrong");
   });
   if(correct) toast("+"+(q.xp||15)+" XP!"); else toast("Not quite — keep going");
-  setTimeout(function(){
+  quiz.timeoutId = setTimeout(function(){
+    if(state.quiz!==quiz) return; // kid navigated away before this fired
     quiz.idx++;
     if(quiz.idx>=quiz.pool.length){
       quiz.phase = "done";
@@ -1296,7 +1301,7 @@ function syncAll(){
     assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
     state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
     renderKidbar(); renderXpBar();
-    if(!state.quiz) renderView();
+    if(!state.quiz && !state.miniGame) renderView();
   }).catch(function(){});
 }
 
