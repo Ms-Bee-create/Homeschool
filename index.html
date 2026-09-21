@@ -1288,7 +1288,8 @@ function collection(coll){
     onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-collection */ }
   };
 }
-window.db = { doc: doc, collection: collection };
+db = { doc: doc, collection: collection };
+window.db = db;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
