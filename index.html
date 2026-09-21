@@ -380,7 +380,9 @@ function taskRow(a){
 function toggleAssignment(a){
   if(!db) return;
   var willDone = !a.done;
-  db.doc("assignments/"+a.id).update({done: willDone, doneAt: willDone ? new Date().toISOString() : null});
+  var doneAt = willDone ? new Date().toISOString() : null;
+  if(state.assignments[a.id]){ state.assignments[a.id].done = willDone; state.assignments[a.id].doneAt = doneAt; renderView(); }
+  db.doc("assignments/"+a.id).update({done: willDone, doneAt: doneAt});
   var kd = kidData(a.kidId);
   var oldXp = kd.xp||0;
   var delta = willDone ? a.xp : -a.xp;
@@ -1251,18 +1253,28 @@ function fromRow(coll, row){
 
 var HOUSEHOLD_ID = null;
 
+/* supabase-js resolves (never rejects) with {data,error} even on a blocked/failed write,
+   so a silently-swallowed .error looks like the tap did nothing — surface it instead. */
+function checkWriteError(res){
+  if(res && res.error){
+    console.error("Academy Log sync error:", res.error);
+    toast("⚠️ Couldn't save — check your connection and try again");
+  }
+  syncSoon();
+  return res;
+}
 function doc(path){
   var parts = path.split("/"), coll = parts[0], id = parts[1];
   var table = TABLE[coll], keyCol = KEY_COL[coll];
   return {
     update: function(partial){
-      return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(syncSoon);
+      return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(checkWriteError);
     },
     set: function(full){
-      return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(syncSoon);
+      return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(checkWriteError);
     },
     delete: function(){
-      return sb.from(table).delete().eq(keyCol, id).then(syncSoon);
+      return sb.from(table).delete().eq(keyCol, id).then(checkWriteError);
     },
     onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-doc */ }
   };
@@ -1274,7 +1286,7 @@ function collection(coll){
       var id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
       var row = toRow(coll, obj);
       row.id = id; row.household_id = HOUSEHOLD_ID;
-      return sb.from(table).insert(row).then(syncSoon);
+      return sb.from(table).insert(row).then(checkWriteError);
     },
     onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-collection */ }
   };
