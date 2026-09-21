@@ -240,8 +240,7 @@ var state = {
   schedules: {}, // kidId -> {blocks:[]}
   questions: [],
   quiz: null, // active quiz state
-  miniGame: null, // active arcade mini-game state (Space Mission / Parkour Course)
-  pendingReward: null // unused, kept for compatibility with older saved sessions
+  miniGame: null // active arcade mini-game state (Space Mission / Parkour Course)
 };
 
 /* db is created by the sync layer appended below, after login */
@@ -1217,8 +1216,6 @@ function answerQuiz(choiceIdx){
   }, 900);
 }
 
-/* boot() and subscribeAll() now live in the auth+sync layer appended below */
-
 /* =================== Supabase sync layer (real webpage, so network calls actually work) =================== */
 var SUPABASE_URL = "https://fbrnxuargsilbyyjrjop.supabase.co";
 var SUPABASE_ANON_KEY = "sb_publishable_Mone0y3izX-PRYKO_Y8CEg_jhclQ4WN";
@@ -1330,7 +1327,6 @@ function mmDepositLevelUp(kidId, lvl){
   });
 }
 // Hook the deposit into the existing level-up flow (defined earlier in this file)
-var _logLevelUpReward = logLevelUpReward;
 logLevelUpReward = function(kidId, lvl){
   if(db) db.collection("rewards").add({ kidId: kidId, type:"level-up", level: lvl.newLevel, amount: lvl.bonus, at: new Date().toISOString() });
   mmDepositLevelUp(kidId, lvl).then(function(deposited){
