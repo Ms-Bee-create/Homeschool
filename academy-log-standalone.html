@@ -1,0 +1,1044 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academy Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root{
+  --ink:#1c5738; --paper:#faf3e6; --raised:#ffffff; --border:#ecdfc4;
+  --text:#2b3128; --text-dim:#7a7562;
+  --gold:#c8952d; --gold-soft:#f4e3ba;
+  --teal:#2e7d52; --teal-soft:#dcece1;
+  --coral:#b5602f; --coral-soft:#f5e2d3;
+  --success:#3f8f52; --success-soft:#e0f0e3;
+  --warn:#c8952d;
+  --shadow: 0 1px 2px rgba(28,87,56,.07), 0 6px 16px rgba(28,87,56,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e9dfc2; --paper:#12181420; --paper:#131a15; --raised:#1b2420; --border:#2c3a2e;
+    --text:#eae4d2; --text-dim:#9ea38f;
+    --gold:#e0b155; --gold-soft:#3a3320;
+    --teal:#6bbf8c; --teal-soft:#1c3327;
+    --coral:#e29a68; --coral-soft:#3a2a1e;
+    --success:#7dcf93; --success-soft:#1e3324;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e9dfc2; --paper:#131a15; --raised:#1b2420; --border:#2c3a2e;
+  --text:#eae4d2; --text-dim:#9ea38f;
+  --gold:#e0b155; --gold-soft:#3a3320;
+  --teal:#6bbf8c; --teal-soft:#1c3327;
+  --coral:#e29a68; --coral-soft:#3a2a1e;
+  --success:#7dcf93; --success-soft:#1e3324;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--text);font-family:"Nunito Sans",system-ui,sans-serif;padding-inline:16px;padding-block:18px 40px;min-height:100%}
+h1,h2,h3,.disp{font-family:"Poppins",system-ui,sans-serif;text-wrap:balance}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+.wrap{max-width:840px;margin:0 auto}
+a{color:inherit}
+button{font:inherit;cursor:pointer}
+
+/* header */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(155deg,var(--gold),#a9762a);display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Poppins";font-weight:700;font-size:18px;flex:none;box-shadow:var(--shadow)}
+.brand h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.2px}
+.brand .sub{font-size:12px;color:var(--text-dim);margin-top:1px}
+.date-pill{font-size:12px;color:var(--text-dim);background:var(--raised);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+
+/* kid switcher */
+.kidbar{display:flex;gap:10px;margin-bottom:16px}
+.kid-card{flex:1;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:2px solid var(--border);background:var(--raised);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s}
+.kid-card:active{transform:scale(.98)}
+.kid-card.active{border-color:var(--kc)}
+.kid-avatar{width:36px;height:36px;border-radius:50%;flex:none;background:var(--kc-soft);color:var(--kc);display:flex;align-items:center;justify-content:center;font-family:"Poppins";font-weight:600;font-size:15px}
+.kid-meta{min-width:0}
+.kid-name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kid-lvl{font-size:11px;color:var(--text-dim)}
+.kid-name[contenteditable]{outline:none;border-bottom:1px dashed transparent}
+.kid-name[contenteditable]:focus{border-color:var(--kc)}
+
+/* xp bar */
+.xpbar-row{display:flex;align-items:center;gap:8px;background:var(--raised);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
+.xpbar-track{flex:1;height:10px;border-radius:999px;background:var(--gold-soft);overflow:hidden;position:relative}
+.xpbar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),#e8c063);transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.xp-label{font-size:12px;color:var(--text-dim);white-space:nowrap}
+.streak{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--coral);font-weight:700;white-space:nowrap}
+.mm-badge{flex:none;display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:800;color:var(--ink);background:var(--gold-soft);padding:2px 8px;border-radius:999px;white-space:nowrap;font-family:"JetBrains Mono"}
+
+/* reward banner */
+.reward-card{background:linear-gradient(155deg,var(--gold),#a9762a);border-radius:16px;padding:16px 18px;margin-bottom:16px;box-shadow:var(--shadow);color:#fff}
+.reward-card h3{margin:0 0 3px;font-size:16px}
+.reward-card p{margin:0 0 12px;font-size:12.5px;opacity:.92}
+.reward-opts{display:flex;gap:8px;flex-wrap:wrap}
+.reward-opt{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.55);color:#fff;padding:10px 16px;border-radius:999px;font-weight:800;font-size:14px}
+.reward-opt:hover{background:rgba(255,255,255,.3)}
+.reward-skip{background:none;border:none;color:#fff;opacity:.75;font-size:12.5px;font-weight:700;padding:10px 6px;text-decoration:underline}
+
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:9px 4px;font-size:13px;font-weight:700;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;white-space:nowrap;margin-right:10px}
+.tab.active{color:var(--ink);border-color:var(--gold)}
+
+/* cards */
+.section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin:20px 0 8px}
+.section-title:first-child{margin-top:0}
+.card{background:var(--raised);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.task{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.task:last-child{border-bottom:none}
+.check{width:26px;height:26px;border-radius:8px;border:2px solid var(--border);flex:none;display:flex;align-items:center;justify-content:center;background:var(--paper);transition:.15s}
+.check.done{background:var(--success);border-color:var(--success)}
+.check svg{width:15px;height:15px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transform:scale(.5);transition:.15s}
+.check.done svg{opacity:1;transform:scale(1)}
+.task-body{flex:1;min-width:0}
+.task-title{font-weight:700;font-size:14.5px}
+.task-title.done{text-decoration:line-through;color:var(--text-dim)}
+.task-sub{font-size:11.5px;color:var(--text-dim);margin-top:1px}
+.chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.task-xp{font-size:12px;font-weight:800;color:var(--gold);white-space:nowrap;font-family:"JetBrains Mono"}
+.del{background:none;border:none;color:var(--text-dim);font-size:16px;padding:2px 4px;line-height:1;opacity:.5}
+.del:hover{opacity:1;color:var(--coral)}
+.empty{padding:24px 14px;text-align:center;color:var(--text-dim);font-size:13px}
+
+/* add form */
+.addrow{display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap}
+.addrow input,.addrow select{flex:1;min-width:110px;font:inherit;font-size:13px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);background:var(--paper);color:var(--text)}
+.addrow button{flex:none;padding:9px 14px;border-radius:9px;border:none;background:var(--ink);color:var(--paper);font-weight:700;font-size:13px}
+
+/* schedule */
+.day-block{margin-bottom:14px}
+.day-head{font-family:"Poppins";font-weight:600;font-size:14px;margin:0 0 6px 2px;color:var(--ink)}
+.slot{display:flex;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border);align-items:center}
+.slot:last-child{border-bottom:none}
+.slot-time{font-family:"JetBrains Mono";font-size:11.5px;color:var(--text-dim);width:56px;flex:none}
+.slot-body[contenteditable]{flex:1;font-size:13.5px;font-weight:600;outline:none;border-radius:6px;padding:2px 4px}
+.slot-body[contenteditable]:focus{background:var(--paper)}
+
+/* progress */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat{background:var(--raised);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-family:"JetBrains Mono";font-weight:700;font-size:19px;font-variant-numeric:tabular-nums}
+.stat-lbl{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.bar-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)}
+.bar-row:last-child{border-bottom:none}
+.bar-lbl{width:82px;flex:none;font-size:12.5px;font-weight:700}
+.bar-track{flex:1;height:9px;border-radius:999px;background:var(--paper);overflow:hidden;border:1px solid var(--border)}
+.bar-fill{height:100%;border-radius:999px}
+.bar-pct{width:36px;flex:none;text-align:right;font-family:"JetBrains Mono";font-size:11.5px;color:var(--text-dim)}
+.compare{display:flex;gap:10px}
+.compare>div{flex:1}
+
+/* arena */
+.arena-hero{background:linear-gradient(155deg,var(--kc,var(--gold)),color-mix(in srgb, var(--kc,var(--gold)) 60%, #000));border-radius:16px;padding:20px;color:#fff;margin-bottom:16px;box-shadow:var(--shadow)}
+.arena-hero h2{margin:0 0 4px;font-size:19px}
+.arena-hero p{margin:0;font-size:13px;opacity:.9}
+.subj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.subj-btn{padding:16px 12px;border-radius:14px;border:1px solid var(--border);background:var(--raised);text-align:left;box-shadow:var(--shadow)}
+.subj-btn .n{font-size:11px;color:var(--text-dim)}
+.subj-btn .t{font-family:"Poppins";font-weight:600;font-size:15px;margin-top:2px}
+.qz-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:12.5px;color:var(--text-dim);font-family:"JetBrains Mono"}
+.qz-timer{font-weight:700;color:var(--coral)}
+.qz-card{background:var(--raised);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
+.qz-q{font-family:"Poppins";font-weight:600;font-size:18px;margin:0 0 16px}
+.qz-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qz-opt{padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--paper);font-weight:700;font-size:14px;text-align:center}
+.qz-opt.correct{border-color:var(--success);background:var(--success-soft)}
+.qz-opt.wrong{border-color:var(--coral);background:var(--coral-soft)}
+.qz-result{text-align:center;padding:10px}
+.qz-result .big{font-family:"Poppins";font-size:30px;margin:6px 0}
+.primary-btn{background:var(--ink);color:var(--paper);border:none;padding:12px 20px;border-radius:11px;font-weight:700;font-size:14px;margin-top:14px}
+.qform{display:flex;flex-direction:column;gap:8px}
+.qform input,.qform select{font:inherit;font-size:13px;padding:9px 10px;border-radius:9px;border:1px solid var(--border);background:var(--paper);color:var(--text)}
+.qform .opts4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:var(--ink);color:var(--paper);padding:10px 18px;border-radius:999px;font-weight:700;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:50;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.muted{color:var(--text-dim);font-size:12.5px}
+@media (prefers-reduced-motion: reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+.login-wrap{max-width:360px;margin:80px auto;padding:0 16px}
+.login-card{background:var(--raised);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow)}
+.login-card h1{font-size:20px;margin:0 0 4px}
+.login-card p{color:var(--text-dim);font-size:13px;margin:0 0 18px}
+.login-card input{width:100%;font:inherit;font-size:14px;padding:11px 12px;border-radius:9px;border:1px solid var(--border);background:var(--paper);color:var(--text);margin-bottom:10px}
+.login-card button{width:100%;padding:12px;border-radius:10px;border:none;background:var(--ink);color:var(--paper);font-weight:700;font-size:14px}
+.login-err{color:var(--coral);font-size:12.5px;margin:-2px 0 10px;min-height:1em}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="login-wrap" id="loginGate">
+  <div class="login-card">
+    <h1>Academy Log</h1>
+    <p>Sign in with your Momma Money account to sync Anna &amp; Ryan's progress.</p>
+    <form id="loginForm">
+      <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" required>
+      <div class="login-err" id="loginError"></div>
+      <button id="loginBtn" type="submit">Log In</button>
+    </form>
+  </div>
+</div>
+<div id="appRoot" style="display:none">
+
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">A<span style="color:#fff">$</span></div>
+      <div>
+        <h1>Academy Log</h1>
+        <div class="sub">Connections Academy tracker &middot; part of the <a href="https://ms-bee-create.github.io/momma-money/" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">Momma Money</a> family</div>
+      </div>
+    </div>
+    <div class="date-pill" id="datePill"></div>
+  </div>
+
+  <div class="kidbar" id="kidbar"></div>
+  <div class="xpbar-row" id="xpbarRow"></div>
+  <div id="rewardBanner"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="today">Today</button>
+    <button class="tab" data-tab="week">Week</button>
+    <button class="tab" data-tab="progress">Quest Log</button>
+    <button class="tab" data-tab="arena">Arena</button>
+  </div>
+
+  <div id="view"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+</div>
+<script>
+(function(){
+"use strict";
+
+var KIDS = [
+  {id:"kid1", defaultName:"2nd Grader", color:"teal"},
+  {id:"kid2", defaultName:"4th Grader", color:"coral"}
+];
+var DAYS = ["Mon","Tue","Wed","Thu","Fri"];
+var DAY_LABEL = {Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday"};
+var SUBJECT_COLOR = {
+  "Math":"gold","ELA":"teal","Reading":"teal","Science":"coral","Social Studies":"gold",
+  "Related Arts":"success","Live Lesson":"teal","Independent":"gold"
+};
+
+var state = {
+  activeKid: "kid1",
+  tab: "today",
+  kids: {}, // id -> data
+  assignments: {}, // id -> data (kid+day+subject+title+xp+done)
+  schedules: {}, // kidId -> {blocks:[]}
+  questions: [],
+  quiz: null, // active quiz state
+  pendingReward: null // unused, kept for compatibility with older saved sessions
+};
+
+/* db is created by the sync layer appended below, after login */
+var db = null;
+var els = {
+  kidbar: document.getElementById("kidbar"),
+  xpbarRow: document.getElementById("xpbarRow"),
+  view: document.getElementById("view"),
+  tabs: document.getElementById("tabs"),
+  toast: document.getElementById("toast"),
+  datePill: document.getElementById("datePill"),
+  rewardBanner: document.getElementById("rewardBanner")
+};
+
+function todayIdx(){ var d = new Date().getDay(); return d===0?6:d-1; } // 0=Mon..6=Sun
+function todayKey(){ var i = todayIdx(); return i<5 ? DAYS[i] : null; }
+function isoDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function todayISO(){ return isoDate(new Date()); }
+function fmtDate(iso){
+  if(!iso) return "";
+  var d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"});
+}
+
+els.datePill.textContent = new Date().toLocaleDateString(undefined,{weekday:"long", month:"short", day:"numeric"});
+
+function toast(msg){
+  els.toast.textContent = msg;
+  els.toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ els.toast.classList.remove("show"); }, 1800);
+}
+
+function levelFor(xp){ return Math.floor(xp/100)+1; }
+function progressFor(xp){ return xp % 100; }
+
+function kidData(id){
+  return state.kids[id] || {name: (KIDS.filter(function(k){return k.id===id})[0]||{}).defaultName || "Scholar", xp:0, streak:0, mommaMoney:0, color:(KIDS.filter(function(k){return k.id===id})[0]||{}).color||"gold"};
+}
+
+/* ---------- render: kid switcher + xp bar ---------- */
+function renderKidbar(){
+  els.kidbar.innerHTML = "";
+  KIDS.forEach(function(k){
+    var kd = kidData(k.id);
+    var card = document.createElement("button");
+    card.className = "kid-card" + (state.activeKid===k.id ? " active":"");
+    card.style.setProperty("--kc", "var(--"+kd.color+")");
+    card.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
+    card.onclick = function(){ state.activeKid = k.id; renderAll(); };
+    var initials = (kd.name||"?").trim().slice(0,1).toUpperCase();
+    card.innerHTML =
+      '<div class="kid-avatar">'+initials+'</div>'+
+      '<div class="kid-meta">'+
+        '<div class="kid-name" data-kid="'+k.id+'" contenteditable="true" spellcheck="false">'+escapeHtml(kd.name)+'</div>'+
+        '<div class="kid-lvl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div>'+
+      '</div>'+
+      (kd.mommaMoney ? '<div class="mm-badge">$'+kd.mommaMoney+'</div>' : '');
+    var nameEl = card.querySelector(".kid-name");
+    nameEl.addEventListener("click", function(e){ e.stopPropagation(); });
+    nameEl.addEventListener("blur", function(){
+      var v = nameEl.textContent.trim().slice(0,24) || kd.name;
+      if(v !== kd.name && db) db.doc("kids/"+k.id).update({name:v});
+    });
+    nameEl.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
+    els.kidbar.appendChild(card);
+  });
+}
+
+function renderXpBar(){
+  var kd = kidData(state.activeKid);
+  var pct = progressFor(kd.xp);
+  var kc = "var(--"+kd.color+")";
+  els.xpbarRow.innerHTML =
+    '<span class="xp-label mono">Lv '+levelFor(kd.xp)+'</span>'+
+    '<div class="xpbar-track"><div class="xpbar-fill" style="width:'+pct+'%;background:linear-gradient(90deg,'+kc+',color-mix(in srgb,'+kc+' 60%, white))"></div></div>'+
+    '<span class="xp-label mono">'+pct+'/100</span>'+
+    '<span class="streak">🔥 '+(kd.streak||0)+'</span>';
+}
+
+/* ---------- tabs ---------- */
+els.tabs.addEventListener("click", function(e){
+  var b = e.target.closest(".tab");
+  if(!b) return;
+  Array.prototype.forEach.call(els.tabs.querySelectorAll(".tab"), function(t){ t.classList.remove("active"); });
+  b.classList.add("active");
+  state.tab = b.dataset.tab;
+  if(state.quiz) state.quiz = null;
+  renderView();
+});
+
+function renderAll(){ renderKidbar(); renderXpBar(); renderView(); }
+
+function renderView(){
+  if(state.tab==="today") return renderToday();
+  if(state.tab==="week") return renderWeek();
+  if(state.tab==="progress") return renderProgress();
+  if(state.tab==="arena") return renderArena();
+}
+
+/* ---------- helpers ---------- */
+function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+/* dateFilter: null = all of this kid's assignments; a "YYYY-MM-DD" string = exact date; a function(date)->bool = predicate */
+function assignmentsFor(kidId, dateFilter){
+  return Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); })
+    .filter(function(a){
+      if(a.kidId!==kidId) return false;
+      if(dateFilter==null) return true;
+      if(typeof dateFilter==="function") return dateFilter(a.date);
+      return a.date===dateFilter;
+    })
+    .sort(function(a,b){ return (a.done?1:0)-(b.done?1:0) || (a.date||"").localeCompare(b.date||"") || (a.subject||"").localeCompare(b.subject||""); });
+}
+function subjectChip(subject){
+  var key = SUBJECT_COLOR[subject] || "gold";
+  return '<span class="chip" style="background:var(--'+key+'-soft);color:var(--'+key+')">'+escapeHtml(subject)+'</span>';
+}
+
+function taskRow(a){
+  var row = document.createElement("div");
+  row.className = "task";
+  row.innerHTML =
+    '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
+    '<div class="task-body">'+
+      '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+'</div>'+
+      '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+'</div>'+
+    '</div>'+
+    '<div class="task-xp">+'+a.xp+' XP</div>'+
+    '<button class="del" title="Remove">✕</button>';
+  row.querySelector(".check").onclick = function(){ toggleAssignment(a); };
+  row.querySelector(".del").onclick = function(){ if(db) db.doc("assignments/"+a.id).delete(); };
+  return row;
+}
+
+function toggleAssignment(a){
+  if(!db) return;
+  var willDone = !a.done;
+  db.doc("assignments/"+a.id).update({done: willDone, doneAt: willDone ? new Date().toISOString() : null});
+  var kd = kidData(a.kidId);
+  var oldXp = kd.xp||0;
+  var delta = willDone ? a.xp : -a.xp;
+  var newXp = Math.max(0, oldXp + delta);
+  var updates = {xp: newXp};
+  if(willDone){
+    var last = kd.lastCompletedDate;
+    var todayStr = new Date().toDateString();
+    if(last !== todayStr){
+      var y = new Date(); y.setDate(y.getDate()-1);
+      updates.streak = (last === y.toDateString()) ? (kd.streak||0)+1 : 1;
+      updates.lastCompletedDate = todayStr;
+    }
+  }
+  var lvl = willDone ? levelUpBonus(oldXp, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
+  if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+  db.doc("kids/"+a.kidId).update(updates);
+  if(willDone) toast("+"+a.xp+" XP! Nice work 🎉");
+  if(lvl.gained>0){
+    logLevelUpReward(a.kidId, lvl);
+  }
+}
+
+/* $3 Momma Money per level gained; called after any XP change */
+function levelUpBonus(oldXp, newXp){
+  var oldLevel = levelFor(Math.max(0,oldXp));
+  var newLevel = levelFor(Math.max(0,newXp));
+  var gained = Math.max(0, newLevel-oldLevel);
+  return {gained: gained, bonus: gained*3, newLevel: newLevel};
+}
+function logLevelUpReward(kidId, lvl){
+  if(db) db.collection("rewards").add({kidId: kidId, type:"level-up", level: lvl.newLevel, amount: lvl.bonus, at: new Date().toISOString()});
+  showLevelUpBanner(kidId, lvl);
+}
+function showLevelUpBanner(kidId, lvl){
+  if(kidId!==state.activeKid){ return; }
+  var card = document.createElement("div");
+  card.className = "reward-card";
+  card.innerHTML =
+    '<h3>🎉 Level '+lvl.newLevel+'!</h3>'+
+    '<p>+$'+lvl.bonus+' Momma Money — add it on the Momma Money site when you get a chance. It\'s also tallied below for reference.</p>'+
+    '<button class="reward-skip" id="lvlDismiss" style="color:#fff;opacity:1">Nice!</button>';
+  els.rewardBanner.innerHTML = "";
+  els.rewardBanner.appendChild(card);
+  document.getElementById("lvlDismiss").onclick = function(){ els.rewardBanner.innerHTML=""; };
+}
+
+/* ---------- Today ---------- */
+function renderToday(){
+  els.view.innerHTML = "";
+  var kidId = state.activeKid;
+  var iso = todayISO();
+
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = fmtDate(iso) + "'s Quests";
+  els.view.appendChild(title);
+
+  var list = assignmentsFor(kidId, iso);
+  var card = document.createElement("div");
+  card.className = "card";
+  if(list.length===0){
+    card.innerHTML = '<div class="empty">Nothing scheduled for today yet — add it below, or check the Week tab for what\'s coming up.</div>';
+  } else {
+    list.forEach(function(a){ card.appendChild(taskRow(a)); });
+  }
+  els.view.appendChild(card);
+
+  els.view.appendChild(addForm(kidId, iso));
+
+  var doneCount = list.filter(function(a){return a.done;}).length;
+  if(list.length && doneCount===list.length){
+    var done = document.createElement("div");
+    done.className = "card empty";
+    done.style.marginTop="12px";
+    done.innerHTML = "🏁 <b>All of today's quests complete!</b> Streak locked in.";
+    els.view.appendChild(done);
+  }
+}
+
+function addForm(kidId, defaultDate){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginTop = "12px";
+  wrap.innerHTML =
+    '<div class="addrow">'+
+      '<input class="af-date" type="date" value="'+(defaultDate||todayISO())+'" style="max-width:150px">'+
+      '<select class="af-subject">'+
+        Object.keys(SUBJECT_COLOR).map(function(s){return '<option>'+s+'</option>';}).join("")+
+      '</select>'+
+      '<input class="af-title" placeholder="Assignment (e.g. U4 L6: Multiply by 2-digit numbers)" maxlength="100">'+
+      '<input class="af-xp" type="number" min="5" max="50" step="5" value="10" style="max-width:64px">'+
+      '<button class="af-add">Add</button>'+
+    '</div>';
+  wrap.querySelector(".af-add").onclick = function(){
+    var titleEl = wrap.querySelector(".af-title");
+    var t = titleEl.value.trim();
+    var dateVal = wrap.querySelector(".af-date").value || todayISO();
+    if(!t || !db) return;
+    db.collection("assignments").add({
+      kidId: kidId, date: dateVal, subject: wrap.querySelector(".af-subject").value,
+      title: t, xp: Number(wrap.querySelector(".af-xp").value)||10, done:false, doneAt:null,
+      createdAt: new Date().toISOString()
+    });
+    titleEl.value = "";
+  };
+  return wrap;
+}
+
+/* ---------- Week ---------- */
+function renderWeek(){
+  els.view.innerHTML = "";
+  var kidId = state.activeKid;
+  var kd = kidData(kidId);
+
+  var schTitle = document.createElement("div");
+  schTitle.className = "section-title";
+  schTitle.textContent = "Daily Rhythm — tap to edit";
+  els.view.appendChild(schTitle);
+
+  var sched = state.schedules[kidId] || {blocks:[]};
+  var byDay = {};
+  DAYS.forEach(function(d){ byDay[d]=[]; });
+  sched.blocks.forEach(function(b,i){ if(byDay[b.day]) byDay[b.day].push(Object.assign({idx:i}, b)); });
+
+  DAYS.forEach(function(d){
+    var blocks = byDay[d];
+    if(!blocks.length) return;
+    var db_ = document.createElement("div");
+    db_.className = "day-block";
+    var head = document.createElement("div");
+    head.className = "day-head";
+    head.textContent = DAY_LABEL[d];
+    db_.appendChild(head);
+    var card = document.createElement("div");
+    card.className = "card";
+    blocks.forEach(function(b){
+      var slot = document.createElement("div");
+      slot.className = "slot";
+      slot.innerHTML = '<div class="slot-time mono">'+escapeHtml(b.time||"")+'</div><div class="slot-body" contenteditable="true" spellcheck="false">'+escapeHtml(b.activity||"")+'</div>';
+      var body = slot.querySelector(".slot-body");
+      body.addEventListener("blur", function(){
+        var blocksCopy = sched.blocks.slice();
+        blocksCopy[b.idx] = Object.assign({}, blocksCopy[b.idx], {activity: body.textContent.trim()});
+        if(db) db.doc("schedule/"+kidId).set({blocks: blocksCopy});
+      });
+      card.appendChild(slot);
+    });
+    db_.appendChild(card);
+    els.view.appendChild(db_);
+  });
+
+  var title2 = document.createElement("div");
+  title2.className = "section-title";
+  title2.textContent = "Upcoming Quests";
+  els.view.appendChild(title2);
+
+  var iso = todayISO();
+  var upcoming = assignmentsFor(kidId, function(d){ return d>=iso; });
+  var byDate = {};
+  var order = [];
+  upcoming.forEach(function(a){
+    if(!byDate[a.date]){ byDate[a.date]=[]; order.push(a.date); }
+    byDate[a.date].push(a);
+  });
+  order.sort();
+  if(!order.length){
+    var e = document.createElement("div");
+    e.className = "card empty";
+    e.textContent = "Nothing upcoming yet — add a quest below.";
+    els.view.appendChild(e);
+  }
+  order.forEach(function(dt){
+    var head = document.createElement("div");
+    head.className = "day-head";
+    head.style.marginTop = "10px";
+    head.textContent = fmtDate(dt) + (dt===iso ? " (today)" : "");
+    els.view.appendChild(head);
+    var card = document.createElement("div");
+    card.className = "card";
+    byDate[dt].forEach(function(a){ card.appendChild(taskRow(a)); });
+    els.view.appendChild(card);
+  });
+  els.view.appendChild(addForm(kidId, iso));
+}
+
+/* ---------- Progress (Quest Log) ---------- */
+function renderProgress(){
+  els.view.innerHTML = "";
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Family Overview";
+  els.view.appendChild(title);
+
+  var compare = document.createElement("div");
+  compare.className = "compare";
+  KIDS.forEach(function(k){
+    var kd = kidData(k.id);
+    var all = assignmentsFor(k.id, null);
+    var doneCt = all.filter(function(a){return a.done;}).length;
+    var pct = all.length ? Math.round(doneCt/all.length*100) : 0;
+    var col = document.createElement("div");
+    col.innerHTML =
+      '<div class="stat-grid" style="grid-template-columns:1fr">'+
+        '<div class="stat"><div class="stat-num" style="color:var(--'+kd.color+')">'+escapeHtml(kd.name)+'</div>'+
+          '<div class="stat-lbl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div></div>'+
+      '</div>'+
+      '<div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">'+
+        '<div class="stat"><div class="stat-num">'+pct+'%</div><div class="stat-lbl">Done this week</div></div>'+
+        '<div class="stat"><div class="stat-num">🔥'+(kd.streak||0)+'</div><div class="stat-lbl">Day streak</div></div>'+
+        '<div class="stat"><div class="stat-num" style="color:var(--gold)">$'+(kd.mommaMoney||0)+'</div><div class="stat-lbl">To log on Momma Money</div></div>'+
+      '</div>';
+    if(kd.mommaMoney>0){
+      var payBtn = document.createElement("button");
+      payBtn.className = "reward-skip";
+      payBtn.style.cssText = "color:var(--gold);opacity:1;font-size:11.5px;padding:4px 2px";
+      payBtn.textContent = "Mark $"+kd.mommaMoney+" logged →";
+      payBtn.onclick = function(){ if(db) db.doc("kids/"+k.id).update({mommaMoney:0}); toast("Cleared — logged on Momma Money"); };
+      col.appendChild(payBtn);
+    }
+    compare.appendChild(col);
+  });
+  els.view.appendChild(compare);
+
+  var title2 = document.createElement("div");
+  title2.className = "section-title";
+  title2.textContent = "By Subject — " + kidData(state.activeKid).name;
+  els.view.appendChild(title2);
+
+  var all = assignmentsFor(state.activeKid, null);
+  var bySubj = {};
+  all.forEach(function(a){
+    bySubj[a.subject] = bySubj[a.subject] || {done:0,total:0};
+    bySubj[a.subject].total++;
+    if(a.done) bySubj[a.subject].done++;
+  });
+  var card = document.createElement("div");
+  card.className = "card";
+  var subjects = Object.keys(bySubj);
+  if(!subjects.length){
+    card.innerHTML = '<div class="empty">Add some quests to see subject progress.</div>';
+  } else {
+    subjects.forEach(function(s){
+      var st = bySubj[s];
+      var pct = Math.round(st.done/st.total*100);
+      var key = SUBJECT_COLOR[s] || "gold";
+      var color = pct>=80 ? "success" : pct>=40 ? key : "coral";
+      var row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML =
+        '<div class="bar-lbl">'+escapeHtml(s)+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:var(--'+color+')"></div></div>'+
+        '<div class="bar-pct mono">'+st.done+'/'+st.total+'</div>';
+      card.appendChild(row);
+    });
+  }
+  els.view.appendChild(card);
+
+  var title3 = document.createElement("div");
+  title3.className = "section-title";
+  title3.textContent = "Recent Activity";
+  els.view.appendChild(title3);
+  var recent = all.filter(function(a){return a.done && a.doneAt;}).sort(function(a,b){return new Date(b.doneAt)-new Date(a.doneAt);}).slice(0,8);
+  var rcard = document.createElement("div");
+  rcard.className = "card";
+  if(!recent.length){
+    rcard.innerHTML = '<div class="empty">No completed quests yet.</div>';
+  } else {
+    recent.forEach(function(a){
+      var row = document.createElement("div");
+      row.className="task";
+      var when = new Date(a.doneAt);
+      row.innerHTML = '<div style="width:26px;text-align:center">✅</div><div class="task-body"><div class="task-title">'+escapeHtml(a.title)+'</div><div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+when.toLocaleDateString(undefined,{month:"short",day:"numeric"})+'</div></div><div class="task-xp">+'+a.xp+' XP</div>';
+      rcard.appendChild(row);
+    });
+  }
+  els.view.appendChild(rcard);
+}
+
+/* ---------- Arena (study game) ---------- */
+function renderArena(){
+  els.view.innerHTML = "";
+  if(state.quiz){ return renderQuiz(); }
+
+  var kd = kidData(state.activeKid);
+  var hero = document.createElement("div");
+  hero.className = "arena-hero";
+  hero.style.setProperty("--kc","var(--"+kd.color+")");
+  hero.innerHTML = '<h2>Study Arena</h2><p>Quick-fire quizzes. Beat the clock, earn bonus XP, level up faster.</p>';
+  els.view.appendChild(hero);
+
+  var qs = state.questions.filter(function(q){ return q.kidId===state.activeKid || q.kidId==="any"; });
+
+  /* ---- Study Guides: grouped by studyGuide -> topic, replay-as-many-times mode ---- */
+  var guides = {};
+  qs.forEach(function(q){
+    if(!q.studyGuide) return;
+    guides[q.studyGuide] = guides[q.studyGuide] || {};
+    var t = q.topic || "General";
+    guides[q.studyGuide][t] = (guides[q.studyGuide][t]||0)+1;
+  });
+  var guideNames = Object.keys(guides);
+  if(guideNames.length){
+    var gTitle = document.createElement("div");
+    gTitle.className = "section-title";
+    gTitle.textContent = "Study Guides";
+    els.view.appendChild(gTitle);
+    guideNames.forEach(function(gname){
+      var topics = guides[gname];
+      var topicNames = Object.keys(topics);
+      var total = topicNames.reduce(function(s,t){return s+topics[t];},0);
+      var card = document.createElement("div");
+      card.className = "card";
+      card.style.marginBottom = "12px";
+      var head = document.createElement("div");
+      head.className = "task";
+      head.style.cursor = "pointer";
+      head.innerHTML =
+        '<div class="task-body">'+
+          '<div class="task-title">'+escapeHtml(gname)+'</div>'+
+          '<div class="task-sub">'+total+' questions across '+topicNames.length+' topics &middot; play as many times as you want, then check it off on your paper study guide</div>'+
+        '</div><div class="task-xp">▶</div>';
+      head.onclick = function(){ startQuiz(null, gname); };
+      card.appendChild(head);
+      topicNames.forEach(function(t){
+        var row = document.createElement("div");
+        row.className = "bar-row";
+        row.innerHTML = '<div class="bar-lbl" style="width:auto;flex:1">'+escapeHtml(t)+'</div><div class="bar-pct mono">'+topics[t]+' q</div>';
+        card.appendChild(row);
+      });
+      els.view.appendChild(card);
+    });
+  }
+
+  var bySubject = {};
+  qs.forEach(function(q){ bySubject[q.subject]=(bySubject[q.subject]||0)+1; });
+
+  var title = document.createElement("div");
+  title.className="section-title";
+  title.textContent = "Pick a Subject";
+  els.view.appendChild(title);
+
+  var grid = document.createElement("div");
+  grid.className = "subj-grid";
+  var subjects = Object.keys(bySubject);
+  if(!subjects.length){
+    var e = document.createElement("div"); e.className="card empty"; e.textContent="No questions yet — add some below to build the question bank.";
+    els.view.appendChild(e);
+  } else {
+    subjects.forEach(function(s){
+      var b = document.createElement("button");
+      b.className = "subj-btn";
+      b.innerHTML = '<div class="n">'+bySubject[s]+' questions</div><div class="t">'+escapeHtml(s)+'</div>';
+      b.onclick = function(){ startQuiz(s); };
+      grid.appendChild(b);
+    });
+    els.view.appendChild(grid);
+  }
+
+  var title2 = document.createElement("div");
+  title2.className = "section-title";
+  title2.textContent = "Add a Question";
+  els.view.appendChild(title2);
+  els.view.appendChild(questionForm());
+}
+
+function questionForm(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var inner = document.createElement("div");
+  inner.className = "qform";
+  inner.style.padding = "14px";
+  inner.innerHTML =
+    '<input class="qf-q" placeholder="Question (e.g. What is 7 x 8?)" maxlength="120">'+
+    '<div class="opts4">'+
+      '<input class="qf-o0" placeholder="Choice A">'+
+      '<input class="qf-o1" placeholder="Choice B">'+
+      '<input class="qf-o2" placeholder="Choice C">'+
+      '<input class="qf-o3" placeholder="Choice D">'+
+    '</div>'+
+    '<div class="addrow" style="padding:0">'+
+      '<select class="qf-subject">'+Object.keys(SUBJECT_COLOR).map(function(s){return '<option>'+s+'</option>';}).join("")+'</select>'+
+      '<select class="qf-answer"><option value="0">Correct: A</option><option value="1">Correct: B</option><option value="2">Correct: C</option><option value="3">Correct: D</option></select>'+
+      '<button class="af-add">Save</button>'+
+    '</div>';
+  wrap.appendChild(inner);
+  inner.querySelector(".af-add").onclick = function(){
+    var q = inner.querySelector(".qf-q").value.trim();
+    var choices = [0,1,2,3].map(function(i){ return inner.querySelector(".qf-o"+i).value.trim(); });
+    if(!q || choices.some(function(c){return !c;}) || !db) return;
+    db.collection("questions").add({
+      subject: inner.querySelector(".qf-subject").value,
+      answerIndex: Number(inner.querySelector(".qf-answer").value),
+      q: q, choices: choices, kidId: state.activeKid, xp: 15
+    });
+    toast("Question added to the bank!");
+    inner.querySelector(".qf-q").value="";
+    [0,1,2,3].forEach(function(i){ inner.querySelector(".qf-o"+i).value=""; });
+  };
+  return wrap;
+}
+
+function startQuiz(subject, studyGuide){
+  var pool = state.questions.filter(function(q){
+    if(q.kidId!==state.activeKid && q.kidId!=="any") return false;
+    if(studyGuide) return q.studyGuide===studyGuide;
+    return q.subject===subject;
+  });
+  pool = pool.slice().sort(function(){return Math.random()-.5;});
+  if(!studyGuide) pool = pool.slice(0,8); // subject quick-fire stays short; study guide mode covers everything so it can be replayed like a full study session
+  state.quiz = {subject: subject, studyGuide: studyGuide||null, pool: pool, idx:0, score:0, xpEarned:0, phase:"question", timer:studyGuide?25:15, timerHandle:null};
+  renderArena();
+  armTimer();
+}
+
+function armTimer(){
+  clearInterval(state.quiz.timerHandle);
+  state.quiz.timer = state.quiz.studyGuide ? 25 : 15;
+  state.quiz.timerHandle = setInterval(function(){
+    if(!state.quiz) return clearInterval(state.quiz.timerHandle);
+    state.quiz.timer--;
+    var t = document.getElementById("qzTimer");
+    if(t) t.textContent = Math.max(0,state.quiz.timer)+"s";
+    if(state.quiz.timer<=0){
+      clearInterval(state.quiz.timerHandle);
+      answerQuiz(-1);
+    }
+  }, 1000);
+}
+
+function renderQuiz(){
+  var quiz = state.quiz;
+  els.view.innerHTML = "";
+  if(quiz.phase==="done"){
+    var kd = kidData(state.activeKid);
+    var card = document.createElement("div");
+    card.className = "qz-card qz-result";
+    card.innerHTML =
+      '<div class="muted">'+escapeHtml(quiz.studyGuide||quiz.subject)+' Run</div>'+
+      '<div class="big">'+quiz.score+' / '+quiz.pool.length+' correct</div>'+
+      '<div class="muted">+'+quiz.xpEarned+' XP earned</div>'+
+      (quiz.studyGuide ? '<div class="muted" style="margin-top:6px">Go fill in what you got right on your paper study guide, then hit Play Again for more practice.</div>' : '')+
+      '<button class="primary-btn" id="qzAgain">'+(quiz.studyGuide ? "Play Again" : "Back to Arena")+'</button>'+
+      (quiz.studyGuide ? '<div><button class="reward-skip" id="qzExit" style="color:var(--text-dim);opacity:1">Back to Arena</button></div>' : '');
+    els.view.appendChild(card);
+    document.getElementById("qzAgain").onclick = function(){
+      if(quiz.studyGuide) startQuiz(null, quiz.studyGuide); else { state.quiz=null; renderArena(); }
+    };
+    var exitBtn = document.getElementById("qzExit");
+    if(exitBtn) exitBtn.onclick = function(){ state.quiz=null; renderArena(); };
+    return;
+  }
+  var q = quiz.pool[quiz.idx];
+  var head = document.createElement("div");
+  head.className = "qz-head";
+  head.innerHTML = '<span>Question '+(quiz.idx+1)+' / '+quiz.pool.length+(q.topic ? ' &middot; '+escapeHtml(q.topic) : '')+'</span><span class="qz-timer" id="qzTimer">'+quiz.timer+'s</span>';
+  els.view.appendChild(head);
+
+  var card = document.createElement("div");
+  card.className = "qz-card";
+  var opts = document.createElement("div");
+  opts.className = "qz-opts";
+  var letters = ["A","B","C","D"];
+  q.choices.forEach(function(c,i){
+    var b = document.createElement("button");
+    b.className = "qz-opt";
+    b.textContent = letters[i]+".  "+c;
+    b.onclick = function(){ answerQuiz(i); };
+    opts.appendChild(b);
+  });
+  card.innerHTML = '<p class="qz-q">'+escapeHtml(q.q)+'</p>';
+  card.appendChild(opts);
+  els.view.appendChild(card);
+}
+
+function answerQuiz(choiceIdx){
+  var quiz = state.quiz;
+  if(!quiz || quiz.phase!=="question") return;
+  clearInterval(quiz.timerHandle);
+  quiz.phase = "reveal";
+  var q = quiz.pool[quiz.idx];
+  var correct = choiceIdx===q.answerIndex;
+  if(correct){ quiz.score++; quiz.xpEarned += (q.xp||15); }
+  var opts = document.querySelectorAll(".qz-opt");
+  opts.forEach(function(btn,i){
+    btn.disabled = true;
+    if(i===q.answerIndex) btn.classList.add("correct");
+    else if(i===choiceIdx) btn.classList.add("wrong");
+  });
+  if(correct) toast("+"+(q.xp||15)+" XP!"); else toast("Not quite — keep going");
+  setTimeout(function(){
+    quiz.idx++;
+    if(quiz.idx>=quiz.pool.length){
+      quiz.phase = "done";
+      if(quiz.xpEarned>0 && db){
+        var kd = kidData(state.activeKid);
+        var oldXp = kd.xp||0, newXp = oldXp+quiz.xpEarned;
+        var lvl = levelUpBonus(oldXp, newXp);
+        var updates = {xp: newXp};
+        if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+        db.doc("kids/"+state.activeKid).update(updates);
+        if(lvl.gained>0){ logLevelUpReward(state.activeKid, lvl); }
+      }
+      renderArena();
+    } else {
+      quiz.phase = "question";
+      renderArena();
+      armTimer();
+    }
+  }, 900);
+}
+
+/* boot() and subscribeAll() now live in the auth+sync layer appended below */
+
+/* =================== Supabase sync layer (real webpage, so network calls actually work) =================== */
+var SUPABASE_URL = "https://fbrnxuargsilbyyjrjop.supabase.co";
+var SUPABASE_ANON_KEY = "sb_publishable_Mone0y3izX-PRYKO_Y8CEg_jhclQ4WN";
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Ryan's real Momma Money member id, so level-up bonuses can deposit for real. Add Anna's here once she's a member in Momma Money.
+var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
+
+var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards" };
+var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
+var FIELD_MAP = {
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at" },
+  schedule: {},
+  questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
+  rewards: { kidId:"kid_id" }
+};
+function toRow(coll, obj){
+  var map = FIELD_MAP[coll], row = {};
+  Object.keys(obj).forEach(function(k){ row[map[k]||k] = obj[k]; });
+  return row;
+}
+function fromRow(coll, row){
+  var map = FIELD_MAP[coll], inv = {}, obj = {};
+  Object.keys(map).forEach(function(k){ inv[map[k]] = k; });
+  Object.keys(row).forEach(function(k){
+    if(k==="id"||k==="household_id") return;
+    obj[inv[k]||k] = row[k];
+  });
+  return obj;
+}
+
+var HOUSEHOLD_ID = null;
+
+function doc(path){
+  var parts = path.split("/"), coll = parts[0], id = parts[1];
+  var table = TABLE[coll], keyCol = KEY_COL[coll];
+  return {
+    update: function(partial){
+      return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(syncSoon);
+    },
+    set: function(full){
+      return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(syncSoon);
+    },
+    delete: function(){
+      return sb.from(table).delete().eq(keyCol, id).then(syncSoon);
+    },
+    onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-doc */ }
+  };
+}
+function collection(coll){
+  var table = TABLE[coll];
+  return {
+    add: function(obj){
+      var id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
+      var row = toRow(coll, obj);
+      row.id = id; row.household_id = HOUSEHOLD_ID;
+      return sb.from(table).insert(row).then(syncSoon);
+    },
+    onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-collection */ }
+  };
+}
+window.db = { doc: doc, collection: collection };
+
+var syncTimer = null;
+function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
+
+function syncAll(){
+  if(!HOUSEHOLD_ID) return;
+  Promise.all([
+    sb.from("al_kids").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_schedule").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_assignments").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID)
+  ]).then(function(results){
+    var kidsRows = results[0].data || [], schedRows = results[1].data || [], assignRows = results[2].data || [], qRows = results[3].data || [];
+    state.kids = {};
+    kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
+    state.schedules = {};
+    schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
+    state.assignments = {};
+    assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
+    state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
+    renderKidbar(); renderXpBar();
+    if(!state.quiz) renderView();
+  }).catch(function(){});
+}
+
+/* ---------- Momma Money deposit (works now — this is a real webpage, not sandboxed) ---------- */
+function mmDepositLevelUp(kidId, lvl){
+  var memberId = MM_MEMBERS[kidId];
+  if(!memberId) return Promise.resolve(false);
+  return sb.from("transactions").insert({
+    household_id: HOUSEHOLD_ID, member_id: memberId, type: "earn", amount: lvl.bonus,
+    description: "Academy Log — Level " + lvl.newLevel + " bonus", status: "approved"
+  }).then(function(r){
+    if(r.error) throw r.error;
+    return true;
+  });
+}
+// Hook the deposit into the existing level-up flow (defined earlier in this file)
+var _logLevelUpReward = logLevelUpReward;
+logLevelUpReward = function(kidId, lvl){
+  if(db) db.collection("rewards").add({ kidId: kidId, type:"level-up", level: lvl.newLevel, amount: lvl.bonus, at: new Date().toISOString() });
+  mmDepositLevelUp(kidId, lvl).then(function(deposited){
+    if(deposited){
+      db.doc("kids/"+kidId).update({ mommaMoney: 0 });
+      if(kidId===state.activeKid) toast("$"+lvl.bonus+" deposited to Momma Money! 💰");
+    }
+    showLevelUpBanner(kidId, lvl);
+  }).catch(function(){ showLevelUpBanner(kidId, lvl); });
+};
+
+/* ---------- login gate ---------- */
+var loginEl = document.getElementById("loginGate");
+var appEl = document.getElementById("appRoot");
+function showApp(){
+  loginEl.style.display = "none";
+  appEl.style.display = "";
+  renderKidbar(); renderXpBar(); renderView();
+  syncAll();
+  setInterval(syncAll, 4000);
+}
+function tryRestoreSession(){
+  sb.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    if(session){ HOUSEHOLD_ID = session.user.id; showApp(); }
+  });
+}
+document.getElementById("loginForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var email = document.getElementById("loginEmail").value.trim();
+  var pass = document.getElementById("loginPass").value;
+  var errEl = document.getElementById("loginError");
+  var btn = document.getElementById("loginBtn");
+  errEl.textContent = ""; btn.disabled = true; btn.textContent = "Connecting…";
+  sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res){
+    btn.disabled = false; btn.textContent = "Log In";
+    if(res.error){ errEl.textContent = res.error.message; return; }
+    HOUSEHOLD_ID = res.data.session.user.id;
+    showApp();
+  });
+});
+tryRestoreSession();
+
+})();
+</script>
+</body>
+</html>
