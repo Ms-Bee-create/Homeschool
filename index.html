@@ -968,12 +968,14 @@ var VM_INSTALL_HELP = {
   win7usb: {
     title: "Making & Booting a Windows 7 USB — Troubleshooting",
     steps: [
-      "<b>What you need:</b> an 8GB+ USB drive (it will be erased), your Windows 7 ISO, and Rufus (free, from rufus.ie).",
-      "<b>In Rufus:</b> pick your USB drive under \"Device,\" choose \"Disk or ISO image\" and select the Windows 7 ISO, then click Start. Let it finish — this can take several minutes.",
-      "<b>Partition scheme:</b> if unsure, choose MBR — it works on almost every older/home computer (only use GPT if you know the target computer uses UEFI).",
+      "<b>What you need:</b> an 8GB+ USB drive (32GB+ is more comfortable to actually use), and your Windows 7 ISO.",
+      "<b>Two tool options:</b> <b>WinToUSB</b> deploys Windows 7 to <i>run directly from the USB stick</i> — nothing on the target computer's own drive gets touched, which is the safer choice. <b>Rufus</b> instead builds a USB installer that installs Windows onto whatever drive you pick during Setup — powerful, but that drive gets erased, so it needs extra care.",
+      "<b>Using WinToUSB:</b> point it at the Windows 7 ISO as the source and your USB drive as the destination. Pick <b>Legacy (MBR)</b> boot mode for most older/home computers. If it won't do \"Windows To Go\" mode (a free-version edition restriction), use <b>Legacy Deploy</b> instead — it works the same way for this project.",
+      "<b>Using Rufus instead:</b> pick your USB drive under \"Device,\" choose \"Disk or ISO image\" and select the Windows 7 ISO, then click Start.",
+      "<b>Partition scheme (either tool):</b> if unsure, choose MBR — it works on almost every older/home computer (only use GPT if you know the target computer uses UEFI).",
       "<b>USB won't boot:</b> restart the target computer and press the boot-menu key during startup (often F12, F11, Esc, or Del depending on the computer) to pick the USB drive directly, instead of waiting for it to boot automatically.",
       "<b>Still won't boot:</b> in the computer's BIOS/UEFI settings, make sure \"Secure Boot\" is turned off and the boot mode matches your partition scheme (Legacy/CSM for MBR, UEFI for GPT).",
-      "<b>⚠️ Before installing for real:</b> Setup erases whatever drive you pick to install onto. Always double- and triple-check the right drive is selected — never the family's main computer without a parent's OK first."
+      "<b>⚠️ If using Rufus to install for real:</b> Setup erases whatever drive you pick to install onto. Always double- and triple-check the right drive is selected — never the family's main computer without a parent's OK first. (WinToUSB doesn't have this risk, since Windows runs from the USB itself.)"
     ]
   }
 };
@@ -1740,13 +1742,13 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
   {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 7's minimum RAM (32-bit) was 1GB. Convert 1GB to MB and to KB.","A 2009-era laptop hard drive held 250GB. Convert 250GB to MB."]},
   {d:15, subject:"Reading", title:"Read the Windows 7 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=g6PT7_YHWCA"},
-  {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive using Rufus, then boot from it to reach the Windows Setup screen.", xp:20, materials:"https://rufus.ie/", installHelp:"win7usb"},
+  {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive (using WinToUSB or Rufus), then boot from it to see it start up.", xp:20, installHelp:"win7usb"},
   {d:15, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H4"},
 
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 8 came out 3 years after Windows 7 (2009). What year was that?","How many years passed between Windows 95 (1995) and Windows 7 (2009)?"]},
   {d:16, subject:"Reading", title:"Read about why Windows 7 was seen as fixing problems from Windows Vista — what does a \"follow-up release\" mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_7"},
-  {d:16, subject:"Independent", title:"If you have a spare computer, install Windows 7 from your USB drive (this erases the target drive — ask a parent before choosing where to install!). If not, explore the Setup screens and screenshot each one for your guide.", xp:20, installHelp:"win7usb"},
+  {d:16, subject:"Independent", title:"Boot a computer from your Windows 7 USB and explore it, then screenshot the desktop (or the Setup screens) for your guide. If installing for real instead of running from the USB, ask a parent first — Setup erases the target drive.", xp:20, installHelp:"win7usb"},
   {d:16, subject:"Science", title:"Windows 7's taskbar previews use tiny live thumbnails. Read about how monitors use light (pixels) to show moving images.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/television/277292", video:"https://www.youtube.com/watch?v=GSorr3ddKAo"},
 
   {d:17, subject:"ELA", title:"Journal Day 18: Draft the intro paragraph of your Windows 7 User Guide.", xp:10, standard:"Writing strands"},
