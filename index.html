@@ -885,6 +885,53 @@ var MATH_FIELD_GUIDE = [
 ];
 var MATH_SKILL_GUIDE_INDEX = { byte:0, fraction:1, timeline:2, binary:3 };
 
+/* VM install troubleshooting: the older an OS, the pickier VirtualBox's default settings are about
+   it. Shown inline on the "set up / finish installing" Independent lessons so a stuck install has
+   fix steps right on the lesson instead of needing to ask separately. */
+var VM_INSTALL_HELP = {
+  win95: {
+    title: "Windows 95 Won't Install? Try This",
+    steps: [
+      "<b>VM type:</b> When creating the VM, set the type to \"Windows 95\" (older VirtualBox) or \"Other/Unknown\" 32-bit (newer VirtualBox dropped 95 from the list).",
+      "<b>Storage controller:</b> Put both the virtual hard disk AND the CD/DVD drive on <b>IDE</b>, not SATA. Windows 95 has no SATA drivers at all — this is the #1 cause of install failures.",
+      "<b>Partition the disk first:</b> Pre-OSR2 Windows 95 CDs aren't bootable by themselves. Boot a Windows 95 boot floppy image first, run <code>fdisk</code> to create a partition, reboot, run <code>format c:</code>, then start setup from the CD.",
+      "<b>RAM:</b> Set the VM to 64MB (period-accurate) up to 256MB max. Too much RAM can cause Windows 95 to hang or crash.",
+      "<b>Turn off the USB controller</b> in the VM's USB settings — Windows 95 has no native USB support and it can cause freezes.",
+      "<b>System settings:</b> Turn off I/O APIC and PAE/NX — Windows 95 doesn't expect either.",
+      "<b>Graphics controller:</b> Set it to VBoxVGA, not VMSVGA/VBoxSVGA — Windows 95 has no drivers for the newer ones."
+    ]
+  },
+  win98: {
+    title: "Windows 98 Won't Install? Try This",
+    steps: [
+      "<b>Storage controller:</b> Keep the virtual hard disk and CD/DVD drive on <b>IDE</b>. Windows 98 still doesn't understand SATA.",
+      "<b>RAM:</b> 64–128MB is the sweet spot. More than that can slow things down or cause errors.",
+      "<b>USB:</b> Windows 98 added USB support, but if the install hangs, try disabling the USB controller and re-enabling it after Windows is installed.",
+      "<b>System settings:</b> Turn off I/O APIC for a smoother install, same as 95.",
+      "<b>Graphics controller:</b> VBoxVGA works most reliably; switch to it if the screen goes black during setup."
+    ]
+  },
+  winxp: {
+    title: "Windows XP Won't Install? Try This",
+    steps: [
+      "<b>Storage controller:</b> IDE is still the safest choice for the hard disk and CD/DVD drive, though XP has some SATA support depending on the service pack.",
+      "<b>RAM:</b> 128MB–1GB all work fine — XP is much more forgiving here than 95/98.",
+      "<b>Boot mode:</b> Make sure the VM boots in BIOS mode, not EFI/UEFI — XP can't boot from EFI.",
+      "<b>Graphics:</b> Turn off 3D acceleration in Display settings if the Luna desktop looks glitchy or setup freezes on the graphical part."
+    ]
+  },
+  win7: {
+    title: "Windows 7 Won't Install? Try This",
+    steps: [
+      "<b>RAM:</b> Give it at least 1GB (2GB is better) — Windows 7 needs more than the earlier OSes.",
+      "<b>Boot mode:</b> BIOS mode (not EFI) unless you're specifically doing a 64-bit EFI install.",
+      "<b>Storage controller:</b> Either IDE or SATA works — Windows 7 has drivers for both.",
+      "<b>Graphics controller:</b> VBoxSVGA gives the best resolution options for the Aero Glass desktop.",
+      "<b>After install:</b> Install VirtualBox Guest Additions right away — it fixes mouse integration and lets you resize the window properly."
+    ]
+  }
+};
+
 function mathFieldGuideCard(){
   var wrap = document.createElement("div");
   wrap.className = "card";
@@ -1127,11 +1174,22 @@ function renderLessonDetail(){
       '</ol>'
     : "";
 
+  var installHelpHtml = "";
+  var vmHelp = a.installHelp ? VM_INSTALL_HELP[a.installHelp] : null;
+  if(vmHelp){
+    var vmStepsHtml = vmHelp.steps.map(function(s){ return '<li style="margin-bottom:6px">'+s+'</li>'; }).join("");
+    installHelpHtml =
+      '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--coral-soft);border:1px solid var(--border)">'+
+        '<div style="font-weight:700;margin-bottom:6px">🛠️ '+escapeHtml(vmHelp.title)+'</div>'+
+        '<ol style="margin:0;padding:0 0 0 18px;font-size:13px">'+vmStepsHtml+'</ol>'+
+      '</div>';
+  }
+
   var flagHtml = a.reviewStatus==="flagged"
     ? '<div id="flagBanner" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:var(--coral-soft);color:var(--coral);font-weight:600;font-size:13.5px">🚩 Your leader flagged this — please take another look'+(a.reviewNote?': '+escapeHtml(a.reviewNote):'.')+'</div>'
     : '<div id="flagBanner"></div>';
 
-  card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + flagHtml;
+  card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
 
   var workLabel = document.createElement("div");
   workLabel.className = "section-title";
@@ -1543,13 +1601,13 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:0, subject:"ELA", title:"Journal Day 1: What do you already know about Windows 95? Predict 3 things before we install it.", xp:10, standard:"3-5.F"},
   {d:0, subject:"Math", title:"RAM math: Windows 95 recommends 4MB RAM. Convert 4MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 95 also often shipped with 8MB RAM in some computers. Convert 8MB to KB and to bytes.","A different 1995 computer had 2MB of video RAM. Convert 2MB to KB."]},
   {d:0, subject:"Reading", title:"Read the Windows 95 section of \"Microsoft Windows version history\" — note 3 facts for your journal.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=0Ol8ZSE-PEk"},
-  {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"https://www.howtogeek.com/329301/how-to-install-windows-95-in-a-virtual-machine/", video:"https://www.youtube.com/watch?v=LxOY5IIC0uo"},
+  {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"https://www.howtogeek.com/329301/how-to-install-windows-95-in-a-virtual-machine/", video:"https://www.youtube.com/watch?v=LxOY5IIC0uo", installHelp:"win95"},
   {d:0, subject:"Social Studies", title:"US History reading (Revolution era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H1"},
 
   {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
   {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 98 came out in 1998. How many years after Windows 95 was that?","If a Windows 95 computer was bought new in 1995 and used for 10 years, what year did it stop being used?"]},
   {d:1, subject:"Reading", title:"Read a short bio excerpt on Bill Gates or Paul Allen — note 2 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Bill_Gates"},
-  {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20},
+  {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20, installHelp:"win95"},
   {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:2, subject:"ELA", title:"Journal Day 3: Draft the intro paragraph of your Windows 95 User Guide.", xp:10, standard:"Writing strands"},
@@ -1574,13 +1632,13 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:5, subject:"ELA", title:"Journal Day 6: What do you already know about Windows 98? Predict 3 differences from Windows 95.", xp:10, standard:"Writing strands"},
   {d:5, subject:"Math", title:"RAM math: Windows 98 recommends 16MB RAM. Convert 16MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 98 SE later recommended 24MB RAM. Convert 24MB to KB.","A 1998-era hard drive held 2GB. Convert 2GB to MB."]},
   {d:5, subject:"Reading", title:"Read the Windows 98 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=2IzcFUuuUw4"},
-  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/"},
+  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/", installHelp:"win98"},
   {d:5, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H2"},
 
   {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:6, subject:"Math", title:"Timeline math: Windows 98 came 3 years after Windows 95 (1995). How many years ago was 1998 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows XP came out 3 years after Windows 98. What year was that?","If a Windows 98 computer was used for 7 years starting in 1998, what year did it stop being used?"]},
   {d:6, subject:"Reading", title:"Read about USB — what problem did it solve compared to older cables and ports?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/USB", video:"https://www.youtube.com/watch?v=lT4cYF6nm-g"},
-  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20},
+  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20, installHelp:"win98"},
   {d:6, subject:"Science", title:"Late-90s PCs added bigger cooling fans. Read about how fans move air (forces & motion).", xp:10, standard:"S4P3", materials:"https://kids.britannica.com/students/article/fan/274175", video:"https://www.youtube.com/watch?v=5F76jSb2Byg"},
 
   {d:7, subject:"ELA", title:"Journal Day 8: Draft the intro paragraph of your Windows 98 User Guide.", xp:10, standard:"Writing strands"},
@@ -1605,13 +1663,13 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:10, subject:"ELA", title:"Journal Day 11: What do you already know about Windows XP? Predict 3 differences from Windows 98.", xp:10, standard:"Writing strands"},
   {d:10, subject:"Math", title:"RAM math: Windows XP recommends 128MB RAM. Convert 128MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows XP's minimum RAM was actually 64MB. Convert 64MB to KB.","A typical 2001-era hard drive held 20GB. Convert 20GB to MB."]},
   {d:10, subject:"Reading", title:"Read the Windows XP section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history"},
-  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/"},
+  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/", installHelp:"winxp"},
   {d:10, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H3"},
 
   {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 7 came out 8 years after XP (2001). What year was that?","If a computer bought in 2001 was used until 2011, how many years was that?"]},
   {d:11, subject:"Reading", title:"Read about why XP was built on the \"NT kernel\" instead of DOS like 95/98 — what does more stable mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_NT_kernel"},
-  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20},
+  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20, installHelp:"winxp"},
   {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:12, subject:"ELA", title:"Journal Day 13: Draft the intro paragraph of your Windows XP User Guide.", xp:10, standard:"Writing strands"},
@@ -1636,13 +1694,13 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
   {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 7's minimum RAM (32-bit) was 1GB. Convert 1GB to MB and to KB.","A 2009-era laptop hard drive held 250GB. Convert 250GB to MB."]},
   {d:15, subject:"Reading", title:"Read the Windows 7 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=g6PT7_YHWCA"},
-  {d:15, subject:"Independent", title:"Set up VirtualBox and start installing Windows 7 from your ISO.", xp:20, materials:"https://www.makeuseof.com/tag/installing-windows-7-on-a-virtual-machine/"},
+  {d:15, subject:"Independent", title:"Set up VirtualBox and start installing Windows 7 from your ISO.", xp:20, materials:"https://www.makeuseof.com/tag/installing-windows-7-on-a-virtual-machine/", installHelp:"win7"},
   {d:15, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H4"},
 
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 8 came out 3 years after Windows 7 (2009). What year was that?","How many years passed between Windows 95 (1995) and Windows 7 (2009)?"]},
   {d:16, subject:"Reading", title:"Read about why Windows 7 was seen as fixing problems from Windows Vista — what does a \"follow-up release\" mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_7"},
-  {d:16, subject:"Independent", title:"Finish the Windows 7 install; screenshot the Aero Glass desktop for your guide.", xp:20},
+  {d:16, subject:"Independent", title:"Finish the Windows 7 install; screenshot the Aero Glass desktop for your guide.", xp:20, installHelp:"win7"},
   {d:16, subject:"Science", title:"Windows 7's taskbar previews use tiny live thumbnails. Read about how monitors use light (pixels) to show moving images.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/television/277292", video:"https://www.youtube.com/watch?v=GSorr3ddKAo"},
 
   {d:17, subject:"ELA", title:"Journal Day 18: Draft the intro paragraph of your Windows 7 User Guide.", xp:10, standard:"Writing strands"},
@@ -2212,7 +2270,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" }
@@ -2382,6 +2440,29 @@ function patchMathLessons(kidId){
   renderView();
 }
 
+/* Patches already-imported Independent "install Windows XX" lessons (matched by exact title) with
+   the new installHelp field, so the VM troubleshooting steps show up on lessons imported before
+   this content existed. */
+function patchInstallHelp(kidId){
+  if(!db) return;
+  var byTitle = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){
+    if(item.installHelp) byTitle[item.title] = item.installHelp;
+  });
+  var count = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var help = byTitle[a.title];
+    if(!help || a.installHelp===help) return;
+    Object.assign(state.assignments[id], {installHelp: help});
+    db.doc("assignments/"+id).update({installHelp: help});
+    count++;
+  });
+  console.log("patchInstallHelp: updated "+count+" assignment(s)");
+  renderView();
+}
+
 function seedArenaQuestions(kidId){
   if(!db) return;
   var existing = {};
@@ -2401,13 +2482,15 @@ function seedArenaQuestions(kidId){
    patchMathLessons(state.activeKid)             — adds the math field guide + extra practice to already-imported lessons
    seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject
    diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence
-   rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched */
+   rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched
+   patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
 window.diagnoseScheduleDates = diagnoseScheduleDates;
 window.rescheduleFromToday = rescheduleFromToday;
+window.patchInstallHelp = patchInstallHelp;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
