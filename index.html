@@ -2311,6 +2311,50 @@ function diagnoseScheduleDates(kidId){
   return out;
 }
 
+/* Moves every NOT-YET-DONE curriculum assignment onto a fresh Monday-through-Friday-only schedule
+   starting today (or the next school day, if today's a weekend) — grouping same-day lessons (across
+   subjects) together so the sequence stays intact. Anything already marked done is left completely
+   untouched (its date and completion stay as-is), so already-finished work is never re-dated or lost. */
+function schoolDayOffset(start, i){
+  var result = new Date(start);
+  var count = 0;
+  while(count < i){
+    result.setDate(result.getDate()+1);
+    var day = result.getDay();
+    if(day!==0 && day!==6) count++;
+  }
+  return result;
+}
+function rescheduleFromToday(kidId){
+  if(!db) return;
+  var byTitle = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){ byTitle[item.title] = item.d; });
+  var groups = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId || a.done) return;
+    var d = byTitle[a.title];
+    if(d==null) return;
+    (groups[d] = groups[d]||[]).push(id);
+  });
+  var days = Object.keys(groups).map(Number).sort(function(x,y){ return x-y; });
+  if(!days.length){ console.log("rescheduleFromToday: nothing to move — everything matched is already done."); return; }
+  var today = new Date();
+  var todayDow = today.getDay();
+  var start = todayDow===6 ? schoolDayOffset(today,2) : todayDow===0 ? schoolDayOffset(today,1) : today;
+  var count = 0;
+  days.forEach(function(d, i){
+    var iso = isoDate(schoolDayOffset(start, i));
+    groups[d].forEach(function(id){
+      state.assignments[id].date = iso;
+      db.doc("assignments/"+id).update({date: iso});
+      count++;
+    });
+  });
+  console.log("rescheduleFromToday: moved "+count+" not-yet-done assignment(s) onto a Mon–Fri-only schedule starting "+isoDate(start)+".");
+  renderView();
+}
+
 /* Patches already-imported Math assignments (matched by exact title) with the new mathSkill/practice
    fields added to CURRICULUM_RETRO_OS_MONTH1 after the original import already ran — run once from
    the console so existing lessons pick up the field guide + extra practice problems too. */
@@ -2356,12 +2400,14 @@ function seedArenaQuestions(kidId){
    resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe
    patchMathLessons(state.activeKid)             — adds the math field guide + extra practice to already-imported lessons
    seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject
-   diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence */
+   diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence
+   rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
 window.diagnoseScheduleDates = diagnoseScheduleDates;
+window.rescheduleFromToday = rescheduleFromToday;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
