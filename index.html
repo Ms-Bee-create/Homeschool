@@ -513,6 +513,12 @@ function renderWeek(){
   var kidId = state.activeKid;
   var kd = kidData(kidId);
 
+  var libTitle = document.createElement("div");
+  libTitle.className = "section-title";
+  libTitle.textContent = "Curriculum Library";
+  els.view.appendChild(libTitle);
+  els.view.appendChild(curriculumLibraryCard());
+
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
   schTitle.textContent = "Daily Rhythm — tap to edit";
@@ -783,6 +789,182 @@ function renderArena(){
   els.view.appendChild(title2);
   els.view.appendChild(questionForm());
 }
+
+/* ---------- Curriculum Library: one-click import of pre-built assignment sets ---------- */
+function curriculumLibraryCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var head = document.createElement("div");
+  head.className = "task";
+  head.innerHTML =
+    '<div class="task-body">'+
+      '<div class="task-title">📦 Retro OS Museum — Month 1</div>'+
+      '<div class="task-sub">4 weeks &middot; Windows 95, 98, XP &amp; 7 &middot; '+CURRICULUM_RETRO_OS_MONTH1.length+' assignments across Math, ELA, Reading, Science &amp; Social Studies</div>'+
+    '</div><div class="task-xp">▶</div>';
+  head.style.cursor = "pointer";
+  head.onclick = function(){ importCurriculumSet(CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
+  wrap.appendChild(head);
+  return wrap;
+}
+
+function importCurriculumSet(items, label){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var kidId = state.activeKid;
+  var kidName = kidData(kidId).name;
+  var defaultStart = nextMondayISO();
+  var startStr = window.prompt('Start "'+label+'" for '+kidName+' on which Monday? (YYYY-MM-DD)', defaultStart);
+  if(!startStr) return;
+  var startDate = new Date(startStr+"T00:00:00");
+  if(isNaN(startDate.getTime())){ toast("Couldn't read that date — try YYYY-MM-DD"); return; }
+  var ok = window.confirm('This adds '+items.length+' new assignments for '+kidName+', starting '+fmtDate(startStr)+'. Continue?');
+  if(!ok) return;
+  items.forEach(function(item){
+    var week = Math.floor(item.d/5), weekday = item.d%5;
+    var d = new Date(startDate);
+    d.setDate(d.getDate() + week*7 + weekday);
+    db.collection("assignments").add({
+      kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
+      xp: item.xp, done:false, doneAt:null,
+      materials: item.materials||null, standard: item.standard||null,
+      createdAt: new Date().toISOString()
+    });
+  });
+  toast("📦 "+label+" added to "+kidName+"'s Week!");
+}
+
+function nextMondayISO(){
+  var d = new Date();
+  var day = d.getDay(); // 0=Sun..6=Sat
+  var addDays = day===1 ? 7 : ((8-day)%7)||7; // next Monday, always in the future
+  d.setDate(d.getDate()+addDays);
+  return isoDate(d);
+}
+
+var CURRICULUM_RETRO_OS_MONTH1 = [
+  /* ===== Week 1 — Windows 95 (released Aug 24, 1995) ===== */
+  {d:0, subject:"ELA", title:"Journal Day 1: What do you already know about Windows 95? Predict 3 things before we install it.", xp:10, standard:"3-5.F"},
+  {d:0, subject:"Math", title:"RAM math: Windows 95 recommends 4MB RAM. Convert 4MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2"},
+  {d:0, subject:"Reading", title:"Read the Windows 95 section of \"History of Microsoft Windows\" — note 3 facts for your journal.", xp:10, standard:"Reading strands"},
+  {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"VirtualBox (free) + a Windows 95 ISO from an archive/abandonware site of your choosing"},
+  {d:0, subject:"Social Studies", title:"US History reading (Revolution era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H1"},
+
+  {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
+  {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6"},
+  {d:1, subject:"Reading", title:"Read a short bio excerpt on Bill Gates or Paul Allen — note 2 facts.", xp:10, standard:"Reading strands"},
+  {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20},
+  {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2"},
+
+  {d:2, subject:"ELA", title:"Journal Day 3: Draft the intro paragraph of your Windows 95 User Guide.", xp:10, standard:"Writing strands"},
+  {d:2, subject:"Math", title:"Fractions: a 1995-era 1.44MB floppy disk is half full. How many KB of data is on it?", xp:15, standard:"4.NR.4/4.NR.5"},
+  {d:2, subject:"Reading", title:"Open Windows 95's built-in Help — read one Help topic and summarize it in your own words.", xp:10, standard:"Reading strands"},
+  {d:2, subject:"Independent", title:"Explore 3 built-in Windows 95 apps (Paint, Notepad, Minesweeper) and screenshot each.", xp:20},
+  {d:2, subject:"Social Studies", title:"Map it: where was Microsoft founded? Find Redmond, WA on a map and mark the distance from home.", xp:10, standard:"SS4G1/SS4G2"},
+
+  {d:3, subject:"ELA", title:"Journal Day 4: Write the \"how to use the Start Menu\" section of your User Guide.", xp:10, standard:"Writing strands"},
+  {d:3, subject:"Math", title:"Binary patterns: list the first 8 powers of 2 (1, 2, 4, 8...). Where have you seen these numbers in the computer world?", xp:15, standard:"4.PAR.3"},
+  {d:3, subject:"Reading", title:"Read about the Start Menu and taskbar — what problem were they designed to solve?", xp:10, standard:"Reading strands"},
+  {d:3, subject:"Independent", title:"Write the \"Getting Started\" section of your Windows 95 User Guide.", xp:20},
+  {d:3, subject:"Science", title:"Why do old hard drives fail more in humid basements? Read about heat/humidity and electronics.", xp:10, standard:"S4E3/S4E4"},
+
+  {d:4, subject:"ELA", title:"Show & Teach: Teach a family member how to use Windows 95, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:4, subject:"Math", title:"Review: redo one problem from this week that was tricky, and explain your fix.", xp:10, standard:"4.NR.1/4.NR.2"},
+  {d:4, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
+  {d:4, subject:"Independent", title:"Finish and save your Windows 95 User Guide as a PDF or doc in your project folder.", xp:25},
+  {d:4, subject:"Social Studies", title:"Budget it: pretend you're buying a retro PC to run Windows 95 in 1995. Budget $1,500 across a monitor, tower, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+
+  /* ===== Week 2 — Windows 98 (released June 25, 1998) ===== */
+  {d:5, subject:"ELA", title:"Journal Day 6: What do you already know about Windows 98? Predict 3 differences from Windows 95.", xp:10, standard:"Writing strands"},
+  {d:5, subject:"Math", title:"RAM math: Windows 98 recommends 16MB RAM. Convert 16MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2"},
+  {d:5, subject:"Reading", title:"Read the Windows 98 section of \"History of Microsoft Windows\" — note 3 facts.", xp:10, standard:"Reading strands"},
+  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"VirtualBox (free) + a Windows 98 ISO from an archive/abandonware site of your choosing"},
+  {d:5, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H2"},
+
+  {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
+  {d:6, subject:"Math", title:"Timeline math: Windows 98 came 3 years after Windows 95 (1995). How many years ago was 1998 from this year?", xp:15, standard:"4.MDR.6"},
+  {d:6, subject:"Reading", title:"Read about USB — what problem did it solve compared to older cables and ports?", xp:10, standard:"Reading strands"},
+  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20},
+  {d:6, subject:"Science", title:"Late-90s PCs added bigger cooling fans. Read about how fans move air (forces & motion).", xp:10, standard:"S4P3"},
+
+  {d:7, subject:"ELA", title:"Journal Day 8: Draft the intro paragraph of your Windows 98 User Guide.", xp:10, standard:"Writing strands"},
+  {d:7, subject:"Math", title:"Fractions/decimals: a 650MB CD is what fraction of a 1.44MB floppy's capacity? Write as a fraction and a decimal.", xp:15, standard:"4.NR.4/4.NR.5"},
+  {d:7, subject:"Reading", title:"Open Windows 98's built-in Help — read one topic and summarize it.", xp:10, standard:"Reading strands"},
+  {d:7, subject:"Independent", title:"Explore 3 built-in Windows 98 apps (Internet Explorer, Device Manager, Windows Update) and screenshot each.", xp:20},
+  {d:7, subject:"Social Studies", title:"Map it: trace how a Windows 98 CD might travel from a factory to a store near you — what geography is involved?", xp:10, standard:"SS4G1/SS4G2"},
+
+  {d:8, subject:"ELA", title:"Journal Day 9: Write the \"installing a USB device\" section of your User Guide.", xp:10, standard:"Writing strands"},
+  {d:8, subject:"Math", title:"Patterns: USB and COM ports are numbered. List the first 8 powers of 2 again and compare to last week — what's the pattern?", xp:15, standard:"4.PAR.3"},
+  {d:8, subject:"Reading", title:"Read about Windows Update — what was new about software fixing itself over the internet?", xp:10, standard:"Reading strands"},
+  {d:8, subject:"Independent", title:"Write the \"Troubleshooting\" section of your Windows 98 User Guide.", xp:20},
+  {d:8, subject:"Science", title:"The Windows 95 startup sound was composed by musician Brian Eno. Read about how sound (WAV files) stores vibration as data.", xp:10, standard:"S4P1/S4P2"},
+
+  {d:9, subject:"ELA", title:"Show & Teach: Teach a family member one Windows 98 feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:9, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5"},
+  {d:9, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
+  {d:9, subject:"Independent", title:"Finish and save your Windows 98 User Guide.", xp:25},
+  {d:9, subject:"Social Studies", title:"Budget it: prices dropped since 1995. Budget $1,200 for a 1998-era PC across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+
+  /* ===== Week 3 — Windows XP (released Oct 25, 2001) ===== */
+  {d:10, subject:"ELA", title:"Journal Day 11: What do you already know about Windows XP? Predict 3 differences from Windows 98.", xp:10, standard:"Writing strands"},
+  {d:10, subject:"Math", title:"RAM math: Windows XP recommends 128MB RAM. Convert 128MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2"},
+  {d:10, subject:"Reading", title:"Read the Windows XP section of \"History of Microsoft Windows\" — note 3 facts.", xp:10, standard:"Reading strands"},
+  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"VirtualBox (free) + a Windows XP ISO from an archive/abandonware site of your choosing"},
+  {d:10, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H3"},
+
+  {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
+  {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6"},
+  {d:11, subject:"Reading", title:"Read about why XP was built on the \"NT kernel\" instead of DOS like 95/98 — what does more stable mean?", xp:10, standard:"Reading strands"},
+  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20},
+  {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2"},
+
+  {d:12, subject:"ELA", title:"Journal Day 13: Draft the intro paragraph of your Windows XP User Guide.", xp:10, standard:"Writing strands"},
+  {d:12, subject:"Math", title:"Fractions/decimals: a 700MB CD is what fraction of a 4.7GB DVD (XP-era media)? Write as a fraction and a decimal.", xp:15, standard:"4.NR.4/4.NR.5"},
+  {d:12, subject:"Reading", title:"Open XP's built-in Help and Support Center — read one topic and summarize it.", xp:10, standard:"Reading strands"},
+  {d:12, subject:"Independent", title:"Explore 3 built-in XP apps (Windows Media Player, Paint, Solitaire) and screenshot each.", xp:20},
+  {d:12, subject:"Social Studies", title:"Map it: XP shipped in over 25 languages worldwide. Pick 2 countries it launched in and find them on a map.", xp:10, standard:"SS4G1/SS4G2"},
+
+  {d:13, subject:"ELA", title:"Journal Day 14: Write the \"Control Panel basics\" section of your User Guide.", xp:10, standard:"Writing strands"},
+  {d:13, subject:"Math", title:"Patterns: XP supported drives up to 137GB with normal formatting. How many MB is that? Show your place-value work.", xp:15, standard:"4.PAR.3"},
+  {d:13, subject:"Reading", title:"Read about the \"Blue Screen of Death\" in early Windows — what was it, and why did XP have fewer of them?", xp:10, standard:"Reading strands"},
+  {d:13, subject:"Independent", title:"Write the \"Troubleshooting\" section of your Windows XP User Guide.", xp:20},
+  {d:13, subject:"Science", title:"XP-era PCs used bigger cooling fans. Read about how fans move air to cool electronics (forces & motion).", xp:10, standard:"S4P3"},
+
+  {d:14, subject:"ELA", title:"Show & Teach: Teach a family member one XP feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:14, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5"},
+  {d:14, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
+  {d:14, subject:"Independent", title:"Finish and save your Windows XP User Guide.", xp:25},
+  {d:14, subject:"Social Studies", title:"Budget it: XP-era PCs cost more than today's. Budget $1,000 across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+
+  /* ===== Week 4 — Windows 7 (released Oct 22, 2009) + Museum Night ===== */
+  {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
+  {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2"},
+  {d:15, subject:"Reading", title:"Read the Windows 7 section of \"History of Microsoft Windows\" — note 3 facts.", xp:10, standard:"Reading strands"},
+  {d:15, subject:"Independent", title:"Set up VirtualBox and start installing Windows 7 from your ISO.", xp:20, materials:"VirtualBox (free) + a Windows 7 ISO from an archive/abandonware site of your choosing"},
+  {d:15, subject:"Social Studies", title:"US History reading (next era) — pick a chapter from your history book/library.", xp:10, standard:"SS4H4"},
+
+  {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
+  {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6"},
+  {d:16, subject:"Reading", title:"Read about why Windows 7 was seen as fixing problems from Windows Vista — what does a \"follow-up release\" mean?", xp:10, standard:"Reading strands"},
+  {d:16, subject:"Independent", title:"Finish the Windows 7 install; screenshot the Aero Glass desktop for your guide.", xp:20},
+  {d:16, subject:"Science", title:"Windows 7's taskbar previews use tiny live thumbnails. Read about how monitors use light (pixels) to show moving images.", xp:10, standard:"S4P1/S4P2"},
+
+  {d:17, subject:"ELA", title:"Journal Day 18: Draft the intro paragraph of your Windows 7 User Guide.", xp:10, standard:"Writing strands"},
+  {d:17, subject:"Math", title:"Fractions/decimals: a 4.7GB DVD is what fraction of a 25GB Blu-ray (Windows 7-era media)? Write as a fraction and a decimal.", xp:15, standard:"4.NR.4/4.NR.5"},
+  {d:17, subject:"Reading", title:"Open Windows 7's Help and Support — read one topic and summarize it.", xp:10, standard:"Reading strands"},
+  {d:17, subject:"Independent", title:"Explore 3 built-in Windows 7 apps (Snipping Tool, Calculator, Paint) and screenshot each.", xp:20},
+  {d:17, subject:"Social Studies", title:"Map it: Windows 7 launched in 14 cities worldwide the same week. Pick 2 and find them on a map — how far apart are they?", xp:10, standard:"SS4G1/SS4G2"},
+
+  {d:18, subject:"ELA", title:"Journal Day 19: Write the \"Taskbar & Jump Lists\" section of your User Guide.", xp:10, standard:"Writing strands"},
+  {d:18, subject:"Math", title:"Patterns: Windows 7 came in 32-bit and 64-bit versions (2^32 vs 2^64). List the first 10 powers of 2 — what's the pattern doubling each time?", xp:15, standard:"4.PAR.3"},
+  {d:18, subject:"Reading", title:"Read about why 64-bit computing could use more RAM than 32-bit — what does \"bit\" mean here?", xp:10, standard:"Reading strands"},
+  {d:18, subject:"Independent", title:"Write the \"What's New\" section comparing Windows 7 to XP in your User Guide.", xp:20},
+  {d:18, subject:"Science", title:"Windows 7-era gaming PCs needed better cooling. Read about heat, airflow, and simple machines like fans.", xp:10, standard:"S4P3"},
+
+  {d:19, subject:"ELA", title:"Museum Night: Present all 4 of your User Guides (95, 98, XP, 7) to your family like a museum tour guide. Write a reflection: which OS was your favorite to document, and why?", xp:25, standard:"Writing strands"},
+  {d:19, subject:"Math", title:"Museum Night Review: Make a timeline poster showing all 4 release years (1995, 1998, 2001, 2009) with the years between each.", xp:20, standard:"4.MDR.6"},
+  {d:19, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
+  {d:19, subject:"Independent", title:"Finish and save your Windows 7 User Guide — you now have a full 4-OS Retro Museum collection!", xp:25},
+  {d:19, subject:"Social Studies", title:"Budget it: if you could buy all 4 retro PCs (95/98/XP/7 era) today from a collector, budget $2,000 across all 4 — show your math and reasoning.", xp:20, standard:"SS4E1/SS4E2"}
+];
 
 function questionForm(){
   var wrap = document.createElement("div");
