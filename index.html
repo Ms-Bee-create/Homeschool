@@ -2274,6 +2274,43 @@ function collection(coll){
 }
 db = { doc: doc, collection: collection };
 window.db = db;
+/* Read-only: prints (via console.table) each curriculum assignment's stored date next to what
+   date it "should" be if the 5-day Mon-Fri cadence were followed exactly from the Day-0 lesson's
+   own actual date — and flags any that landed on a real Saturday/Sunday. Does not change anything;
+   run this first to see how far a schedule has drifted before deciding whether/how to fix it. */
+function diagnoseScheduleDates(kidId){
+  var byTitle = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){ byTitle[item.title] = item.d; });
+  var rows = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var d = byTitle[a.title];
+    if(d==null) return;
+    rows.push({id:id, d:d, subject:a.subject, title:a.title, date:a.date, done:a.done});
+  });
+  rows.sort(function(x,y){ return x.d-y.d; });
+  var anchorRow = rows.filter(function(r){ return r.d===0; })[0];
+  if(!anchorRow){ console.log("diagnoseScheduleDates: couldn't find a Day 0 assignment to anchor from."); return []; }
+  var anchorDate = new Date(anchorRow.date+"T00:00:00");
+  var out = rows.map(function(r){
+    var week = Math.floor(r.d/5), weekday = r.d%5;
+    var expected = new Date(anchorDate);
+    expected.setDate(expected.getDate() + week*7 + weekday);
+    var expectedISO = isoDate(expected);
+    var dow = expected.getDay();
+    return {
+      day: r.d, subject: r.subject, title: r.title.length>55 ? r.title.slice(0,55)+"…" : r.title,
+      storedDate: r.date, expectedFromDay0: expectedISO,
+      mismatch: r.date!==expectedISO,
+      fallsOnWeekend: (dow===0||dow===6),
+      done: r.done
+    };
+  });
+  console.table(out);
+  return out;
+}
+
 /* Patches already-imported Math assignments (matched by exact title) with the new mathSkill/practice
    fields added to CURRICULUM_RETRO_OS_MONTH1 after the original import already ran — run once from
    the console so existing lessons pick up the field guide + extra practice problems too. */
@@ -2318,11 +2355,13 @@ function seedArenaQuestions(kidId){
    removeDuplicateAssignments(state.activeKid)   — cleans up accidental double-imports
    resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe
    patchMathLessons(state.activeKid)             — adds the math field guide + extra practice to already-imported lessons
-   seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject */
+   seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject
+   diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
+window.diagnoseScheduleDates = diagnoseScheduleDates;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
