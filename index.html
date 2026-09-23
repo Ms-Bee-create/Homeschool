@@ -545,6 +545,7 @@ function renderWeek(){
   libTitle.textContent = "Curriculum Library";
   els.view.appendChild(libTitle);
   els.view.appendChild(curriculumLibraryCard());
+  els.view.appendChild(microbitCurriculumCard());
   els.view.appendChild(mathFieldGuideCard());
   els.view.appendChild(leaderGuideCard());
 
@@ -832,6 +833,39 @@ function curriculumLibraryCard(){
     '</div><div class="task-xp">▶</div>';
   head.style.cursor = "pointer";
   head.onclick = function(){ importCurriculumSet(CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
+  wrap.appendChild(head);
+  return wrap;
+}
+
+/* micro:bit Coding — Month 1: a lighter, 2-sessions-a-week supplemental track (Mon/Wed) that runs
+   alongside whatever else is scheduled, alternating projects between the Retro Arcade kit and the
+   Robot Build kit. Runs entirely in the browser (Microsoft MakeCode) — no VM/install needed. */
+var CURRICULUM_MICROBIT_CODING = [
+  {d:0, subject:"Related Arts", title:"Meet MakeCode & your micro:bit: open makecode.microbit.org, plug in your micro:bit, and make your name scroll across the LED screen.", xp:15, materials:"https://makecode.microbit.org/"},
+  {d:2, subject:"Related Arts", title:"Robot Build kit: unbox it and sketch a diagram labeling the micro:bit, motors, and any sensors you can find.", xp:15, materials:"https://wiki.elecfreaks.com/"},
+
+  {d:5, subject:"Related Arts", title:"Retro Arcade kit: build a simple reaction game — use MakeCode blocks so a button press moves a dot on the tiny screen.", xp:15, materials:"https://makecode.microbit.org/"},
+  {d:7, subject:"Related Arts", title:"Robot Build kit: assemble the wheeled robot base and write a MakeCode program that drives it forward for 2 seconds.", xp:15, materials:"https://wiki.elecfreaks.com/"},
+
+  {d:10, subject:"Related Arts", title:"Retro Arcade kit: add sound and scoring to your reaction game — increase a score variable and play a tone when the dot is hit.", xp:15, materials:"https://makecode.microbit.org/"},
+  {d:12, subject:"Related Arts", title:"Robot Build kit: program obstacle-avoidance — use the kit's sensor so the robot stops or turns when something gets close.", xp:15, materials:"https://wiki.elecfreaks.com/"},
+
+  {d:15, subject:"Related Arts", title:"Retro Arcade kit: polish your game with a \"Game Over\" screen and a restart button, then demo it to family.", xp:20, materials:"https://makecode.microbit.org/"},
+  {d:17, subject:"Related Arts", title:"Robot Build kit: combine driving and sensing into a short \"robot patrol\" routine, demo it, and describe what you'd add next.", xp:20, materials:"https://wiki.elecfreaks.com/"}
+];
+
+function microbitCurriculumCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var head = document.createElement("div");
+  head.className = "task";
+  head.innerHTML =
+    '<div class="task-body">'+
+      '<div class="task-title">🤖 micro:bit Coding — Month 1</div>'+
+      '<div class="task-sub">4 weeks &middot; 2 sessions/week (Mon &amp; Wed) &middot; alternates Retro Arcade kit &amp; Robot Build kit &middot; '+CURRICULUM_MICROBIT_CODING.length+' assignments</div>'+
+    '</div><div class="task-xp">▶</div>';
+  head.style.cursor = "pointer";
+  head.onclick = function(){ importCurriculumSet(CURRICULUM_MICROBIT_CODING, "micro:bit Coding — Month 1"); };
   wrap.appendChild(head);
   return wrap;
 }
