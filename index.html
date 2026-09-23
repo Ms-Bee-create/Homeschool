@@ -434,8 +434,11 @@ function toggleAssignment(a){
   }
   var lvl = willDone ? levelUpBonus(oldXp, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
   if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+  Object.assign(kd, updates);
+  state.kids[a.kidId] = kd;
   db.doc("kids/"+a.kidId).update(updates);
   if(willDone) toast("+"+a.xp+" XP! Nice work 🎉");
+  if(a.kidId===state.activeKid) renderXpBar();
   if(lvl.gained>0){
     logLevelUpReward(a.kidId, lvl);
   }
@@ -1957,6 +1960,8 @@ function grantXP(kidId, amount){
   var lvl = levelUpBonus(oldXp, newXp);
   var updates = {xp:newXp};
   if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0)+lvl.bonus;
+  Object.assign(kd, updates);
+  state.kids[kidId] = kd;
   db.doc("kids/"+kidId).update(updates);
   if(kidId===state.activeKid) renderXpBar();
   if(lvl.gained>0) logLevelUpReward(kidId, lvl);
@@ -1965,7 +1970,10 @@ function grantXP(kidId, amount){
 function grantMommaMoney(kidId, amount){
   if(!db || amount<=0) return;
   var kd = kidData(kidId);
-  db.doc("kids/"+kidId).update({mommaMoney: (kd.mommaMoney||0)+amount});
+  var newMoney = (kd.mommaMoney||0)+amount;
+  kd.mommaMoney = newMoney;
+  state.kids[kidId] = kd;
+  db.doc("kids/"+kidId).update({mommaMoney: newMoney});
   if(kidId===state.activeKid) renderXpBar();
 }
 
@@ -2408,6 +2416,8 @@ function answerQuiz(choiceIdx){
         var lvl = levelUpBonus(oldXp, newXp);
         var updates = {xp: newXp};
         if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+        Object.assign(kd, updates);
+        state.kids[state.activeKid] = kd;
         db.doc("kids/"+state.activeKid).update(updates);
         if(lvl.gained>0){ logLevelUpReward(state.activeKid, lvl); }
       }
