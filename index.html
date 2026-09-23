@@ -210,6 +210,7 @@ button{font:inherit;cursor:pointer}
     <button class="tab" data-tab="week">Week</button>
     <button class="tab" data-tab="progress">Quest Log</button>
     <button class="tab" data-tab="arena">Arena</button>
+    <button class="tab" data-tab="leader">Leader</button>
   </div>
 
   <div id="view"></div>
@@ -349,6 +350,7 @@ function renderView(){
   if(state.tab==="week") return renderWeek();
   if(state.tab==="progress") return renderProgress();
   if(state.tab==="arena") return renderArena();
+  if(state.tab==="leader") return renderLeaderArea();
 }
 
 /* ---------- helpers ---------- */
@@ -394,7 +396,8 @@ function taskRow(a){
       '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+'</div>'+
       '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+
         (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
-        (a.submission ? ' &nbsp;<span class="chip" style="background:var(--teal-soft);color:var(--teal)">📝 work saved</span>' : '')+
+        (hasWork(a) ? ' &nbsp;<span class="chip" style="background:var(--teal-soft);color:var(--teal)">📝 work saved</span>' : '')+
+        (a.reviewStatus==="flagged" ? ' &nbsp;<span class="chip" style="background:var(--coral-soft);color:var(--coral)">🚩 needs another look</span>' : '')+
       '</div>'+
       (a.materials ? '<div class="task-sub" style="margin-top:3px">'+materialsLinkHtml(a.materials)+'</div>' : '')+
       (a.video ? '<div class="task-sub" style="margin-top:3px">'+videoLinkHtml(a.video)+'</div>' : '')+
@@ -1048,6 +1051,21 @@ function renderMathGuide(){
   els.view.appendChild(backBtn);
 }
 
+/* work blocks: an ordered list of {type:"text", text} / {type:"image", url} entries,
+   letting a kid interleave typed notes and pictures like a simple word doc.
+   Falls back to migrating the older single submission/screenshot fields on first open. */
+function normalizeBlocks(a){
+  if(Array.isArray(a.workBlocks) && a.workBlocks.length) return a.workBlocks.slice();
+  var out = [];
+  if(a.submission) out.push({type:"text", text:a.submission});
+  if(a.screenshotUrl) out.push({type:"image", url:a.screenshotUrl});
+  if(out.length===0) out.push({type:"text", text:""});
+  return out;
+}
+function hasWork(a){
+  return !!((a.workBlocks && a.workBlocks.some(function(b){ return (b.type==="text" && b.text) || (b.type==="image" && b.url); })) || a.submission || a.screenshotUrl);
+}
+
 function youtubeEmbedUrl(url){
   var m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
   return m ? "https://www.youtube.com/embed/"+m[1] : null;
@@ -1088,7 +1106,11 @@ function renderLessonDetail(){
 
   var materialsHtml = a.materials ? '<div style="margin-bottom:14px">'+materialsLinkHtml(a.materials)+'</div>' : '';
 
-  card.innerHTML = headHtml + videoHtml + materialsHtml;
+  var flagHtml = a.reviewStatus==="flagged"
+    ? '<div id="flagBanner" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:var(--coral-soft);color:var(--coral);font-weight:600;font-size:13.5px">🚩 Your leader flagged this — please take another look'+(a.reviewNote?': '+escapeHtml(a.reviewNote):'.')+'</div>'
+    : '<div id="flagBanner"></div>';
+
+  card.innerHTML = headHtml + videoHtml + materialsHtml + flagHtml;
 
   var workLabel = document.createElement("div");
   workLabel.className = "section-title";
@@ -1096,12 +1118,13 @@ function renderLessonDetail(){
   workLabel.textContent = "My Work";
   card.appendChild(workLabel);
 
-  var workBox = document.createElement("textarea");
-  workBox.value = a.submission || "";
-  workBox.placeholder = "Type your answer, notes, or work here...";
-  workBox.rows = 6;
-  workBox.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
-  card.appendChild(workBox);
+  var blocks = normalizeBlocks(a);
+  var blocksWrap = document.createElement("div");
+  card.appendChild(blocksWrap);
+
+  var toolbarWrap = document.createElement("div");
+  toolbarWrap.style.cssText = "display:flex;gap:8px;margin-top:8px";
+  card.appendChild(toolbarWrap);
 
   var savedNote = document.createElement("div");
   savedNote.className = "muted";
@@ -1109,14 +1132,80 @@ function renderLessonDetail(){
   savedNote.textContent = a.submittedAt ? "Last saved "+new Date(a.submittedAt).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
   card.appendChild(savedNote);
 
+  function renderBlocks(){
+    blocksWrap.innerHTML = "";
+    blocks.forEach(function(block, i){
+      var row = document.createElement("div");
+      row.style.cssText = "position:relative;margin-bottom:10px";
+      if(block.type==="text"){
+        var ta = document.createElement("textarea");
+        ta.value = block.text || "";
+        ta.placeholder = "Type your answer, notes, or steps here...";
+        ta.rows = 4;
+        ta.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 34px 10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
+        ta.oninput = function(){ block.text = ta.value; };
+        row.appendChild(ta);
+      } else if(block.type==="image"){
+        var img = document.createElement("img");
+        img.src = block.url;
+        img.style.cssText = "max-width:100%;max-height:280px;border-radius:10px;border:1px solid var(--border);display:block";
+        row.appendChild(img);
+      }
+      var rmBtn = document.createElement("button");
+      rmBtn.type = "button";
+      rmBtn.textContent = "✕";
+      rmBtn.title = "Remove";
+      rmBtn.style.cssText = "position:absolute;top:6px;right:6px;background:var(--card);border:1px solid var(--border);border-radius:50%;width:24px;height:24px;line-height:1;color:var(--text-dim)";
+      rmBtn.onclick = function(){ blocks.splice(i,1); if(blocks.length===0) blocks.push({type:"text", text:""}); renderBlocks(); };
+      row.appendChild(rmBtn);
+      blocksWrap.appendChild(row);
+    });
+  }
+  renderBlocks();
+
+  var addTextBtn = document.createElement("button");
+  addTextBtn.type = "button";
+  addTextBtn.className = "reward-skip";
+  addTextBtn.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border)";
+  addTextBtn.textContent = "✏️ Add text";
+  addTextBtn.onclick = function(){ blocks.push({type:"text", text:""}); renderBlocks(); };
+  toolbarWrap.appendChild(addTextBtn);
+
+  var addPicLabel = document.createElement("label");
+  addPicLabel.className = "reward-skip";
+  addPicLabel.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border);text-align:center;cursor:pointer";
+  addPicLabel.textContent = "📸 Add picture";
+  var picInput = document.createElement("input");
+  picInput.type = "file";
+  picInput.accept = "image/*";
+  picInput.style.display = "none";
+  picInput.onchange = function(){
+    var file = picInput.files[0];
+    if(!file || !db) return;
+    var path = HOUSEHOLD_ID+"/"+a.id+"/"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+    addPicLabel.textContent = "Uploading...";
+    sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
+      addPicLabel.textContent = "📸 Add picture";
+      if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+      var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
+      blocks.push({type:"image", url: url});
+      renderBlocks();
+      picInput.value = "";
+    });
+  };
+  addPicLabel.appendChild(picInput);
+  toolbarWrap.appendChild(addPicLabel);
+
   els.view.appendChild(card);
 
   function saveWork(){
     if(!db) return;
-    var text = workBox.value;
     var now = new Date().toISOString();
-    if(state.assignments[a.id]){ state.assignments[a.id].submission = text; state.assignments[a.id].submittedAt = now; }
-    db.doc("assignments/"+a.id).update({submission: text, submittedAt: now});
+    var updates = {workBlocks: blocks, submittedAt: now};
+    if(a.reviewStatus==="flagged"){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
+    a.workBlocks = blocks;
+    if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {workBlocks: blocks, submittedAt: now, reviewStatus: a.reviewStatus, reviewNote: a.reviewNote});
+    db.doc("assignments/"+a.id).update(updates);
     savedNote.textContent = "Saved just now";
   }
 
@@ -1133,6 +1222,105 @@ function renderLessonDetail(){
   doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Turn it in";
   doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
   els.view.appendChild(doneBtn);
+}
+
+function renderLeaderArea(){
+  els.view.innerHTML = "";
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Leader's Review Queue";
+  els.view.appendChild(title);
+
+  var intro = document.createElement("p");
+  intro.className = "muted";
+  intro.style.cssText = "font-size:13px;margin:2px 0 14px";
+  intro.textContent = "Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing.";
+  els.view.appendChild(intro);
+
+  var all = [];
+  KIDS.forEach(function(k){
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId!==k.id) return;
+      if(!hasWork(a)) return;
+      all.push(Object.assign({id:id, kidName: kidData(k.id).name}, a));
+    });
+  });
+  all.sort(function(x,y){
+    var xp = x.reviewStatus==="approved"?1:0, yp = y.reviewStatus==="approved"?1:0;
+    return xp-yp || (y.submittedAt||"").localeCompare(x.submittedAt||"");
+  });
+
+  if(all.length===0){
+    var empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.cssText = "text-align:center;padding:30px 0";
+    empty.textContent = "No submitted work yet.";
+    els.view.appendChild(empty);
+    return;
+  }
+
+  all.forEach(function(a){
+    var card = document.createElement("div");
+    card.className = "qz-card";
+    card.style.marginBottom = "14px";
+    var statusChip = a.reviewStatus==="approved"
+      ? '<span class="chip" style="background:var(--success-soft);color:var(--success)">✅ approved</span>'
+      : a.reviewStatus==="flagged"
+        ? '<span class="chip" style="background:var(--coral-soft);color:var(--coral)">🚩 flagged</span>'
+        : '<span class="chip" style="background:var(--gold-soft);color:var(--gold)">⏳ needs review</span>';
+    var headHtml =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
+        '<div>'+subjectChip(a.subject)+' <span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.kidName)+'</span></div>'+
+        statusChip+
+      '</div>'+
+      '<p class="qz-q" style="font-size:16px;margin-bottom:10px">'+escapeHtml(a.title)+'</p>';
+    var subHtml = '<div class="section-title" style="margin:6px 0 4px">Their work</div>';
+    normalizeBlocks(a).forEach(function(block){
+      if(block.type==="text" && block.text){
+        subHtml += '<div style="white-space:pre-wrap;font-size:13.5px;padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--border);margin-bottom:10px">'+escapeHtml(block.text)+'</div>';
+      } else if(block.type==="image" && block.url){
+        subHtml += '<a href="'+escapeHtml(block.url)+'" target="_blank" rel="noopener"><img src="'+escapeHtml(block.url)+'" style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);display:block;margin-bottom:10px"></a>';
+      }
+    });
+    if(a.reviewStatus==="flagged" && a.reviewNote){
+      subHtml += '<div class="muted" style="font-size:12.5px;margin-bottom:10px">Your note: '+escapeHtml(a.reviewNote)+'</div>';
+    }
+    card.innerHTML = headHtml + subHtml;
+
+    var btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;gap:8px;margin-top:6px";
+
+    var approveBtn = document.createElement("button");
+    approveBtn.className = "primary-btn";
+    approveBtn.style.flex = "1";
+    approveBtn.textContent = "✅ Approve";
+    approveBtn.onclick = function(){
+      if(!db) return;
+      if(!a.done){ toggleAssignment(a); }
+      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {reviewStatus:"approved", reviewNote:null});
+      db.doc("assignments/"+a.id).update({reviewStatus:"approved", reviewNote:null});
+      renderLeaderArea();
+    };
+    btnRow.appendChild(approveBtn);
+
+    var flagBtn = document.createElement("button");
+    flagBtn.className = "reward-skip";
+    flagBtn.style.cssText = "flex:1;color:var(--coral);opacity:1;font-weight:700;border:1px solid var(--coral)";
+    flagBtn.textContent = "🚩 Flag for revision";
+    flagBtn.onclick = function(){
+      var note = window.prompt("What should they fix or double-check?", a.reviewNote||"");
+      if(note===null) return;
+      if(!db) return;
+      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {reviewStatus:"flagged", reviewNote:note, done:false, doneAt:null});
+      db.doc("assignments/"+a.id).update({reviewStatus:"flagged", reviewNote:note, done:false, doneAt:null});
+      renderLeaderArea();
+    };
+    btnRow.appendChild(flagBtn);
+
+    card.appendChild(btnRow);
+    els.view.appendChild(card);
+  });
 }
 
 function importCurriculumSet(items, label){
@@ -1844,7 +2032,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" }
