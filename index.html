@@ -368,6 +368,14 @@ function materialsLinkHtml(materials){
   return '📎 '+escapeHtml(m);
 }
 
+function videoLinkHtml(video){
+  var v = video.trim();
+  if(/^https?:\/\//i.test(v)){
+    return '<a href="'+escapeHtml(v)+'" target="_blank" rel="noopener" style="color:var(--coral);font-weight:700;text-decoration:none">🎥 Watch video</a>';
+  }
+  return '🎥 '+escapeHtml(v);
+}
+
 function taskRow(a){
   var row = document.createElement("div");
   row.className = "task";
@@ -379,6 +387,7 @@ function taskRow(a){
         (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
       '</div>'+
       (a.materials ? '<div class="task-sub" style="margin-top:3px">'+materialsLinkHtml(a.materials)+'</div>' : '')+
+      (a.video ? '<div class="task-sub" style="margin-top:3px">'+videoLinkHtml(a.video)+'</div>' : '')+
     '</div>'+
     '<div class="task-xp">+'+a.xp+' XP</div>'+
     '<button class="del" title="Remove">✕</button>';
@@ -486,6 +495,7 @@ function addForm(kidId, defaultDate){
       '<input class="af-title" placeholder="Assignment (e.g. U4 L6: Multiply by 2-digit numbers)" maxlength="100">'+
       '<input class="af-xp" type="number" min="5" max="50" step="5" value="10" style="max-width:64px">'+
       '<input class="af-materials" placeholder="Materials link or note (optional)" maxlength="300">'+
+      '<input class="af-video" placeholder="Video link (optional)" maxlength="300">'+
       '<input class="af-standard" placeholder="Standard e.g. 4.NR.1 (optional)" maxlength="40" style="max-width:160px">'+
       '<button class="af-add">Add</button>'+
     '</div>';
@@ -495,14 +505,15 @@ function addForm(kidId, defaultDate){
     var dateVal = wrap.querySelector(".af-date").value || todayISO();
     if(!t || !db) return;
     var materialsEl = wrap.querySelector(".af-materials");
+    var videoEl = wrap.querySelector(".af-video");
     var standardEl = wrap.querySelector(".af-standard");
     db.collection("assignments").add({
       kidId: kidId, date: dateVal, subject: wrap.querySelector(".af-subject").value,
       title: t, xp: Number(wrap.querySelector(".af-xp").value)||10, done:false, doneAt:null,
-      materials: materialsEl.value.trim() || null, standard: standardEl.value.trim() || null,
+      materials: materialsEl.value.trim() || null, video: videoEl.value.trim() || null, standard: standardEl.value.trim() || null,
       createdAt: new Date().toISOString()
     });
-    titleEl.value = ""; materialsEl.value = ""; standardEl.value = "";
+    titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = "";
   };
   return wrap;
 }
@@ -804,13 +815,6 @@ function curriculumLibraryCard(){
   head.style.cursor = "pointer";
   head.onclick = function(){ importCurriculumSet(CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
   wrap.appendChild(head);
-
-  var resetBtn = document.createElement("button");
-  resetBtn.className = "reward-skip";
-  resetBtn.style.cssText = "color:var(--coral);opacity:1;display:block;margin:2px auto 12px;font-size:11.5px";
-  resetBtn.textContent = "🧹 Clear old data & apply Ryan's new schedule (keeps Retro OS Museum)";
-  resetBtn.onclick = function(){ resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
-  wrap.appendChild(resetBtn);
   return wrap;
 }
 
@@ -818,25 +822,60 @@ function importCurriculumSet(items, label){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var kidId = state.activeKid;
   var kidName = kidData(kidId).name;
-  var defaultStart = nextMondayISO();
-  var startStr = window.prompt('Start "'+label+'" for '+kidName+' on which Monday? (YYYY-MM-DD)', defaultStart);
-  if(!startStr) return;
-  var startDate = new Date(startStr+"T00:00:00");
-  if(isNaN(startDate.getTime())){ toast("Couldn't read that date — try YYYY-MM-DD"); return; }
-  var ok = window.confirm('This adds '+items.length+' new assignments for '+kidName+', starting '+fmtDate(startStr)+'. Continue?');
-  if(!ok) return;
-  items.forEach(function(item){
-    var week = Math.floor(item.d/5), weekday = item.d%5;
-    var d = new Date(startDate);
-    d.setDate(d.getDate() + week*7 + weekday);
-    db.collection("assignments").add({
-      kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
-      xp: item.xp, done:false, doneAt:null,
-      materials: item.materials||null, standard: item.standard||null,
-      createdAt: new Date().toISOString()
+  var itemTitles = items.map(function(i){ return i.title; });
+  sb.from("al_assignments").select("title").eq("kid_id", kidId).then(function(res){
+    var existingTitles = (res.data||[]).map(function(r){ return r.title; });
+    var alreadyHave = itemTitles.filter(function(t){ return existingTitles.indexOf(t)!==-1; }).length;
+    if(alreadyHave>0){
+      var proceed = window.confirm(kidName+' already has '+alreadyHave+' of these '+items.length+' assignments (looks like "'+label+'" was already imported). Importing again will create duplicates — continue anyway?');
+      if(!proceed) return;
+    }
+    var defaultStart = nextMondayISO();
+    var startStr = window.prompt('Start "'+label+'" for '+kidName+' on which Monday? (YYYY-MM-DD)', defaultStart);
+    if(!startStr) return;
+    var startDate = new Date(startStr+"T00:00:00");
+    if(isNaN(startDate.getTime())){ toast("Couldn't read that date — try YYYY-MM-DD"); return; }
+    var ok = window.confirm('This adds '+items.length+' new assignments for '+kidName+', starting '+fmtDate(startStr)+'. Continue?');
+    if(!ok) return;
+    items.forEach(function(item){
+      var week = Math.floor(item.d/5), weekday = item.d%5;
+      var d = new Date(startDate);
+      d.setDate(d.getDate() + week*7 + weekday);
+      db.collection("assignments").add({
+        kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
+        xp: item.xp, done:false, doneAt:null,
+        materials: item.materials||null, video: item.video||null, standard: item.standard||null,
+        createdAt: new Date().toISOString()
+      });
     });
-  });
-  toast("📦 "+label+" added to "+kidName+"'s Week!");
+    toast("📦 "+label+" added to "+kidName+"'s Week!");
+  }).catch(function(err){ console.error(err); toast("⚠️ Couldn't check existing data — try again"); });
+}
+
+function removeDuplicateAssignments(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var kidName = kidData(kidId).name;
+  sb.from("al_assignments").select("id,date,title,created_at").eq("kid_id", kidId).then(function(res){
+    var rows = res.data || [];
+    var groups = {};
+    rows.forEach(function(r){
+      var key = r.date+"::"+r.title;
+      (groups[key] = groups[key]||[]).push(r);
+    });
+    var toDelete = [];
+    Object.keys(groups).forEach(function(key){
+      var g = groups[key];
+      if(g.length<2) return;
+      g.sort(function(a,b){ return (a.created_at||"").localeCompare(b.created_at||""); });
+      toDelete = toDelete.concat(g.slice(1)); // keep the earliest, delete the rest
+    });
+    if(!toDelete.length){ toast(kidName+" has no duplicate assignments — nothing to clean up!"); return; }
+    var ok = window.confirm('Found '+toDelete.length+' duplicate assignment(s) for '+kidName+' (same date + title). Remove the extras and keep one of each? This can\'t be undone.');
+    if(!ok) return;
+    Promise.all(toDelete.map(function(r){ return sb.from("al_assignments").delete().eq("id", r.id); }))
+      .then(function(){ toast("🧹 Removed "+toDelete.length+" duplicate(s) for "+kidName+"!"); syncSoon(); })
+      .catch(function(err){ console.error(err); toast("⚠️ Cleanup failed — check your connection and try again"); });
+  }).catch(function(err){ console.error(err); toast("⚠️ Couldn't check existing data — try again"); });
 }
 
 function nextMondayISO(){
@@ -908,7 +947,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6"},
   {d:1, subject:"Reading", title:"Read a short bio excerpt on Bill Gates or Paul Allen — note 2 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Bill_Gates"},
   {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20},
-  {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144"},
+  {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:2, subject:"ELA", title:"Journal Day 3: Draft the intro paragraph of your Windows 95 User Guide.", xp:10, standard:"Writing strands"},
   {d:2, subject:"Math", title:"Fractions: a 1995-era 1.44MB floppy disk is half full. How many KB of data is on it?", xp:15, standard:"4.NR.4/4.NR.5"},
@@ -917,16 +956,16 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:2, subject:"Social Studies", title:"Map it: where was Microsoft founded? Find Redmond, WA on a map and mark the distance from home.", xp:10, standard:"SS4G1/SS4G2"},
 
   {d:3, subject:"ELA", title:"Journal Day 4: Write the \"how to use the Start Menu\" section of your User Guide.", xp:10, standard:"Writing strands"},
-  {d:3, subject:"Math", title:"Binary patterns: list the first 8 powers of 2 (1, 2, 4, 8...). Where have you seen these numbers in the computer world?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/"},
+  {d:3, subject:"Math", title:"Binary patterns: list the first 8 powers of 2 (1, 2, 4, 8...). Where have you seen these numbers in the computer world?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/", video:"https://www.youtube.com/watch?v=hvteVokz7jE"},
   {d:3, subject:"Reading", title:"Read about the Start Menu and taskbar — what problem were they designed to solve?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Taskbar"},
   {d:3, subject:"Independent", title:"Write the \"Getting Started\" section of your Windows 95 User Guide.", xp:20},
-  {d:3, subject:"Science", title:"Why do old hard drives fail more in humid basements? Read about heat/humidity and electronics.", xp:10, standard:"S4E3/S4E4", materials:"https://kids.kiddle.co/Humidity"},
+  {d:3, subject:"Science", title:"Why do old hard drives fail more in humid basements? Read about heat/humidity and electronics.", xp:10, standard:"S4E3/S4E4", materials:"https://kids.kiddle.co/Humidity", video:"https://www.youtube.com/watch?v=uZDyPxeS-Mc"},
 
   {d:4, subject:"ELA", title:"Show & Teach: Teach a family member how to use Windows 95, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
-  {d:4, subject:"Math", title:"Review: redo one problem from this week that was tricky, and explain your fix.", xp:10, standard:"4.NR.1/4.NR.2", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math"},
+  {d:4, subject:"Math", title:"Review: redo one problem from this week that was tricky, and explain your fix.", xp:10, standard:"4.NR.1/4.NR.2", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math", video:"https://www.youtube.com/watch?v=DaQlieZH1kk"},
   {d:4, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
   {d:4, subject:"Independent", title:"Finish and save your Windows 95 User Guide as a PDF or doc in your project folder.", xp:25},
-  {d:4, subject:"Social Studies", title:"Budget it: pretend you're buying a retro PC to run Windows 95 in 1995. Budget $1,500 across a monitor, tower, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+  {d:4, subject:"Social Studies", title:"Budget it: pretend you're buying a retro PC to run Windows 95 in 1995. Budget $1,500 across a monitor, tower, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"},
 
   /* ===== Week 2 — Windows 98 (released June 25, 1998) ===== */
   {d:5, subject:"ELA", title:"Journal Day 6: What do you already know about Windows 98? Predict 3 differences from Windows 95.", xp:10, standard:"Writing strands"},
@@ -948,7 +987,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:7, subject:"Social Studies", title:"Map it: trace how a Windows 98 CD might travel from a factory to a store near you — what geography is involved?", xp:10, standard:"SS4G1/SS4G2", materials:"https://computerhistory.org/exhibits/"},
 
   {d:8, subject:"ELA", title:"Journal Day 9: Write the \"installing a USB device\" section of your User Guide.", xp:10, standard:"Writing strands"},
-  {d:8, subject:"Math", title:"Patterns: USB and COM ports are numbered. List the first 8 powers of 2 again and compare to last week — what's the pattern?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/"},
+  {d:8, subject:"Math", title:"Patterns: USB and COM ports are numbered. List the first 8 powers of 2 again and compare to last week — what's the pattern?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/", video:"https://www.youtube.com/watch?v=hvteVokz7jE"},
   {d:8, subject:"Reading", title:"Read about Windows Update — what was new about software fixing itself over the internet?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_Update"},
   {d:8, subject:"Independent", title:"Write the \"Troubleshooting\" section of your Windows 98 User Guide.", xp:20},
   {d:8, subject:"Science", title:"The Windows 95 startup sound was composed by musician Brian Eno. Read about how sound (WAV files) stores vibration as data.", xp:10, standard:"S4P1/S4P2", materials:"https://faroutmagazine.co.uk/how-brian-eno-created-the-microsoft-windows-95-startup-sound/"},
@@ -957,7 +996,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:9, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math"},
   {d:9, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
   {d:9, subject:"Independent", title:"Finish and save your Windows 98 User Guide.", xp:25},
-  {d:9, subject:"Social Studies", title:"Budget it: prices dropped since 1995. Budget $1,200 for a 1998-era PC across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+  {d:9, subject:"Social Studies", title:"Budget it: prices dropped since 1995. Budget $1,200 for a 1998-era PC across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"},
 
   /* ===== Week 3 — Windows XP (released Oct 25, 2001) ===== */
   {d:10, subject:"ELA", title:"Journal Day 11: What do you already know about Windows XP? Predict 3 differences from Windows 98.", xp:10, standard:"Writing strands"},
@@ -970,7 +1009,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6"},
   {d:11, subject:"Reading", title:"Read about why XP was built on the \"NT kernel\" instead of DOS like 95/98 — what does more stable mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_NT_kernel"},
   {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20},
-  {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144"},
+  {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:12, subject:"ELA", title:"Journal Day 13: Draft the intro paragraph of your Windows XP User Guide.", xp:10, standard:"Writing strands"},
   {d:12, subject:"Math", title:"Fractions/decimals: a 700MB CD is what fraction of a 4.7GB DVD (XP-era media)? Write as a fraction and a decimal.", xp:15, standard:"4.NR.4/4.NR.5"},
@@ -988,7 +1027,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:14, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math"},
   {d:14, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
   {d:14, subject:"Independent", title:"Finish and save your Windows XP User Guide.", xp:25},
-  {d:14, subject:"Social Studies", title:"Budget it: XP-era PCs cost more than today's. Budget $1,000 across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2"},
+  {d:14, subject:"Social Studies", title:"Budget it: XP-era PCs cost more than today's. Budget $1,000 across a tower, monitor, and printer — show your math.", xp:15, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"},
 
   /* ===== Week 4 — Windows 7 (released Oct 22, 2009) + Museum Night ===== */
   {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
@@ -1010,7 +1049,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:17, subject:"Social Studies", title:"Map it: Windows 7 launched in 14 cities worldwide the same week. Pick 2 and find them on a map — how far apart are they?", xp:10, standard:"SS4G1/SS4G2", materials:"https://computerhistory.org/exhibits/"},
 
   {d:18, subject:"ELA", title:"Journal Day 19: Write the \"Taskbar & Jump Lists\" section of your User Guide.", xp:10, standard:"Writing strands"},
-  {d:18, subject:"Math", title:"Patterns: Windows 7 came in 32-bit and 64-bit versions (2^32 vs 2^64). List the first 10 powers of 2 — what's the pattern doubling each time?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/"},
+  {d:18, subject:"Math", title:"Patterns: Windows 7 came in 32-bit and 64-bit versions (2^32 vs 2^64). List the first 10 powers of 2 — what's the pattern doubling each time?", xp:15, standard:"4.PAR.3", materials:"https://www.csunplugged.org/en/topics/binary-numbers/", video:"https://www.youtube.com/watch?v=hvteVokz7jE"},
   {d:18, subject:"Reading", title:"Read about why 64-bit computing could use more RAM than 32-bit — what does \"bit\" mean here?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/64-bit_computing"},
   {d:18, subject:"Independent", title:"Write the \"What's New\" section comparing Windows 7 to XP in your User Guide.", xp:20},
   {d:18, subject:"Science", title:"Windows 7-era gaming PCs needed better cooling. Read about heat, airflow, and simple machines like fans.", xp:10, standard:"S4P3", materials:"https://kids.britannica.com/students/article/fan/274175"},
@@ -1019,7 +1058,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:19, subject:"Math", title:"Museum Night Review: Make a timeline poster showing all 4 release years (1995, 1998, 2001, 2009) with the years between each.", xp:20, standard:"4.MDR.6", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math"},
   {d:19, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10},
   {d:19, subject:"Independent", title:"Finish and save your Windows 7 User Guide — you now have a full 4-OS Retro Museum collection!", xp:25},
-  {d:19, subject:"Social Studies", title:"Budget it: if you could buy all 4 retro PCs (95/98/XP/7 era) today from a collector, budget $2,000 across all 4 — show your math and reasoning.", xp:20, standard:"SS4E1/SS4E2"}
+  {d:19, subject:"Social Studies", title:"Budget it: if you could buy all 4 retro PCs (95/98/XP/7 era) today from a collector, budget $2,000 across all 4 — show your math and reasoning.", xp:20, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"}
 ];
 
 function questionForm(){
@@ -1544,6 +1583,13 @@ function collection(coll){
 }
 db = { doc: doc, collection: collection };
 window.db = db;
+/* One-time maintenance utilities — intentionally not in the UI, run from the browser console when actually needed:
+   removeDuplicateAssignments(state.activeKid)   — cleans up accidental double-imports
+   resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe */
+window.removeDuplicateAssignments = removeDuplicateAssignments;
+window.resetKidLegacyData = resetKidLegacyData;
+window.state = state;
+window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
