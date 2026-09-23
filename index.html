@@ -804,6 +804,13 @@ function curriculumLibraryCard(){
   head.style.cursor = "pointer";
   head.onclick = function(){ importCurriculumSet(CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
   wrap.appendChild(head);
+
+  var resetBtn = document.createElement("button");
+  resetBtn.className = "reward-skip";
+  resetBtn.style.cssText = "color:var(--coral);opacity:1;display:block;margin:2px auto 12px;font-size:11.5px";
+  resetBtn.textContent = "🧹 Clear old data & apply Ryan's new schedule (keeps Retro OS Museum)";
+  resetBtn.onclick = function(){ resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
+  wrap.appendChild(resetBtn);
   return wrap;
 }
 
@@ -838,6 +845,55 @@ function nextMondayISO(){
   var addDays = day===1 ? 7 : ((8-day)%7)||7; // next Monday, always in the future
   d.setDate(d.getDate()+addDays);
   return isoDate(d);
+}
+
+/* ---------- Legacy data reset: wipe everything except a named curriculum set, apply a new schedule ---------- */
+var RYAN_WEEKLY_RHYTHM_BLOCKS = (function(){
+  var DAILY = [
+    {time:"9:00a", activity:"Morning Launch — pick today's project piece; journal entry: yesterday's progress + today's goal"},
+    {time:"9:20a", activity:"Math in the Machine — byte/KB/MB/GB conversions, binary, RAM math, timeline math"},
+    {time:"10:15a", activity:"Break"},
+    {time:"10:30a", activity:"Reading Block — tech history, OS manuals, computing biographies, his level, his pick"},
+    {time:"11:15a", activity:"Main Project Block — VM build/restore, hardware teardown, cyber-lab, or energy/science"},
+    {time:"12:15p", activity:"Lunch"},
+    {time:"1:00p", activity:"Science / Social Studies (alternating)"},
+    {time:"1:45p", activity:"Show & Teach — he teaches you or a sibling what he did today"}
+  ];
+  var blocks = [];
+  DAYS.forEach(function(day){
+    DAILY.forEach(function(b){ blocks.push({day:day, time:b.time, activity:b.activity}); });
+  });
+  return blocks;
+})();
+
+function resetKidLegacyData(kidId, keepSet, keepLabel){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var kidName = kidData(kidId).name;
+  var keepTitles = keepSet.map(function(i){ return i.title; });
+  toast("Checking "+kidName+"'s data…");
+  Promise.all([
+    sb.from("al_assignments").select("id,title").eq("kid_id", kidId),
+    sb.from("al_questions").select("id").eq("kid_id", kidId)
+  ]).then(function(results){
+    var assignRows = results[0].data || [];
+    var qRows = results[1].data || [];
+    var toDelete = assignRows.filter(function(r){ return keepTitles.indexOf(r.title)===-1; });
+    var msg = 'This will permanently remove '+toDelete.length+' old assignment(s) and '+qRows.length+' study-guide question(s) for '+kidName+
+      ' (everything except "'+keepLabel+'"), and replace '+kidName+"'s weekly schedule. This can't be undone. Continue?";
+    if(!window.confirm(msg)) return;
+    var deletes = toDelete.map(function(r){ return sb.from("al_assignments").delete().eq("id", r.id); })
+      .concat(qRows.map(function(r){ return sb.from("al_questions").delete().eq("id", r.id); }));
+    Promise.all(deletes).then(function(){
+      return sb.from("al_schedule").upsert(
+        { kid_id: kidId, household_id: HOUSEHOLD_ID, blocks: RYAN_WEEKLY_RHYTHM_BLOCKS },
+        { onConflict: "kid_id" }
+      );
+    }).then(function(res){
+      if(res && res.error){ console.error("Academy Log reset error:", res.error); toast("⚠️ Reset partly failed — check your connection and try again"); }
+      else toast("🧹 "+kidName+"'s old data cleared — fresh schedule applied!");
+      syncSoon();
+    }).catch(function(err){ console.error(err); toast("⚠️ Reset failed — check your connection and try again"); });
+  }).catch(function(err){ console.error(err); toast("⚠️ Couldn't check existing data — try again"); });
 }
 
 var CURRICULUM_RETRO_OS_MONTH1 = [
