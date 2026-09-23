@@ -1664,6 +1664,42 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:19, subject:"Social Studies", title:"Budget it: if you could buy all 4 retro PCs (95/98/XP/7 era) today from a collector, budget $2,000 across all 4 — show your math and reasoning.", xp:20, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"}
 ];
 
+/* A starter mix of quick-fire quiz questions across every subject, so the Arena has something
+   in the question bank right away instead of showing "no questions yet". Console-seeded via
+   seedArenaQuestions() rather than a permanent import button, since this only needs to run once. */
+var ARENA_QUESTION_SEED = [
+  {subject:"Math", q:"4 x 1024 = ?", choices:["1,024","4,096","4,000","2,048"], answerIndex:1},
+  {subject:"Math", q:"What is 2 to the 4th power (2⁴)?", choices:["8","16","32","4"], answerIndex:1},
+  {subject:"Math", q:"Which is bigger: 1MB or 1KB?", choices:["1MB","1KB","They're equal","Can't tell"], answerIndex:0},
+  {subject:"Math", q:"Windows 98 came out 3 years after Windows 95 (1995). What year was that?", choices:["1997","1998","1999","2000"], answerIndex:1},
+  {subject:"Math", q:"Write 3/4 as a decimal.", choices:["0.34","0.75","0.43","1.33"], answerIndex:1},
+  {subject:"Math", q:"What is 2 to the 6th power (2⁶)?", choices:["12","36","64","48"], answerIndex:2},
+  {subject:"ELA", q:"Which word is a synonym for \"install\"?", choices:["Remove","Set up","Delete","Break"], answerIndex:1},
+  {subject:"ELA", q:"Which sentence uses correct punctuation?", choices:["Its time to update the computer.","It's time to update the computer.","Its time to update the computer","Its' time to update the computer."], answerIndex:1},
+  {subject:"ELA", q:"What is the plural of \"floppy disk\"?", choices:["Floppy disks","Floppies disk","Floppy diskes","Floppies"], answerIndex:0},
+  {subject:"ELA", q:"Which word means \"a short summary of what happened\"?", choices:["Prediction","Recap","Install","Format"], answerIndex:1},
+  {subject:"ELA", q:"Choose the correctly spelled word.", choices:["Recieve","Receive","Receve","Receeve"], answerIndex:1},
+  {subject:"ELA", q:"What's a good synonym for \"tricky\" (as in a tricky math problem)?", choices:["Simple","Difficult","Boring","Fast"], answerIndex:1},
+  {subject:"Reading", q:"Who co-founded Microsoft along with Bill Gates?", choices:["Steve Jobs","Paul Allen","Steve Wozniak","Tim Berners-Lee"], answerIndex:1},
+  {subject:"Reading", q:"What does \"USB\" stand for?", choices:["Universal Serial Bus","United System Board","Universal Storage Backup","Unit Speed Booster"], answerIndex:0},
+  {subject:"Reading", q:"What is a \"taskbar\" used for?", choices:["To store files permanently","To switch between open programs","To connect to the internet","To print documents"], answerIndex:1},
+  {subject:"Reading", q:"What does it mean when software has a \"follow-up release\"?", choices:["It's the very first version","It's a newer version that fixes problems","It's been deleted","It's a competitor's product"], answerIndex:1},
+  {subject:"Reading", q:"What is the \"Blue Screen of Death\"?", choices:["A screensaver","An error screen when Windows crashes","A game","A type of monitor"], answerIndex:1},
+  {subject:"Reading", q:"What does \"64-bit computing\" mean compared to 32-bit?", choices:["It's slower","It can use much more RAM/memory","It only works with USB","It has fewer colors"], answerIndex:1},
+  {subject:"Science", q:"How do computer speakers make sound?", choices:["By heating up","By vibrating","By spinning","By glowing"], answerIndex:1},
+  {subject:"Science", q:"What do computer fans move to help cool the computer?", choices:["Water","Air","Electricity","Light"], answerIndex:1},
+  {subject:"Science", q:"Why can too much humidity be bad for electronics?", choices:["It makes them too cold","Moisture can cause damage","It makes them louder","It makes them heavier"], answerIndex:1},
+  {subject:"Science", q:"How do old TVs and monitors use light to show a picture?", choices:["Tiny pixels light up in patterns","They burn paper","They use mirrors only","They use sound waves"], answerIndex:0},
+  {subject:"Science", q:"What is vibration?", choices:["A back-and-forth movement","A type of light","A color","A chemical reaction"], answerIndex:0},
+  {subject:"Science", q:"What force does a fan use to move air?", choices:["Gravity","Push (from spinning blades)","Magnetism","Friction only"], answerIndex:1},
+  {subject:"Social Studies", q:"In which US state is Microsoft's headquarters located?", choices:["California","Texas","Washington","New York"], answerIndex:2},
+  {subject:"Social Studies", q:"What is a \"budget\"?", choices:["A type of computer","A plan for spending money","A kind of map","A history book"], answerIndex:1},
+  {subject:"Social Studies", q:"What do we call the study of where places are and what they're like?", choices:["Geography","Economics","History","Biology"], answerIndex:0},
+  {subject:"Social Studies", q:"You have $1,500 to spend on a computer setup and spend $900 on a tower. How much is left?", choices:["$500","$600","$700","$400"], answerIndex:1},
+  {subject:"Social Studies", q:"What do we call money a company earns from selling products?", choices:["Tax","Revenue","Interest","Loan"], answerIndex:1},
+  {subject:"Social Studies", q:"Which era comes first in US history?", choices:["The Revolution","World War II","The Great Depression","The Cold War"], answerIndex:0}
+];
+
 function questionForm(){
   var wrap = document.createElement("div");
   wrap.className = "card";
@@ -1738,7 +1774,7 @@ function startMiniGame(type){
   state.miniGame = {
     type: type, pool: pool, qIdx: 0, fuel: 0, score: 0, lives: 3, running: false, raf: null, timeoutId: null,
     ship: {}, asteroids: [], boosting: false,
-    runner: {}, obstacles: []
+    runner: {}, platforms: []
   };
   renderArena();
 }
@@ -1821,7 +1857,10 @@ function renderMiniGame(){
       '<button class="primary-btn" id="mgBoost" style="margin:0;background:var(--gold)">🚀 Boost (10⛽)</button>'+
       '<button class="primary-btn" id="mgRight" style="margin:0">▶</button>';
   } else {
-    ctr.innerHTML = '<button class="primary-btn" id="mgJump" style="margin:0;background:var(--gold)">⬆ Jump (1⚡)</button>';
+    ctr.innerHTML =
+      '<button class="primary-btn" id="mgLeft" style="margin:0">◀</button>'+
+      '<button class="primary-btn" id="mgJump" style="margin:0;background:var(--gold)">⬆ Jump (1⚡)</button>'+
+      '<button class="primary-btn" id="mgRight" style="margin:0">▶</button>';
   }
   card.appendChild(ctr);
 
@@ -1941,60 +1980,109 @@ function spaceLoop(ctx, canvas){
 
 function wireParkourControls(ctr){
   var mg = state.miniGame;
-  var jumpBtn = ctr.querySelector("#mgJump");
+  var left = ctr.querySelector("#mgLeft"), right = ctr.querySelector("#mgRight"), jumpBtn = ctr.querySelector("#mgJump");
+  var mv = null;
+  ["mousedown","touchstart"].forEach(function(ev){
+    left.addEventListener(ev, function(e){ e.preventDefault(); mv=-1; });
+    right.addEventListener(ev, function(e){ e.preventDefault(); mv=1; });
+  });
+  ["mouseup","mouseleave","touchend","touchcancel"].forEach(function(ev){
+    left.addEventListener(ev, function(){ mv=null; });
+    right.addEventListener(ev, function(){ mv=null; });
+  });
+  mg._mv = function(){ return mv; };
   function doJump(){
     if(mg.runner.jumping) return;
     if(mg.fuel<1){ toast("Need jump energy!"); return; }
-    mg.fuel -= 1; mg.runner.jumping = true; mg.runner.vy = -9;
+    mg.fuel -= 1; mg.runner.jumping = true; mg.runner.vy = -11;
   }
   jumpBtn.onclick = doJump;
   if(mg._keydown) document.removeEventListener("keydown", mg._keydown);
-  mg._keydown = function(e){ if(e.code==="Space"){ e.preventDefault(); doJump(); } };
+  if(mg._keyup) document.removeEventListener("keyup", mg._keyup);
+  mg._keydown = function(e){
+    if(e.code==="Space"){ e.preventDefault(); doJump(); }
+    if(e.key==="ArrowLeft") mv=-1;
+    if(e.key==="ArrowRight") mv=1;
+  };
+  mg._keyup = function(e){ if(e.key==="ArrowLeft"||e.key==="ArrowRight") mv=null; };
   document.addEventListener("keydown", mg._keydown);
+  document.addEventListener("keyup", mg._keyup);
 }
 
+/* Vertical platformer: the runner leaps upward from platform to platform (like a climbing tower),
+   moving left/right to line up each jump. The camera scrolls up as he climbs higher, new platforms
+   spawn above, and falling off the bottom just respawns him on fresh ground — no harsh penalty. */
 function parkourLoop(ctx, canvas){
   var mg = state.miniGame;
   if(!mg || mg.type!=="parkour" || !mg.running) return;
   var groundY = canvas.height-40;
-  if(mg.runner.y===undefined){ mg.runner.y=groundY; mg.runner.vy=0; mg.runner.jumping=false; }
+
+  function resetLadder(){
+    mg.runner.x = canvas.width/2; mg.runner.y = groundY; mg.runner.vy = 0; mg.runner.jumping = false;
+    mg.platforms = [{x: canvas.width/2-30, y: groundY, w:60, flag:false, scored:true}];
+  }
+  if(mg.runner.y===undefined) resetLadder();
   mg.frame = (mg.frame||0)+1;
 
+  var mv = mg._mv ? mg._mv() : null;
+  if(mv) mg.runner.x += mv*3.5;
+  if(mg.runner.x < -14) mg.runner.x = canvas.width+14;
+  if(mg.runner.x > canvas.width+14) mg.runner.x = -14;
+
   if(mg.runner.jumping){
-    mg.runner.vy += 0.6;
+    mg.runner.vy += 0.5;
     mg.runner.y += mg.runner.vy;
-    if(mg.runner.y>=groundY){ mg.runner.y=groundY; mg.runner.jumping=false; mg.runner.vy=0; }
+    if(mg.runner.vy>0){
+      mg.platforms.forEach(function(p){
+        if(p.landed) return;
+        var withinX = mg.runner.x > p.x-6 && mg.runner.x < p.x+p.w+6;
+        var withinY = mg.runner.y >= p.y-4 && mg.runner.y <= p.y+8;
+        if(withinX && withinY){
+          mg.runner.y = p.y; mg.runner.vy = 0; mg.runner.jumping = false;
+          if(!p.scored){
+            p.scored = true; mg.score++;
+            grantXP(state.activeKid, p.flag?20:5);
+            toast(p.flag ? "🚩 Flag platform! +20 XP" : "+5 XP");
+          }
+        }
+      });
+    }
   }
 
-  if(mg.frame%70===0) mg.obstacles.push({x:canvas.width+10, w:18, flag:(mg.frame%210===0)});
-  mg.obstacles.forEach(function(o){ o.x -= 4; });
-  mg.obstacles = mg.obstacles.filter(function(o){ return o.x>-30; });
+  // camera: keep the runner from climbing past the upper third of the view by scrolling the world down
+  var scrollLine = canvas.height*0.4;
+  if(mg.runner.y < scrollLine){
+    var scrollAmt = scrollLine - mg.runner.y;
+    mg.runner.y += scrollAmt;
+    mg.platforms.forEach(function(p){ p.y += scrollAmt; });
+  }
 
-  var runnerX = 60;
-  mg.obstacles.forEach(function(o){
-    if(o.scored) return;
-    if(o.x+o.w < runnerX-14){
-      o.scored = true;
-      var cleared = mg.runner.jumping || mg.runner.y < groundY-6;
-      if(cleared){ mg.score++; grantXP(state.activeKid, o.flag?20:5); toast(o.flag ? "🚩 Flag cleared! +20 XP" : "+5 XP"); }
-      else toast("Tripped! No XP that jump");
-    }
-  });
+  // keep the ladder stocked with platforms above the highest one
+  while(mg.platforms.length && mg.platforms[mg.platforms.length-1].y > -20){
+    var top = mg.platforms[mg.platforms.length-1];
+    var newY = top.y - (55+Math.random()*30);
+    var newX = 20+Math.random()*(canvas.width-100);
+    mg.platforms.push({x:newX, y:newY, w:60, flag:(mg.platforms.length%4===0)});
+  }
+  mg.platforms = mg.platforms.filter(function(p){ return p.y < canvas.height+30; });
+
+  if(mg.runner.y > canvas.height+20){
+    toast("Fell! Climb again 🧗");
+    resetLadder();
+  }
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#2c3a2e";
-  ctx.fillRect(0, groundY+14, canvas.width, 4);
-  mg.obstacles.forEach(function(o){
+  mg.platforms.forEach(function(p){
     ctx.fillStyle = "#e0b155";
-    ctx.fillRect(o.x, groundY+4, o.w, 10);
-    if(o.flag){
+    ctx.fillRect(p.x, p.y+4, p.w, 10);
+    if(p.flag){
       ctx.fillStyle = "#b5602f";
-      ctx.fillRect(o.x+o.w/2-1, groundY-20, 2, 24);
-      ctx.fillRect(o.x+o.w/2+1, groundY-20, 10, 8);
+      ctx.fillRect(p.x+p.w/2-1, p.y-20, 2, 24);
+      ctx.fillRect(p.x+p.w/2+1, p.y-20, 10, 8);
     }
   });
   ctx.fillStyle = "#6bbf8c";
-  ctx.beginPath(); ctx.arc(runnerX, mg.runner.y, 14, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(mg.runner.x, mg.runner.y-10, 14, 0, 7); ctx.fill();
   ctx.fillStyle = "#fff"; ctx.font = "11px sans-serif"; ctx.textAlign = "left";
   ctx.fillText("Score "+mg.score, 8, 16);
 
@@ -2213,13 +2301,28 @@ function patchMathLessons(kidId){
   renderView();
 }
 
+function seedArenaQuestions(kidId){
+  if(!db) return;
+  var existing = {};
+  state.questions.forEach(function(q){ existing[q.subject+"||"+q.q] = true; });
+  var added = 0;
+  ARENA_QUESTION_SEED.forEach(function(item){
+    if(existing[item.subject+"||"+item.q]) return;
+    db.collection("questions").add({subject:item.subject, q:item.q, choices:item.choices, answerIndex:item.answerIndex, kidId:kidId, xp:15});
+    added++;
+  });
+  console.log("seedArenaQuestions: added "+added+" question(s)");
+}
+
 /* One-time maintenance utilities — intentionally not in the UI, run from the browser console when actually needed:
    removeDuplicateAssignments(state.activeKid)   — cleans up accidental double-imports
    resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe
-   patchMathLessons(state.activeKid)             — adds the math field guide + extra practice to already-imported lessons */
+   patchMathLessons(state.activeKid)             — adds the math field guide + extra practice to already-imported lessons
+   seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
+window.seedArenaQuestions = seedArenaQuestions;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
