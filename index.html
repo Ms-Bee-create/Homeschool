@@ -1422,8 +1422,8 @@ function renderLessonDetail(){
     canvas.style.cssText = "width:100%;max-width:100%;height:auto;aspect-ratio:600/360;border-radius:10px;border:1px solid var(--border);background:#fff;touch-action:none;display:block;margin-top:10px;cursor:crosshair";
     drawWrap.appendChild(canvas);
     var ctx = canvas.getContext("2d");
-    ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#222";
-    var drawing = false, lastX, lastY;
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#222";
+    var drawing = false, lastX, lastY, mode = "pen";
     function pos(e){
       var r = canvas.getBoundingClientRect();
       var scaleX = canvas.width / r.width, scaleY = canvas.height / r.height;
@@ -1433,11 +1433,41 @@ function renderLessonDetail(){
     canvas.addEventListener("pointermove", function(e){
       if(!drawing) return;
       var p = pos(e);
+      ctx.globalCompositeOperation = mode==="eraser" ? "destination-out" : "source-over";
+      ctx.lineWidth = mode==="eraser" ? 22 : 4;
       ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p[0], p[1]); ctx.stroke();
       lastX = p[0]; lastY = p[1];
     });
     canvas.addEventListener("pointerup", function(){ drawing = false; });
     canvas.addEventListener("pointerleave", function(){ drawing = false; });
+
+    var toolRow = document.createElement("div");
+    toolRow.style.cssText = "display:flex;gap:8px;margin-top:10px";
+    drawWrap.appendChild(toolRow);
+
+    function toolBtnStyle(active){
+      return "flex:1;opacity:1;border:1px solid var(--border);font-weight:600;"+
+        (active ? "background:var(--gold-soft);color:var(--ink)" : "background:var(--card);color:var(--text-dim)");
+    }
+    var penBtn = document.createElement("button");
+    penBtn.type = "button";
+    penBtn.className = "reward-skip";
+    penBtn.textContent = "🖊️ Pen";
+    var eraserBtn = document.createElement("button");
+    eraserBtn.type = "button";
+    eraserBtn.className = "reward-skip";
+    eraserBtn.textContent = "🧽 Eraser";
+    function setMode(next){
+      mode = next;
+      canvas.style.cursor = mode==="eraser" ? "cell" : "crosshair";
+      penBtn.style.cssText = toolBtnStyle(mode==="pen");
+      eraserBtn.style.cssText = toolBtnStyle(mode==="eraser");
+    }
+    penBtn.onclick = function(){ setMode("pen"); };
+    eraserBtn.onclick = function(){ setMode("eraser"); };
+    setMode("pen");
+    toolRow.appendChild(penBtn);
+    toolRow.appendChild(eraserBtn);
 
     var drawBtnRow = document.createElement("div");
     drawBtnRow.style.cssText = "display:flex;gap:8px;margin-top:8px";
