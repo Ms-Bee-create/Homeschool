@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Academy Log</title>
+<title>Forge Academy | Quest Log</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -176,7 +176,7 @@ button{font:inherit;cursor:pointer}
 
 <div class="login-wrap" id="loginGate">
   <div class="login-card">
-    <h1>Academy Log</h1>
+    <h1>Forge Academy</h1>
     <p>Sign in with your Momma Money account to sync Anna &amp; Ryan's progress.</p>
     <form id="loginForm">
       <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required>
@@ -194,8 +194,8 @@ button{font:inherit;cursor:pointer}
     <div class="brand">
       <div class="brand-mark">A<span style="color:#fff">$</span></div>
       <div>
-        <h1>Academy Log</h1>
-        <div class="sub">Connections Academy tracker &middot; part of the <a href="https://ms-bee-create.github.io/momma-money/" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">Momma Money</a> family</div>
+        <h1>Forge Academy | Quest Log</h1>
+        <div class="sub">Forge Academy &mdash; Student Portal &middot; part of the <a href="https://ms-bee-create.github.io/momma-money/" target="_blank" rel="noopener" style="color:var(--gold);font-weight:700;text-decoration:none">Momma Money</a> family</div>
       </div>
     </div>
     <div class="date-pill" id="datePill"></div>
@@ -209,6 +209,7 @@ button{font:inherit;cursor:pointer}
     <button class="tab active" data-tab="today">Today</button>
     <button class="tab" data-tab="week">Week</button>
     <button class="tab" data-tab="progress">Quest Log</button>
+    <button class="tab" id="libraryTabBtn" data-tab="library" style="display:none">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
     <button class="tab" data-tab="leader">Leader</button>
   </div>
@@ -247,6 +248,21 @@ function weekBoundsMonFri(ref){
   return {start:mon, end:fri};
 }
 function todayIdxFor(d){ var day = d.getDay(); return day===0?6:day-1; }
+/* Georgia Home Study Law (O.C.G.A. § 20-2-690.1) tracking targets — 180 attendance days/year,
+   ~4.5 hours/day. attendanceCount is a running tally of distinct calendar days the kid was
+   active in the app; lastAttendanceDate guards against double-counting the same day. */
+var GA_ANNUAL_DAYS_TARGET = 180;
+var GA_DAILY_HOURS_TARGET = 4.5;
+function stampAttendance(kidId){
+  var kd = kidData(kidId);
+  var todayStr = todayISO();
+  if(kd.lastAttendanceDate === todayStr) return;
+  var updates = {attendanceCount: (kd.attendanceCount||0)+1, lastAttendanceDate: todayStr};
+  Object.assign(kd, updates);
+  state.kids[kidId] = kd;
+  if(db) db.doc("kids/"+kidId).update(updates);
+}
+var CROSS_CURRICULAR_BONUS_XP = 5;
 
 var state = {
   activeKid: "kid1",
@@ -355,7 +371,18 @@ els.tabs.addEventListener("click", function(e){
   renderView();
 });
 
-function renderAll(){ renderKidbar(); renderXpBar(); renderView(); }
+/* The Curriculum Library (Retro OS Museum, micro:bit track, Math Field Guide) is Ryan's
+   interest-led curriculum specifically — hide the tab entirely when Anna is active instead of
+   showing her an empty/irrelevant library. */
+function updateLibraryTabVisibility(){
+  var btn = document.getElementById("libraryTabBtn");
+  if(!btn) return;
+  var visible = state.activeKid==="kid2";
+  btn.style.display = visible ? "" : "none";
+  if(!visible && state.tab==="library") state.tab = "today";
+}
+
+function renderAll(){ updateLibraryTabVisibility(); renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
   if(state.lessonDetailId!=null) return renderLessonDetail();
@@ -364,6 +391,7 @@ function renderView(){
   if(state.tab==="today") return renderToday();
   if(state.tab==="week") return renderWeek();
   if(state.tab==="progress") return renderProgress();
+  if(state.tab==="library") return renderLibrary();
   if(state.tab==="arena") return renderArena();
   if(state.tab==="leader") return renderLeaderArea();
 }
@@ -402,15 +430,29 @@ function videoLinkHtml(video){
   return '🎥 '+escapeHtml(v);
 }
 
+/* Speaks text aloud via the Web Speech API so a kid can hear instructions read
+   instead of/alongside reading them himself. Silently no-ops if unsupported. */
+function speak(text){
+  if(!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.95;
+  window.speechSynthesis.speak(u);
+}
+function speakerBtnHtml(){
+  return '<button class="speak-btn" title="Read aloud" aria-label="Read aloud" style="border:none;background:none;cursor:pointer;font-size:15px;padding:0 4px;line-height:1;vertical-align:middle">🔊</button>';
+}
+
 function taskRow(a){
   var row = document.createElement("div");
   row.className = "task";
   row.innerHTML =
     '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
     '<div class="task-body" style="cursor:pointer">'+
-      '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+'</div>'+
+      '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+' '+speakerBtnHtml()+'</div>'+
       '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+
         (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
+        (a.crossCurricular ? ' &nbsp;<span class="chip" style="background:var(--gold-soft);color:var(--gold)">🔀 cross-curricular +'+CROSS_CURRICULAR_BONUS_XP+' XP</span>' : '')+
         (hasWork(a) ? ' &nbsp;<span class="chip" style="background:var(--teal-soft);color:var(--teal)">📝 work saved</span>' : '')+
         (a.reviewStatus==="flagged" ? ' &nbsp;<span class="chip" style="background:var(--coral-soft);color:var(--coral)">🚩 needs another look</span>' : '')+
       '</div>'+
@@ -421,6 +463,7 @@ function taskRow(a){
     '<button class="del" title="Remove">✕</button>';
   row.querySelector(".check").onclick = function(){ toggleAssignment(a); };
   row.querySelector(".del").onclick = function(){ if(db) db.doc("assignments/"+a.id).delete(); };
+  row.querySelector(".speak-btn").onclick = function(e){ e.stopPropagation(); speak(a.title); };
   var linkEls = row.querySelectorAll(".task-body a");
   Array.prototype.forEach.call(linkEls, function(el){ el.addEventListener("click", function(e){ e.stopPropagation(); }); });
   row.querySelector(".task-body").onclick = function(){ state.lessonDetailId = a.id; renderView(); };
@@ -435,9 +478,11 @@ function toggleAssignment(a){
   db.doc("assignments/"+a.id).update({done: willDone, doneAt: doneAt});
   var kd = kidData(a.kidId);
   var oldXp = kd.xp||0;
-  var delta = willDone ? a.xp : -a.xp;
+  var bonusXp = (willDone && a.crossCurricular) ? CROSS_CURRICULAR_BONUS_XP : 0;
+  var delta = willDone ? (a.xp+bonusXp) : -a.xp;
   var newXp = Math.max(0, oldXp + delta);
   var updates = {xp: newXp};
+  var newStreakDay = false;
   if(willDone){
     var last = kd.lastCompletedDate;
     var todayStr = new Date().toDateString();
@@ -445,6 +490,7 @@ function toggleAssignment(a){
       var y = new Date(); y.setDate(y.getDate()-1);
       updates.streak = (last === y.toDateString()) ? (kd.streak||0)+1 : 1;
       updates.lastCompletedDate = todayStr;
+      newStreakDay = true;
     }
   }
   var lvl = willDone ? levelUpBonus(oldXp, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
@@ -452,11 +498,52 @@ function toggleAssignment(a){
   Object.assign(kd, updates);
   state.kids[a.kidId] = kd;
   db.doc("kids/"+a.kidId).update(updates);
-  if(willDone) toast("+"+a.xp+" XP! Nice work 🎉");
+  if(willDone) toast(bonusXp ? "+"+a.xp+" XP + "+bonusXp+" cross-curricular bonus! 🎉" : "+"+a.xp+" XP! Nice work 🎉");
   if(a.kidId===state.activeKid) renderXpBar();
+  if(newStreakDay && a.kidId===state.activeKid) celebrate();
   if(lvl.gained>0){
     logLevelUpReward(a.kidId, lvl);
   }
+}
+
+/* Victory chime (synthesized tone, no audio asset needed) + lightweight CSS confetti,
+   fired once per day when a kid's streak first advances. */
+function celebrate(){
+  try{
+    var AC = window.AudioContext || window.webkitAudioContext;
+    var ctx = new AC();
+    [523.25, 659.25, 783.99].forEach(function(freq, i){
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = freq;
+      osc.connect(gain); gain.connect(ctx.destination);
+      var start = ctx.currentTime + i*0.12;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start+0.35);
+      osc.start(start); osc.stop(start+0.4);
+    });
+  } catch(e){ /* Web Audio unavailable — skip the chime, confetti still plays */ }
+
+  var colors = ["#ffb703","#fb8500","#219ebc","#8ecae6","#2a9d8f"];
+  for(var i=0; i<28; i++){
+    var piece = document.createElement("div");
+    var color = colors[i % colors.length];
+    var left = Math.random()*100;
+    var delay = Math.random()*0.3;
+    var duration = 1.1 + Math.random()*0.6;
+    var rotate = Math.random()*360;
+    piece.style.cssText = "position:fixed;top:-12px;left:"+left+"vw;width:8px;height:14px;background:"+color+
+      ";z-index:9999;pointer-events:none;opacity:0.9;transform:rotate("+rotate+"deg);"+
+      "animation:confetti-fall "+duration+"s ease-in "+delay+"s forwards";
+    document.body.appendChild(piece);
+    (function(el, d, del){ setTimeout(function(){ el.remove(); }, (d+del)*1000+50); })(piece, duration, delay);
+  }
+}
+if(!document.getElementById("confettiKeyframes")){
+  var kf = document.createElement("style");
+  kf.id = "confettiKeyframes";
+  kf.textContent = "@keyframes confetti-fall{to{top:100vh;opacity:0.2;transform:rotate(540deg)}}";
+  document.head.appendChild(kf);
 }
 
 /* $3 Momma Money per level gained; called after any XP change */
@@ -506,12 +593,22 @@ function renderToday(){
 
   els.view.appendChild(addForm(kidId, iso));
 
+  var estMins = list.reduce(function(sum,a){ return sum + estMinutesFor(a); }, 0);
+  if(list.length){
+    var hoursNote = document.createElement("div");
+    hoursNote.className = "muted";
+    hoursNote.style.cssText = "font-size:12px;margin-top:8px";
+    hoursNote.textContent = "Est. "+(estMins/60).toFixed(1)+" of "+GA_DAILY_HOURS_TARGET+" hrs/day target (estimated, not measured)";
+    els.view.appendChild(hoursNote);
+  }
+
   var doneCount = list.filter(function(a){return a.done;}).length;
   if(list.length && doneCount===list.length){
     var done = document.createElement("div");
     done.className = "card empty";
     done.style.marginTop="12px";
-    done.innerHTML = "🏁 <b>All of today's quests complete!</b> Streak locked in.";
+    done.innerHTML = "🏁 <b>All of today's quests complete!</b> Streak locked in."+
+      "<div style=\"margin-top:8px;font-weight:600\">🎤 Show &amp; Teach: pick one thing you fixed or figured out today and show/teach it to someone — that's how we know it stuck.</div>";
     els.view.appendChild(done);
   }
 }
@@ -531,6 +628,7 @@ function addForm(kidId, defaultDate){
       '<input class="af-materials" placeholder="Materials link or note (optional)" maxlength="300">'+
       '<input class="af-video" placeholder="Video link (optional)" maxlength="300">'+
       '<input class="af-standard" placeholder="Standard e.g. 4.NR.1 (optional)" maxlength="40" style="max-width:160px">'+
+      '<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-dim)"><input type="checkbox" class="af-cross">🔀 Cross-curricular (+'+CROSS_CURRICULAR_BONUS_XP+' XP)</label>'+
       '<button class="af-add">Add</button>'+
     '</div>';
   wrap.querySelector(".af-add").onclick = function(){
@@ -541,13 +639,15 @@ function addForm(kidId, defaultDate){
     var materialsEl = wrap.querySelector(".af-materials");
     var videoEl = wrap.querySelector(".af-video");
     var standardEl = wrap.querySelector(".af-standard");
+    var crossEl = wrap.querySelector(".af-cross");
     db.collection("assignments").add({
       kidId: kidId, date: dateVal, subject: wrap.querySelector(".af-subject").value,
       title: t, xp: Number(wrap.querySelector(".af-xp").value)||10, done:false, doneAt:null,
       materials: materialsEl.value.trim() || null, video: videoEl.value.trim() || null, standard: standardEl.value.trim() || null,
+      crossCurricular: crossEl.checked || null,
       createdAt: new Date().toISOString()
     });
-    titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = "";
+    titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = ""; crossEl.checked = false;
   };
   return wrap;
 }
@@ -557,15 +657,6 @@ function renderWeek(){
   els.view.innerHTML = "";
   var kidId = state.activeKid;
   var kd = kidData(kidId);
-
-  var libTitle = document.createElement("div");
-  libTitle.className = "section-title";
-  libTitle.textContent = "Curriculum Library";
-  els.view.appendChild(libTitle);
-  els.view.appendChild(curriculumLibraryCard());
-  els.view.appendChild(microbitCurriculumCard());
-  els.view.appendChild(mathFieldGuideCard());
-  els.view.appendChild(leaderGuideCard());
 
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
@@ -638,6 +729,23 @@ function renderWeek(){
   els.view.appendChild(addForm(kidId, iso));
 }
 
+/* ---------- Curriculum Library (Ryan's interest-led Retro OS Museum track) ---------- */
+function renderLibrary(){
+  els.view.innerHTML = "";
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "Curriculum Library — " + kidData("kid2").name;
+  els.view.appendChild(title);
+  var intro = document.createElement("div");
+  intro.className = "muted";
+  intro.style.margin = "0 0 14px";
+  intro.textContent = "His interest-led tracks and reference guides — separate from Anna's quest log.";
+  els.view.appendChild(intro);
+  els.view.appendChild(curriculumLibraryCard());
+  els.view.appendChild(microbitCurriculumCard());
+  els.view.appendChild(mathFieldGuideCard());
+}
+
 function csvEscape(v){
   var s = String(v==null ? "" : v);
   return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
@@ -651,9 +759,12 @@ function exportProgressCSV(kidId){
     .sort(function(a,b){ return new Date(a.doneAt)-new Date(b.doneAt); });
 
   var lines = [];
-  lines.push(["Academy Log Progress Report"].map(csvEscape).join(","));
+  lines.push(["Forge Academy — Year-End Progress Summary"].map(csvEscape).join(","));
   lines.push(["Student", kd.name].map(csvEscape).join(","));
   lines.push(["Generated", new Date().toLocaleString()].map(csvEscape).join(","));
+  lines.push("");
+  lines.push(["Georgia Home Study Law Compliance (O.C.G.A. § 20-2-690.1)"].map(csvEscape).join(","));
+  lines.push(["Attendance Days Logged", (kd.attendanceCount||0)+" / "+GA_ANNUAL_DAYS_TARGET].map(csvEscape).join(","));
   lines.push("");
 
   var bySubjHours = {}, standards = {};
@@ -722,9 +833,10 @@ function renderProgress(){
         '<div class="stat"><div class="stat-num" style="color:var(--'+kd.color+')">'+escapeHtml(kd.name)+'</div>'+
           '<div class="stat-lbl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div></div>'+
       '</div>'+
-      '<div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">'+
+      '<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">'+
         '<div class="stat"><div class="stat-num">'+pct+'%</div><div class="stat-lbl">Done this week</div></div>'+
         '<div class="stat"><div class="stat-num">🔥'+(kd.streak||0)+'</div><div class="stat-lbl">Day streak</div></div>'+
+        '<div class="stat"><div class="stat-num">'+(kd.attendanceCount||0)+'/'+GA_ANNUAL_DAYS_TARGET+'</div><div class="stat-lbl">Attendance days</div></div>'+
         '<div class="stat"><div class="stat-num" style="color:var(--gold)">$'+(kd.mommaMoney||0)+'</div><div class="stat-lbl">To log on Momma Money</div></div>'+
       '</div>';
     if(kd.mommaMoney>0){
@@ -816,7 +928,7 @@ function renderProgress(){
   var exportBtn = document.createElement("button");
   exportBtn.className = "primary-btn";
   exportBtn.style.cssText = "margin-top:14px;background:var(--gold);color:var(--ink)";
-  exportBtn.textContent = "📄 Export Progress Report (CSV)";
+  exportBtn.textContent = "📄 Export Year-End Summary (CSV)";
   exportBtn.onclick = function(){ exportProgressCSV(state.activeKid); };
   els.view.appendChild(exportBtn);
 
@@ -1147,6 +1259,11 @@ function mathFieldGuideCard(){
 
 /* ---------- Leader's Guide: check-understanding questions, grouped by concept ---------- */
 var LEADER_GUIDE = [
+  { icon: "🎤", subject: "End of Day — Show & Teach", questions: [
+    "Pick one thing you fixed, figured out, or got working today — show me, don't just tell me.",
+    "If I didn't know anything about this, how would you teach it to me in 3 steps?",
+    "What broke first, and how did you know what to try next?"
+  ]},
   { icon: "✍️", subject: "ELA — Journaling & Writing", questions: [
     "Without looking at your journal, tell me one thing you did today.",
     "What's one word you'd use to describe how today's project went, and why that word?",
@@ -1338,7 +1455,7 @@ function renderLessonDetail(){
       '</div>'+
       '<div class="task-xp" style="font-size:14px">+'+a.xp+' XP</div>'+
     '</div>'+
-    '<p class="qz-q" style="font-size:19px;margin-bottom:14px">'+escapeHtml(a.title)+'</p>';
+    '<p class="qz-q" style="font-size:19px;margin-bottom:14px">'+escapeHtml(a.title)+' '+speakerBtnHtml()+'</p>';
 
   var videoHtml = "";
   if(a.video){
@@ -1386,6 +1503,8 @@ function renderLessonDetail(){
     : '<div id="flagBanner"></div>';
 
   card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+  var titleSpeakBtn = card.querySelector(".speak-btn");
+  if(titleSpeakBtn) titleSpeakBtn.onclick = function(){ speak(a.title); };
 
   if(vmHelp){
     var tsWrap = document.createElement("div");
@@ -1729,6 +1848,8 @@ function renderLessonDetail(){
 
 function renderLeaderArea(){
   els.view.innerHTML = "";
+  els.view.appendChild(leaderGuideCard());
+
   var title = document.createElement("div");
   title.className = "section-title";
   title.textContent = "Leader's Review Queue";
@@ -1737,7 +1858,7 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing.";
+  intro.textContent = "Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
 
   var all = [];
@@ -2676,8 +2797,8 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" }
@@ -2977,6 +3098,8 @@ function syncAll(){
     state.assignments = {};
     assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
     state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
+    KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
+    updateLibraryTabVisibility();
     renderKidbar(); renderXpBar();
     if(!state.quiz && !state.miniGame && state.lessonDetailId==null) renderView();
   }).catch(function(){});
@@ -3012,6 +3135,7 @@ var appEl = document.getElementById("appRoot");
 function showApp(){
   loginEl.style.display = "none";
   appEl.style.display = "";
+  updateLibraryTabVisibility();
   renderKidbar(); renderXpBar(); renderView();
   syncAll();
   setInterval(syncAll, 4000);
