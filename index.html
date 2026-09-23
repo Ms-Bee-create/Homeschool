@@ -240,7 +240,8 @@ var state = {
   schedules: {}, // kidId -> {blocks:[]}
   questions: [],
   quiz: null, // active quiz state
-  miniGame: null // active arcade mini-game state (Space Mission / Parkour Course)
+  miniGame: null, // active arcade mini-game state (Space Mission / Parkour Course)
+  mathGuideOpen: false // whether the Math Field Guide view is showing
 };
 
 /* db is created by the sync layer appended below, after login */
@@ -329,6 +330,7 @@ els.tabs.addEventListener("click", function(e){
   b.classList.add("active");
   state.tab = b.dataset.tab;
   if(state.quiz) state.quiz = null;
+  state.mathGuideOpen = false;
   cleanupMiniGame();
   renderView();
 });
@@ -336,6 +338,7 @@ els.tabs.addEventListener("click", function(e){
 function renderAll(){ renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
+  if(state.mathGuideOpen) return renderMathGuide();
   if(state.tab==="today") return renderToday();
   if(state.tab==="week") return renderWeek();
   if(state.tab==="progress") return renderProgress();
@@ -529,6 +532,7 @@ function renderWeek(){
   libTitle.textContent = "Curriculum Library";
   els.view.appendChild(libTitle);
   els.view.appendChild(curriculumLibraryCard());
+  els.view.appendChild(mathFieldGuideCard());
 
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
@@ -816,6 +820,98 @@ function curriculumLibraryCard(){
   head.onclick = function(){ importCurriculumSet(CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1"); };
   wrap.appendChild(head);
   return wrap;
+}
+
+/* ---------- Math Field Guide: step-by-step breakdowns for the recurring math skills ---------- */
+var MATH_FIELD_GUIDE = [
+  {
+    icon: "🔢", title: "Byte Math, Step by Step: MB → KB → Bytes",
+    pattern: "Every \"step up\" in computer storage is ×1024 (not ×1000 — that's the one everybody misses).",
+    steps: [
+      "Start with your MB number. <i>Windows 95 needs 4MB.</i>",
+      "MB → KB: multiply by 1024. <code>4 × 1024 = 4,096 KB</code>",
+      "KB → Bytes: multiply by 1024 <i>again</i>. <code>4,096 × 1024 = 4,194,304 bytes</code>",
+      "Sanity check: does your answer get <i>bigger</i> each step? (It should — smaller units, more of them.)"
+    ],
+    tryIt: "Windows 98 needs 16MB. How many KB? How many bytes?"
+  },
+  {
+    icon: "🍕", title: "Comparing Storage Sizes as Fractions & Decimals",
+    pattern: "To compare two storage sizes, get them in the <i>same unit</i> first, then turn it into a division problem.",
+    steps: [
+      "Make sure both amounts are in the same unit (both MB, or both GB — convert one if you need to).",
+      "Write the fraction in the order the question asks: \"what fraction of B is A\" → A/B.",
+      "Divide A ÷ B (long division or estimate) to turn it into a decimal.",
+      "Simplify the fraction if you can — find a number that divides evenly into both the top and bottom."
+    ],
+    tryIt: "A 700MB CD compared to a 4.7GB DVD (that's about 4,700MB) — write it as a fraction, then as a decimal."
+  },
+  {
+    icon: "⏱️", title: "Timeline Math: How Many Years Between?",
+    pattern: "Elapsed time between two years is just subtraction — later year minus earlier year.",
+    steps: [
+      "Find the two years involved.",
+      "Line them up: later year on top, earlier year on the bottom.",
+      "Subtract. That's your elapsed years.",
+      "Double-check it makes sense — you should never get a negative number."
+    ],
+    tryIt: "Windows XP came out in 2001. How many years ago was that from this year?"
+  },
+  {
+    icon: "💻", title: "Binary Patterns: Powers of 2",
+    pattern: "Each power of 2 is exactly double the one before it: 1, 2, 4, 8, 16, 32, 64, 128…",
+    steps: [
+      "Start at 1 (that's 2⁰).",
+      "Double it each time: 1 → 2 → 4 → 8 → 16 → 32 → 64 → 128 → 256…",
+      "Count how many times you doubled — that's the exponent.",
+      "Powers of 2 show up everywhere in computers: RAM sizes, colors, 32-bit vs. 64-bit."
+    ],
+    tryIt: "What's 2¹⁰? (Hint: computer people call that number \"1K.\")"
+  }
+];
+
+function mathFieldGuideCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginTop = "10px";
+  var head = document.createElement("div");
+  head.className = "task";
+  head.innerHTML =
+    '<div class="task-body">'+
+      '<div class="task-title">📘 Math Field Guide</div>'+
+      '<div class="task-sub">Step-by-step breakdowns for the math skills that repeat all month — pull it up mid-problem</div>'+
+    '</div><div class="task-xp">▶</div>';
+  head.style.cursor = "pointer";
+  head.onclick = function(){ state.mathGuideOpen = true; renderView(); };
+  wrap.appendChild(head);
+  return wrap;
+}
+
+function renderMathGuide(){
+  els.view.innerHTML = "";
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "📘 Math Field Guide";
+  els.view.appendChild(title);
+
+  MATH_FIELD_GUIDE.forEach(function(entry){
+    var card = document.createElement("div");
+    card.className = "qz-card";
+    card.style.marginBottom = "14px";
+    var stepsHtml = entry.steps.map(function(s,i){ return '<li style="margin-bottom:6px">'+s+'</li>'; }).join("");
+    card.innerHTML =
+      '<p class="qz-q" style="font-size:16px">'+entry.icon+' '+escapeHtml(entry.title)+'</p>'+
+      '<p class="muted" style="margin:0 0 10px">'+entry.pattern+'</p>'+
+      '<ol style="margin:0 0 12px;padding-left:20px;font-size:14px">'+stepsHtml+'</ol>'+
+      '<div style="background:var(--paper);border-radius:10px;padding:10px 12px;font-size:13.5px"><b>Try it yourself:</b> '+entry.tryIt+'</div>';
+    els.view.appendChild(card);
+  });
+
+  var backBtn = document.createElement("button");
+  backBtn.className = "primary-btn";
+  backBtn.textContent = "← Back";
+  backBtn.onclick = function(){ state.mathGuideOpen = false; renderView(); };
+  els.view.appendChild(backBtn);
 }
 
 function importCurriculumSet(items, label){
