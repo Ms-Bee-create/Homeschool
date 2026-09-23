@@ -232,6 +232,21 @@ var SUBJECT_COLOR = {
   "Math":"gold","ELA":"teal","Reading":"teal","Science":"coral","Social Studies":"gold",
   "Related Arts":"success","Live Lesson":"teal","Independent":"gold"
 };
+/* Rough time-on-task estimate per subject, used only for the exported hours report — the app has
+   no in-lesson timer, so this is a stand-in based on typical lesson length, not measured time. */
+var SUBJECT_EST_MINUTES = {
+  "Math":30,"ELA":25,"Reading":25,"Science":30,"Social Studies":30,
+  "Related Arts":30,"Live Lesson":45,"Independent":45
+};
+function estMinutesFor(a){ return SUBJECT_EST_MINUTES[a.subject] || 30; }
+function weekBoundsMonFri(ref){
+  var d = ref ? new Date(ref) : new Date();
+  var idx = todayIdxFor(d);
+  var mon = new Date(d); mon.setHours(0,0,0,0); mon.setDate(d.getDate()-idx);
+  var fri = new Date(mon); fri.setDate(mon.getDate()+4); fri.setHours(23,59,59,999);
+  return {start:mon, end:fri};
+}
+function todayIdxFor(d){ var day = d.getDay(); return day===0?6:day-1; }
 
 var state = {
   activeKid: "kid1",
@@ -623,6 +638,69 @@ function renderWeek(){
   els.view.appendChild(addForm(kidId, iso));
 }
 
+function csvEscape(v){
+  var s = String(v==null ? "" : v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+/* Builds a CSV covering every completed quest for a kid — date completed, subject, standard,
+   title, xp, estimated minutes — plus subject-hours and standards-covered summary rows, for
+   portfolio reviews or district reporting. Downloads directly in the browser, no server needed. */
+function exportProgressCSV(kidId){
+  var kd = kidData(kidId);
+  var done = assignmentsFor(kidId, null).filter(function(a){ return a.done && a.doneAt; })
+    .sort(function(a,b){ return new Date(a.doneAt)-new Date(b.doneAt); });
+
+  var lines = [];
+  lines.push(["Academy Log Progress Report"].map(csvEscape).join(","));
+  lines.push(["Student", kd.name].map(csvEscape).join(","));
+  lines.push(["Generated", new Date().toLocaleString()].map(csvEscape).join(","));
+  lines.push("");
+
+  var bySubjHours = {}, standards = {};
+  done.forEach(function(a){
+    var mins = estMinutesFor(a);
+    bySubjHours[a.subject] = (bySubjHours[a.subject]||0) + mins;
+    if(a.standard) standards[a.standard] = true;
+  });
+  lines.push(["Subject Hours Summary (estimated)"].map(csvEscape).join(","));
+  lines.push(["Subject","Estimated Hours"].map(csvEscape).join(","));
+  var totalMins = 0;
+  Object.keys(bySubjHours).forEach(function(s){
+    totalMins += bySubjHours[s];
+    lines.push([s, (bySubjHours[s]/60).toFixed(1)].map(csvEscape).join(","));
+  });
+  lines.push(["Total", (totalMins/60).toFixed(1)].map(csvEscape).join(","));
+  lines.push("");
+  lines.push(["Standards Covered", Object.keys(standards).sort().join("; ")].map(csvEscape).join(","));
+  lines.push("");
+
+  lines.push(["Quest Log"].map(csvEscape).join(","));
+  lines.push(["Date Completed","Subject","Standard","Title","XP Earned","Est. Minutes"].map(csvEscape).join(","));
+  done.forEach(function(a){
+    var when = new Date(a.doneAt);
+    lines.push([
+      when.toLocaleDateString(),
+      a.subject||"",
+      a.standard||"",
+      a.title||"",
+      a.xp||0,
+      estMinutesFor(a)
+    ].map(csvEscape).join(","));
+  });
+
+  var csv = lines.join("\n");
+  var blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = "AcademyLog_Progress_"+kd.name.replace(/[^a-z0-9]+/gi,"_")+"_"+todayISO()+".csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast("📄 Progress report downloaded");
+}
+
 /* ---------- Progress (Quest Log) ---------- */
 function renderProgress(){
   els.view.innerHTML = "";
@@ -694,6 +772,53 @@ function renderProgress(){
     });
   }
   els.view.appendChild(card);
+
+  var title2b = document.createElement("div");
+  title2b.className = "section-title";
+  title2b.textContent = "This Week — " + kidData(state.activeKid).name;
+  els.view.appendChild(title2b);
+
+  var wk = weekBoundsMonFri();
+  var byWeekSubj = {};
+  all.forEach(function(a){
+    if(!a.done || !a.doneAt) return;
+    var when = new Date(a.doneAt);
+    if(when<wk.start || when>wk.end) return;
+    byWeekSubj[a.subject] = byWeekSubj[a.subject] || {};
+    byWeekSubj[a.subject][todayIdxFor(when)] = true;
+  });
+  var wkCard = document.createElement("div");
+  wkCard.className = "card";
+  var wkSubjects = Object.keys(bySubj);
+  if(!wkSubjects.length){
+    wkCard.innerHTML = '<div class="empty">Nothing scheduled yet.</div>';
+  } else {
+    wkSubjects.forEach(function(s){
+      var covered = byWeekSubj[s] || {};
+      var coveredCt = DAYS.reduce(function(n,d,i){ return n + (covered[i]?1:0); }, 0);
+      var dotsHtml = DAYS.map(function(d,i){
+        return '<span title="'+DAY_LABEL[d]+'" style="display:inline-block;width:16px;height:16px;border-radius:50%;margin-right:4px;'+
+          (covered[i] ? 'background:var(--success)' : 'background:var(--paper);border:1px solid var(--border)')+'"></span>';
+      }).join("");
+      var row = document.createElement("div");
+      row.className = "task";
+      row.innerHTML =
+        '<div class="task-body">'+
+          '<div class="task-title">'+escapeHtml(s)+'</div>'+
+          '<div class="task-sub" style="margin-top:4px">'+dotsHtml+'</div>'+
+        '</div>'+
+        '<div class="task-xp">'+coveredCt+'/5</div>';
+      wkCard.appendChild(row);
+    });
+  }
+  els.view.appendChild(wkCard);
+
+  var exportBtn = document.createElement("button");
+  exportBtn.className = "primary-btn";
+  exportBtn.style.cssText = "margin-top:14px;background:var(--gold);color:var(--ink)";
+  exportBtn.textContent = "📄 Export Progress Report (CSV)";
+  exportBtn.onclick = function(){ exportProgressCSV(state.activeKid); };
+  els.view.appendChild(exportBtn);
 
   var title3 = document.createElement("div");
   title3.className = "section-title";
@@ -983,6 +1108,26 @@ var VM_INSTALL_HELP = {
   }
 };
 
+/* Troubleshooting helper: strips HTML from each VM_INSTALL_HELP step, tokenizes it and the kid's
+   typed error text, and scores steps by shared keywords — a lightweight stand-in for a chatbot
+   that doesn't need a live LLM call. Not "real" AI, just keyword matching against known fixes. */
+var TROUBLESHOOT_STOPWORDS = {"the":1,"and":1,"for":1,"with":1,"this":1,"that":1,"your":1,"you":1,"from":1,"into":1,"than":1,"then":1,"have":1,"will":1,"most":1,"only":1,"same":1,"either":1,"instead":1,"here":1,"there":1,"about":1};
+function stripHtml(s){ return s.replace(/<[^>]+>/g,""); }
+function tokenize(s){
+  return stripHtml(s).toLowerCase().match(/[a-z0-9]+/g)||[];
+}
+function findTroubleshootMatches(vmHelp, query){
+  var qTokens = tokenize(query).filter(function(t){ return t.length>=4 && !TROUBLESHOOT_STOPWORDS[t]; });
+  if(!qTokens.length) return [];
+  var scored = vmHelp.steps.map(function(step, i){
+    var stepTokens = tokenize(step);
+    var score = qTokens.reduce(function(sum, t){ return sum + (stepTokens.indexOf(t)>=0 ? 1 : 0); }, 0);
+    return {step:step, index:i, score:score};
+  }).filter(function(m){ return m.score>0; });
+  scored.sort(function(a,b){ return b.score-a.score; });
+  return scored.slice(0,3);
+}
+
 function mathFieldGuideCard(){
   var wrap = document.createElement("div");
   wrap.className = "card";
@@ -1241,6 +1386,53 @@ function renderLessonDetail(){
     : '<div id="flagBanner"></div>';
 
   card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+
+  if(vmHelp){
+    var tsWrap = document.createElement("div");
+    tsWrap.style.cssText = "margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)";
+    var tsTitle = document.createElement("div");
+    tsTitle.style.cssText = "font-weight:700;margin-bottom:6px";
+    tsTitle.textContent = "🤖 Stuck? Type your error here";
+    var tsSub = document.createElement("div");
+    tsSub.className = "muted";
+    tsSub.style.cssText = "font-size:12.5px;margin-bottom:8px";
+    tsSub.textContent = "Type what the error message says (or what's happening) and I'll point you to the matching fix above.";
+    var tsRow = document.createElement("div");
+    tsRow.style.cssText = "display:flex;gap:8px";
+    var tsInput = document.createElement("input");
+    tsInput.type = "text";
+    tsInput.placeholder = "e.g. Incorrect MS-DOS version";
+    tsInput.style.cssText = "flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px";
+    var tsBtn = document.createElement("button");
+    tsBtn.type = "button";
+    tsBtn.textContent = "🔎 Find my fix";
+    tsBtn.style.cssText = "padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;font-weight:600";
+    tsRow.appendChild(tsInput);
+    tsRow.appendChild(tsBtn);
+    var tsResults = document.createElement("div");
+    tsResults.style.cssText = "margin-top:10px;font-size:13.5px";
+    tsWrap.appendChild(tsTitle);
+    tsWrap.appendChild(tsSub);
+    tsWrap.appendChild(tsRow);
+    tsWrap.appendChild(tsResults);
+    card.appendChild(tsWrap);
+
+    function runTroubleshoot(){
+      var q = tsInput.value.trim();
+      if(!q){ tsResults.innerHTML = ""; return; }
+      var matches = findTroubleshootMatches(vmHelp, q);
+      if(!matches.length){
+        tsResults.innerHTML = '<div style="padding:8px 10px;border-radius:8px;background:var(--gold-soft)">I couldn\'t match that to a specific fix — scroll through the full checklist above, or try describing it a different way (what step you\'re on, what the error says).</div>';
+      } else {
+        tsResults.innerHTML = '<div style="margin-bottom:6px;font-weight:600">This looks closest to your issue:</div>'+
+          matches.map(function(m){
+            return '<div style="padding:8px 10px;margin-bottom:6px;border-radius:8px;background:var(--success-soft);border:1px solid var(--success)">'+m.step+'</div>';
+          }).join("");
+      }
+    }
+    tsBtn.onclick = runTroubleshoot;
+    tsInput.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); runTroubleshoot(); } });
+  }
 
   if(Array.isArray(a.quiz) && a.quiz.length){
     var quizWrap = document.createElement("div");
