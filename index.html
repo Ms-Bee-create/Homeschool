@@ -360,6 +360,14 @@ function subjectChip(subject){
   return '<span class="chip" style="background:var(--'+key+'-soft);color:var(--'+key+')">'+escapeHtml(subject)+'</span>';
 }
 
+function materialsLinkHtml(materials){
+  var m = materials.trim();
+  if(/^https?:\/\//i.test(m)){
+    return '<a href="'+escapeHtml(m)+'" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700;text-decoration:none">🔗 Open materials</a>';
+  }
+  return '📎 '+escapeHtml(m);
+}
+
 function taskRow(a){
   var row = document.createElement("div");
   row.className = "task";
@@ -367,7 +375,10 @@ function taskRow(a){
     '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
     '<div class="task-body">'+
       '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+'</div>'+
-      '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+'</div>'+
+      '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+
+        (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
+      '</div>'+
+      (a.materials ? '<div class="task-sub" style="margin-top:3px">'+materialsLinkHtml(a.materials)+'</div>' : '')+
     '</div>'+
     '<div class="task-xp">+'+a.xp+' XP</div>'+
     '<button class="del" title="Remove">✕</button>';
@@ -474,6 +485,8 @@ function addForm(kidId, defaultDate){
       '</select>'+
       '<input class="af-title" placeholder="Assignment (e.g. U4 L6: Multiply by 2-digit numbers)" maxlength="100">'+
       '<input class="af-xp" type="number" min="5" max="50" step="5" value="10" style="max-width:64px">'+
+      '<input class="af-materials" placeholder="Materials link or note (optional)" maxlength="300">'+
+      '<input class="af-standard" placeholder="Standard e.g. 4.NR.1 (optional)" maxlength="40" style="max-width:160px">'+
       '<button class="af-add">Add</button>'+
     '</div>';
   wrap.querySelector(".af-add").onclick = function(){
@@ -481,12 +494,15 @@ function addForm(kidId, defaultDate){
     var t = titleEl.value.trim();
     var dateVal = wrap.querySelector(".af-date").value || todayISO();
     if(!t || !db) return;
+    var materialsEl = wrap.querySelector(".af-materials");
+    var standardEl = wrap.querySelector(".af-standard");
     db.collection("assignments").add({
       kidId: kidId, date: dateVal, subject: wrap.querySelector(".af-subject").value,
       title: t, xp: Number(wrap.querySelector(".af-xp").value)||10, done:false, doneAt:null,
+      materials: materialsEl.value.trim() || null, standard: standardEl.value.trim() || null,
       createdAt: new Date().toISOString()
     });
-    titleEl.value = "";
+    titleEl.value = ""; materialsEl.value = ""; standardEl.value = "";
   };
   return wrap;
 }
