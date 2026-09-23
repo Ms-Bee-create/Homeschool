@@ -1246,43 +1246,72 @@ function renderLessonDetail(){
     quizTitle.style.cssText = "font-weight:700;margin-bottom:8px";
     quizTitle.textContent = "🎯 Quick Check";
     quizWrap.appendChild(quizTitle);
-    a.quiz.forEach(function(item, qi){
-      var qRow = document.createElement("div");
-      qRow.style.cssText = "margin-bottom:"+(qi===a.quiz.length-1?"0":"12px");
-      var qText = document.createElement("div");
-      qText.style.cssText = "font-size:14px;margin-bottom:6px";
-      qText.textContent = (qi+1)+". "+item.q;
-      qRow.appendChild(qText);
-      var choicesWrap = document.createElement("div");
-      choicesWrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
-      var answered = false;
-      item.choices.forEach(function(choice, ci){
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = choice;
-        btn.style.cssText = "text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer";
-        btn.onclick = function(){
-          if(answered) return;
-          answered = true;
-          var correct = ci===item.answerIndex;
-          btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
-          btn.style.borderColor = correct ? "var(--success)" : "var(--coral)";
-          if(!correct){
-            var buttons = choicesWrap.querySelectorAll("button");
-            buttons[item.answerIndex].style.background = "var(--success-soft)";
-            buttons[item.answerIndex].style.borderColor = "var(--success)";
-          } else {
-            grantXP(state.activeKid, 5);
-            toast("✅ +5 XP");
-          }
-          Array.prototype.forEach.call(choicesWrap.querySelectorAll("button"), function(b){ b.disabled = true; b.style.cursor = "default"; });
-        };
-        choicesWrap.appendChild(btn);
-      });
-      qRow.appendChild(choicesWrap);
-      quizWrap.appendChild(qRow);
-    });
+    var quizBody = document.createElement("div");
+    quizWrap.appendChild(quizBody);
+    var retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.textContent = "🔄 Try a new Quick Check";
+    retryBtn.style.cssText = "display:none;margin-top:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;font-weight:600";
+    quizWrap.appendChild(retryBtn);
     card.appendChild(quizWrap);
+
+    var usingRetrySet = false;
+    function renderQuizItems(items, isRetryAttempt){
+      quizBody.innerHTML = "";
+      retryBtn.style.display = "none";
+      var correctCount = 0, answeredCount = 0;
+      items.forEach(function(item, qi){
+        var qRow = document.createElement("div");
+        qRow.style.cssText = "margin-bottom:"+(qi===items.length-1?"0":"12px");
+        var qText = document.createElement("div");
+        qText.style.cssText = "font-size:14px;margin-bottom:6px";
+        qText.textContent = (qi+1)+". "+item.q;
+        qRow.appendChild(qText);
+        var choicesWrap = document.createElement("div");
+        choicesWrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
+        var answered = false;
+        item.choices.forEach(function(choice, ci){
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = choice;
+          btn.style.cssText = "text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer";
+          btn.onclick = function(){
+            if(answered) return;
+            answered = true;
+            answeredCount++;
+            var correct = ci===item.answerIndex;
+            btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
+            btn.style.borderColor = correct ? "var(--success)" : "var(--coral)";
+            if(!correct){
+              var buttons = choicesWrap.querySelectorAll("button");
+              buttons[item.answerIndex].style.background = "var(--success-soft)";
+              buttons[item.answerIndex].style.borderColor = "var(--success)";
+            } else {
+              correctCount++;
+              grantXP(state.activeKid, 5);
+              toast("✅ +5 XP");
+            }
+            Array.prototype.forEach.call(choicesWrap.querySelectorAll("button"), function(b){ b.disabled = true; b.style.cursor = "default"; });
+            if(answeredCount===items.length){
+              if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
+                retryBtn.style.display = "block";
+              } else if(isRetryAttempt && correctCount===items.length){
+                grantMommaMoney(state.activeKid, 1);
+                toast("🌟 Aced the retry — +$1 Momma Money bonus!");
+              }
+            }
+          };
+          choicesWrap.appendChild(btn);
+        });
+        qRow.appendChild(choicesWrap);
+        quizBody.appendChild(qRow);
+      });
+    }
+    renderQuizItems(a.quiz, false);
+    retryBtn.onclick = function(){
+      usingRetrySet = !usingRetrySet;
+      renderQuizItems(usingRetrySet ? a.quizRetry : a.quiz, usingRetrySet);
+    };
   }
 
   var workLabel = document.createElement("div");
@@ -1700,6 +1729,10 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
     {q:"Just like you're 'installing' Windows 95 as a totally new system, the American Revolution was the colonists installing a brand new one. What were they replacing British rule with?", choices:["A monarchy copied from France","An independent, self-governing country","No government at all","British rule, unchanged"], answerIndex:1},
     {q:"Which document, like a 'system requirements' list for the new country, declared the colonies' independence in 1776?", choices:["The Constitution","The Declaration of Independence","The Bill of Rights","The Magna Carta"], answerIndex:1},
     {q:"Who led the colonial army during the Revolution (and later became the first 'admin' of the new country as president)?", choices:["Thomas Jefferson","Benjamin Franklin","George Washington","John Adams"], answerIndex:2}
+  ], quizRetry:[
+    {q:"Who was king of Great Britain during the American Revolution — the 'system' the colonists were trying to replace?", choices:["King George III","King Henry VIII","King Louis XVI","King James I"], answerIndex:0},
+    {q:"What do we call the war the colonists fought to win their independence from Britain?", choices:["The Civil War","The American Revolution","The War of 1812","World War I"], answerIndex:1},
+    {q:"About how many original colonies joined together to declare independence in 1776?", choices:["5","13","30","50"], answerIndex:1}
   ]},
 
   {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
@@ -1735,6 +1768,10 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
     {q:"Just like each new Windows version added way more storage and 'territory' to explore, the Louisiana Purchase roughly doubled the size of the US. Who was president when that deal happened?", choices:["George Washington","Thomas Jefferson","Abraham Lincoln","James Monroe"], answerIndex:1},
     {q:"Which two explorers led the famous expedition to map the newly purchased western land?", choices:["Lewis and Clark","Columbus and Magellan","Washington and Adams","Boone and Crockett"], answerIndex:0},
     {q:"What was the name for the widely-held 1800s belief that the US was destined to expand all the way to the Pacific Ocean?", choices:["Manifest Destiny","The Gold Rush","The Homestead Act","The Louisiana Doctrine"], answerIndex:0}
+  ], quizRetry:[
+    {q:"Which ocean were settlers moving toward as the US expanded westward in the 1800s?", choices:["The Atlantic","The Pacific","The Arctic","The Indian Ocean"], answerIndex:1},
+    {q:"Which nation did the US buy the Louisiana Territory from in 1803?", choices:["Spain","Britain","France","Mexico"], answerIndex:2},
+    {q:"What kind of trail did many pioneer families travel by wagon to reach the West?", choices:["The Oregon Trail","The Silk Road","The Appalachian Trail","Route 66"], answerIndex:0}
   ]},
 
   {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
@@ -1770,6 +1807,10 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
     {q:"Kind of like two incompatible operating systems that couldn't run on the same machine, the North and South split into two sides in the Civil War. What was the main issue dividing them?", choices:["Which language to speak","Slavery","Which sport to play","Where the capital should be"], answerIndex:1},
     {q:"Who was president of the United States during the Civil War?", choices:["Abraham Lincoln","George Washington","Thomas Jefferson","Ulysses S. Grant"], answerIndex:0},
     {q:"What was the name for the southern states that broke away and formed their own government during the war?", choices:["The Union","The Confederacy","The Colonies","The Territories"], answerIndex:1}
+  ], quizRetry:[
+    {q:"What do we call the northern states that stayed together as one country during the Civil War?", choices:["The Union","The Confederacy","The Colonies","The Allies"], answerIndex:0},
+    {q:"About what years did the Civil War take place?", choices:["1776-1783","1812-1815","1861-1865","1914-1918"], answerIndex:2},
+    {q:"Which famous speech did Lincoln give at a Civil War battlefield to honor the soldiers who died there?", choices:["The Gettysburg Address","The Declaration of Independence","The State of the Union","I Have a Dream"], answerIndex:0}
   ]},
 
   {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
@@ -1805,6 +1846,10 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
     {q:"Just like rebuilding a crashed computer after a bad install, Reconstruction was the period of rebuilding the country after the Civil War. About what years did it cover?", choices:["1776-1783","1865-1877","1900-1920","1941-1945"], answerIndex:1},
     {q:"Which amendment to the Constitution, passed during Reconstruction, ended slavery in the United States?", choices:["1st Amendment","13th Amendment","19th Amendment","22nd Amendment"], answerIndex:1},
     {q:"What were the newly freed African Americans who gained new rights and citizenship during Reconstruction generally called?", choices:["Freedmen","Loyalists","Settlers","Pioneers"], answerIndex:0}
+  ], quizRetry:[
+    {q:"Reconstruction happened right after which war ended?", choices:["The Revolutionary War","The Civil War","World War I","The War of 1812"], answerIndex:1},
+    {q:"Which side's states needed to be rebuilt and brought back into the Union during Reconstruction?", choices:["The Northern states","The Southern states","The western territories","Canada"], answerIndex:1},
+    {q:"What was the name for the period right after the Civil War when the South's economy and government were rebuilt?", choices:["Reconstruction","Restoration","The Renaissance","The Gilded Age"], answerIndex:0}
   ]},
 
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
@@ -1915,6 +1960,13 @@ function grantXP(kidId, amount){
   db.doc("kids/"+kidId).update(updates);
   if(kidId===state.activeKid) renderXpBar();
   if(lvl.gained>0) logLevelUpReward(kidId, lvl);
+}
+
+function grantMommaMoney(kidId, amount){
+  if(!db || amount<=0) return;
+  var kd = kidData(kidId);
+  db.doc("kids/"+kidId).update({mommaMoney: (kd.mommaMoney||0)+amount});
+  if(kidId===state.activeKid) renderXpBar();
 }
 
 function cleanupMiniGame(){
@@ -2380,7 +2432,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" }
@@ -2617,6 +2669,7 @@ function patchHistoryReadingLinks(kidId){
     if(match.title && a.title!==match.title) updates.title = match.title;
     if(match.materials && a.materials!==match.materials) updates.materials = match.materials;
     if(match.quiz) updates.quiz = match.quiz;
+    if(match.quizRetry) updates.quizRetry = match.quizRetry;
     if(Object.keys(updates).length===0) return;
     Object.assign(state.assignments[id], updates);
     db.doc("assignments/"+id).update(updates);
