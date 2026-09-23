@@ -241,7 +241,9 @@ var state = {
   questions: [],
   quiz: null, // active quiz state
   miniGame: null, // active arcade mini-game state (Space Mission / Parkour Course)
-  mathGuideOpen: false // whether the Math Field Guide view is showing
+  mathGuideOpen: false, // whether the Math Field Guide view is showing
+  leaderGuideOpen: false, // whether the Leader's Guide view is showing
+  lessonDetailId: null // id of the assignment currently shown in Lesson Detail view, if any
 };
 
 /* db is created by the sync layer appended below, after login */
@@ -291,7 +293,7 @@ function renderKidbar(){
     card.className = "kid-card" + (state.activeKid===k.id ? " active":"");
     card.style.setProperty("--kc", "var(--"+kd.color+")");
     card.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
-    card.onclick = function(){ cleanupMiniGame(); if(state.quiz) state.quiz=null; state.activeKid = k.id; renderAll(); };
+    card.onclick = function(){ cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null; state.activeKid = k.id; renderAll(); };
     var initials = (kd.name||"?").trim().slice(0,1).toUpperCase();
     card.innerHTML =
       '<div class="kid-avatar">'+initials+'</div>'+
@@ -331,6 +333,8 @@ els.tabs.addEventListener("click", function(e){
   state.tab = b.dataset.tab;
   if(state.quiz) state.quiz = null;
   state.mathGuideOpen = false;
+  state.leaderGuideOpen = false;
+  state.lessonDetailId = null;
   cleanupMiniGame();
   renderView();
 });
@@ -338,7 +342,9 @@ els.tabs.addEventListener("click", function(e){
 function renderAll(){ renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
+  if(state.lessonDetailId!=null) return renderLessonDetail();
   if(state.mathGuideOpen) return renderMathGuide();
+  if(state.leaderGuideOpen) return renderLeaderGuide();
   if(state.tab==="today") return renderToday();
   if(state.tab==="week") return renderWeek();
   if(state.tab==="progress") return renderProgress();
@@ -384,10 +390,11 @@ function taskRow(a){
   row.className = "task";
   row.innerHTML =
     '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
-    '<div class="task-body">'+
+    '<div class="task-body" style="cursor:pointer">'+
       '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+'</div>'+
       '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+
         (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
+        (a.submission ? ' &nbsp;<span class="chip" style="background:var(--teal-soft);color:var(--teal)">📝 work saved</span>' : '')+
       '</div>'+
       (a.materials ? '<div class="task-sub" style="margin-top:3px">'+materialsLinkHtml(a.materials)+'</div>' : '')+
       (a.video ? '<div class="task-sub" style="margin-top:3px">'+videoLinkHtml(a.video)+'</div>' : '')+
@@ -396,6 +403,9 @@ function taskRow(a){
     '<button class="del" title="Remove">✕</button>';
   row.querySelector(".check").onclick = function(){ toggleAssignment(a); };
   row.querySelector(".del").onclick = function(){ if(db) db.doc("assignments/"+a.id).delete(); };
+  var linkEls = row.querySelectorAll(".task-body a");
+  Array.prototype.forEach.call(linkEls, function(el){ el.addEventListener("click", function(e){ e.stopPropagation(); }); });
+  row.querySelector(".task-body").onclick = function(){ state.lessonDetailId = a.id; renderView(); };
   return row;
 }
 
@@ -533,6 +543,7 @@ function renderWeek(){
   els.view.appendChild(libTitle);
   els.view.appendChild(curriculumLibraryCard());
   els.view.appendChild(mathFieldGuideCard());
+  els.view.appendChild(leaderGuideCard());
 
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
@@ -887,6 +898,129 @@ function mathFieldGuideCard(){
   return wrap;
 }
 
+/* ---------- Leader's Guide: check-understanding questions, grouped by concept ---------- */
+var LEADER_GUIDE = [
+  { icon: "✍️", subject: "ELA — Journaling & Writing", questions: [
+    "Without looking at your journal, tell me one thing you did today.",
+    "What's one word you'd use to describe how today's project went, and why that word?",
+    "Read me the sentence you're most proud of from today's writing."
+  ]},
+  { icon: "🔢", subject: "Math — Byte/KB/MB Conversions", questions: [
+    "Why do we multiply by 1024 instead of 1000 to go from MB to KB?",
+    "If I gave you a number in bytes, how would you figure out how many MB that is?",
+    "Which is bigger: 2,048 KB or 3 MB? How do you know without a calculator?"
+  ]},
+  { icon: "🍕", subject: "Math — Fractions & Decimals", questions: [
+    "What does it mean for a fraction to be 'simplified'?",
+    "How do you turn a fraction into a decimal?",
+    "If Item A is a bigger fraction of Item B, does that mean A is bigger or B is bigger?"
+  ]},
+  { icon: "⏱️", subject: "Math — Timeline / Elapsed Time", questions: [
+    "How do you find out how many years passed between two events?",
+    "Why can't the answer to 'how many years ago' ever be negative?",
+    "Which came first — Windows 98 or Windows XP — and how many years apart were they?"
+  ]},
+  { icon: "💻", subject: "Math — Binary & Powers of 2", questions: [
+    "What's special about how each power of 2 relates to the one before it?",
+    "Why do you think computers use binary (just 1s and 0s) instead of our normal counting?",
+    "Can you count by doubling from 1 up to 128 without looking?"
+  ]},
+  { icon: "📖", subject: "Reading — Tech History", questions: [
+    "What was the biggest problem this invention/feature solved?",
+    "Who were the people involved, and what did they actually do?",
+    "If you had to explain this to a friend in one sentence, what would you say?"
+  ]},
+  { icon: "🔊", subject: "Science — Sound & Vibration", questions: [
+    "How does a speaker turn electricity into a sound you can hear?",
+    "What is vibration, and why can't you have sound without it?",
+    "Can you point to (or describe) something in the house that makes sound this same way?"
+  ]},
+  { icon: "🌀", subject: "Science — Fans, Forces & Motion", questions: [
+    "Why does a computer need a fan at all — what happens if it overheats?",
+    "How does a spinning fan actually move air?",
+    "What's the difference between a fan blowing air in versus pulling air out?"
+  ]},
+  { icon: "💧", subject: "Science — Humidity & Electronics", questions: [
+    "Why is humidity bad for old electronics?",
+    "What's happening at the tiny level when moisture gets into a circuit?",
+    "What would you do differently to store an old computer safely?"
+  ]},
+  { icon: "💡", subject: "Science — Light & Monitors", questions: [
+    "What is a pixel, and how many does it take to make a picture?",
+    "How does a screen use light and color to show you a moving image?",
+    "Why do old CRT monitors look different from today's flat screens?"
+  ]},
+  { icon: "🇺🇸", subject: "Social Studies — US History Reading", questions: [
+    "What was happening in this time period, in your own words?",
+    "Who was one important person you read about, and what did they do?",
+    "What's one cause and one effect from what you read?"
+  ]},
+  { icon: "🗺️", subject: "Social Studies — Geography & Tech", questions: [
+    "Where is this place, and why does its location matter to the story?",
+    "About how far away is it from us? How did you figure that out?",
+    "Why might a company choose to be located there?"
+  ]},
+  { icon: "💰", subject: "Social Studies — Budgeting", questions: [
+    "Why did you spend more on one item and less on another?",
+    "What would you cut first if your budget got smaller?",
+    "What's the difference between a 'need' and a 'want' in your budget?"
+  ]},
+  { icon: "🛠️", subject: "Independent — Project Work", questions: [
+    "What was the hardest part of today's project, and how did you get past it?",
+    "If you had to do this step again, what would you do differently?",
+    "Show me (don't just tell me) how this part works."
+  ]}
+];
+
+function leaderGuideCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginTop = "10px";
+  var head = document.createElement("div");
+  head.className = "task";
+  head.innerHTML =
+    '<div class="task-body">'+
+      '<div class="task-title">👩‍🏫 Leader\'s Guide</div>'+
+      '<div class="task-sub">Questions to ask to check real understanding, grouped by concept</div>'+
+    '</div><div class="task-xp">▶</div>';
+  head.style.cursor = "pointer";
+  head.onclick = function(){ state.leaderGuideOpen = true; renderView(); };
+  wrap.appendChild(head);
+  return wrap;
+}
+
+function renderLeaderGuide(){
+  els.view.innerHTML = "";
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "👩‍🏫 Leader's Guide";
+  els.view.appendChild(title);
+
+  var intro = document.createElement("div");
+  intro.className = "muted";
+  intro.style.margin = "0 0 14px";
+  intro.textContent = "Pick 1-2 questions per concept, whenever he finishes a lesson in that area — a real answer in his own words is the signal he's got it, not just that the box is checked.";
+  els.view.appendChild(intro);
+
+  LEADER_GUIDE.forEach(function(entry){
+    var card = document.createElement("div");
+    card.className = "qz-card";
+    card.style.marginBottom = "12px";
+    card.style.padding = "14px 16px";
+    var qHtml = entry.questions.map(function(q){ return '<li style="margin-bottom:6px">'+escapeHtml(q)+'</li>'; }).join("");
+    card.innerHTML =
+      '<p class="qz-q" style="font-size:15px;margin-bottom:8px">'+entry.icon+' '+escapeHtml(entry.subject)+'</p>'+
+      '<ul style="margin:0;padding-left:20px;font-size:13.5px">'+qHtml+'</ul>';
+    els.view.appendChild(card);
+  });
+
+  var backBtn = document.createElement("button");
+  backBtn.className = "primary-btn";
+  backBtn.textContent = "← Back";
+  backBtn.onclick = function(){ state.leaderGuideOpen = false; renderView(); };
+  els.view.appendChild(backBtn);
+}
+
 function renderMathGuide(){
   els.view.innerHTML = "";
   var title = document.createElement("div");
@@ -912,6 +1046,93 @@ function renderMathGuide(){
   backBtn.textContent = "← Back";
   backBtn.onclick = function(){ state.mathGuideOpen = false; renderView(); };
   els.view.appendChild(backBtn);
+}
+
+function youtubeEmbedUrl(url){
+  var m = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?&]+)/);
+  return m ? "https://www.youtube.com/embed/"+m[1] : null;
+}
+
+function renderLessonDetail(){
+  els.view.innerHTML = "";
+  var a = state.assignments[state.lessonDetailId];
+  if(!a){ state.lessonDetailId = null; return renderView(); }
+  a = Object.assign({id: state.lessonDetailId}, a);
+
+  var backBtn = document.createElement("button");
+  backBtn.className = "reward-skip";
+  backBtn.style.cssText = "color:var(--text-dim);opacity:1;padding:0 0 10px";
+  backBtn.textContent = "← Back";
+  backBtn.onclick = function(){ state.lessonDetailId = null; renderView(); };
+  els.view.appendChild(backBtn);
+
+  var card = document.createElement("div");
+  card.className = "qz-card";
+
+  var headHtml =
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
+      '<div>'+subjectChip(a.subject)+
+        (a.standard ? ' <span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border);margin-left:4px">'+escapeHtml(a.standard)+'</span>' : '')+
+      '</div>'+
+      '<div class="task-xp" style="font-size:14px">+'+a.xp+' XP</div>'+
+    '</div>'+
+    '<p class="qz-q" style="font-size:19px;margin-bottom:14px">'+escapeHtml(a.title)+'</p>';
+
+  var videoHtml = "";
+  if(a.video){
+    var embed = youtubeEmbedUrl(a.video);
+    videoHtml = embed
+      ? '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;margin-bottom:14px"><iframe src="'+embed+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen title="Lesson video"></iframe></div>'
+      : '<div style="margin-bottom:14px">'+videoLinkHtml(a.video)+'</div>';
+  }
+
+  var materialsHtml = a.materials ? '<div style="margin-bottom:14px">'+materialsLinkHtml(a.materials)+'</div>' : '';
+
+  card.innerHTML = headHtml + videoHtml + materialsHtml;
+
+  var workLabel = document.createElement("div");
+  workLabel.className = "section-title";
+  workLabel.style.margin = "4px 0 6px";
+  workLabel.textContent = "My Work";
+  card.appendChild(workLabel);
+
+  var workBox = document.createElement("textarea");
+  workBox.value = a.submission || "";
+  workBox.placeholder = "Type your answer, notes, or work here...";
+  workBox.rows = 6;
+  workBox.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
+  card.appendChild(workBox);
+
+  var savedNote = document.createElement("div");
+  savedNote.className = "muted";
+  savedNote.style.cssText = "font-size:11.5px;margin-top:4px;min-height:1.2em";
+  savedNote.textContent = a.submittedAt ? "Last saved "+new Date(a.submittedAt).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+  card.appendChild(savedNote);
+
+  els.view.appendChild(card);
+
+  function saveWork(){
+    if(!db) return;
+    var text = workBox.value;
+    var now = new Date().toISOString();
+    if(state.assignments[a.id]){ state.assignments[a.id].submission = text; state.assignments[a.id].submittedAt = now; }
+    db.doc("assignments/"+a.id).update({submission: text, submittedAt: now});
+    savedNote.textContent = "Saved just now";
+  }
+
+  var saveBtn = document.createElement("button");
+  saveBtn.className = "reward-skip";
+  saveBtn.style.cssText = "color:var(--ink);opacity:1;font-weight:700;display:block;margin:10px auto 12px";
+  saveBtn.textContent = "💾 Save my work";
+  saveBtn.onclick = saveWork;
+  els.view.appendChild(saveBtn);
+
+  var doneBtn = document.createElement("button");
+  doneBtn.className = "primary-btn";
+  doneBtn.style.width = "100%";
+  doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Turn it in";
+  doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
+  els.view.appendChild(doneBtn);
 }
 
 function importCurriculumSet(items, label){
@@ -1623,7 +1844,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" }
