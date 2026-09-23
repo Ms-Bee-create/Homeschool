@@ -895,6 +895,7 @@ var VM_INSTALL_HELP = {
       "<b>VM type:</b> When creating the VM, set the type to \"Windows 95\" (older VirtualBox) or \"Other/Unknown\" 32-bit (newer VirtualBox dropped 95 from the list).",
       "<b>Storage controller:</b> Put both the virtual hard disk AND the CD/DVD drive on <b>IDE</b>, not SATA. Windows 95 has no SATA drivers at all — this is the #1 cause of install failures.",
       "<b>Partition the disk first:</b> Pre-OSR2 Windows 95 CDs aren't bootable by themselves. Boot a Windows 95 boot floppy image first, run <code>fdisk</code> to create a partition, reboot, run <code>format c:</code>, then start setup from the CD.",
+      "<b>\"Incorrect MS-DOS version\" error:</b> This means the boot floppy is actually a <i>Windows 98</i> boot disk (a common mix-up), which reports a DOS version Windows 95 setup rejects. At the <code>A:\\&gt;</code> prompt run <code>SETVER SETUP.EXE 6.22</code>, reboot with the same floppy still in, then run SETUP again. If that doesn't work, swap in the correct Windows 95 boot floppy image instead.",
       "<b>RAM:</b> Set the VM to 64MB (period-accurate) up to 256MB max. Too much RAM can cause Windows 95 to hang or crash.",
       "<b>Turn off the USB controller</b> in the VM's USB settings — Windows 95 has no native USB support and it can cause freezes.",
       "<b>System settings:</b> Turn off I/O APIC and PAE/NX — Windows 95 doesn't expect either.",
