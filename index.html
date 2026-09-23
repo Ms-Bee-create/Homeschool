@@ -2463,6 +2463,34 @@ function patchInstallHelp(kidId){
   renderView();
 }
 
+/* Patches already-imported lessons (matched by exact title, any subject) with whatever materials/
+   video/standard the curriculum template currently has — covers the general case where a lesson
+   was imported before a real link was added to CURRICULUM_RETRO_OS_MONTH1, so the stored assignment
+   is missing (or has an outdated) materials/video URL and shows as plain unclickable text instead
+   of a link. Only fills in fields the template actually has; never clears an existing value. */
+function patchLessonLinks(kidId){
+  if(!db) return;
+  var byTitle = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){ byTitle[item.title] = item; });
+  var count = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var match = byTitle[a.title];
+    if(!match) return;
+    var updates = {};
+    ["materials","video","standard"].forEach(function(field){
+      if(match[field] && a[field]!==match[field]) updates[field] = match[field];
+    });
+    if(Object.keys(updates).length===0) return;
+    Object.assign(state.assignments[id], updates);
+    db.doc("assignments/"+id).update(updates);
+    count++;
+  });
+  console.log("patchLessonLinks: updated "+count+" assignment(s)");
+  renderView();
+}
+
 function seedArenaQuestions(kidId){
   if(!db) return;
   var existing = {};
@@ -2483,7 +2511,8 @@ function seedArenaQuestions(kidId){
    seedArenaQuestions(state.activeKid)           — adds a starter mix of quiz questions across every subject
    diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence
    rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched
-   patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons */
+   patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons
+   patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
@@ -2491,6 +2520,7 @@ window.seedArenaQuestions = seedArenaQuestions;
 window.diagnoseScheduleDates = diagnoseScheduleDates;
 window.rescheduleFromToday = rescheduleFromToday;
 window.patchInstallHelp = patchInstallHelp;
+window.patchLessonLinks = patchLessonLinks;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 
