@@ -1239,6 +1239,52 @@ function renderLessonDetail(){
 
   card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
 
+  if(Array.isArray(a.quiz) && a.quiz.length){
+    var quizWrap = document.createElement("div");
+    quizWrap.style.cssText = "margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--gold-soft);border:1px solid var(--border)";
+    var quizTitle = document.createElement("div");
+    quizTitle.style.cssText = "font-weight:700;margin-bottom:8px";
+    quizTitle.textContent = "🎯 Quick Check";
+    quizWrap.appendChild(quizTitle);
+    a.quiz.forEach(function(item, qi){
+      var qRow = document.createElement("div");
+      qRow.style.cssText = "margin-bottom:"+(qi===a.quiz.length-1?"0":"12px");
+      var qText = document.createElement("div");
+      qText.style.cssText = "font-size:14px;margin-bottom:6px";
+      qText.textContent = (qi+1)+". "+item.q;
+      qRow.appendChild(qText);
+      var choicesWrap = document.createElement("div");
+      choicesWrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
+      var answered = false;
+      item.choices.forEach(function(choice, ci){
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = choice;
+        btn.style.cssText = "text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer";
+        btn.onclick = function(){
+          if(answered) return;
+          answered = true;
+          var correct = ci===item.answerIndex;
+          btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
+          btn.style.borderColor = correct ? "var(--success)" : "var(--coral)";
+          if(!correct){
+            var buttons = choicesWrap.querySelectorAll("button");
+            buttons[item.answerIndex].style.background = "var(--success-soft)";
+            buttons[item.answerIndex].style.borderColor = "var(--success)";
+          } else {
+            grantXP(state.activeKid, 5);
+            toast("✅ +5 XP");
+          }
+          Array.prototype.forEach.call(choicesWrap.querySelectorAll("button"), function(b){ b.disabled = true; b.style.cursor = "default"; });
+        };
+        choicesWrap.appendChild(btn);
+      });
+      qRow.appendChild(choicesWrap);
+      quizWrap.appendChild(qRow);
+    });
+    card.appendChild(quizWrap);
+  }
+
   var workLabel = document.createElement("div");
   workLabel.className = "section-title";
   workLabel.style.margin = "4px 0 6px";
@@ -1650,7 +1696,11 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:0, subject:"Math", title:"RAM math: Windows 95 recommends 4MB RAM. Convert 4MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 95 also often shipped with 8MB RAM in some computers. Convert 8MB to KB and to bytes.","A different 1995 computer had 2MB of video RAM. Convert 2MB to KB."]},
   {d:0, subject:"Reading", title:"Read the Windows 95 section of \"Microsoft Windows version history\" — note 3 facts for your journal.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=0Ol8ZSE-PEk"},
   {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"https://www.howtogeek.com/329301/how-to-install-windows-95-in-a-virtual-machine/", video:"https://www.youtube.com/watch?v=LxOY5IIC0uo", installHelp:"win95"},
-  {d:0, subject:"Social Studies", title:"US History reading (Revolution era) — read about the American Revolution and note 3 facts.", xp:10, standard:"SS4H1", materials:"https://www.ducksters.com/history/american_revolution.php"},
+  {d:0, subject:"Social Studies", title:"US History reading (Revolution era) — read about the American Revolution and note 3 facts.", xp:10, standard:"SS4H1", materials:"https://www.ducksters.com/history/american_revolution.php", quiz:[
+    {q:"Just like you're 'installing' Windows 95 as a totally new system, the American Revolution was the colonists installing a brand new one. What were they replacing British rule with?", choices:["A monarchy copied from France","An independent, self-governing country","No government at all","British rule, unchanged"], answerIndex:1},
+    {q:"Which document, like a 'system requirements' list for the new country, declared the colonies' independence in 1776?", choices:["The Constitution","The Declaration of Independence","The Bill of Rights","The Magna Carta"], answerIndex:1},
+    {q:"Who led the colonial army during the Revolution (and later became the first 'admin' of the new country as president)?", choices:["Thomas Jefferson","Benjamin Franklin","George Washington","John Adams"], answerIndex:2}
+  ]},
 
   {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
   {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 98 came out in 1998. How many years after Windows 95 was that?","If a Windows 95 computer was bought new in 1995 and used for 10 years, what year did it stop being used?"]},
@@ -1681,7 +1731,11 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:5, subject:"Math", title:"RAM math: Windows 98 recommends 16MB RAM. Convert 16MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 98 SE later recommended 24MB RAM. Convert 24MB to KB.","A 1998-era hard drive held 2GB. Convert 2GB to MB."]},
   {d:5, subject:"Reading", title:"Read the Windows 98 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=2IzcFUuuUw4"},
   {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/", installHelp:"win98"},
-  {d:5, subject:"Social Studies", title:"US History reading (next era) — read about westward expansion and note 3 facts.", xp:10, standard:"SS4H2", materials:"https://www.ducksters.com/history/westward_expansion.php"},
+  {d:5, subject:"Social Studies", title:"US History reading (next era) — read about westward expansion and note 3 facts.", xp:10, standard:"SS4H2", materials:"https://www.ducksters.com/history/westward_expansion.php", quiz:[
+    {q:"Just like each new Windows version added way more storage and 'territory' to explore, the Louisiana Purchase roughly doubled the size of the US. Who was president when that deal happened?", choices:["George Washington","Thomas Jefferson","Abraham Lincoln","James Monroe"], answerIndex:1},
+    {q:"Which two explorers led the famous expedition to map the newly purchased western land?", choices:["Lewis and Clark","Columbus and Magellan","Washington and Adams","Boone and Crockett"], answerIndex:0},
+    {q:"What was the name for the widely-held 1800s belief that the US was destined to expand all the way to the Pacific Ocean?", choices:["Manifest Destiny","The Gold Rush","The Homestead Act","The Louisiana Doctrine"], answerIndex:0}
+  ]},
 
   {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:6, subject:"Math", title:"Timeline math: Windows 98 came 3 years after Windows 95 (1995). How many years ago was 1998 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows XP came out 3 years after Windows 98. What year was that?","If a Windows 98 computer was used for 7 years starting in 1998, what year did it stop being used?"]},
@@ -1712,7 +1766,11 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:10, subject:"Math", title:"RAM math: Windows XP recommends 128MB RAM. Convert 128MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows XP's minimum RAM was actually 64MB. Convert 64MB to KB.","A typical 2001-era hard drive held 20GB. Convert 20GB to MB."]},
   {d:10, subject:"Reading", title:"Read the Windows XP section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history"},
   {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/", installHelp:"winxp"},
-  {d:10, subject:"Social Studies", title:"US History reading (next era) — read about the causes and effects of the Civil War and note 3 facts.", xp:10, standard:"SS4H3", materials:"https://www.ducksters.com/history/civil_war.php"},
+  {d:10, subject:"Social Studies", title:"US History reading (next era) — read about the causes and effects of the Civil War and note 3 facts.", xp:10, standard:"SS4H3", materials:"https://www.ducksters.com/history/civil_war.php", quiz:[
+    {q:"Kind of like two incompatible operating systems that couldn't run on the same machine, the North and South split into two sides in the Civil War. What was the main issue dividing them?", choices:["Which language to speak","Slavery","Which sport to play","Where the capital should be"], answerIndex:1},
+    {q:"Who was president of the United States during the Civil War?", choices:["Abraham Lincoln","George Washington","Thomas Jefferson","Ulysses S. Grant"], answerIndex:0},
+    {q:"What was the name for the southern states that broke away and formed their own government during the war?", choices:["The Union","The Confederacy","The Colonies","The Territories"], answerIndex:1}
+  ]},
 
   {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 7 came out 8 years after XP (2001). What year was that?","If a computer bought in 2001 was used until 2011, how many years was that?"]},
@@ -1743,7 +1801,11 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 7's minimum RAM (32-bit) was 1GB. Convert 1GB to MB and to KB.","A 2009-era laptop hard drive held 250GB. Convert 250GB to MB."]},
   {d:15, subject:"Reading", title:"Read the Windows 7 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=g6PT7_YHWCA"},
   {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive (using WinToUSB or Rufus), then boot from it to see it start up.", xp:20, installHelp:"win7usb"},
-  {d:15, subject:"Social Studies", title:"US History reading (next era) — read about Reconstruction and note 3 facts.", xp:10, standard:"SS4H4", materials:"https://www.ducksters.com/history/civil_war/reconstruction.php"},
+  {d:15, subject:"Social Studies", title:"US History reading (next era) — read about Reconstruction and note 3 facts.", xp:10, standard:"SS4H4", materials:"https://www.ducksters.com/history/civil_war/reconstruction.php", quiz:[
+    {q:"Just like rebuilding a crashed computer after a bad install, Reconstruction was the period of rebuilding the country after the Civil War. About what years did it cover?", choices:["1776-1783","1865-1877","1900-1920","1941-1945"], answerIndex:1},
+    {q:"Which amendment to the Constitution, passed during Reconstruction, ended slavery in the United States?", choices:["1st Amendment","13th Amendment","19th Amendment","22nd Amendment"], answerIndex:1},
+    {q:"What were the newly freed African Americans who gained new rights and citizenship during Reconstruction generally called?", choices:["Freedmen","Loyalists","Settlers","Pioneers"], answerIndex:0}
+  ]},
 
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 8 came out 3 years after Windows 7 (2009). What year was that?","How many years passed between Windows 95 (1995) and Windows 7 (2009)?"]},
@@ -2554,6 +2616,7 @@ function patchHistoryReadingLinks(kidId){
     var updates = {};
     if(match.title && a.title!==match.title) updates.title = match.title;
     if(match.materials && a.materials!==match.materials) updates.materials = match.materials;
+    if(match.quiz) updates.quiz = match.quiz;
     if(Object.keys(updates).length===0) return;
     Object.assign(state.assignments[id], updates);
     db.doc("assignments/"+id).update(updates);
