@@ -513,6 +513,12 @@ function renderWeek(){
   var kidId = state.activeKid;
   var kd = kidData(kidId);
 
+  var libTitle = document.createElement("div");
+  libTitle.className = "section-title";
+  libTitle.textContent = "Curriculum Library";
+  els.view.appendChild(libTitle);
+  els.view.appendChild(curriculumLibraryCard());
+
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
   schTitle.textContent = "Daily Rhythm — tap to edit";
@@ -782,12 +788,6 @@ function renderArena(){
   title2.textContent = "Add a Question";
   els.view.appendChild(title2);
   els.view.appendChild(questionForm());
-
-  var title3 = document.createElement("div");
-  title3.className = "section-title";
-  title3.textContent = "Curriculum Library";
-  els.view.appendChild(title3);
-  els.view.appendChild(curriculumLibraryCard());
 }
 
 /* ---------- Curriculum Library: one-click import of pre-built assignment sets ---------- */
