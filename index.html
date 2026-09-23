@@ -923,10 +923,16 @@ function resetKidLegacyData(kidId, keepSet, keepLabel){
     var deletes = toDelete.map(function(r){ return sb.from("al_assignments").delete().eq("id", r.id); })
       .concat(qRows.map(function(r){ return sb.from("al_questions").delete().eq("id", r.id); }));
     Promise.all(deletes).then(function(){
-      return sb.from("al_schedule").upsert(
-        { kid_id: kidId, household_id: HOUSEHOLD_ID, blocks: RYAN_WEEKLY_RHYTHM_BLOCKS },
-        { onConflict: "kid_id" }
-      );
+      // Avoid upsert()'s onConflict, which needs a DB-level unique constraint on kid_id
+      // that this table may not actually have — check for an existing row instead.
+      return sb.from("al_schedule").select("kid_id").eq("kid_id", kidId);
+    }).then(function(selRes){
+      if(selRes.error) throw selRes.error;
+      var exists = selRes.data && selRes.data.length>0;
+      if(exists){
+        return sb.from("al_schedule").update({ blocks: RYAN_WEEKLY_RHYTHM_BLOCKS }).eq("kid_id", kidId);
+      }
+      return sb.from("al_schedule").insert({ kid_id: kidId, household_id: HOUSEHOLD_ID, blocks: RYAN_WEEKLY_RHYTHM_BLOCKS });
     }).then(function(res){
       if(res && res.error){ console.error("Academy Log reset error:", res.error); toast("⚠️ Reset partly failed — check your connection and try again"); }
       else toast("🧹 "+kidName+"'s old data cleared — fresh schedule applied!");
