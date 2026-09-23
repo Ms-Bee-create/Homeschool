@@ -2539,6 +2539,31 @@ function patchLessonLinks(kidId){
   renderView();
 }
 
+function patchHistoryReadingLinks(kidId){
+  if(!db) return;
+  var byStandard = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){
+    if(item.subject==="Social Studies" && item.standard && /^SS4H/.test(item.standard)) byStandard[item.standard] = item;
+  });
+  var count = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId || a.subject!=="Social Studies") return;
+    var match = byStandard[a.standard];
+    if(!match) return;
+    var updates = {};
+    if(match.title && a.title!==match.title) updates.title = match.title;
+    if(match.materials && a.materials!==match.materials) updates.materials = match.materials;
+    if(Object.keys(updates).length===0) return;
+    Object.assign(state.assignments[id], updates);
+    db.doc("assignments/"+id).update(updates);
+    count++;
+  });
+  console.log("patchHistoryReadingLinks: updated "+count+" assignment(s)");
+  renderView();
+}
+window.patchHistoryReadingLinks = patchHistoryReadingLinks;
+
 function seedArenaQuestions(kidId){
   if(!db) return;
   var existing = {};
