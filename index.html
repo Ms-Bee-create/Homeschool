@@ -593,15 +593,6 @@ function renderToday(){
 
   els.view.appendChild(addForm(kidId, iso));
 
-  var estMins = list.reduce(function(sum,a){ return sum + estMinutesFor(a); }, 0);
-  if(list.length){
-    var hoursNote = document.createElement("div");
-    hoursNote.className = "muted";
-    hoursNote.style.cssText = "font-size:12px;margin-top:8px";
-    hoursNote.textContent = "Est. "+(estMins/60).toFixed(1)+" of "+GA_DAILY_HOURS_TARGET+" hrs/day target (estimated, not measured)";
-    els.view.appendChild(hoursNote);
-  }
-
   var doneCount = list.filter(function(a){return a.done;}).length;
   if(list.length && doneCount===list.length){
     var done = document.createElement("div");
@@ -1849,6 +1840,20 @@ function renderLessonDetail(){
 function renderLeaderArea(){
   els.view.innerHTML = "";
   els.view.appendChild(leaderGuideCard());
+
+  /* Estimated hours-today is leader-facing only — a kid checking his own quests off
+     shouldn't see a running clock on himself, so this lives here, not on Today. */
+  var hoursCard = document.createElement("div");
+  hoursCard.className = "card";
+  hoursCard.style.marginBottom = "10px";
+  var iso = todayISO();
+  var hoursRows = KIDS.map(function(k){
+    var todays = assignmentsFor(k.id, iso);
+    var estMins = todays.reduce(function(sum,a){ return sum + estMinutesFor(a); }, 0);
+    return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>'+escapeHtml(kidData(k.id).name)+'</span><span class="mono">'+(estMins/60).toFixed(1)+' / '+GA_DAILY_HOURS_TARGET+' hrs (est.)</span></div>';
+  }).join("");
+  hoursCard.innerHTML = '<div style="font-weight:700;margin-bottom:4px;font-size:13px">⏱️ Today\'s estimated hours (GA compliance)</div>' + hoursRows;
+  els.view.appendChild(hoursCard);
 
   var title = document.createElement("div");
   title.className = "section-title";
