@@ -1934,7 +1934,7 @@ function syncAll(){
     assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
     state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
     renderKidbar(); renderXpBar();
-    if(!state.quiz && !state.miniGame) renderView();
+    if(!state.quiz && !state.miniGame && state.lessonDetailId==null) renderView();
   }).catch(function(){});
 }
 
