@@ -331,6 +331,7 @@ function setModeFlag(key, kidId, val){
 }
 function isFocusMode(kidId){ return getModeFlag("al_focus", kidId); }
 function isCalmMode(kidId){ return getModeFlag("al_calm", kidId); }
+function isListMode(kidId){ return getModeFlag("al_listMode", kidId); }
 function getModeFlagStr(key, kidId){
   try{ return localStorage.getItem(key+"_"+kidId); } catch(e){ return null; }
 }
@@ -675,6 +676,79 @@ function blockKeyFor(a){
   }
   return "project";
 }
+/* Leader-customizable per kid — the six blocks always exist, but their sequence (which one shows
+   first/last) can be reordered from the Leader tab. Falls back to the default order above if a
+   kid has no custom order saved yet, or if the saved order is missing/adds a key (curriculum
+   changes shouldn't be able to silently drop a block from view). */
+function getBlockOrder(kidId){
+  var kd = kidData(kidId);
+  var saved = Array.isArray(kd.blockOrder) ? kd.blockOrder : null;
+  if(!saved) return DAILY_BLOCKS.map(function(b){ return b.key; });
+  var validKeys = DAILY_BLOCKS.map(function(b){ return b.key; });
+  var order = saved.filter(function(k){ return validKeys.indexOf(k)>=0; });
+  validKeys.forEach(function(k){ if(order.indexOf(k)<0) order.push(k); });
+  return order;
+}
+function orderedBlocksFor(kidId){
+  var order = getBlockOrder(kidId);
+  var byKey = {};
+  DAILY_BLOCKS.forEach(function(b){ byKey[b.key] = b; });
+  return order.map(function(k){ return byKey[k]; });
+}
+function saveBlockOrder(kidId, order){
+  if(!db) return;
+  var kd = kidData(kidId);
+  kd.blockOrder = order;
+  state.kids[kidId] = kd;
+  db.doc("kids/"+kidId).update({blockOrder: order});
+}
+/* Up/down arrows instead of real drag-and-drop: HTML5 drag events don't fire reliably on
+   touchscreens without an extra JS library, and this is used almost entirely on phones — arrows
+   get to the identical result (reordering the six blocks) without that reliability risk. */
+function renderBlockOrderCard(kidId){
+  var card = document.createElement("div");
+  card.className = "card";
+  var order = getBlockOrder(kidId);
+  var byKey = {};
+  DAILY_BLOCKS.forEach(function(b){ byKey[b.key] = b; });
+  order.forEach(function(key, i){
+    var block = byKey[key];
+    var row = document.createElement("div");
+    row.className = "task";
+    row.innerHTML =
+      '<div style="width:26px;text-align:center;font-size:18px">'+block.icon+'</div>'+
+      '<div class="task-body"><div class="task-title">'+escapeHtml(block.label)+'</div></div>';
+    var btnGroup = document.createElement("div");
+    btnGroup.style.cssText = "display:flex;gap:4px";
+    var upBtn = document.createElement("button");
+    upBtn.className = "reward-skip";
+    upBtn.style.cssText = "opacity:"+(i===0?"0.3":"1")+";border:1px solid var(--border);padding:4px 9px;font-size:13px";
+    upBtn.textContent = "↑";
+    upBtn.disabled = i===0;
+    upBtn.onclick = function(){
+      var newOrder = order.slice();
+      var tmp = newOrder[i-1]; newOrder[i-1] = newOrder[i]; newOrder[i] = tmp;
+      saveBlockOrder(kidId, newOrder);
+      renderView();
+    };
+    var downBtn = document.createElement("button");
+    downBtn.className = "reward-skip";
+    downBtn.style.cssText = "opacity:"+(i===order.length-1?"0.3":"1")+";border:1px solid var(--border);padding:4px 9px;font-size:13px";
+    downBtn.textContent = "↓";
+    downBtn.disabled = i===order.length-1;
+    downBtn.onclick = function(){
+      var newOrder = order.slice();
+      var tmp = newOrder[i+1]; newOrder[i+1] = newOrder[i]; newOrder[i] = tmp;
+      saveBlockOrder(kidId, newOrder);
+      renderView();
+    };
+    btnGroup.appendChild(upBtn);
+    btnGroup.appendChild(downBtn);
+    row.appendChild(btnGroup);
+    card.appendChild(row);
+  });
+  return card;
+}
 function journalEntryFor(kidId, iso){
   return (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.date===iso; })[0] || null;
 }
@@ -725,6 +799,16 @@ function renderModeToggleRow(kidId){
     breakBtn.onclick = function(){ logBreak(kidId); };
     row.appendChild(breakBtn);
   }
+
+  var listOn = isListMode(kidId);
+  var listBtn = document.createElement("button");
+  listBtn.type = "button";
+  listBtn.className = "reward-skip";
+  listBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;"+
+    (listOn ? "background:var(--success-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+  listBtn.textContent = listOn ? "📋 List Mode: ON" : "📋 List Mode";
+  listBtn.onclick = function(){ setModeFlag("al_listMode", kidId, !listOn); renderView(); };
+  row.appendChild(listBtn);
   return row;
 }
 
@@ -740,6 +824,8 @@ function renderToday(){
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
 
+  var blocks = orderedBlocksFor(kidId);
+  var listOn = isListMode(kidId);
   var list = assignmentsFor(kidId, iso);
   var tasksByBlock = {};
   list.forEach(function(a){
@@ -748,28 +834,28 @@ function renderToday(){
     tasksByBlock[k].push(a);
   });
 
-  var firstIncompleteIdx = DAILY_BLOCKS.length;
-  for(var i=0;i<DAILY_BLOCKS.length;i++){
-    if(!blockComplete(DAILY_BLOCKS[i].key, kidId, iso, tasksByBlock)){ firstIncompleteIdx = i; break; }
+  var firstIncompleteIdx = blocks.length;
+  for(var i=0;i<blocks.length;i++){
+    if(!blockComplete(blocks[i].key, kidId, iso, tasksByBlock)){ firstIncompleteIdx = i; break; }
   }
 
   state.lastBlockIdx = state.lastBlockIdx || {};
   if(state.lastBlockIdx[kidId]!=null && firstIncompleteIdx > state.lastBlockIdx[kidId]){
-    var justDone = DAILY_BLOCKS[state.lastBlockIdx[kidId]];
-    var next = DAILY_BLOCKS[firstIncompleteIdx];
+    var justDone = blocks[state.lastBlockIdx[kidId]];
+    var next = blocks[firstIncompleteIdx];
     if(justDone) toast("🎉 "+justDone.label+" complete!"+(next?" Next: "+next.label:""));
   }
   state.lastBlockIdx[kidId] = firstIncompleteIdx;
 
-  DAILY_BLOCKS.forEach(function(block, idx){
+  blocks.forEach(function(block, idx){
     /* Focus Mode: show only the one block that's actually actionable right now — no
        collapsed-done trail, no preview of what's coming. */
     if(focusOn && idx!==firstIncompleteIdx) return;
     els.view.appendChild(renderDailyBlockCard(block, kidId, iso, tasksByBlock[block.key]||[],
-      idx<firstIncompleteIdx, idx===firstIncompleteIdx));
+      idx<firstIncompleteIdx, idx===firstIncompleteIdx, listOn));
   });
 
-  if(firstIncompleteIdx>=DAILY_BLOCKS.length){
+  if(firstIncompleteIdx>=blocks.length){
     var done = document.createElement("div");
     done.className = "card empty";
     done.style.marginTop="12px";
@@ -781,28 +867,32 @@ function renderToday(){
 /* Order is a suggestion, not a lock: every block is always tappable, in any order. The current
    (first-incomplete) block auto-expands so there's still a clear "what's next," but nothing stops
    him from jumping ahead to a later block or back to review a done one. */
-function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive){
+function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn){
   var card = document.createElement("div");
   card.className = "card";
   card.style.marginBottom = "10px";
   if(isActive) card.style.borderColor = "var(--gold)";
 
+  /* List Mode: every block shows fully expanded, no tapping a header to see the checkboxes —
+     the flat, everything-visible layout he asked for instead of the guided one-at-a-time flow. */
   var hasOverride = !!(state.expandedBlocks && (block.key in state.expandedBlocks));
-  var showBody = hasOverride ? state.expandedBlocks[block.key] : isActive;
+  var showBody = listOn ? (hasOverride ? state.expandedBlocks[block.key] : true) : (hasOverride ? state.expandedBlocks[block.key] : isActive);
 
   var head = document.createElement("div");
-  head.style.cssText = "display:flex;align-items:center;gap:10px;cursor:pointer";
+  head.style.cssText = "display:flex;align-items:center;gap:10px;"+(listOn?"":"cursor:pointer");
   head.innerHTML =
     '<span style="font-size:20px">'+(isDone?"✅":block.icon)+'</span>'+
     '<div style="flex:1">'+
       '<div style="font-weight:700">'+escapeHtml(block.label)+(isActive?' <span class="chip" style="background:var(--gold-soft);color:var(--gold);font-size:10.5px;vertical-align:middle">up next</span>':'')+'</div>'+
-      (isDone ? '<div class="muted" style="font-size:12px">'+(showBody?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
+      (!listOn && isDone ? '<div class="muted" style="font-size:12px">'+(showBody?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
     '</div>';
-  head.onclick = function(){
-    state.expandedBlocks = state.expandedBlocks || {};
-    state.expandedBlocks[block.key] = !showBody;
-    renderView();
-  };
+  if(!listOn){
+    head.onclick = function(){
+      state.expandedBlocks = state.expandedBlocks || {};
+      state.expandedBlocks[block.key] = !showBody;
+      renderView();
+    };
+  }
   card.appendChild(head);
 
   if(showBody){
@@ -1100,7 +1190,7 @@ function renderPlannerWeek(kidId){
   table.appendChild(thead);
 
   var tbody = document.createElement("tbody");
-  DAILY_BLOCKS.forEach(function(block){
+  orderedBlocksFor(kidId).forEach(function(block){
     var tr = document.createElement("tr");
     var labelTd = document.createElement("td");
     labelTd.className = "planner-row-label";
@@ -1158,7 +1248,7 @@ function renderPlannerDay(kidId){
   var tasksByBlock = {};
   list.forEach(function(a){ var k=blockKeyFor(a); (tasksByBlock[k]=tasksByBlock[k]||[]).push(a); });
 
-  DAILY_BLOCKS.forEach(function(block){
+  orderedBlocksFor(kidId).forEach(function(block){
     var card = document.createElement("div");
     card.className = "card";
     card.style.cssText = "margin-bottom:10px;padding:12px 14px";
@@ -2647,6 +2737,13 @@ function renderLeaderArea(){
   els.view.appendChild(addTitle);
   els.view.appendChild(addForm(state.activeKid, todayISO()));
 
+  var reorderTitle = document.createElement("div");
+  reorderTitle.className = "section-title";
+  reorderTitle.style.marginTop = "16px";
+  reorderTitle.textContent = "Reorder Daily Blocks — " + kidData(state.activeKid).name;
+  els.view.appendChild(reorderTitle);
+  els.view.appendChild(renderBlockOrderCard(state.activeKid));
+
   /* Tracking/stats live down here — checked less often than the review queue above. */
   var hoursCard = document.createElement("div");
   hoursCard.className = "card";
@@ -3550,7 +3647,7 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
