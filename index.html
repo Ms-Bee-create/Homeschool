@@ -66,6 +66,21 @@ button{font:inherit;cursor:pointer}
 .kid-lvl{font-size:11px;color:var(--text-dim)}
 .kid-name[contenteditable]{outline:none;border-bottom:1px dashed transparent}
 .kid-name[contenteditable]:focus{border-color:var(--kc)}
+.kid-avatar-img{width:36px;height:36px;border-radius:50%;flex:none;object-fit:cover;border:2px solid var(--border)}
+
+/* Profile dropdown switcher — replaces the old side-by-side kid cards with one compact control */
+.profile-switch{position:relative;margin-bottom:16px}
+.profile-trigger{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:2px solid var(--kc);background:var(--raised);cursor:pointer;text-align:left}
+.profile-trigger-chevron{margin-left:auto;color:var(--text-dim);font-size:12px;flex:none}
+.profile-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:var(--raised);border:2px solid var(--border);border-radius:14px;padding:8px;box-shadow:var(--shadow);display:none}
+.profile-menu.open{display:block}
+.profile-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer}
+.profile-row.active{background:var(--kc-soft)}
+.profile-row-avatar-btn{border:none;background:none;padding:0;cursor:pointer;flex:none}
+.avatar-change-link{font-size:11px;color:var(--text-dim);text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:inherit}
+.avatar-picker-grid{display:flex;gap:8px;flex-wrap:wrap;padding:8px 4px 4px}
+.avatar-pick-opt{width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer;border:3px solid transparent;display:block}
+.avatar-pick-opt.selected{border-color:var(--gold)}
 
 /* xp bar */
 .xpbar-row{display:flex;align-items:center;gap:8px;background:var(--raised);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
@@ -280,6 +295,19 @@ var KIDS = [
   {id:"kid1", defaultName:"2nd Grader", color:"teal"},
   {id:"kid2", defaultName:"4th Grader", color:"coral"}
 ];
+/* Shared avatar pool — either kid can pick any of these for their profile. Add more here as new
+   ones come in; nothing else needs to change since the picker just reads this list. */
+var AVATARS = [
+  {key:"gold-forge", file:"avatars/gold-forge.webp", label:"Gold Forge"},
+  {key:"violet-mage", file:"avatars/violet-mage.webp", label:"Violet Mage"},
+  {key:"blue-explorer", file:"avatars/blue-explorer.webp", label:"Blue Explorer"},
+  {key:"amber-smith", file:"avatars/amber-smith.webp", label:"Amber Smith"},
+  {key:"gold-astronaut", file:"avatars/gold-astronaut.webp", label:"Gold Astronaut"}
+];
+function avatarFor(kidId){
+  var key = kidData(kidId).avatarKey;
+  return AVATARS.filter(function(a){ return a.key===key; })[0] || null;
+}
 var DAYS = ["Mon","Tue","Wed","Thu","Fri"];
 var DAY_LABEL = {Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday"};
 var SUBJECT_COLOR = {
@@ -428,32 +456,112 @@ function kidData(id){
 }
 
 /* ---------- render: kid switcher + xp bar ---------- */
+/* Avatar (image if picked, initials-circle fallback otherwise) as its own reusable chunk of HTML,
+   used both on the trigger button and in each dropdown row. */
+function avatarHtml(kidId, className){
+  var kd = kidData(kidId);
+  var av = avatarFor(kidId);
+  if(av) return '<img class="'+className+'-img" src="'+escapeHtml(av.file)+'" alt="">';
+  var initials = (kd.name||"?").trim().slice(0,1).toUpperCase();
+  return '<div class="'+className+'">'+initials+'</div>';
+}
+
+function renderAvatarPickerGrid(kidId, container){
+  container.className = "avatar-picker-grid";
+  var currentKey = kidData(kidId).avatarKey;
+  container.innerHTML = AVATARS.map(function(a){
+    return '<img class="avatar-pick-opt'+(a.key===currentKey?' selected':'')+'" data-avatar-key="'+a.key+'" src="'+escapeHtml(a.file)+'" alt="'+escapeHtml(a.label)+'" title="'+escapeHtml(a.label)+'">';
+  }).join("");
+  container.querySelectorAll(".avatar-pick-opt").forEach(function(img){
+    img.onclick = function(e){
+      e.stopPropagation();
+      var key = img.dataset.avatarKey;
+      var kd = kidData(kidId);
+      kd.avatarKey = key;
+      if(db) db.doc("kids/"+kidId).update({avatarKey: key});
+      renderAll();
+    };
+  });
+}
+
+/* Compact profile-switcher dropdown: one trigger button showing the active kid, opening a small
+   menu to switch kids or change either kid's avatar — replaces the old side-by-side kid cards so
+   the top of the screen stays a single control instead of two full-width blocks. */
 function renderKidbar(){
   els.kidbar.innerHTML = "";
+  var wrap = document.createElement("div");
+  wrap.className = "profile-switch";
+  var activeKd = kidData(state.activeKid);
+  wrap.style.setProperty("--kc", "var(--"+activeKd.color+")");
+  wrap.style.setProperty("--kc-soft", "var(--"+activeKd.color+"-soft)");
+
+  var trigger = document.createElement("button");
+  trigger.type = "button";
+  trigger.className = "profile-trigger";
+  trigger.innerHTML =
+    avatarHtml(state.activeKid, "kid-avatar") +
+    '<div class="kid-meta">'+
+      '<div class="kid-name">'+escapeHtml(activeKd.name)+'</div>'+
+      '<div class="kid-lvl">Level '+levelFor(activeKd.xp)+' &middot; '+activeKd.xp+' XP</div>'+
+    '</div>'+
+    (activeKd.mommaMoney ? '<div class="mm-badge">$'+activeKd.mommaMoney+'</div>' : '')+
+    '<span class="profile-trigger-chevron">'+(state.profileMenuOpen?'▲':'▼')+'</span>';
+  trigger.onclick = function(){ state.profileMenuOpen = !state.profileMenuOpen; renderKidbar(); };
+  wrap.appendChild(trigger);
+
+  var menu = document.createElement("div");
+  menu.className = "profile-menu" + (state.profileMenuOpen ? " open" : "");
   KIDS.forEach(function(k){
     var kd = kidData(k.id);
-    var card = document.createElement("button");
-    card.className = "kid-card" + (state.activeKid===k.id ? " active":"");
-    card.style.setProperty("--kc", "var(--"+kd.color+")");
-    card.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
-    card.onclick = function(){ cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null; state.activeKid = k.id; renderAll(); };
-    var initials = (kd.name||"?").trim().slice(0,1).toUpperCase();
-    card.innerHTML =
-      '<div class="kid-avatar">'+initials+'</div>'+
-      '<div class="kid-meta">'+
-        '<div class="kid-name" data-kid="'+k.id+'" contenteditable="true" spellcheck="false">'+escapeHtml(kd.name)+'</div>'+
-        '<div class="kid-lvl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div>'+
-      '</div>'+
-      (kd.mommaMoney ? '<div class="mm-badge">$'+kd.mommaMoney+'</div>' : '');
-    var nameEl = card.querySelector(".kid-name");
+    var row = document.createElement("div");
+    row.className = "profile-row" + (state.activeKid===k.id ? " active" : "");
+    row.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
+
+    var avatarBtn = document.createElement("button");
+    avatarBtn.type = "button";
+    avatarBtn.className = "profile-row-avatar-btn";
+    avatarBtn.innerHTML = avatarHtml(k.id, "kid-avatar");
+    row.appendChild(avatarBtn);
+
+    var meta = document.createElement("div");
+    meta.className = "kid-meta";
+    meta.style.flex = "1";
+    meta.innerHTML =
+      '<div class="kid-name" data-kid="'+k.id+'" contenteditable="true" spellcheck="false">'+escapeHtml(kd.name)+'</div>'+
+      '<div class="kid-lvl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div>'+
+      '<button type="button" class="avatar-change-link">Change avatar</button>'+
+      '<div class="avatar-picker-holder"></div>';
+    row.appendChild(meta);
+
+    row.addEventListener("click", function(){
+      cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null;
+      state.activeKid = k.id; state.profileMenuOpen = false;
+      renderAll();
+    });
+
+    var nameEl = meta.querySelector(".kid-name");
     nameEl.addEventListener("click", function(e){ e.stopPropagation(); });
     nameEl.addEventListener("blur", function(){
       var v = nameEl.textContent.trim().slice(0,24) || kd.name;
       if(v !== kd.name && db) db.doc("kids/"+k.id).update({name:v});
     });
     nameEl.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
-    els.kidbar.appendChild(card);
+
+    var changeLink = meta.querySelector(".avatar-change-link");
+    var pickerHolder = meta.querySelector(".avatar-picker-holder");
+    changeLink.addEventListener("click", function(e){
+      e.stopPropagation();
+      if(pickerHolder.childElementCount){ pickerHolder.innerHTML = ""; return; }
+      var grid = document.createElement("div");
+      pickerHolder.appendChild(grid);
+      renderAvatarPickerGrid(k.id, grid);
+    });
+
+    menu.appendChild(row);
   });
+  wrap.appendChild(menu);
+
+  els.kidbar.appendChild(wrap);
 }
 
 function renderXpBar(){
@@ -4130,7 +4238,7 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
