@@ -66,6 +66,9 @@ button{font:inherit;cursor:pointer}
 .kid-lvl{font-size:11px;color:var(--text-dim)}
 .kid-name[contenteditable]{outline:none;border-bottom:1px dashed transparent}
 .kid-name[contenteditable]:focus{border-color:var(--kc)}
+.kid-name-row{display:flex;align-items:center;gap:5px}
+.kid-name-edit-btn{border:none;background:none;padding:0;cursor:pointer;font-size:11px;opacity:.6;flex:none}
+.kid-name-edit-btn:hover{opacity:1}
 .kid-avatar-img{width:36px;height:36px;border-radius:50%;flex:none;object-fit:cover;border:2px solid var(--border)}
 
 /* Profile dropdown switcher — replaces the old side-by-side kid cards with one compact control */
@@ -527,7 +530,10 @@ function renderKidbar(){
     meta.className = "kid-meta";
     meta.style.flex = "1";
     meta.innerHTML =
-      '<div class="kid-name" data-kid="'+k.id+'" contenteditable="true" spellcheck="false">'+escapeHtml(kd.name)+'</div>'+
+      '<div class="kid-name-row">'+
+        '<span class="kid-name" data-kid="'+k.id+'" spellcheck="false">'+escapeHtml(kd.name)+'</span>'+
+        '<button type="button" class="kid-name-edit-btn" title="Rename">✏️</button>'+
+      '</div>'+
       '<div class="kid-lvl">Level '+levelFor(kd.xp)+' &middot; '+kd.xp+' XP</div>'+
       '<button type="button" class="avatar-change-link">Change avatar</button>'+
       '<div class="avatar-picker-holder"></div>';
@@ -539,11 +545,25 @@ function renderKidbar(){
       renderAll();
     });
 
+    /* The name itself is plain text now — only the pencil button turns editing on, so tapping a
+       row to switch/select a kid can never accidentally drop them into rename mode. */
     var nameEl = meta.querySelector(".kid-name");
+    var editBtn = meta.querySelector(".kid-name-edit-btn");
     nameEl.addEventListener("click", function(e){ e.stopPropagation(); });
+    editBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      nameEl.contentEditable = "true";
+      nameEl.focus();
+      document.execCommand && document.execCommand("selectAll", false, null);
+    });
     nameEl.addEventListener("blur", function(){
+      nameEl.contentEditable = "false";
       var v = nameEl.textContent.trim().slice(0,24) || kd.name;
-      if(v !== kd.name && db) db.doc("kids/"+k.id).update({name:v});
+      if(v !== kd.name){
+        kd.name = v;
+        if(db) db.doc("kids/"+k.id).update({name:v});
+        renderAll();
+      }
     });
     nameEl.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
 
