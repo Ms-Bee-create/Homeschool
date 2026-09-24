@@ -2493,6 +2493,38 @@ function removeDuplicateAssignments(kidId){
   }).catch(function(err){ console.error(err); toast("⚠️ Couldn't check existing data — try again"); });
 }
 
+/* Catches a different shape of duplicate than removeDuplicateAssignments: the SAME lesson
+   re-imported onto a LATER date (e.g. a curriculum re-sync leaving a stray extra copy of "Read
+   the Windows 98 section..." a week after the original), rather than two copies on the same day.
+   Only ever removes an incomplete duplicate and only when a genuinely earlier copy of the exact
+   same title exists — never touches something the kid has already done. */
+function removeDuplicateTitlesAcrossDates(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var kidName = kidData(kidId).name;
+  var byTitle = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId || !a.date || !a.title) return;
+    (byTitle[a.title] = byTitle[a.title] || []).push(Object.assign({id:id}, a));
+  });
+  var toDelete = [];
+  Object.keys(byTitle).forEach(function(title){
+    var g = byTitle[title];
+    if(g.length<2) return;
+    g.sort(function(a,b){ return a.date.localeCompare(b.date); });
+    // keep the earliest-dated copy; only remove later copies that are still incomplete
+    g.slice(1).forEach(function(dup){ if(!dup.done) toDelete.push(dup); });
+  });
+  if(!toDelete.length){ toast(kidName+" has no same-title duplicates on different dates — nothing to clean up!"); return; }
+  console.log(kidName+": found "+toDelete.length+" later duplicate(s) to remove (keeping the earliest-dated copy of each):");
+  console.table(toDelete.map(function(a){ return {id:a.id, date:a.date, title:a.title}; }));
+  var ok = window.confirm('Found '+toDelete.length+' lesson(s) for '+kidName+' that exist twice on different dates (keeping the earlier date, removing the later incomplete copy). Remove them? This can\'t be undone.');
+  if(!ok) return;
+  Promise.all(toDelete.map(function(a){ return sb.from("al_assignments").delete().eq("id", a.id); }))
+    .then(function(){ toast("🧹 Removed "+toDelete.length+" stray duplicate(s) for "+kidName+"!"); syncSoon(); })
+    .catch(function(err){ console.error(err); toast("⚠️ Cleanup failed — check your connection and try again"); });
+}
+
 function nextMondayISO(){
   var d = new Date();
   var day = d.getDay(); // 0=Sun..6=Sat
@@ -3626,6 +3658,7 @@ function seedArenaQuestions(kidId){
    patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons
    patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
+window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
