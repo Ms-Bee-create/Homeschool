@@ -190,6 +190,32 @@ button{font:inherit;cursor:pointer}
 .login-card input{width:100%;font:inherit;font-size:14px;padding:11px 12px;border-radius:9px;border:1px solid var(--border);background:var(--paper);color:var(--text);margin-bottom:10px}
 .login-card button{width:100%;padding:12px;border-radius:10px;border:none;background:var(--ink);color:var(--paper);font-weight:700;font-size:14px}
 .login-err{color:var(--coral);font-size:12.5px;margin:-2px 0 10px;min-height:1em}
+
+/* ===== Morning Launch interactive tracker ===== */
+.launch-mood-row{display:flex;gap:10px;margin-bottom:14px}
+.launch-mood-btn{flex:1;text-align:center;padding:14px 6px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease}
+.launch-mood-btn:active{transform:scale(0.96)}
+.launch-mood-btn .launch-mood-icon{font-size:28px;line-height:1;display:block;margin-bottom:4px}
+.launch-mood-btn .launch-mood-label{font-size:11.5px;color:var(--text-dim);font-weight:600}
+.launch-mood-btn.selected{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 0 14px rgba(230,160,50,.45)}
+.launch-mood-btn.selected .launch-mood-check{color:var(--gold)}
+.launch-mood-check{font-size:12px;font-weight:700;margin-top:2px;visibility:hidden}
+.launch-mood-btn.selected .launch-mood-check{visibility:visible}
+
+.launch-goal-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.launch-goal-chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s ease}
+.launch-goal-chip:active{transform:scale(0.96)}
+.launch-goal-chip.selected{border-color:var(--success);background:var(--success-soft);color:var(--success)}
+
+.launch-media-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.launch-media-btn{color:var(--ink);opacity:1;border:1px solid var(--border);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;background:var(--card)}
+.launch-media-preview{margin-bottom:12px;font-size:12.5px}
+.launch-media-preview img{max-width:140px;max-height:140px;border-radius:10px;border:1px solid var(--border);display:block;margin-top:6px}
+.launch-media-preview audio{width:100%;margin-top:6px}
+
+.launch-streak-row{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--coral)}
+.launch-streak-row.pulse{animation:launchStreakGlow 1s ease-in-out 3}
+@keyframes launchStreakGlow{0%,100%{text-shadow:none}50%{text-shadow:0 0 10px var(--coral),0 0 18px var(--coral)}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -779,7 +805,7 @@ function reflectionFor(kidId, iso){
 function blockComplete(blockKey, kidId, iso, tasksByBlock){
   if(blockKey==="morning"){
     var j = journalEntryFor(kidId, iso);
-    return !!(j && j.yesterday && j.today);
+    return !!(j && j.launchMood && j.launchGoal);
   }
   if(blockKey==="showTeach") return !!reflectionFor(kidId, iso);
   var tasks = tasksByBlock[blockKey] || [];
@@ -905,7 +931,9 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
     '<span style="font-size:20px">'+(isDone?"✅":block.icon)+'</span>'+
     '<div style="flex:1">'+
       '<div style="font-weight:700">'+escapeHtml(block.label)+(isActive?' <span class="chip" style="background:var(--gold-soft);color:var(--gold);font-size:10.5px;vertical-align:middle">up next</span>':'')+'</div>'+
-      (!listOn && isDone ? '<div class="muted" style="font-size:12px">'+(showBody?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
+      (!listOn && isDone ? '<div class="muted" style="font-size:12px">'+(showBody?"Tap to collapse":"Done — tap to review")+
+        (block.key==="morning" && !showBody ? ' <span id="selfStartStreakRow" class="launch-streak-row" style="display:inline">🔥 '+(kidData(kidId).selfStartStreak||0)+' day self-start streak</span>' : '')+
+      '</div>' : '')+
     '</div>';
   if(!listOn){
     head.onclick = function(){
@@ -937,36 +965,168 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
   return card;
 }
 
+/* Morning Launch mood options and goal chips. Kept as simple data arrays so the set can be tweaked
+   without touching the render/save logic below. */
+var LAUNCH_MOODS = [
+  {key:"waking", icon:"😴", label:"Waking up"},
+  {key:"ready", icon:"🙂", label:"Ready"},
+  {key:"goLetsGo", icon:"🚀", label:"Let's go"}
+];
+var LAUNCH_GOALS = ["Math first", "VM build", "Reading", "Project work", "Science block"];
+
+/* Saves one field of today's journal/launch entry, creating the row if it doesn't exist yet —
+   every tap (mood, goal, voice, photo) calls this so nothing waits on a separate Save button. */
+function saveLaunchField(kidId, iso, existing, fieldUpdates){
+  if(!db) return existing;
+  if(existing && existing.id){
+    Object.assign(existing, fieldUpdates);
+    db.doc("journal/"+existing.id).update(fieldUpdates);
+    return existing;
+  }
+  var newId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
+  var localEntry = Object.assign({id:newId, kidId:kidId, date:iso, createdAt:new Date().toISOString()}, fieldUpdates);
+  state.journalEntries = state.journalEntries || [];
+  state.journalEntries.push(localEntry);
+  db.collection("journal").add(localEntry);
+  return localEntry;
+}
+
+/* Self-Start Streak: counts consecutive days a kid picked BOTH a mood and a goal on their own,
+   separate from the general XP/task streak. Mirrors the date-comparison pattern toggleAssignment
+   already uses for the main streak, so "did they do it today, was yesterday the last day" logic
+   stays consistent across the app instead of drifting into a second implementation. */
+function maybeAdvanceSelfStartStreak(kidId, entry){
+  if(!entry || !entry.launchMood || !entry.launchGoal) return null;
+  var kd = kidData(kidId);
+  var todayStr = new Date().toDateString();
+  if(kd.lastSelfStartDate === todayStr) return null; // already counted today
+  var y = new Date(); y.setDate(y.getDate()-1);
+  var newStreak = (kd.lastSelfStartDate === y.toDateString()) ? (kd.selfStartStreak||0)+1 : 1;
+  var updates = {selfStartStreak: newStreak, lastSelfStartDate: todayStr};
+  Object.assign(kd, updates);
+  state.kids[kidId] = kd;
+  db.doc("kids/"+kidId).update(updates);
+  return newStreak;
+}
+
 function renderMorningLaunch(kidId, iso){
   var wrap = document.createElement("div");
   var existing = journalEntryFor(kidId, iso);
-  wrap.innerHTML =
-    '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Yesterday\'s progress — one thing that happened</label>'+
-    '<textarea class="jl-yesterday" rows="2" maxlength="240" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
-    '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Today\'s goal — what are you aiming for?</label>'+
-    '<textarea class="jl-today" rows="2" maxlength="240" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
-    '<button class="primary-btn jl-save" style="margin-top:0">💾 Save & continue</button>';
-  var yEl = wrap.querySelector(".jl-yesterday"), tEl = wrap.querySelector(".jl-today");
-  yEl.value = existing ? existing.yesterday||"" : "";
-  tEl.value = existing ? existing.today||"" : "";
-  disablePaste(yEl); disablePaste(tEl);
-  wrap.querySelector(".jl-save").onclick = function(){
-    var y = yEl.value.trim(), t = tEl.value.trim();
-    if(!y || !t || !db) return;
-    if(existing && existing.id){
-      Object.assign(existing, {yesterday:y, today:t});
-      db.doc("journal/"+existing.id).update({yesterday:y, today:t});
-    } else {
-      var newId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
-      var localEntry = {id:newId, kidId:kidId, date:iso, yesterday:y, today:t, createdAt:new Date().toISOString()};
-      state.journalEntries = state.journalEntries || [];
-      state.journalEntries.push(localEntry);
-      db.collection("journal").add(localEntry);
+
+  /* --- A. Mood selector --- */
+  var moodRow = document.createElement("div");
+  moodRow.className = "launch-mood-row";
+  LAUNCH_MOODS.forEach(function(m){
+    var btn = document.createElement("div");
+    btn.className = "launch-mood-btn" + (existing && existing.launchMood===m.key ? " selected" : "");
+    btn.innerHTML =
+      '<span class="launch-mood-icon">'+m.icon+'</span>'+
+      '<span class="launch-mood-label">'+m.label+'</span>'+
+      '<span class="launch-mood-check">✓</span>';
+    btn.onclick = function(){
+      existing = saveLaunchField(kidId, iso, existing, {launchMood: m.key});
+      var newStreak = maybeAdvanceSelfStartStreak(kidId, existing);
+      toast(m.icon+" Mood logged!");
+      renderView();
+      if(newStreak && newStreak%3===0) pulseSelfStartStreak();
+    };
+    moodRow.appendChild(btn);
+  });
+  wrap.appendChild(moodRow);
+
+  /* --- B. Goal selector (single-select chips) --- */
+  var goalLabel = document.createElement("div");
+  goalLabel.style.cssText = "font-size:12.5px;font-weight:600;margin-bottom:6px";
+  goalLabel.textContent = "What's the plan?";
+  wrap.appendChild(goalLabel);
+
+  var goalRow = document.createElement("div");
+  goalRow.className = "launch-goal-row";
+  LAUNCH_GOALS.forEach(function(g){
+    var chip = document.createElement("div");
+    chip.className = "launch-goal-chip" + (existing && existing.launchGoal===g ? " selected" : "");
+    chip.textContent = g;
+    chip.onclick = function(){
+      existing = saveLaunchField(kidId, iso, existing, {launchGoal: g});
+      var newStreak = maybeAdvanceSelfStartStreak(kidId, existing);
+      toast("🎯 Goal set: "+g);
+      renderView();
+      if(newStreak && newStreak%3===0) pulseSelfStartStreak();
+    };
+    goalRow.appendChild(chip);
+  });
+  wrap.appendChild(goalRow);
+
+  /* --- C & D. Optional voice note + photo snapshot. Reuses the same file-input-as-upload-button
+     pattern as Show & Teach's uploads below — tapping it opens the phone's own camera/voice
+     recorder app on mobile (via the accept/capture attributes), which is far more reliable than a
+     from-scratch in-page MediaRecorder timer, and uploads to the same "lesson-uploads" bucket
+     already used elsewhere, so no new storage setup is needed. */
+  var mediaRow = document.createElement("div");
+  mediaRow.className = "launch-media-row";
+  var mediaPreview = document.createElement("div");
+  mediaPreview.className = "launch-media-preview";
+
+  function renderMediaPreview(){
+    var html = "";
+    if(existing && existing.launchVoiceUrl){
+      html += '<div>🎤 Voice note saved <audio controls src="'+escapeHtml(existing.launchVoiceUrl)+'"></audio></div>';
     }
-    toast("🌅 Morning Launch saved!");
-    renderView();
-  };
+    if(existing && existing.launchSnapshotUrl){
+      html += '<div>📸 Snapshot saved<br><a href="'+escapeHtml(existing.launchSnapshotUrl)+'" target="_blank" rel="noopener"><img src="'+escapeHtml(existing.launchSnapshotUrl)+'"></a></div>';
+    }
+    mediaPreview.innerHTML = html;
+  }
+  renderMediaPreview();
+
+  function makeMediaBtn(label, accept, captureAttr, field){
+    var lbl = document.createElement("label");
+    lbl.className = "launch-media-btn";
+    lbl.textContent = label;
+    var input = document.createElement("input");
+    input.type = "file"; input.accept = accept; input.style.display = "none";
+    if(captureAttr) input.capture = captureAttr;
+    input.onchange = function(){
+      var file = input.files[0];
+      if(!file || !HOUSEHOLD_ID) return;
+      var path = HOUSEHOLD_ID+"/morning-launch/"+kidId+"/"+iso+"-"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      lbl.textContent = "Uploading…";
+      sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
+        lbl.textContent = label;
+        if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+        var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
+        var fieldUpdates = {}; fieldUpdates[field] = url;
+        existing = saveLaunchField(kidId, iso, existing, fieldUpdates);
+        renderMediaPreview();
+        toast("Saved!");
+      });
+    };
+    lbl.appendChild(input);
+    return lbl;
+  }
+  mediaRow.appendChild(makeMediaBtn("🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
+  mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
+  wrap.appendChild(mediaRow);
+  wrap.appendChild(mediaPreview);
+
+  /* --- E. Self-Start Streak display --- */
+  var kd = kidData(kidId);
+  var streakRow = document.createElement("div");
+  streakRow.className = "launch-streak-row";
+  streakRow.id = "selfStartStreakRow";
+  streakRow.innerHTML = "🔥 Self-Start Streak: " + (kd.selfStartStreak||0) + " day" + ((kd.selfStartStreak||0)===1 ? "" : "s");
+  wrap.appendChild(streakRow);
+
   return wrap;
+}
+
+/* Small celebratory glow (not the full confetti/chime celebrate() used for XP streaks — this is a
+   quieter, more frequent moment) shown every 3rd day of a Self-Start Streak. */
+function pulseSelfStartStreak(){
+  var row = document.getElementById("selfStartStreakRow");
+  if(!row) return;
+  row.classList.add("pulse");
+  setTimeout(function(){ row.classList.remove("pulse"); }, 3000);
 }
 
 function renderShowTeach(kidId, iso){
@@ -1222,7 +1382,7 @@ function renderPlannerWeek(kidId){
       var td = document.createElement("td");
       td.className = "planner-cell"+(iso===todayStr?" planner-today-col":"");
       if(block.key==="morning" || block.key==="showTeach"){
-        var isDone = block.key==="morning" ? !!(function(){ var j=journalEntryFor(kidId, iso); return j && j.yesterday && j.today; })() : !!reflectionFor(kidId, iso);
+        var isDone = blockComplete(block.key, kidId, iso, {});
         td.appendChild(plannerJournalChip(isDone, block.key==="morning" ? "journal" : "reflection"));
       } else {
         var tasks = assignmentsFor(kidId, iso).filter(function(a){ return blockKeyFor(a)===block.key; });
@@ -1279,7 +1439,7 @@ function renderPlannerDay(kidId){
       '<span class="muted mono" style="font-size:11px">'+(BLOCK_SUGGESTED_TIME[block.key]||"")+'</span>';
     card.appendChild(head);
     if(block.key==="morning" || block.key==="showTeach"){
-      var isDone = block.key==="morning" ? !!(function(){ var j=journalEntryFor(kidId, iso); return j && j.yesterday && j.today; })() : !!reflectionFor(kidId, iso);
+      var isDone = blockComplete(block.key, kidId, iso, {});
       var chip = document.createElement("span");
       chip.className = "chip";
       chip.style.cssText = isDone ? "background:var(--success-soft);color:var(--success)" : "background:var(--paper);color:var(--text-dim);border:1px solid var(--border)";
@@ -1456,9 +1616,11 @@ function exportProgressCSV(kidId){
     subjectsFor(a).forEach(function(s){ bySubjHours[s] = (bySubjHours[s]||0) + mins; });
     if(a.standard) standards[a.standard] = true;
   });
-  /* Morning Launch and Show & Teach are real daily writing/reflection practice but aren't tagged
-     assignments, so without this they'd never show up in subject hours at all. Credited to ELA. */
-  (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.yesterday && j.today; }).forEach(function(){
+  /* Morning Launch and Show & Teach are real daily reflection/self-direction practice but aren't
+     tagged assignments, so without this they'd never show up in subject hours at all. Credited to
+     ELA — Morning Launch now runs on the mood+goal tracker rather than free writing, but choosing
+     both is still the same kind of daily reflection habit the credit was meant to recognize. */
+  (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.launchMood && j.launchGoal; }).forEach(function(){
     totalMins += JOURNAL_EST_MINUTES;
     bySubjHours["ELA"] = (bySubjHours["ELA"]||0) + JOURNAL_EST_MINUTES;
   });
@@ -3888,12 +4050,12 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
-  journal: { kidId:"kid_id", createdAt:"created_at" },
+  journal: { kidId:"kid_id", createdAt:"created_at", launchMood:"launch_mood", launchGoal:"launch_goal", launchVoiceUrl:"launch_voice_url", launchSnapshotUrl:"launch_snapshot_url" },
   reflections: { kidId:"kid_id", createdAt:"created_at" },
   breaks: { kidId:"kid_id" }
 };
