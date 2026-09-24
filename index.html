@@ -208,7 +208,6 @@ button{font:inherit;cursor:pointer}
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="today">Today</button>
     <button class="tab" data-tab="week">Week</button>
-    <button class="tab" data-tab="progress">Quest Log</button>
     <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
     <button class="tab" data-tab="leader">Leader</button>
@@ -388,7 +387,6 @@ function renderView(){
   if(state.leaderGuideOpen) return renderLeaderGuide();
   if(state.tab==="today") return renderToday();
   if(state.tab==="week") return renderWeek();
-  if(state.tab==="progress") return renderProgress();
   if(state.tab==="library") return renderLibrary();
   if(state.tab==="arena") return renderArena();
   if(state.tab==="leader") return renderLeaderArea();
@@ -1117,12 +1115,14 @@ function exportProgressCSV(kidId){
 }
 
 /* ---------- Progress (Quest Log) ---------- */
-function renderProgress(){
-  els.view.innerHTML = "";
+/* Quest Log lives on the Leader tab now (not a kid-facing tab) — a kid checking off his own
+   quests doesn't need a stats dashboard on himself, and the leader wants both kids' numbers at
+   once rather than flipping the kid switcher back and forth. */
+function renderFamilyOverview(container){
   var title = document.createElement("div");
   title.className = "section-title";
   title.textContent = "Family Overview";
-  els.view.appendChild(title);
+  container.appendChild(title);
 
   var compare = document.createElement("div");
   compare.className = "compare";
@@ -1153,14 +1153,17 @@ function renderProgress(){
     }
     compare.appendChild(col);
   });
-  els.view.appendChild(compare);
+  container.appendChild(compare);
+}
 
-  var title2 = document.createElement("div");
-  title2.className = "section-title";
-  title2.textContent = "By Subject — " + kidData(state.activeKid).name;
-  els.view.appendChild(title2);
+function renderQuestLogForKid(container, kidId){
+  var kidTitle = document.createElement("div");
+  kidTitle.className = "section-title";
+  kidTitle.style.marginTop = "16px";
+  kidTitle.textContent = "📋 " + kidData(kidId).name + "'s Quest Log";
+  container.appendChild(kidTitle);
 
-  var all = assignmentsFor(state.activeKid, null);
+  var all = assignmentsFor(kidId, null);
   var bySubj = {};
   all.forEach(function(a){
     bySubj[a.subject] = bySubj[a.subject] || {done:0,total:0};
@@ -1187,12 +1190,7 @@ function renderProgress(){
       card.appendChild(row);
     });
   }
-  els.view.appendChild(card);
-
-  var title2b = document.createElement("div");
-  title2b.className = "section-title";
-  title2b.textContent = "This Week — " + kidData(state.activeKid).name;
-  els.view.appendChild(title2b);
+  container.appendChild(card);
 
   var wk = weekBoundsMonFri();
   var byWeekSubj = {};
@@ -1205,11 +1203,11 @@ function renderProgress(){
   });
   var wkCard = document.createElement("div");
   wkCard.className = "card";
-  var wkSubjects = Object.keys(bySubj);
-  if(!wkSubjects.length){
+  wkCard.style.marginTop = "8px";
+  if(!subjects.length){
     wkCard.innerHTML = '<div class="empty">Nothing scheduled yet.</div>';
   } else {
-    wkSubjects.forEach(function(s){
+    subjects.forEach(function(s){
       var covered = byWeekSubj[s] || {};
       var coveredCt = DAYS.reduce(function(n,d,i){ return n + (covered[i]?1:0); }, 0);
       var dotsHtml = DAYS.map(function(d,i){
@@ -1227,19 +1225,20 @@ function renderProgress(){
       wkCard.appendChild(row);
     });
   }
-  els.view.appendChild(wkCard);
+  container.appendChild(wkCard);
 
   var exportBtn = document.createElement("button");
   exportBtn.className = "primary-btn";
   exportBtn.style.cssText = "margin-top:14px;background:var(--gold);color:var(--ink)";
-  exportBtn.textContent = "📄 Export Year-End Summary (CSV)";
-  exportBtn.onclick = function(){ exportProgressCSV(state.activeKid); };
-  els.view.appendChild(exportBtn);
+  exportBtn.textContent = "📄 Export "+kidData(kidId).name+"'s Year-End Summary (CSV)";
+  exportBtn.onclick = function(){ exportProgressCSV(kidId); };
+  container.appendChild(exportBtn);
 
   var title3 = document.createElement("div");
   title3.className = "section-title";
+  title3.style.marginTop = "14px";
   title3.textContent = "Recent Activity";
-  els.view.appendChild(title3);
+  container.appendChild(title3);
   var recent = all.filter(function(a){return a.done && a.doneAt;}).sort(function(a,b){return new Date(b.doneAt)-new Date(a.doneAt);}).slice(0,8);
   var rcard = document.createElement("div");
   rcard.className = "card";
@@ -1254,7 +1253,7 @@ function renderProgress(){
       rcard.appendChild(row);
     });
   }
-  els.view.appendChild(rcard);
+  container.appendChild(rcard);
 }
 
 /* ---------- Arena (study game) ---------- */
@@ -2168,8 +2167,12 @@ function renderLeaderArea(){
   hoursCard.innerHTML = '<div style="font-weight:700;margin-bottom:4px;font-size:13px">⏱️ Today\'s estimated hours (GA compliance)</div>' + hoursRows;
   els.view.appendChild(hoursCard);
 
+  renderFamilyOverview(els.view);
+  KIDS.forEach(function(k){ renderQuestLogForKid(els.view, k.id); });
+
   var title = document.createElement("div");
   title.className = "section-title";
+  title.style.marginTop = "16px";
   title.textContent = "Leader's Review Queue";
   els.view.appendChild(title);
 
