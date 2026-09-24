@@ -831,9 +831,9 @@ function renderMorningLaunch(kidId, iso){
   var existing = journalEntryFor(kidId, iso);
   wrap.innerHTML =
     '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Yesterday\'s progress — one thing that happened</label>'+
-    '<textarea class="jl-yesterday" rows="2" maxlength="240" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
+    '<textarea class="jl-yesterday" rows="2" maxlength="240" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
     '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Today\'s goal — what are you aiming for?</label>'+
-    '<textarea class="jl-today" rows="2" maxlength="240" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
+    '<textarea class="jl-today" rows="2" maxlength="240" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
     '<button class="primary-btn jl-save" style="margin-top:0">💾 Save & continue</button>';
   var yEl = wrap.querySelector(".jl-yesterday"), tEl = wrap.querySelector(".jl-today");
   yEl.value = existing ? existing.yesterday||"" : "";
@@ -863,7 +863,7 @@ function renderShowTeach(kidId, iso){
   var existing = reflectionFor(kidId, iso);
   wrap.innerHTML =
     '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Pick ONE thing you fixed, figured out, or got working today — show it, don\'t just tell it.</div>'+
-    '<textarea class="st-text" rows="2" maxlength="200" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="One-sentence reflection (or upload audio/photo/video instead) — no pasting"></textarea>'+
+    '<textarea class="st-text" rows="2" maxlength="200" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="One-sentence reflection (or upload audio/photo/video instead) — no pasting"></textarea>'+
     '<div class="st-upload-row" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>'+
     '<div class="st-uploaded muted" style="font-size:12px;margin-bottom:8px"></div>'+
     '<button class="primary-btn st-save">💾 Save Show &amp; Teach</button>';
