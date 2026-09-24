@@ -349,7 +349,10 @@ var state = {
   miniGame: null, // active arcade mini-game state (Space Mission / Parkour Course)
   mathGuideOpen: false, // whether the Math Field Guide view is showing
   leaderGuideOpen: false, // whether the Leader's Guide view is showing
-  lessonDetailId: null // id of the assignment currently shown in Lesson Detail view, if any
+  lessonDetailId: null, // id of the assignment currently shown in Lesson Detail view, if any
+  leaderPinHash: null, // synced from Supabase — null means no PIN set yet
+  leaderUnlocked: (function(){ try{ return sessionStorage.getItem("al_leader_unlocked")==="1"; } catch(e){ return false; } })(),
+  changingPin: false // forces the PIN-setup form back up even while already unlocked
 };
 
 /* db is created by the sync layer appended below, after login */
@@ -2449,8 +2452,86 @@ function renderLessonDetail(){
   els.view.appendChild(doneBtn);
 }
 
+/* Leader view is PIN-gated: a kid tapping the Leader tab shouldn't land straight in review/edit
+   controls. The PIN hash syncs via Supabase (al_settings, one row per household) so it works
+   across devices; unlocked state itself is per-browser-tab (sessionStorage) so it doesn't persist
+   forever, but also doesn't demand the PIN again on every render this session. */
+function sha256Hex(str){
+  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function(buf){
+    return Array.prototype.map.call(new Uint8Array(buf), function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+  });
+}
+function setLeaderUnlocked(v){
+  state.leaderUnlocked = v;
+  try{ if(v) sessionStorage.setItem("al_leader_unlocked","1"); else sessionStorage.removeItem("al_leader_unlocked"); } catch(e){ /* private browsing — just won't persist across renders in this tab */ }
+}
+function saveLeaderPin(pin){
+  return sha256Hex(pin).then(function(hash){
+    state.leaderPinHash = hash;
+    return sb.from("al_settings").upsert({household_id:HOUSEHOLD_ID, leader_pin_hash:hash}, {onConflict:"household_id"});
+  });
+}
+function verifyLeaderPin(pin){
+  return sha256Hex(pin).then(function(hash){ return hash===state.leaderPinHash; });
+}
+
+function renderLeaderPinGate(){
+  var card = document.createElement("div");
+  card.className = "card";
+  card.style.cssText = "padding:24px 20px;max-width:340px;margin:20px auto";
+  var isSettingUp = !state.leaderPinHash || state.changingPin;
+  card.innerHTML =
+    '<div style="text-align:center;font-size:32px;margin-bottom:8px">🔒</div>'+
+    '<div style="text-align:center;font-weight:700;margin-bottom:4px">'+(isSettingUp ? "Set a Leader PIN" : "Enter Leader PIN")+'</div>'+
+    '<div class="muted" style="text-align:center;font-size:12.5px;margin-bottom:16px">'+(isSettingUp ? "Keeps the Leader tools separate from the kids' screen — pick a 4+ digit PIN." : "This is the leader-only area.")+'</div>'+
+    '<input type="password" inputmode="numeric" class="pin-input" placeholder="PIN" style="width:100%;box-sizing:border-box;text-align:center;letter-spacing:4px;font-size:20px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);margin-bottom:10px">'+
+    (isSettingUp ? '<input type="password" inputmode="numeric" class="pin-confirm" placeholder="Confirm PIN" style="width:100%;box-sizing:border-box;text-align:center;letter-spacing:4px;font-size:20px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);margin-bottom:10px">' : '')+
+    '<div class="pin-error" style="color:var(--coral);font-size:12.5px;text-align:center;min-height:1em;margin-bottom:8px"></div>'+
+    '<button class="primary-btn pin-submit" style="width:100%">'+(isSettingUp ? "Set PIN" : "Unlock")+'</button>'+
+    (state.changingPin ? '<button class="reward-skip pin-cancel" style="width:100%;opacity:1;margin-top:8px;color:var(--text-dim)">Cancel</button>' : '');
+  var pinInput = card.querySelector(".pin-input");
+  var cancelBtn = card.querySelector(".pin-cancel");
+  if(cancelBtn) cancelBtn.onclick = function(){ state.changingPin = false; renderView(); };
+  var errorEl = card.querySelector(".pin-error");
+  function submit(){
+    var pin = pinInput.value.trim();
+    if(pin.length<4){ errorEl.textContent = "PIN needs to be at least 4 digits."; return; }
+    if(isSettingUp){
+      var confirmEl = card.querySelector(".pin-confirm");
+      if(pin!==confirmEl.value.trim()){ errorEl.textContent = "PINs don't match."; return; }
+      saveLeaderPin(pin).then(function(){ state.changingPin = false; setLeaderUnlocked(true); toast("🔒 Leader PIN set"); renderView(); });
+    } else {
+      verifyLeaderPin(pin).then(function(ok){
+        if(ok){ setLeaderUnlocked(true); renderView(); }
+        else { errorEl.textContent = "Wrong PIN — try again."; pinInput.value = ""; pinInput.focus(); }
+      });
+    }
+  }
+  card.querySelector(".pin-submit").onclick = submit;
+  pinInput.addEventListener("keydown", function(e){ if(e.key==="Enter" && !isSettingUp) submit(); });
+  els.view.appendChild(card);
+}
+
 function renderLeaderArea(){
   els.view.innerHTML = "";
+  if(!state.leaderUnlocked || state.changingPin){ return renderLeaderPinGate(); }
+
+  var lockRow = document.createElement("div");
+  lockRow.style.cssText = "display:flex;justify-content:flex-end;gap:8px;margin-bottom:6px";
+  var changePinBtn = document.createElement("button");
+  changePinBtn.className = "reward-skip";
+  changePinBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--text-dim)";
+  changePinBtn.textContent = "Change PIN";
+  changePinBtn.onclick = function(){ state.changingPin = true; renderView(); };
+  var lockBtn = document.createElement("button");
+  lockBtn.className = "reward-skip";
+  lockBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--text-dim)";
+  lockBtn.textContent = "🔒 Lock Leader View";
+  lockBtn.onclick = function(){ setLeaderUnlocked(false); renderView(); };
+  lockRow.appendChild(changePinBtn);
+  lockRow.appendChild(lockBtn);
+  els.view.appendChild(lockRow);
+
   els.view.appendChild(leaderGuideCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
@@ -2672,6 +2753,19 @@ function removeDuplicateTitlesAcrossDates(kidId){
   Promise.all(toDelete.map(function(a){ return sb.from("al_assignments").delete().eq("id", a.id); }))
     .then(function(){ toast("🧹 Removed "+toDelete.length+" stray duplicate(s) for "+kidName+"!"); syncSoon(); })
     .catch(function(err){ console.error(err); toast("⚠️ Cleanup failed — check your connection and try again"); });
+}
+
+/* Forgot the Leader PIN? Clears it from Supabase so the next visit to the Leader tab prompts to
+   set a brand new one — console-only, since this is a recovery action, not something to expose
+   as a button a kid could stumble onto. */
+function resetLeaderPin(){
+  if(!db){ console.log("Not connected yet — try again in a moment"); return; }
+  sb.from("al_settings").delete().eq("household_id", HOUSEHOLD_ID).then(function(){
+    state.leaderPinHash = null;
+    setLeaderUnlocked(false);
+    console.log("resetLeaderPin: cleared. The Leader tab will ask you to set a new PIN next.");
+    renderView();
+  }).catch(function(err){ console.error(err); console.log("resetLeaderPin failed — check your connection."); });
 }
 
 function nextMondayISO(){
@@ -3808,6 +3902,7 @@ function seedArenaQuestions(kidId){
    patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
+window.resetLeaderPin = resetLeaderPin;
 window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
@@ -3831,10 +3926,13 @@ function syncAll(){
     sb.from("al_assignments").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_journal").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID)
+    sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_settings").select("*").eq("household_id", HOUSEHOLD_ID)
   ]).then(function(results){
     var kidsRows = results[0].data || [], schedRows = results[1].data || [], assignRows = results[2].data || [], qRows = results[3].data || [];
     var journalRows = results[4].data || [], reflectionRows = results[5].data || [];
+    var settingsRow = (results[6].data || [])[0];
+    state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
     state.kids = {};
     kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
     state.schedules = {};
