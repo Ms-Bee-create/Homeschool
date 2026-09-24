@@ -233,12 +233,31 @@ var SUBJECT_COLOR = {
   "Related Arts":"success","Live Lesson":"teal","Independent":"gold","Computer Science":"teal"
 };
 /* Rough time-on-task estimate per subject, used only for the exported hours report — the app has
-   no in-lesson timer, so this is a stand-in based on typical lesson length, not measured time. */
+   no in-lesson timer, so this is a stand-in based on typical lesson length, not measured time.
+   Independent/Computer Science lean high on purpose (this is where VM installs and real project
+   work live, and those routinely run long) so the default is usually close without needing a
+   manual fix every time — logging actualMinutes is for the real outliers, not the norm. */
 var SUBJECT_EST_MINUTES = {
-  "Math":30,"ELA":25,"Reading":25,"Science":30,"Social Studies":30,
-  "Related Arts":30,"Live Lesson":45,"Independent":45,"Computer Science":45
+  "Math":30,"ELA":30,"Reading":30,"Science":30,"Social Studies":30,
+  "Related Arts":30,"Live Lesson":45,"Independent":90,"Computer Science":90
 };
-function estMinutesFor(a){ return SUBJECT_EST_MINUTES[a.subject] || 30; }
+/* Lessons with hands-on VM/OS setup help attached (installHelp) run especially long —
+   troubleshooting an install is real, open-ended deep work — so they default even higher than
+   the already-bumped Independent/Computer Science estimate. */
+var INSTALL_HELP_EST_MINUTES = 120;
+/* Journal (Morning Launch) and Show & Teach aren't tagged assignments, so without this they'd get
+   zero hour credit at all even on a day he spent a real hour writing a thoughtful entry. */
+var JOURNAL_EST_MINUTES = 45;
+var REFLECTION_EST_MINUTES = 20;
+
+/* A flat guess is fine for a typical lesson, but badly undercounts a long, deep-work session
+   (e.g. hours of real VM troubleshooting/reasoning) — actualMinutes, when the leader logs it,
+   always wins over any guess. */
+function estMinutesFor(a){
+  if(a.actualMinutes>0) return a.actualMinutes;
+  if(a.installHelp) return INSTALL_HELP_EST_MINUTES;
+  return SUBJECT_EST_MINUTES[a.subject] || 30;
+}
 /* Every subject a quest counts toward for hours/coverage tracking — its primary subject plus any
    crossSubjects tags. An install/setup quest like "set up VirtualBox" is filed under Independent
    for scheduling, but the actual work is reading technical docs, writing up what happened,
@@ -248,6 +267,14 @@ function subjectsFor(a){
   var list = [a.subject];
   if(Array.isArray(a.crossSubjects)) a.crossSubjects.forEach(function(s){ if(list.indexOf(s)<0) list.push(s); });
   return list;
+}
+/* Total estimated minutes for one kid on one day, including the journal/reflection blocks that
+   aren't tagged assignments and would otherwise get zero hour credit no matter how long they took. */
+function dailyEngagementMinutes(kidId, iso){
+  var mins = assignmentsFor(kidId, iso).reduce(function(sum,a){ return sum + estMinutesFor(a); }, 0);
+  if(journalEntryFor(kidId, iso)) mins += JOURNAL_EST_MINUTES;
+  if(reflectionFor(kidId, iso)) mins += REFLECTION_EST_MINUTES;
+  return mins;
 }
 function weekBoundsMonFri(ref){
   var d = ref ? new Date(ref) : new Date();
@@ -1165,7 +1192,17 @@ function exportProgressCSV(kidId){
     subjectsFor(a).forEach(function(s){ bySubjHours[s] = (bySubjHours[s]||0) + mins; });
     if(a.standard) standards[a.standard] = true;
   });
-  lines.push(["Subject Hours Summary (estimated; a cross-tagged quest counts fully toward each subject)"].map(csvEscape).join(","));
+  /* Morning Launch and Show & Teach are real daily writing/reflection practice but aren't tagged
+     assignments, so without this they'd never show up in subject hours at all. Credited to ELA. */
+  (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.yesterday && j.today; }).forEach(function(){
+    totalMins += JOURNAL_EST_MINUTES;
+    bySubjHours["ELA"] = (bySubjHours["ELA"]||0) + JOURNAL_EST_MINUTES;
+  });
+  (state.reflections||[]).filter(function(r){ return r.kidId===kidId; }).forEach(function(){
+    totalMins += REFLECTION_EST_MINUTES;
+    bySubjHours["ELA"] = (bySubjHours["ELA"]||0) + REFLECTION_EST_MINUTES;
+  });
+  lines.push(["Subject Hours Summary (estimated; a cross-tagged quest counts fully toward each subject; Morning Launch/Show & Teach credited to ELA)"].map(csvEscape).join(","));
   lines.push(["Subject","Estimated Hours"].map(csvEscape).join(","));
   Object.keys(bySubjHours).forEach(function(s){
     lines.push([s, (bySubjHours[s]/60).toFixed(1)].map(csvEscape).join(","));
@@ -1176,7 +1213,7 @@ function exportProgressCSV(kidId){
   lines.push("");
 
   lines.push(["Quest Log"].map(csvEscape).join(","));
-  lines.push(["Date Completed","Subject","Standard","Title","XP Earned","Est. Minutes"].map(csvEscape).join(","));
+  lines.push(["Date Completed","Subject","Standard","Title","XP Earned","Minutes","Minutes Source"].map(csvEscape).join(","));
   done.forEach(function(a){
     var when = new Date(a.doneAt);
     lines.push([
@@ -1185,7 +1222,8 @@ function exportProgressCSV(kidId){
       a.standard||"",
       a.title||"",
       a.xp||0,
-      estMinutesFor(a)
+      estMinutesFor(a),
+      a.actualMinutes>0 ? "logged" : "estimated"
     ].map(csvEscape).join(","));
   });
 
@@ -1331,6 +1369,11 @@ function renderQuestLogForKid(container, kidId){
   title3.style.marginTop = "14px";
   title3.textContent = "Recent Activity";
   container.appendChild(title3);
+  var recentIntro = document.createElement("div");
+  recentIntro.className = "muted";
+  recentIntro.style.cssText = "font-size:12px;margin-bottom:6px";
+  recentIntro.textContent = "Log actual minutes on anything that ran long (deep troubleshooting, real coding/reasoning) — it overrides the flat subject estimate everywhere hours are counted.";
+  container.appendChild(recentIntro);
   var recent = all.filter(function(a){return a.done && a.doneAt;}).sort(function(a,b){return new Date(b.doneAt)-new Date(a.doneAt);}).slice(0,8);
   var rcard = document.createElement("div");
   rcard.className = "card";
@@ -1341,7 +1384,22 @@ function renderQuestLogForKid(container, kidId){
       var row = document.createElement("div");
       row.className="task";
       var when = new Date(a.doneAt);
-      row.innerHTML = '<div style="width:26px;text-align:center">✅</div><div class="task-body"><div class="task-title">'+escapeHtml(a.title)+'</div><div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+when.toLocaleDateString(undefined,{month:"short",day:"numeric"})+'</div></div><div class="task-xp">+'+a.xp+' XP</div>';
+      row.innerHTML =
+        '<div style="width:26px;text-align:center">✅</div>'+
+        '<div class="task-body"><div class="task-title">'+escapeHtml(a.title)+'</div><div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+when.toLocaleDateString(undefined,{month:"short",day:"numeric"})+'</div></div>'+
+        '<div style="display:flex;align-items:center;gap:4px;flex:none">'+
+          '<input type="number" min="0" step="5" class="actual-min-input" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:12.5px" placeholder="'+estMinutesFor(a)+'" value="'+(a.actualMinutes||"")+'">'+
+          '<span class="muted" style="font-size:11px">min</span>'+
+        '</div>';
+      var minInput = row.querySelector(".actual-min-input");
+      minInput.addEventListener("blur", function(){
+        var v = Math.max(0, Number(minInput.value)||0);
+        if(!db) return;
+        var updates = {actualMinutes: v>0 ? v : null};
+        if(state.assignments[a.id]) Object.assign(state.assignments[a.id], updates);
+        db.doc("assignments/"+a.id).update(updates);
+        toast(v>0 ? "⏱️ Logged "+v+" real minutes" : "Cleared — back to the estimate");
+      });
       rcard.appendChild(row);
     });
   }
@@ -2252,8 +2310,7 @@ function renderLeaderArea(){
   hoursCard.style.marginBottom = "10px";
   var iso = todayISO();
   var hoursRows = KIDS.map(function(k){
-    var todays = assignmentsFor(k.id, iso);
-    var estMins = todays.reduce(function(sum,a){ return sum + estMinutesFor(a); }, 0);
+    var estMins = dailyEngagementMinutes(k.id, iso);
     return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>'+escapeHtml(kidData(k.id).name)+'</span><span class="mono">'+(estMins/60).toFixed(1)+' / '+GA_DAILY_HOURS_TARGET+' hrs (est.)</span></div>';
   }).join("");
   hoursCard.innerHTML = '<div style="font-weight:700;margin-bottom:4px;font-size:13px">⏱️ Today\'s estimated hours (GA compliance)</div>' + hoursRows;
@@ -3211,7 +3268,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
