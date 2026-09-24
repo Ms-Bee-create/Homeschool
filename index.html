@@ -263,6 +263,17 @@ function stampAttendance(kidId){
 }
 var CROSS_CURRICULAR_BONUS_XP = 5;
 
+/* Calm Mode / Focus Mode toggles — per kid, per device (localStorage, not synced), since these
+   are about how a specific kid's screen behaves right now, not data the leader needs to see. */
+function getModeFlag(key, kidId){
+  try{ return localStorage.getItem(key+"_"+kidId)==="1"; } catch(e){ return false; }
+}
+function setModeFlag(key, kidId, val){
+  try{ localStorage.setItem(key+"_"+kidId, val?"1":"0"); } catch(e){ /* private browsing etc — just won't persist */ }
+}
+function isFocusMode(kidId){ return getModeFlag("al_focus", kidId); }
+function isCalmMode(kidId){ return getModeFlag("al_calm", kidId); }
+
 var state = {
   activeKid: "kid1",
   tab: "today",
@@ -379,9 +390,19 @@ function updateLibraryTabVisibility(){
   btn.style.display = "";
 }
 
-function renderAll(){ updateLibraryTabVisibility(); renderKidbar(); renderXpBar(); renderView(); }
+/* Focus Mode hides every tab but Today so a kid can't wander off into Arena/Library mid-block —
+   the Focus Mode toggle itself lives on Today, so it's always reachable to turn back off. */
+function updateFocusModeTabVisibility(){
+  var on = isFocusMode(state.activeKid);
+  Array.prototype.forEach.call(els.tabs.querySelectorAll(".tab"), function(t){
+    if(t.dataset.tab!=="today") t.style.display = on ? "none" : "";
+  });
+}
+
+function renderAll(){ updateLibraryTabVisibility(); updateFocusModeTabVisibility(); renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
+  updateFocusModeTabVisibility();
   if(state.lessonDetailId!=null) return renderLessonDetail();
   if(state.mathGuideOpen) return renderMathGuide();
   if(state.leaderGuideOpen) return renderLeaderGuide();
@@ -496,7 +517,7 @@ function toggleAssignment(a){
   db.doc("kids/"+a.kidId).update(updates);
   if(willDone) toast(bonusXp ? "+"+a.xp+" XP + "+bonusXp+" cross-curricular bonus! 🎉" : "+"+a.xp+" XP! Nice work 🎉");
   if(a.kidId===state.activeKid) renderXpBar();
-  if(newStreakDay && a.kidId===state.activeKid) celebrate();
+  if(newStreakDay && a.kidId===state.activeKid && !isCalmMode(a.kidId)) celebrate();
   if(lvl.gained>0){
     logLevelUpReward(a.kidId, lvl);
   }
@@ -605,15 +626,52 @@ function blockComplete(blockKey, kidId, iso, tasksByBlock){
 }
 function disablePaste(el){ el.addEventListener("paste", function(e){ e.preventDefault(); }); }
 
+function renderModeToggleRow(kidId){
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap";
+  var focusOn = isFocusMode(kidId), calmOn = isCalmMode(kidId);
+
+  var focusBtn = document.createElement("button");
+  focusBtn.type = "button";
+  focusBtn.className = "reward-skip";
+  focusBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;"+
+    (focusOn ? "background:var(--gold-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+  focusBtn.textContent = focusOn ? "🎯 Focus Mode: ON" : "🎯 Focus Mode";
+  focusBtn.onclick = function(){ setModeFlag("al_focus", kidId, !focusOn); renderAll(); };
+  row.appendChild(focusBtn);
+
+  var calmBtn = document.createElement("button");
+  calmBtn.type = "button";
+  calmBtn.className = "reward-skip";
+  calmBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;"+
+    (calmOn ? "background:var(--teal-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+  calmBtn.textContent = calmOn ? "🧘 Calm Mode: ON" : "🧘 Calm Mode";
+  calmBtn.onclick = function(){ setModeFlag("al_calm", kidId, !calmOn); renderView(); };
+  row.appendChild(calmBtn);
+
+  if(calmOn){
+    var breakBtn = document.createElement("button");
+    breakBtn.type = "button";
+    breakBtn.className = "reward-skip";
+    breakBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;background:var(--card);color:var(--text-dim)";
+    breakBtn.textContent = "☕ Take a Break";
+    breakBtn.onclick = function(){ logBreak(kidId); };
+    row.appendChild(breakBtn);
+  }
+  return row;
+}
+
 function renderToday(){
   els.view.innerHTML = "";
   var kidId = state.activeKid;
   var iso = todayISO();
+  var focusOn = isFocusMode(kidId);
 
   var title = document.createElement("div");
   title.className = "section-title";
   title.textContent = fmtDate(iso) + "'s Daily Rhythm";
   els.view.appendChild(title);
+  els.view.appendChild(renderModeToggleRow(kidId));
 
   var list = assignmentsFor(kidId, iso);
   var tasksByBlock = {};
@@ -637,6 +695,9 @@ function renderToday(){
   state.lastBlockIdx[kidId] = firstIncompleteIdx;
 
   DAILY_BLOCKS.forEach(function(block, idx){
+    /* Focus Mode: show only the one block that's actually actionable right now — no
+       collapsed-done trail, no locked/dimmed preview of what's coming. */
+    if(focusOn && idx!==firstIncompleteIdx) return;
     els.view.appendChild(renderDailyBlockCard(block, kidId, iso, tasksByBlock[block.key]||[],
       idx<firstIncompleteIdx, idx===firstIncompleteIdx, idx>firstIncompleteIdx));
   });
@@ -649,12 +710,14 @@ function renderToday(){
     els.view.appendChild(done);
   }
 
-  var addTitle = document.createElement("div");
-  addTitle.className = "section-title";
-  addTitle.style.marginTop = "16px";
-  addTitle.textContent = "Add a Quest (Leader)";
-  els.view.appendChild(addTitle);
-  els.view.appendChild(addForm(kidId, iso));
+  if(!focusOn){
+    var addTitle = document.createElement("div");
+    addTitle.className = "section-title";
+    addTitle.style.marginTop = "16px";
+    addTitle.textContent = "Add a Quest (Leader)";
+    els.view.appendChild(addTitle);
+    els.view.appendChild(addForm(kidId, iso));
+  }
 }
 
 function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, isLocked){
@@ -3115,8 +3178,8 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Ryan's real Momma Money member id, so level-up bonuses can deposit for real. Add Anna's here once she's a member in Momma Money.
 var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 
-var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections" };
-var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id" };
+var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
+var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular" },
@@ -3124,8 +3187,14 @@ var FIELD_MAP = {
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
   journal: { kidId:"kid_id", createdAt:"created_at" },
-  reflections: { kidId:"kid_id", createdAt:"created_at" }
+  reflections: { kidId:"kid_id", createdAt:"created_at" },
+  breaks: { kidId:"kid_id" }
 };
+function logBreak(kidId){
+  if(!db) return;
+  db.collection("breaks").add({kidId:kidId, date: todayISO(), at: new Date().toISOString()});
+  toast("🧘 Take 5 — come back when you're ready");
+}
 function toRow(coll, obj){
   var map = FIELD_MAP[coll], row = {};
   Object.keys(obj).forEach(function(k){ row[map[k]||k] = obj[k]; });
