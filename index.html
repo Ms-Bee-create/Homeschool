@@ -847,14 +847,86 @@ function addForm(kidId, defaultDate){
 }
 
 /* ---------- Week ---------- */
+/* One block-grouped day card for the Week tab — same six blocks as Today, read-only overview
+   (task checkboxes still work; a true leader-only edit lock is part of the later dashboard-split
+   phase, not this one). Morning Launch / Show & Teach show a done/not-yet chip since they're
+   journal entries, not a task list. */
+function renderWeekBlockDay(kidId, iso, dayLabel){
+  var wrap = document.createElement("div");
+  wrap.className = "day-block";
+  var head = document.createElement("div");
+  head.className = "day-head";
+  head.textContent = dayLabel + (iso===todayISO() ? " (today)" : "");
+  wrap.appendChild(head);
+
+  var list = assignmentsFor(kidId, iso);
+  var tasksByBlock = {};
+  list.forEach(function(a){
+    var k = blockKeyFor(a);
+    tasksByBlock[k] = tasksByBlock[k] || [];
+    tasksByBlock[k].push(a);
+  });
+  var j = journalEntryFor(kidId, iso);
+  var r = reflectionFor(kidId, iso);
+  function statusChip(done){
+    return done
+      ? '<span class="chip" style="background:var(--success-soft);color:var(--success)">✅ done</span>'
+      : '<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">not yet</span>';
+  }
+
+  DAILY_BLOCKS.forEach(function(block){
+    var card = document.createElement("div");
+    card.className = "card";
+    card.style.marginBottom = "8px";
+    if(block.key==="morning" || block.key==="showTeach"){
+      var isDone = block.key==="morning" ? !!(j && j.yesterday && j.today) : !!r;
+      card.innerHTML = '<div style="display:flex;align-items:center;gap:8px">'+
+        '<span style="font-size:16px">'+block.icon+'</span>'+
+        '<div style="flex:1;font-weight:600;font-size:13.5px">'+escapeHtml(block.label)+'</div>'+
+        statusChip(isDone)+'</div>';
+      wrap.appendChild(card);
+      return;
+    }
+    var tasks = tasksByBlock[block.key] || [];
+    var headRow = document.createElement("div");
+    headRow.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:"+(tasks.length?"6px":"0");
+    headRow.innerHTML = '<span style="font-size:16px">'+block.icon+'</span><div style="flex:1;font-weight:600;font-size:13.5px">'+escapeHtml(block.label)+'</div>';
+    card.appendChild(headRow);
+    if(!tasks.length){
+      var empty = document.createElement("div");
+      empty.className = "muted";
+      empty.style.fontSize = "12px";
+      empty.textContent = "Nothing assigned";
+      card.appendChild(empty);
+    } else {
+      tasks.forEach(function(a){ card.appendChild(taskRow(a)); });
+    }
+    wrap.appendChild(card);
+  });
+  return wrap;
+}
+
 function renderWeek(){
   els.view.innerHTML = "";
   var kidId = state.activeKid;
   var kd = kidData(kidId);
 
+  var blocksTitle = document.createElement("div");
+  blocksTitle.className = "section-title";
+  blocksTitle.textContent = "This Week's Rhythm";
+  els.view.appendChild(blocksTitle);
+
+  var wk = weekBoundsMonFri();
+  DAYS.forEach(function(d, i){
+    var dayDate = new Date(wk.start);
+    dayDate.setDate(wk.start.getDate()+i);
+    els.view.appendChild(renderWeekBlockDay(kidId, isoDate(dayDate), DAY_LABEL[d]));
+  });
+
   var schTitle = document.createElement("div");
   schTitle.className = "section-title";
-  schTitle.textContent = "Daily Rhythm — tap to edit";
+  schTitle.style.marginTop = "16px";
+  schTitle.textContent = "Daily Rhythm (time schedule) — tap to edit";
   els.view.appendChild(schTitle);
 
   var sched = state.schedules[kidId] || {blocks:[]};
@@ -891,11 +963,13 @@ function renderWeek(){
 
   var title2 = document.createElement("div");
   title2.className = "section-title";
-  title2.textContent = "Upcoming Quests";
+  title2.style.marginTop = "16px";
+  title2.textContent = "Upcoming Quests (beyond this week)";
   els.view.appendChild(title2);
 
   var iso = todayISO();
-  var upcoming = assignmentsFor(kidId, function(d){ return d>=iso; });
+  var afterThisWeek = isoDate(wk.end);
+  var upcoming = assignmentsFor(kidId, function(d){ return d>afterThisWeek; });
   var byDate = {};
   var order = [];
   upcoming.forEach(function(a){
