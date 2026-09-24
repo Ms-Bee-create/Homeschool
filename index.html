@@ -1862,7 +1862,7 @@ var VM_INSTALL_HELP = {
   win95: {
     title: "Windows 95 Won't Install? Try This",
     steps: [
-      "<b>Check your VirtualBox version first (Help → About):</b> if it's anything like version 4 or 5, that's very outdated (VirtualBox 4.0 came out in 2010) and is a likely cause of odd CPU/timer errors on its own, separate from anything Windows 95-specific — modern host CPUs weren't around when it was built. <b>Update to the current VirtualBox (7.x)</b> from virtualbox.org before troubleshooting further; several of the exact bugs that cause the Windows 95 boot errors below were fixed in later versions.",
+      "<b>Check your VirtualBox version first (Help → About):</b> if it's anything like version 4 or 5, that's very outdated (VirtualBox 4.0 came out in 2010) and is a likely cause of odd CPU/timer errors on its own, separate from anything Windows 95-specific — modern host CPUs weren't around when it was built. <b>Update VirtualBox before troubleshooting further</b> — 6.1 or newer is enough (it doesn't have to be the very latest 7.x release; if the computer can only install up to 6.1, that already includes every fix mentioned below).",
       "<b>VM type:</b> When creating the VM, set the type to \"Windows 95\" (older VirtualBox) or \"Other/Unknown\" 32-bit (newer VirtualBox dropped 95 from the list).",
       "<b>Storage controller:</b> Put both the virtual hard disk AND the CD/DVD drive on <b>IDE</b>, not SATA. Windows 95 has no SATA drivers at all — this is the #1 cause of install failures.",
       "<b>Partition the disk first:</b> Pre-OSR2 Windows 95 CDs aren't bootable by themselves. Boot a Windows 95 boot floppy image first, run <code>fdisk</code> to create a partition, reboot, run <code>format c:</code>, then start setup from the CD.",
