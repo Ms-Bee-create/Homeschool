@@ -121,6 +121,25 @@ button{font:inherit;cursor:pointer}
 .slot-body[contenteditable]{flex:1;font-size:13.5px;font-weight:600;outline:none;border-radius:6px;padding:2px 4px}
 .slot-body[contenteditable]:focus{background:var(--paper)}
 
+/* week planner grid */
+.planner-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px 16px;padding:0 4px}
+.planner-grid{width:100%;border-collapse:separate;border-spacing:6px;min-width:640px}
+.planner-grid th{text-align:left;font-family:"Poppins";font-weight:600;font-size:12.5px;color:var(--text-dim);padding:2px 8px 6px}
+.planner-grid th.planner-today{color:var(--gold)}
+.planner-row-label{width:120px;vertical-align:top;padding:10px 8px 0 2px!important}
+.planner-row-label .prl-icon{font-size:17px}
+.planner-row-label .prl-name{font-weight:700;font-size:12.5px;margin-top:2px}
+.planner-row-label .prl-time{font-family:"JetBrains Mono";font-size:10.5px;color:var(--text-dim)}
+.planner-cell{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px;vertical-align:top;min-width:118px}
+.planner-cell.planner-today-col{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.planner-chip-line{font-size:11px;padding:3px 7px;border-radius:999px;display:inline-block}
+.planner-task{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px;cursor:pointer}
+.planner-task:last-child{margin-bottom:0}
+.planner-task .check{width:18px;height:18px;flex:none;margin-top:1px}
+.planner-task .pt-title{font-size:11.5px;line-height:1.3;color:var(--text)}
+.planner-task .pt-title.done{text-decoration:line-through;color:var(--text-dim)}
+.planner-empty{font-size:11px;color:var(--text-dim);opacity:.7}
+
 /* progress */
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
 .stat{background:var(--raised);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;box-shadow:var(--shadow)}
@@ -207,7 +226,7 @@ button{font:inherit;cursor:pointer}
 
   <div class="tabs" id="tabs">
     <button class="tab active" data-tab="today">Today</button>
-    <button class="tab" data-tab="week">Week</button>
+    <button class="tab" data-tab="week">Planner</button>
     <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
     <button class="tab" data-tab="leader">Leader</button>
@@ -310,6 +329,12 @@ function setModeFlag(key, kidId, val){
 }
 function isFocusMode(kidId){ return getModeFlag("al_focus", kidId); }
 function isCalmMode(kidId){ return getModeFlag("al_calm", kidId); }
+function getModeFlagStr(key, kidId){
+  try{ return localStorage.getItem(key+"_"+kidId); } catch(e){ return null; }
+}
+function setModeFlagStr(key, kidId, val){
+  try{ localStorage.setItem(key+"_"+kidId, val); } catch(e){ /* private browsing etc — just won't persist */ }
+}
 
 var state = {
   activeKid: "kid1",
@@ -444,7 +469,7 @@ function renderView(){
   if(state.mathGuideOpen) return renderMathGuide();
   if(state.leaderGuideOpen) return renderLeaderGuide();
   if(state.tab==="today") return renderToday();
-  if(state.tab==="week") return renderWeek();
+  if(state.tab==="week") return renderPlanner();
   if(state.tab==="library") return renderLibrary();
   if(state.tab==="arena") return renderArena();
   if(state.tab==="leader") return renderLeaderArea();
@@ -733,10 +758,10 @@ function renderToday(){
 
   DAILY_BLOCKS.forEach(function(block, idx){
     /* Focus Mode: show only the one block that's actually actionable right now — no
-       collapsed-done trail, no locked/dimmed preview of what's coming. */
+       collapsed-done trail, no preview of what's coming. */
     if(focusOn && idx!==firstIncompleteIdx) return;
     els.view.appendChild(renderDailyBlockCard(block, kidId, iso, tasksByBlock[block.key]||[],
-      idx<firstIncompleteIdx, idx===firstIncompleteIdx, idx>firstIncompleteIdx));
+      idx<firstIncompleteIdx, idx===firstIncompleteIdx));
   });
 
   if(firstIncompleteIdx>=DAILY_BLOCKS.length){
@@ -757,31 +782,31 @@ function renderToday(){
   }
 }
 
-function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, isLocked){
+/* Order is a suggestion, not a lock: every block is always tappable, in any order. The current
+   (first-incomplete) block auto-expands so there's still a clear "what's next," but nothing stops
+   him from jumping ahead to a later block or back to review a done one. */
+function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive){
   var card = document.createElement("div");
   card.className = "card";
   card.style.marginBottom = "10px";
-  if(isLocked) card.style.opacity = "0.5";
+  if(isActive) card.style.borderColor = "var(--gold)";
 
-  var expanded = !!(state.expandedBlocks && state.expandedBlocks[block.key]);
-  var showBody = isActive || (isDone && expanded);
+  var hasOverride = !!(state.expandedBlocks && (block.key in state.expandedBlocks));
+  var showBody = hasOverride ? state.expandedBlocks[block.key] : isActive;
 
   var head = document.createElement("div");
-  head.style.cssText = "display:flex;align-items:center;gap:10px;"+(isLocked?"":"cursor:pointer");
+  head.style.cssText = "display:flex;align-items:center;gap:10px;cursor:pointer";
   head.innerHTML =
-    '<span style="font-size:20px">'+(isDone?"✅":isLocked?"🔒":block.icon)+'</span>'+
+    '<span style="font-size:20px">'+(isDone?"✅":block.icon)+'</span>'+
     '<div style="flex:1">'+
-      '<div style="font-weight:700">'+escapeHtml(block.label)+'</div>'+
-      (isLocked ? '<div class="muted" style="font-size:12px">Finish the block above first</div>'
-        : isDone ? '<div class="muted" style="font-size:12px">'+(expanded?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
+      '<div style="font-weight:700">'+escapeHtml(block.label)+(isActive?' <span class="chip" style="background:var(--gold-soft);color:var(--gold);font-size:10.5px;vertical-align:middle">up next</span>':'')+'</div>'+
+      (isDone ? '<div class="muted" style="font-size:12px">'+(showBody?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
     '</div>';
-  if(!isLocked){
-    head.onclick = function(){
-      state.expandedBlocks = state.expandedBlocks || {};
-      state.expandedBlocks[block.key] = !expanded;
-      renderView();
-    };
-  }
+  head.onclick = function(){
+    state.expandedBlocks = state.expandedBlocks || {};
+    state.expandedBlocks[block.key] = !showBody;
+    renderView();
+  };
   card.appendChild(head);
 
   if(showBody){
@@ -963,155 +988,286 @@ function addForm(kidId, defaultDate){
   return wrap;
 }
 
-/* ---------- Week ---------- */
-/* One block-grouped day card for the Week tab — same six blocks as Today, read-only overview
-   (task checkboxes still work; a true leader-only edit lock is part of the later dashboard-split
-   phase, not this one). Morning Launch / Show & Teach show a done/not-yet chip since they're
-   journal entries, not a task list. */
-function renderWeekBlockDay(kidId, iso, dayLabel){
-  var wrap = document.createElement("div");
-  wrap.className = "day-block";
-  var head = document.createElement("div");
-  head.className = "day-head";
-  head.textContent = dayLabel + (iso===todayISO() ? " (today)" : "");
-  wrap.appendChild(head);
+/* ---------- Planner (Day / Week / Month) ---------- */
+/* Non-editable, presentational only — a suggested rhythm to the day, not a schedule to maintain.
+   Replaces the old free-text "Daily Rhythm" time editor per feedback that it wasn't worth keeping
+   as a separate, always-slightly-stale thing to hand-edit. */
+var BLOCK_SUGGESTED_TIME = {
+  morning:"9:00a", math:"9:20a", reading:"10:30a", project:"11:15a", sciSocial:"1:00p", showTeach:"1:45p"
+};
+function plannerCompactTask(a){
+  var el = document.createElement("div");
+  el.className = "planner-task";
+  el.innerHTML =
+    '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete" style="width:18px;height:18px;flex:none"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
+    '<span class="pt-title'+(a.done?" done":"")+'">'+escapeHtml(a.title.length>50?a.title.slice(0,50)+"…":a.title)+'</span>';
+  el.querySelector(".check").onclick = function(e){ e.stopPropagation(); toggleAssignment(a); };
+  el.onclick = function(){ state.lessonDetailId = a.id; renderView(); };
+  return el;
+}
+function plannerJournalChip(done, label){
+  var el = document.createElement("div");
+  el.className = "planner-chip-line";
+  el.style.cssText = "background:"+(done?"var(--success-soft)":"var(--paper)")+";color:"+(done?"var(--success)":"var(--text-dim)")+(done?"":";border:1px solid var(--border)");
+  el.textContent = done ? "✅ "+label : "— "+label;
+  return el;
+}
+
+function plannerViewSwitcher(kidId){
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;margin-bottom:14px";
+  ["day","week","month"].forEach(function(v){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "reward-skip";
+    var active = (state.plannerView||"week")===v;
+    b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 14px;text-transform:capitalize;"+
+      (active ? "background:var(--gold-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+    b.textContent = v;
+    b.onclick = function(){ state.plannerView = v; setModeFlagStr("al_plannerView", kidId, v); renderView(); };
+    row.appendChild(b);
+  });
+  return row;
+}
+
+function renderPlanner(){
+  els.view.innerHTML = "";
+  var kidId = state.activeKid;
+  if(state.plannerView==null) state.plannerView = getModeFlagStr("al_plannerView", kidId) || "week";
+  if(!state.plannerDate) state.plannerDate = todayISO();
+
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "📅 Planner — " + kidData(kidId).name;
+  els.view.appendChild(title);
+  els.view.appendChild(plannerViewSwitcher(kidId));
+
+  if(state.plannerView==="day") renderPlannerDay(kidId);
+  else if(state.plannerView==="month") renderPlannerMonth(kidId);
+  else renderPlannerWeek(kidId);
+
+  if(state.plannerView==="week"){
+    var wk = weekBoundsMonFri();
+    var title2 = document.createElement("div");
+    title2.className = "section-title";
+    title2.style.marginTop = "16px";
+    title2.textContent = "Upcoming Quests (beyond this week)";
+    els.view.appendChild(title2);
+    var afterThisWeek = isoDate(wk.end);
+    var upcoming = assignmentsFor(kidId, function(d){ return d>afterThisWeek; });
+    var byDate = {}, order = [];
+    upcoming.forEach(function(a){ if(!byDate[a.date]){ byDate[a.date]=[]; order.push(a.date); } byDate[a.date].push(a); });
+    order.sort();
+    if(!order.length){
+      var e = document.createElement("div");
+      e.className = "card empty";
+      e.textContent = "Nothing upcoming yet — add a quest below.";
+      els.view.appendChild(e);
+    }
+    order.forEach(function(dt){
+      var head = document.createElement("div");
+      head.className = "day-head";
+      head.style.marginTop = "10px";
+      head.textContent = fmtDate(dt);
+      els.view.appendChild(head);
+      var card = document.createElement("div");
+      card.className = "card";
+      byDate[dt].forEach(function(a){ card.appendChild(taskRow(a)); });
+      els.view.appendChild(card);
+    });
+  }
+
+  var addTitle = document.createElement("div");
+  addTitle.className = "section-title";
+  addTitle.style.marginTop = "16px";
+  addTitle.textContent = "Add a Quest (Leader)";
+  els.view.appendChild(addTitle);
+  els.view.appendChild(addForm(kidId, todayISO()));
+}
+
+/* Week: days as columns, the six daily blocks as rows — a real planner grid instead of a long
+   stacked list, so a whole week is visible (and comparable) at a glance. */
+function renderPlannerWeek(kidId){
+  var wk = weekBoundsMonFri();
+  var dates = DAYS.map(function(d,i){ var dt = new Date(wk.start); dt.setDate(wk.start.getDate()+i); return isoDate(dt); });
+  var todayStr = todayISO();
+
+  var scroll = document.createElement("div");
+  scroll.className = "planner-scroll";
+  var table = document.createElement("table");
+  table.className = "planner-grid";
+
+  var thead = document.createElement("thead");
+  var headRow = document.createElement("tr");
+  headRow.appendChild(document.createElement("th"));
+  DAYS.forEach(function(d, i){
+    var th = document.createElement("th");
+    var isToday = dates[i]===todayStr;
+    if(isToday) th.className = "planner-today";
+    th.innerHTML = DAY_LABEL[d]+'<br><span class="mono" style="font-weight:400">'+fmtDate(dates[i]).split(", ").slice(1).join(", ")+(isToday?" · today":"")+'</span>';
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  var tbody = document.createElement("tbody");
+  DAILY_BLOCKS.forEach(function(block){
+    var tr = document.createElement("tr");
+    var labelTd = document.createElement("td");
+    labelTd.className = "planner-row-label";
+    labelTd.innerHTML = '<div class="prl-icon">'+block.icon+'</div><div class="prl-name">'+escapeHtml(block.label)+'</div><div class="prl-time">'+(BLOCK_SUGGESTED_TIME[block.key]||"")+'</div>';
+    tr.appendChild(labelTd);
+
+    dates.forEach(function(iso){
+      var td = document.createElement("td");
+      td.className = "planner-cell"+(iso===todayStr?" planner-today-col":"");
+      if(block.key==="morning" || block.key==="showTeach"){
+        var isDone = block.key==="morning" ? !!(function(){ var j=journalEntryFor(kidId, iso); return j && j.yesterday && j.today; })() : !!reflectionFor(kidId, iso);
+        td.appendChild(plannerJournalChip(isDone, block.key==="morning" ? "journal" : "reflection"));
+      } else {
+        var tasks = assignmentsFor(kidId, iso).filter(function(a){ return blockKeyFor(a)===block.key; });
+        if(!tasks.length){
+          var empty = document.createElement("div");
+          empty.className = "planner-empty";
+          empty.textContent = "—";
+          td.appendChild(empty);
+        } else {
+          tasks.forEach(function(a){ td.appendChild(plannerCompactTask(a)); });
+        }
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  els.view.appendChild(scroll);
+}
+
+/* Day: one date at a time, prev/next to move around, same six blocks as a simple vertical list. */
+function renderPlannerDay(kidId){
+  var iso = state.plannerDate;
+  var nav = document.createElement("div");
+  nav.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:12px";
+  var prevBtn = document.createElement("button");
+  prevBtn.className = "reward-skip";
+  prevBtn.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px";
+  prevBtn.textContent = "← Prev day";
+  prevBtn.onclick = function(){ var d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()-1); state.plannerDate=isoDate(d); renderView(); };
+  var label = document.createElement("div");
+  label.style.cssText = "flex:1;text-align:center;font-weight:700";
+  label.textContent = fmtDate(iso) + (iso===todayISO() ? " (today)" : "");
+  var nextBtn = document.createElement("button");
+  nextBtn.className = "reward-skip";
+  nextBtn.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px";
+  nextBtn.textContent = "Next day →";
+  nextBtn.onclick = function(){ var d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+1); state.plannerDate=isoDate(d); renderView(); };
+  nav.appendChild(prevBtn); nav.appendChild(label); nav.appendChild(nextBtn);
+  els.view.appendChild(nav);
 
   var list = assignmentsFor(kidId, iso);
   var tasksByBlock = {};
-  list.forEach(function(a){
-    var k = blockKeyFor(a);
-    tasksByBlock[k] = tasksByBlock[k] || [];
-    tasksByBlock[k].push(a);
-  });
-  var j = journalEntryFor(kidId, iso);
-  var r = reflectionFor(kidId, iso);
-  function statusChip(done){
-    return done
-      ? '<span class="chip" style="background:var(--success-soft);color:var(--success)">✅ done</span>'
-      : '<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">not yet</span>';
-  }
+  list.forEach(function(a){ var k=blockKeyFor(a); (tasksByBlock[k]=tasksByBlock[k]||[]).push(a); });
 
   DAILY_BLOCKS.forEach(function(block){
     var card = document.createElement("div");
     card.className = "card";
-    card.style.marginBottom = "8px";
+    card.style.cssText = "margin-bottom:10px;padding:12px 14px";
+    var head = document.createElement("div");
+    head.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:8px";
+    head.innerHTML = '<span style="font-size:18px">'+block.icon+'</span><div style="flex:1;font-weight:700">'+escapeHtml(block.label)+'</div>'+
+      '<span class="muted mono" style="font-size:11px">'+(BLOCK_SUGGESTED_TIME[block.key]||"")+'</span>';
+    card.appendChild(head);
     if(block.key==="morning" || block.key==="showTeach"){
-      var isDone = block.key==="morning" ? !!(j && j.yesterday && j.today) : !!r;
-      card.innerHTML = '<div style="display:flex;align-items:center;gap:8px">'+
-        '<span style="font-size:16px">'+block.icon+'</span>'+
-        '<div style="flex:1;font-weight:600;font-size:13.5px">'+escapeHtml(block.label)+'</div>'+
-        statusChip(isDone)+'</div>';
-      wrap.appendChild(card);
-      return;
-    }
-    var tasks = tasksByBlock[block.key] || [];
-    var headRow = document.createElement("div");
-    headRow.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:"+(tasks.length?"6px":"0");
-    headRow.innerHTML = '<span style="font-size:16px">'+block.icon+'</span><div style="flex:1;font-weight:600;font-size:13.5px">'+escapeHtml(block.label)+'</div>';
-    card.appendChild(headRow);
-    if(!tasks.length){
-      var empty = document.createElement("div");
-      empty.className = "muted";
-      empty.style.fontSize = "12px";
-      empty.textContent = "Nothing assigned";
-      card.appendChild(empty);
+      var isDone = block.key==="morning" ? !!(function(){ var j=journalEntryFor(kidId, iso); return j && j.yesterday && j.today; })() : !!reflectionFor(kidId, iso);
+      var chip = document.createElement("span");
+      chip.className = "chip";
+      chip.style.cssText = isDone ? "background:var(--success-soft);color:var(--success)" : "background:var(--paper);color:var(--text-dim);border:1px solid var(--border)";
+      chip.textContent = isDone ? "✅ done" : "not yet";
+      card.appendChild(chip);
     } else {
-      tasks.forEach(function(a){ card.appendChild(taskRow(a)); });
+      var tasks = tasksByBlock[block.key]||[];
+      if(!tasks.length){
+        var empty = document.createElement("div");
+        empty.className = "muted";
+        empty.style.fontSize = "13px";
+        empty.textContent = "Nothing assigned";
+        card.appendChild(empty);
+      } else {
+        tasks.forEach(function(a){ card.appendChild(taskRow(a)); });
+      }
     }
-    wrap.appendChild(card);
-  });
-  return wrap;
-}
-
-function renderWeek(){
-  els.view.innerHTML = "";
-  var kidId = state.activeKid;
-  var kd = kidData(kidId);
-
-  var blocksTitle = document.createElement("div");
-  blocksTitle.className = "section-title";
-  blocksTitle.textContent = "This Week's Rhythm";
-  els.view.appendChild(blocksTitle);
-
-  var wk = weekBoundsMonFri();
-  DAYS.forEach(function(d, i){
-    var dayDate = new Date(wk.start);
-    dayDate.setDate(wk.start.getDate()+i);
-    els.view.appendChild(renderWeekBlockDay(kidId, isoDate(dayDate), DAY_LABEL[d]));
-  });
-
-  var schTitle = document.createElement("div");
-  schTitle.className = "section-title";
-  schTitle.style.marginTop = "16px";
-  schTitle.textContent = "Daily Rhythm (time schedule) — tap to edit";
-  els.view.appendChild(schTitle);
-
-  var sched = state.schedules[kidId] || {blocks:[]};
-  var byDay = {};
-  DAYS.forEach(function(d){ byDay[d]=[]; });
-  sched.blocks.forEach(function(b,i){ if(byDay[b.day]) byDay[b.day].push(Object.assign({idx:i}, b)); });
-
-  DAYS.forEach(function(d){
-    var blocks = byDay[d];
-    if(!blocks.length) return;
-    var db_ = document.createElement("div");
-    db_.className = "day-block";
-    var head = document.createElement("div");
-    head.className = "day-head";
-    head.textContent = DAY_LABEL[d];
-    db_.appendChild(head);
-    var card = document.createElement("div");
-    card.className = "card";
-    blocks.forEach(function(b){
-      var slot = document.createElement("div");
-      slot.className = "slot";
-      slot.innerHTML = '<div class="slot-time mono">'+escapeHtml(b.time||"")+'</div><div class="slot-body" contenteditable="true" spellcheck="false">'+escapeHtml(b.activity||"")+'</div>';
-      var body = slot.querySelector(".slot-body");
-      body.addEventListener("blur", function(){
-        var blocksCopy = sched.blocks.slice();
-        blocksCopy[b.idx] = Object.assign({}, blocksCopy[b.idx], {activity: body.textContent.trim()});
-        if(db) db.doc("schedule/"+kidId).set({blocks: blocksCopy});
-      });
-      card.appendChild(slot);
-    });
-    db_.appendChild(card);
-    els.view.appendChild(db_);
-  });
-
-  var title2 = document.createElement("div");
-  title2.className = "section-title";
-  title2.style.marginTop = "16px";
-  title2.textContent = "Upcoming Quests (beyond this week)";
-  els.view.appendChild(title2);
-
-  var iso = todayISO();
-  var afterThisWeek = isoDate(wk.end);
-  var upcoming = assignmentsFor(kidId, function(d){ return d>afterThisWeek; });
-  var byDate = {};
-  var order = [];
-  upcoming.forEach(function(a){
-    if(!byDate[a.date]){ byDate[a.date]=[]; order.push(a.date); }
-    byDate[a.date].push(a);
-  });
-  order.sort();
-  if(!order.length){
-    var e = document.createElement("div");
-    e.className = "card empty";
-    e.textContent = "Nothing upcoming yet — add a quest below.";
-    els.view.appendChild(e);
-  }
-  order.forEach(function(dt){
-    var head = document.createElement("div");
-    head.className = "day-head";
-    head.style.marginTop = "10px";
-    head.textContent = fmtDate(dt) + (dt===iso ? " (today)" : "");
-    els.view.appendChild(head);
-    var card = document.createElement("div");
-    card.className = "card";
-    byDate[dt].forEach(function(a){ card.appendChild(taskRow(a)); });
     els.view.appendChild(card);
   });
-  els.view.appendChild(addForm(kidId, iso));
+}
+
+/* Month: a compact school-day calendar (Mon-Fri columns only) with a done/total badge per day —
+   tap a day to jump into Day view for it. */
+function renderPlannerMonth(kidId){
+  var anchor = new Date(state.plannerDate+"T00:00:00");
+  var year = anchor.getFullYear(), month = anchor.getMonth();
+
+  var nav = document.createElement("div");
+  nav.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:12px";
+  var prevBtn = document.createElement("button");
+  prevBtn.className = "reward-skip";
+  prevBtn.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px";
+  prevBtn.textContent = "← Prev month";
+  prevBtn.onclick = function(){ state.plannerDate = isoDate(new Date(year, month-1, 1)); renderView(); };
+  var label = document.createElement("div");
+  label.style.cssText = "flex:1;text-align:center;font-weight:700";
+  label.textContent = anchor.toLocaleDateString(undefined,{month:"long", year:"numeric"});
+  var nextBtn = document.createElement("button");
+  nextBtn.className = "reward-skip";
+  nextBtn.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px";
+  nextBtn.textContent = "Next month →";
+  nextBtn.onclick = function(){ state.plannerDate = isoDate(new Date(year, month+1, 1)); renderView(); };
+  nav.appendChild(prevBtn); nav.appendChild(label); nav.appendChild(nextBtn);
+  els.view.appendChild(nav);
+
+  var scroll = document.createElement("div");
+  scroll.className = "planner-scroll";
+  var table = document.createElement("table");
+  table.className = "planner-grid";
+  var thead = document.createElement("thead");
+  var hr = document.createElement("tr");
+  DAYS.forEach(function(d){ var th=document.createElement("th"); th.textContent=DAY_LABEL[d]; hr.appendChild(th); });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  var firstOfMonth = new Date(year, month, 1);
+  var startIdx = todayIdxFor(firstOfMonth); // 0=Mon..6=Sun, days before month start in that week's Monday
+  var gridStart = new Date(firstOfMonth);
+  gridStart.setDate(gridStart.getDate() - startIdx);
+  var todayStr = todayISO();
+
+  var tbody = document.createElement("tbody");
+  for(var week=0; week<6; week++){
+    var tr = document.createElement("tr");
+    var anyInMonth = false;
+    for(var day=0; day<5; day++){
+      var d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + week*7 + day);
+      var inMonth = d.getMonth()===month;
+      if(inMonth) anyInMonth = true;
+      var iso = isoDate(d);
+      var td = document.createElement("td");
+      td.className = "planner-cell"+(iso===todayStr?" planner-today-col":"");
+      if(!inMonth) td.style.opacity = "0.35";
+      var dayAssignments = assignmentsFor(kidId, iso);
+      var doneCt = dayAssignments.filter(function(a){return a.done;}).length;
+      td.style.cursor = "pointer";
+      td.innerHTML = '<div style="font-weight:700;font-size:12px;margin-bottom:4px">'+d.getDate()+'</div>'+
+        (dayAssignments.length ? '<div class="planner-chip-line" style="background:var(--paper);border:1px solid var(--border)">'+doneCt+'/'+dayAssignments.length+'</div>' : '<div class="planner-empty">—</div>');
+      td.onclick = function(clickedIso){ return function(){ state.plannerDate = clickedIso; state.plannerView = "day"; renderView(); }; }(iso);
+      tr.appendChild(td);
+    }
+    if(anyInMonth || week===0) tbody.appendChild(tr);
+    if(!anyInMonth && week>0) break;
+  }
+  table.appendChild(tbody);
+  scroll.appendChild(table);
+  els.view.appendChild(scroll);
 }
 
 /* ---------- Curriculum Library ---------- */
