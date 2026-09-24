@@ -231,6 +231,7 @@ button{font:inherit;cursor:pointer}
     <button class="tab" data-tab="week">Planner</button>
     <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
+    <button class="tab" id="completedTabBtn" data-tab="completed">📁 Completed</button>
     <button class="tab" data-tab="leader">Leader</button>
   </div>
 
@@ -458,6 +459,24 @@ function updateLibraryTabVisibility(){
   btn.style.display = "";
 }
 
+/* Counts finished work with a leader note the active kid hasn't opened yet, so the Completed tab
+   can show a "1 new" style badge instead of him having to check every finished item for feedback. */
+function countUnreadNotes(kidId){
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId===kidId && a.noteUnread && a.reviewNote) n++;
+  });
+  return n;
+}
+
+function updateCompletedTabBadge(){
+  var btn = document.getElementById("completedTabBtn");
+  if(!btn) return;
+  var n = countUnreadNotes(state.activeKid);
+  btn.innerHTML = "📁 Completed" + (n>0 ? ' <span class="chip" style="background:var(--coral);color:#fff;padding:1px 7px;font-size:11px;margin-left:2px">'+n+' new</span>' : "");
+}
+
 /* Focus Mode hides every tab but Today so a kid can't wander off into Arena/Library mid-block —
    the Focus Mode toggle itself lives on Today, so it's always reachable to turn back off. */
 function updateFocusModeTabVisibility(){
@@ -467,10 +486,11 @@ function updateFocusModeTabVisibility(){
   });
 }
 
-function renderAll(){ updateLibraryTabVisibility(); updateFocusModeTabVisibility(); renderKidbar(); renderXpBar(); renderView(); }
+function renderAll(){ updateLibraryTabVisibility(); updateFocusModeTabVisibility(); updateCompletedTabBadge(); renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
   updateFocusModeTabVisibility();
+  updateCompletedTabBadge();
   if(state.lessonDetailId!=null) return renderLessonDetail();
   if(state.mathGuideOpen) return renderMathGuide();
   if(state.leaderGuideOpen) return renderLeaderGuide();
@@ -478,6 +498,7 @@ function renderView(){
   if(state.tab==="week") return renderPlanner();
   if(state.tab==="library") return renderLibrary();
   if(state.tab==="arena") return renderArena();
+  if(state.tab==="completed") return renderCompletedFolder();
   if(state.tab==="leader") return renderLeaderArea();
 }
 
@@ -2156,6 +2177,15 @@ function renderLessonDetail(){
   var card = document.createElement("div");
   card.className = "qz-card";
 
+  /* Math titles are written as "Label: actual question" so the topic reads clearly in list views
+     (Today, Planner, Progress). But shown as a big plain heading here, that embedded question got
+     lost/skipped next to the video — it didn't look like a question the way the numbered "practice"
+     ones did. So for Math lessons with a practice array, split off the label for the heading and
+     fold the real question into the same numbered list as the rest, so all of them look alike. */
+  var mathSplit = (a.subject==="Math" && Array.isArray(a.practice) && a.practice.length) ? a.title.match(/^([^:]+):\s*(.+)$/) : null;
+  var headingText = mathSplit ? mathSplit[1] : a.title;
+  var embeddedQuestion = mathSplit ? mathSplit[2] : null;
+
   var headHtml =
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
       '<div>'+subjectChip(a.subject)+
@@ -2163,7 +2193,7 @@ function renderLessonDetail(){
       '</div>'+
       '<div class="task-xp" style="font-size:14px">+'+a.xp+' XP</div>'+
     '</div>'+
-    '<p class="qz-q" style="font-size:19px;margin-bottom:14px">'+escapeHtml(a.title)+' '+speakerBtnHtml()+'</p>';
+    '<p class="qz-q" style="font-size:19px;margin-bottom:14px">'+escapeHtml(headingText)+' '+speakerBtnHtml()+'</p>';
 
   var videoHtml = "";
   if(a.video){
@@ -2190,7 +2220,8 @@ function renderLessonDetail(){
   }
 
   var practiceHtml = (Array.isArray(a.practice) && a.practice.length)
-    ? '<div class="section-title" style="margin:2px 0 6px">Extra practice</div><ol start="2" style="margin:0 0 14px 18px;padding:0;font-size:14.5px">'+
+    ? '<div class="section-title" style="margin:2px 0 6px">Practice Problems</div><ol style="margin:0 0 14px 18px;padding:0;font-size:14.5px">'+
+      (embeddedQuestion ? '<li style="margin-bottom:6px;font-weight:600">'+escapeHtml(embeddedQuestion)+'</li>' : "")+
       a.practice.map(function(p){ return '<li style="margin-bottom:6px">'+escapeHtml(p)+'</li>'; }).join("")+
       '</ol>'
     : "";
@@ -2625,6 +2656,73 @@ function renderLeaderPinGate(){
   els.view.appendChild(card);
 }
 
+/* Kid-facing "Completed" folder: finished work moves here instead of piling up on Today/Planner.
+   Any leader note attached (whether from an approval or a flag) shows right on the card, and a
+   fresh note is marked unread until the kid actually opens this folder — that's what drives the
+   "X new" badge on the tab itself. */
+function renderCompletedFolder(){
+  els.view.innerHTML = "";
+  var kidId = state.activeKid;
+
+  var title = document.createElement("div");
+  title.className = "section-title";
+  title.textContent = "📁 Completed Work";
+  els.view.appendChild(title);
+
+  var intro = document.createElement("p");
+  intro.className = "muted";
+  intro.style.cssText = "font-size:13px;margin:2px 0 14px";
+  intro.textContent = "Everything you've finished lives here. If your leader left you a note, it'll show right on the card.";
+  els.view.appendChild(intro);
+
+  var done = Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); })
+    .filter(function(a){ return a.kidId===kidId && a.done; })
+    .sort(function(x,y){ return (y.doneAt||"").localeCompare(x.doneAt||""); });
+
+  if(!done.length){
+    var empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.cssText = "text-align:center;padding:30px 0";
+    empty.textContent = "Nothing finished yet — get to work! 💪";
+    els.view.appendChild(empty);
+    return;
+  }
+
+  var anyUnreadCleared = false;
+  done.forEach(function(a){
+    var card = document.createElement("div");
+    card.className = "qz-card";
+    card.style.marginBottom = "12px";
+    var hasNote = !!a.reviewNote;
+    var isUnread = hasNote && a.noteUnread;
+    var statusChip = a.reviewStatus==="approved"
+      ? '<span class="chip" style="background:var(--success-soft);color:var(--success)">✅ approved</span>'
+      : a.reviewStatus==="flagged"
+        ? '<span class="chip" style="background:var(--coral-soft);color:var(--coral)">🚩 needs another look</span>'
+        : '<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">done</span>';
+    var noteHtml = "";
+    if(hasNote){
+      noteHtml = '<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--gold-soft);font-size:13.5px">'+
+        (isUnread ? '<b>🔔 New note from your leader:</b> ' : '<b>Note from your leader:</b> ')+escapeHtml(a.reviewNote)+
+      '</div>';
+    }
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
+        '<div>'+subjectChip(a.subject)+'</div>'+statusChip+
+      '</div>'+
+      '<p class="qz-q" style="font-size:15px;margin-bottom:0">'+escapeHtml(a.title)+'</p>'+
+      noteHtml;
+    els.view.appendChild(card);
+
+    if(isUnread){
+      anyUnreadCleared = true;
+      if(state.assignments[a.id]) state.assignments[a.id].noteUnread = false;
+      db.doc("assignments/"+a.id).update({noteUnread:false});
+    }
+  });
+  if(anyUnreadCleared) updateCompletedTabBadge();
+}
+
 function renderLeaderArea(){
   els.view.innerHTML = "";
   if(!state.leaderUnlocked || state.changingPin){ return renderLeaderPinGate(); }
@@ -2670,20 +2768,15 @@ function renderLeaderArea(){
       all.push(Object.assign({id:id, kidName: kidData(k.id).name}, a));
     });
   });
-  all.sort(function(x,y){
-    var xp = x.reviewStatus==="approved"?1:0, yp = y.reviewStatus==="approved"?1:0;
-    return xp-yp || (y.submittedAt||"").localeCompare(x.submittedAt||"");
-  });
+  var pending = all.filter(function(a){ return a.reviewStatus!=="approved"; });
+  var completed = all.filter(function(a){ return a.reviewStatus==="approved"; });
+  pending.sort(function(x,y){ return (y.submittedAt||"").localeCompare(x.submittedAt||""); });
+  completed.sort(function(x,y){ return (y.submittedAt||"").localeCompare(x.submittedAt||""); });
 
-  if(all.length===0){
-    var empty = document.createElement("div");
-    empty.className = "muted";
-    empty.style.cssText = "text-align:center;padding:30px 0";
-    empty.textContent = "No submitted work yet.";
-    els.view.appendChild(empty);
-  }
-
-  all.forEach(function(a){
+  /* Shared card builder for both the active queue and the Completed folder — the only difference
+     is which buttons show, since an approved item doesn't need an Approve button anymore but can
+     still get a note or get flagged back open if something was missed. */
+  function buildReviewCard(a, isCompleted){
     var card = document.createElement("div");
     card.className = "qz-card";
     card.style.marginBottom = "14px";
@@ -2714,26 +2807,43 @@ function renderLeaderArea(){
         subHtml += '<a href="'+escapeHtml(block.url)+'" target="_blank" rel="noopener"><img src="'+escapeHtml(block.url)+'" style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);display:block;margin-bottom:10px"></a>';
       }
     });
-    if(a.reviewStatus==="flagged" && a.reviewNote){
-      subHtml += '<div class="muted" style="font-size:12.5px;margin-bottom:10px">Your note: '+escapeHtml(a.reviewNote)+'</div>';
+    if(a.reviewNote){
+      subHtml += '<div class="muted" style="font-size:12.5px;margin-bottom:10px">Your note: '+escapeHtml(a.reviewNote)+(a.noteUnread?' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">unread</span>':'')+'</div>';
     }
     card.innerHTML = headHtml + subHtml;
 
     var btnRow = document.createElement("div");
-    btnRow.style.cssText = "display:flex;gap:8px;margin-top:6px";
+    btnRow.style.cssText = "display:flex;gap:8px;margin-top:6px;flex-wrap:wrap";
 
-    var approveBtn = document.createElement("button");
-    approveBtn.className = "primary-btn";
-    approveBtn.style.flex = "1";
-    approveBtn.textContent = "✅ Approve";
-    approveBtn.onclick = function(){
+    if(!isCompleted){
+      var approveBtn = document.createElement("button");
+      approveBtn.className = "primary-btn";
+      approveBtn.style.flex = "1";
+      approveBtn.textContent = "✅ Approve";
+      approveBtn.onclick = function(){
+        if(!db) return;
+        if(!a.done){ toggleAssignment(a); }
+        if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {reviewStatus:"approved"});
+        db.doc("assignments/"+a.id).update({reviewStatus:"approved"});
+        renderLeaderArea();
+      };
+      btnRow.appendChild(approveBtn);
+    }
+
+    var noteBtn = document.createElement("button");
+    noteBtn.className = "reward-skip";
+    noteBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
+    noteBtn.textContent = a.reviewNote ? "📝 Edit Note" : "📝 Add Note";
+    noteBtn.onclick = function(){
+      var note = window.prompt("Leave a note or bit of feedback for them to read:", a.reviewNote||"");
+      if(note===null) return;
       if(!db) return;
-      if(!a.done){ toggleAssignment(a); }
-      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {reviewStatus:"approved", reviewNote:null});
-      db.doc("assignments/"+a.id).update({reviewStatus:"approved", reviewNote:null});
+      var updates = {reviewNote: note || null, noteUnread: !!note};
+      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], updates);
+      db.doc("assignments/"+a.id).update(updates);
       renderLeaderArea();
     };
-    btnRow.appendChild(approveBtn);
+    btnRow.appendChild(noteBtn);
 
     var flagBtn = document.createElement("button");
     flagBtn.className = "reward-skip";
@@ -2743,15 +2853,41 @@ function renderLeaderArea(){
       var note = window.prompt("What should they fix or double-check?", a.reviewNote||"");
       if(note===null) return;
       if(!db) return;
-      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {reviewStatus:"flagged", reviewNote:note, done:false, doneAt:null});
-      db.doc("assignments/"+a.id).update({reviewStatus:"flagged", reviewNote:note, done:false, doneAt:null});
+      var updates = {reviewStatus:"flagged", reviewNote:note, noteUnread:!!note, done:false, doneAt:null};
+      if(state.assignments[a.id]) Object.assign(state.assignments[a.id], updates);
+      db.doc("assignments/"+a.id).update(updates);
       renderLeaderArea();
     };
     btnRow.appendChild(flagBtn);
 
     card.appendChild(btnRow);
-    els.view.appendChild(card);
-  });
+    return card;
+  }
+
+  if(pending.length===0){
+    var empty = document.createElement("div");
+    empty.className = "muted";
+    empty.style.cssText = "text-align:center;padding:30px 0";
+    empty.textContent = "Nothing waiting on you right now.";
+    els.view.appendChild(empty);
+  }
+  pending.forEach(function(a){ els.view.appendChild(buildReviewCard(a, false)); });
+
+  if(completed.length){
+    var completedToggle = document.createElement("button");
+    completedToggle.type = "button";
+    completedToggle.className = "section-title";
+    completedToggle.style.cssText = "display:block;width:100%;text-align:left;background:none;border:none;padding:0;margin-top:10px;cursor:pointer;font:inherit";
+    completedToggle.textContent = (state.leaderCompletedOpen ? "▾" : "▸") + " ✅ Completed (" + completed.length + ")";
+    completedToggle.onclick = function(){ state.leaderCompletedOpen = !state.leaderCompletedOpen; renderLeaderArea(); };
+    els.view.appendChild(completedToggle);
+    if(state.leaderCompletedOpen){
+      var completedWrap = document.createElement("div");
+      completedWrap.style.marginTop = "10px";
+      completed.forEach(function(a){ completedWrap.appendChild(buildReviewCard(a, true)); });
+      els.view.appendChild(completedWrap);
+    }
+  }
 
   var addTitle = document.createElement("div");
   addTitle.className = "section-title";
@@ -3716,7 +3852,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
