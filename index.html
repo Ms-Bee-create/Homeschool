@@ -2082,6 +2082,42 @@ function leaderGuideCard(){
   return wrap;
 }
 
+/* Running list of future project ideas for Ryan (or Anna) — parked here so a good idea from a
+   random conversation doesn't get lost before there's time to turn it into a real lesson. Purely
+   reference material for the leader; nothing here is scheduled or synced to a kid's assignments
+   until someone actually builds it into a lesson. */
+var FUTURE_PROJECT_IDEAS = [
+  "\"Absurd hardware\" OS install: put a real, tiny computer (like a Raspberry Pi) inside or behind something silly (a toy, a stuffed animal, etc.) and get an OS running on it — the genuine version of the joke \"install it on a donut\" videos on channels like MetraByte. A fun next-tier hardware project once he's past VM installs and wants to work with real hardware."
+];
+
+function leaderFutureIdeasCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginTop = "10px";
+  var head = document.createElement("div");
+  head.className = "task";
+  head.innerHTML =
+    '<div class="task-body">'+
+      '<div class="task-title">💡 Future Project Ideas</div>'+
+      '<div class="task-sub">'+FUTURE_PROJECT_IDEAS.length+' idea'+(FUTURE_PROJECT_IDEAS.length===1?'':'s')+' parked for later — nothing scheduled yet</div>'+
+    '</div><div class="task-xp">'+(state.leaderIdeasOpen?'▾':'▶')+'</div>';
+  head.style.cursor = "pointer";
+  head.onclick = function(){ state.leaderIdeasOpen = !state.leaderIdeasOpen; renderView(); };
+  wrap.appendChild(head);
+  if(state.leaderIdeasOpen){
+    var list = document.createElement("ul");
+    list.style.cssText = "margin:0;padding:10px 14px 14px 30px;font-size:13.5px";
+    FUTURE_PROJECT_IDEAS.forEach(function(idea){
+      var li = document.createElement("li");
+      li.style.marginBottom = "8px";
+      li.textContent = idea;
+      list.appendChild(li);
+    });
+    wrap.appendChild(list);
+  }
+  return wrap;
+}
+
 function renderLeaderGuide(){
   els.view.innerHTML = "";
   var title = document.createElement("div");
@@ -2744,6 +2780,7 @@ function renderLeaderArea(){
   els.view.appendChild(lockRow);
 
   els.view.appendChild(leaderGuideCard());
+  els.view.appendChild(leaderFutureIdeasCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
      Tracking/stats (hours, family overview, per-kid quest logs) move to the bottom since they're
