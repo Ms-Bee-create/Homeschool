@@ -209,7 +209,7 @@ button{font:inherit;cursor:pointer}
     <button class="tab active" data-tab="today">Today</button>
     <button class="tab" data-tab="week">Week</button>
     <button class="tab" data-tab="progress">Quest Log</button>
-    <button class="tab" id="libraryTabBtn" data-tab="library" style="display:none">Library</button>
+    <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
     <button class="tab" data-tab="leader">Leader</button>
   </div>
@@ -371,15 +371,13 @@ els.tabs.addEventListener("click", function(e){
   renderView();
 });
 
-/* The Curriculum Library (Retro OS Museum, micro:bit track, Math Field Guide) is Ryan's
-   interest-led curriculum specifically — hide the tab entirely when Anna is active instead of
-   showing her an empty/irrelevant library. */
+/* Library now has real content for both kids — Ryan's interest-led Retro OS Museum track, and a
+   small curated set of real channels for Anna (Scratch Garden, PE with Mr. Bowman) — so the tab
+   stays visible for both instead of hiding for her. */
 function updateLibraryTabVisibility(){
   var btn = document.getElementById("libraryTabBtn");
   if(!btn) return;
-  var visible = state.activeKid==="kid2";
-  btn.style.display = visible ? "" : "none";
-  if(!visible && state.tab==="library") state.tab = "today";
+  btn.style.display = "";
 }
 
 function renderAll(){ updateLibraryTabVisibility(); renderKidbar(); renderXpBar(); renderView(); }
@@ -570,7 +568,45 @@ function showLevelUpBanner(kidId, lvl){
   document.getElementById("lvlDismiss").onclick = function(){ els.rewardBanner.innerHTML=""; };
 }
 
-/* ---------- Today ---------- */
+/* ---------- Today: guided daily blocks ----------
+   The day is broken into a fixed sequence of blocks. A block "unlocks" only once every block
+   before it is complete — later blocks render locked and dimmed. This is deliberate: Ryan does
+   better with one clear next step than a flat list he can skim past, and it mirrors the
+   "what do I do next" structure that works for him elsewhere (see Leader's Guide, Show & Teach). */
+var DAILY_BLOCKS = [
+  {key:"morning", label:"Morning Launch", icon:"🌅"},
+  {key:"math", label:"Math in the Machine", icon:"🧮", subjects:["Math"]},
+  {key:"reading", label:"Reading Block", icon:"📖", subjects:["ELA","Reading"]},
+  {key:"project", label:"Main Project", icon:"🛠️", subjects:["Independent","Related Arts","Live Lesson"]},
+  {key:"sciSocial", label:"Science & Social Studies", icon:"🔬", subjects:["Science","Social Studies"]},
+  {key:"showTeach", label:"Show & Teach", icon:"🎤"}
+];
+function blockKeyFor(a){
+  if(a.block) return a.block;
+  for(var i=0;i<DAILY_BLOCKS.length;i++){
+    var b = DAILY_BLOCKS[i];
+    if(b.subjects && b.subjects.indexOf(a.subject)>=0) return b.key;
+  }
+  return "project";
+}
+function journalEntryFor(kidId, iso){
+  return (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.date===iso; })[0] || null;
+}
+function reflectionFor(kidId, iso){
+  return (state.reflections||[]).filter(function(r){ return r.kidId===kidId && r.date===iso; })[0] || null;
+}
+function blockComplete(blockKey, kidId, iso, tasksByBlock){
+  if(blockKey==="morning"){
+    var j = journalEntryFor(kidId, iso);
+    return !!(j && j.yesterday && j.today);
+  }
+  if(blockKey==="showTeach") return !!reflectionFor(kidId, iso);
+  var tasks = tasksByBlock[blockKey] || [];
+  if(!tasks.length) return true; // nothing assigned to this block today — auto-pass, don't block the day on it
+  return tasks.every(function(a){ return a.done; });
+}
+function disablePaste(el){ el.addEventListener("paste", function(e){ e.preventDefault(); }); }
+
 function renderToday(){
   els.view.innerHTML = "";
   var kidId = state.activeKid;
@@ -578,30 +614,197 @@ function renderToday(){
 
   var title = document.createElement("div");
   title.className = "section-title";
-  title.textContent = fmtDate(iso) + "'s Quests";
+  title.textContent = fmtDate(iso) + "'s Daily Rhythm";
   els.view.appendChild(title);
 
   var list = assignmentsFor(kidId, iso);
-  var card = document.createElement("div");
-  card.className = "card";
-  if(list.length===0){
-    card.innerHTML = '<div class="empty">Nothing scheduled for today yet — add it below, or check the Week tab for what\'s coming up.</div>';
-  } else {
-    list.forEach(function(a){ card.appendChild(taskRow(a)); });
+  var tasksByBlock = {};
+  list.forEach(function(a){
+    var k = blockKeyFor(a);
+    tasksByBlock[k] = tasksByBlock[k] || [];
+    tasksByBlock[k].push(a);
+  });
+
+  var firstIncompleteIdx = DAILY_BLOCKS.length;
+  for(var i=0;i<DAILY_BLOCKS.length;i++){
+    if(!blockComplete(DAILY_BLOCKS[i].key, kidId, iso, tasksByBlock)){ firstIncompleteIdx = i; break; }
   }
-  els.view.appendChild(card);
 
-  els.view.appendChild(addForm(kidId, iso));
+  state.lastBlockIdx = state.lastBlockIdx || {};
+  if(state.lastBlockIdx[kidId]!=null && firstIncompleteIdx > state.lastBlockIdx[kidId]){
+    var justDone = DAILY_BLOCKS[state.lastBlockIdx[kidId]];
+    var next = DAILY_BLOCKS[firstIncompleteIdx];
+    if(justDone) toast("🎉 "+justDone.label+" complete!"+(next?" Next: "+next.label:""));
+  }
+  state.lastBlockIdx[kidId] = firstIncompleteIdx;
 
-  var doneCount = list.filter(function(a){return a.done;}).length;
-  if(list.length && doneCount===list.length){
+  DAILY_BLOCKS.forEach(function(block, idx){
+    els.view.appendChild(renderDailyBlockCard(block, kidId, iso, tasksByBlock[block.key]||[],
+      idx<firstIncompleteIdx, idx===firstIncompleteIdx, idx>firstIncompleteIdx));
+  });
+
+  if(firstIncompleteIdx>=DAILY_BLOCKS.length){
     var done = document.createElement("div");
     done.className = "card empty";
     done.style.marginTop="12px";
-    done.innerHTML = "🏁 <b>All of today's quests complete!</b> Streak locked in."+
-      "<div style=\"margin-top:8px;font-weight:600\">🎤 Show &amp; Teach: pick one thing you fixed or figured out today and show/teach it to someone — that's how we know it stuck.</div>";
+    done.innerHTML = "🏁 <b>All of today's blocks complete!</b> Streak locked in.";
     els.view.appendChild(done);
   }
+
+  var addTitle = document.createElement("div");
+  addTitle.className = "section-title";
+  addTitle.style.marginTop = "16px";
+  addTitle.textContent = "Add a Quest (Leader)";
+  els.view.appendChild(addTitle);
+  els.view.appendChild(addForm(kidId, iso));
+}
+
+function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, isLocked){
+  var card = document.createElement("div");
+  card.className = "card";
+  card.style.marginBottom = "10px";
+  if(isLocked) card.style.opacity = "0.5";
+
+  var expanded = !!(state.expandedBlocks && state.expandedBlocks[block.key]);
+  var showBody = isActive || (isDone && expanded);
+
+  var head = document.createElement("div");
+  head.style.cssText = "display:flex;align-items:center;gap:10px;"+(isLocked?"":"cursor:pointer");
+  head.innerHTML =
+    '<span style="font-size:20px">'+(isDone?"✅":isLocked?"🔒":block.icon)+'</span>'+
+    '<div style="flex:1">'+
+      '<div style="font-weight:700">'+escapeHtml(block.label)+'</div>'+
+      (isLocked ? '<div class="muted" style="font-size:12px">Finish the block above first</div>'
+        : isDone ? '<div class="muted" style="font-size:12px">'+(expanded?"Tap to collapse":"Done — tap to review")+'</div>' : '')+
+    '</div>';
+  if(!isLocked){
+    head.onclick = function(){
+      state.expandedBlocks = state.expandedBlocks || {};
+      state.expandedBlocks[block.key] = !expanded;
+      renderView();
+    };
+  }
+  card.appendChild(head);
+
+  if(showBody){
+    var body = document.createElement("div");
+    body.style.marginTop = "10px";
+    if(block.key==="morning"){
+      body.appendChild(renderMorningLaunch(kidId, iso));
+    } else if(block.key==="showTeach"){
+      body.appendChild(renderShowTeach(kidId, iso));
+    } else if(!tasks.length){
+      var empty = document.createElement("div");
+      empty.className = "muted";
+      empty.style.fontSize = "13px";
+      empty.textContent = "Nothing assigned to this block today.";
+      body.appendChild(empty);
+    } else {
+      tasks.forEach(function(a){ body.appendChild(taskRow(a)); });
+    }
+    card.appendChild(body);
+  }
+  return card;
+}
+
+function renderMorningLaunch(kidId, iso){
+  var wrap = document.createElement("div");
+  var existing = journalEntryFor(kidId, iso);
+  wrap.innerHTML =
+    '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Yesterday\'s progress — one thing that happened</label>'+
+    '<textarea class="jl-yesterday" rows="2" maxlength="240" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
+    '<label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">Today\'s goal — what are you aiming for?</label>'+
+    '<textarea class="jl-today" rows="2" maxlength="240" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="Type it in your own words — no pasting"></textarea>'+
+    '<button class="primary-btn jl-save" style="margin-top:0">💾 Save & continue</button>';
+  var yEl = wrap.querySelector(".jl-yesterday"), tEl = wrap.querySelector(".jl-today");
+  yEl.value = existing ? existing.yesterday||"" : "";
+  tEl.value = existing ? existing.today||"" : "";
+  disablePaste(yEl); disablePaste(tEl);
+  wrap.querySelector(".jl-save").onclick = function(){
+    var y = yEl.value.trim(), t = tEl.value.trim();
+    if(!y || !t || !db) return;
+    if(existing && existing.id){
+      Object.assign(existing, {yesterday:y, today:t});
+      db.doc("journal/"+existing.id).update({yesterday:y, today:t});
+    } else {
+      var newId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
+      var localEntry = {id:newId, kidId:kidId, date:iso, yesterday:y, today:t, createdAt:new Date().toISOString()};
+      state.journalEntries = state.journalEntries || [];
+      state.journalEntries.push(localEntry);
+      db.collection("journal").add(localEntry);
+    }
+    toast("🌅 Morning Launch saved!");
+    renderView();
+  };
+  return wrap;
+}
+
+function renderShowTeach(kidId, iso){
+  var wrap = document.createElement("div");
+  var existing = reflectionFor(kidId, iso);
+  wrap.innerHTML =
+    '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Pick ONE thing you fixed, figured out, or got working today — show it, don\'t just tell it.</div>'+
+    '<textarea class="st-text" rows="2" maxlength="200" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="One-sentence reflection (or upload audio/photo/video instead) — no pasting"></textarea>'+
+    '<div class="st-upload-row" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>'+
+    '<div class="st-uploaded muted" style="font-size:12px;margin-bottom:8px"></div>'+
+    '<button class="primary-btn st-save">💾 Save Show &amp; Teach</button>';
+  var textEl = wrap.querySelector(".st-text");
+  textEl.value = existing && existing.type==="text" ? existing.text||"" : "";
+  disablePaste(textEl);
+
+  var uploadedNote = wrap.querySelector(".st-uploaded");
+  var pendingUpload = existing && existing.type!=="text" ? {type:existing.type, url:existing.url} : null;
+  if(pendingUpload) uploadedNote.textContent = "Saved "+pendingUpload.type+" attached.";
+
+  var uploadRow = wrap.querySelector(".st-upload-row");
+  function makeUploadBtn(label, accept, type){
+    var lbl = document.createElement("label");
+    lbl.className = "reward-skip";
+    lbl.style.cssText = "color:var(--ink);opacity:1;border:1px solid var(--border);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px";
+    lbl.textContent = label;
+    var input = document.createElement("input");
+    input.type = "file"; input.accept = accept; input.style.display = "none";
+    input.onchange = function(){
+      var file = input.files[0];
+      if(!file || !HOUSEHOLD_ID) return;
+      var path = HOUSEHOLD_ID+"/show-teach/"+kidId+"/"+iso+"-"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      lbl.textContent = "Uploading…";
+      sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
+        lbl.textContent = label;
+        if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+        var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
+        pendingUpload = {type:type, url:url};
+        uploadedNote.textContent = type+" ready — tap Save to finish.";
+      });
+    };
+    lbl.appendChild(input);
+    return lbl;
+  }
+  uploadRow.appendChild(makeUploadBtn("🎙️ Audio", "audio/*", "audio"));
+  uploadRow.appendChild(makeUploadBtn("📸 Photo", "image/*", "photo"));
+  uploadRow.appendChild(makeUploadBtn("🎥 Video", "video/*", "video"));
+
+  wrap.querySelector(".st-save").onclick = function(){
+    if(!db) return;
+    var text = textEl.value.trim();
+    var payload;
+    if(pendingUpload) payload = {type: pendingUpload.type, url: pendingUpload.url, text: text || null};
+    else if(text) payload = {type:"text", text: text, url: null};
+    else { toast("Add a sentence or an upload first"); return; }
+    if(existing && existing.id){
+      Object.assign(existing, payload);
+      db.doc("reflections/"+existing.id).update(payload);
+    } else {
+      var newId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random();
+      var localEntry = Object.assign({id:newId, kidId:kidId, date:iso, createdAt:new Date().toISOString()}, payload);
+      state.reflections = state.reflections || [];
+      state.reflections.push(localEntry);
+      db.collection("reflections").add(localEntry);
+    }
+    toast("🎤 Show & Teach saved!");
+    renderView();
+  };
+  return wrap;
 }
 
 function addForm(kidId, defaultDate){
@@ -720,21 +923,57 @@ function renderWeek(){
   els.view.appendChild(addForm(kidId, iso));
 }
 
-/* ---------- Curriculum Library (Ryan's interest-led Retro OS Museum track) ---------- */
+/* ---------- Curriculum Library ---------- */
+/* Anna's library is intentionally small for now — real, known channels rather than invented
+   feeds. Links go to YouTube search results (not a guessed exact channel URL/handle), since that
+   reliably lands on the right channel without risking a dead or wrong link. Swap in her real
+   Connections Academy content here later. */
+var ANNA_LIBRARY_LINKS = [
+  {subject:"ELA & Grammar", icon:"📚", desc:"Grammar, reading & language songs", url:"https://www.youtube.com/results?search_query=Scratch+Garden+grammar"},
+  {subject:"Math", icon:"🔢", desc:"Counting & math songs", url:"https://www.youtube.com/results?search_query=Scratch+Garden+math"},
+  {subject:"Science", icon:"🔬", desc:"Science concept songs", url:"https://www.youtube.com/results?search_query=Scratch+Garden+science"},
+  {subject:"Social Studies", icon:"🌎", desc:"Social studies & citizenship songs", url:"https://www.youtube.com/results?search_query=Scratch+Garden+social+studies"},
+  {subject:"PE & Movement", icon:"🏃", desc:"Follow-along PE workouts for kids", url:"https://www.youtube.com/results?search_query=PE+with+Mr+Bowman"}
+];
+function annaLibraryCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  ANNA_LIBRARY_LINKS.forEach(function(item, i){
+    var row = document.createElement("a");
+    row.href = item.url; row.target = "_blank"; row.rel = "noopener";
+    row.className = "task";
+    row.style.cssText = "text-decoration:none;color:inherit;display:flex"+(i<ANNA_LIBRARY_LINKS.length-1?"":"");
+    row.innerHTML =
+      '<div style="width:26px;text-align:center;font-size:18px">'+item.icon+'</div>'+
+      '<div class="task-body"><div class="task-title">'+escapeHtml(item.subject)+'</div>'+
+      '<div class="task-sub">'+escapeHtml(item.desc)+'</div></div>'+
+      '<div class="task-xp">↗</div>';
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
 function renderLibrary(){
   els.view.innerHTML = "";
   var title = document.createElement("div");
   title.className = "section-title";
-  title.textContent = "Curriculum Library — " + kidData("kid2").name;
+  var kidId = state.activeKid;
+  title.textContent = "Curriculum Library — " + kidData(kidId).name;
   els.view.appendChild(title);
   var intro = document.createElement("div");
   intro.className = "muted";
   intro.style.margin = "0 0 14px";
-  intro.textContent = "His interest-led tracks and reference guides — separate from Anna's quest log.";
   els.view.appendChild(intro);
-  els.view.appendChild(curriculumLibraryCard());
-  els.view.appendChild(microbitCurriculumCard());
-  els.view.appendChild(mathFieldGuideCard());
+
+  if(kidId==="kid2"){
+    intro.textContent = "His interest-led tracks and reference guides — separate from Anna's library.";
+    els.view.appendChild(curriculumLibraryCard());
+    els.view.appendChild(microbitCurriculumCard());
+    els.view.appendChild(mathFieldGuideCard());
+  } else {
+    intro.textContent = "A few real, kid-safe channels by subject — more (including her Connections Academy content) coming later.";
+    els.view.appendChild(annaLibraryCard());
+  }
 }
 
 function csvEscape(v){
@@ -2799,14 +3038,16 @@ var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Ryan's real Momma Money member id, so level-up bonuses can deposit for real. Add Anna's here once she's a member in Momma Money.
 var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 
-var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards" };
-var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id" };
+var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections" };
+var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
-  rewards: { kidId:"kid_id" }
+  rewards: { kidId:"kid_id" },
+  journal: { kidId:"kid_id", createdAt:"created_at" },
+  reflections: { kidId:"kid_id", createdAt:"created_at" }
 };
 function toRow(coll, obj){
   var map = FIELD_MAP[coll], row = {};
@@ -2855,7 +3096,7 @@ function collection(coll){
   var table = TABLE[coll];
   return {
     add: function(obj){
-      var id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
+      var id = obj.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
       var row = toRow(coll, obj);
       row.id = id; row.household_id = HOUSEHOLD_ID;
       return sb.from(table).insert(row).then(checkWriteError);
@@ -3093,9 +3334,12 @@ function syncAll(){
     sb.from("al_kids").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_schedule").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_assignments").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID)
+    sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_journal").select("*").eq("household_id", HOUSEHOLD_ID),
+    sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID)
   ]).then(function(results){
     var kidsRows = results[0].data || [], schedRows = results[1].data || [], assignRows = results[2].data || [], qRows = results[3].data || [];
+    var journalRows = results[4].data || [], reflectionRows = results[5].data || [];
     state.kids = {};
     kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
     state.schedules = {};
@@ -3103,6 +3347,8 @@ function syncAll(){
     state.assignments = {};
     assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
     state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
+    state.journalEntries = journalRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("journal", r)); });
+    state.reflections = reflectionRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("reflections", r)); });
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     updateLibraryTabVisibility();
     renderKidbar(); renderXpBar();
