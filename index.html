@@ -85,6 +85,20 @@ button{font:inherit;cursor:pointer}
 .avatar-pick-opt{width:44px;height:44px;border-radius:50%;object-fit:cover;cursor:pointer;border:3px solid transparent;display:block}
 .avatar-pick-opt.selected{border-color:var(--gold)}
 
+/* ===== Who's using this? gate — shown every time the app opens, before anything else is
+   interactive, so a kid can never end up quietly answering as the wrong profile because it just
+   remembered whoever used it last. ===== */
+.who-gate{position:fixed;inset:0;z-index:9999;background:rgba(10,8,4,.92);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.who-gate-card{background:var(--raised);border-radius:20px;padding:28px 22px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.who-gate-title{font-family:"Poppins";font-weight:700;font-size:22px;margin-bottom:6px}
+.who-gate-sub{color:var(--text-dim);font-size:13.5px;margin-bottom:20px}
+.who-gate-options{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.who-gate-opt{width:130px;padding:16px 10px;border-radius:16px;border:2px solid var(--border);background:var(--card);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .12s ease,border-color .12s ease}
+.who-gate-opt:active{transform:scale(.96)}
+.who-gate-opt-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--border)}
+.who-gate-opt-avatar-fallback{width:64px;height:64px;border-radius:50%;background:var(--kc-soft);color:var(--kc);display:flex;align-items:center;justify-content:center;font-family:"Poppins";font-weight:700;font-size:24px}
+.who-gate-opt-name{font-weight:700;font-size:14.5px}
+
 /* xp bar */
 .xpbar-row{display:flex;align-items:center;gap:8px;background:var(--raised);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
 .xpbar-track{flex:1;height:10px;border-radius:999px;background:var(--gold-soft);overflow:hidden;position:relative}
@@ -255,6 +269,13 @@ button{font:inherit;cursor:pointer}
       <div class="login-err" id="loginError"></div>
       <button id="loginBtn" type="submit">Log In</button>
     </form>
+  </div>
+</div>
+<div id="whoGate" class="who-gate" style="display:none">
+  <div class="who-gate-card">
+    <div class="who-gate-title">Who's using this?</div>
+    <div class="who-gate-sub">Pick your profile before you start today's work.</div>
+    <div class="who-gate-options" id="whoGateOptions"></div>
   </div>
 </div>
 <div id="appRoot" style="display:none">
@@ -4655,6 +4676,7 @@ function syncAll(){
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     updateLibraryTabVisibility();
     renderKidbar(); renderXpBar();
+    if(whoGateEl.style.display!=="none") renderWhoGate();
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
        underlying data, it just holds off replacing the DOM (and wiping unsaved text) until the
        field loses focus. Same root cause as the earlier lesson-detail work-box fix, generalized
@@ -4693,6 +4715,41 @@ logLevelUpReward = function(kidId, lvl){
   }).catch(function(){ showLevelUpBanner(kidId, lvl); });
 };
 
+/* ---------- Who's using this? gate ----------
+   Shown on every fresh app open (never remembered/skipped) so switching devices, closing the tab,
+   or just picking the app back up never leaves it silently sitting on whoever used it last —
+   that's exactly how an answer ended up submitted under the wrong kid's name. A full-screen
+   overlay blocks all interaction with the dashboard underneath until a profile is tapped. */
+var whoGateEl = document.getElementById("whoGate");
+function renderWhoGate(){
+  var optsEl = document.getElementById("whoGateOptions");
+  optsEl.innerHTML = "";
+  KIDS.forEach(function(k){
+    var kd = kidData(k.id);
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "who-gate-opt";
+    btn.style.setProperty("--kc", "var(--"+kd.color+")");
+    btn.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
+    var av = avatarFor(k.id);
+    var avatarHtmlStr = av
+      ? '<img class="who-gate-opt-avatar" src="'+escapeHtml(av.file)+'" alt="">'
+      : '<div class="who-gate-opt-avatar-fallback">'+(kd.name||"?").trim().slice(0,1).toUpperCase()+'</div>';
+    btn.innerHTML = avatarHtmlStr + '<div class="who-gate-opt-name">'+escapeHtml(kd.name)+'</div>';
+    btn.onclick = function(){
+      state.activeKid = k.id;
+      state.profileMenuOpen = false;
+      whoGateEl.style.display = "none";
+      renderAll();
+    };
+    optsEl.appendChild(btn);
+  });
+}
+function showWhoGate(){
+  renderWhoGate();
+  whoGateEl.style.display = "flex";
+}
+
 /* ---------- login gate ---------- */
 var loginEl = document.getElementById("loginGate");
 var appEl = document.getElementById("appRoot");
@@ -4701,6 +4758,7 @@ function showApp(){
   appEl.style.display = "";
   updateLibraryTabVisibility();
   renderKidbar(); renderXpBar(); renderView();
+  showWhoGate();
   syncAll();
   setInterval(syncAll, 4000);
 }
