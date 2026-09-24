@@ -230,15 +230,25 @@ var DAYS = ["Mon","Tue","Wed","Thu","Fri"];
 var DAY_LABEL = {Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday"};
 var SUBJECT_COLOR = {
   "Math":"gold","ELA":"teal","Reading":"teal","Science":"coral","Social Studies":"gold",
-  "Related Arts":"success","Live Lesson":"teal","Independent":"gold"
+  "Related Arts":"success","Live Lesson":"teal","Independent":"gold","Computer Science":"teal"
 };
 /* Rough time-on-task estimate per subject, used only for the exported hours report — the app has
    no in-lesson timer, so this is a stand-in based on typical lesson length, not measured time. */
 var SUBJECT_EST_MINUTES = {
   "Math":30,"ELA":25,"Reading":25,"Science":30,"Social Studies":30,
-  "Related Arts":30,"Live Lesson":45,"Independent":45
+  "Related Arts":30,"Live Lesson":45,"Independent":45,"Computer Science":45
 };
 function estMinutesFor(a){ return SUBJECT_EST_MINUTES[a.subject] || 30; }
+/* Every subject a quest counts toward for hours/coverage tracking — its primary subject plus any
+   crossSubjects tags. An install/setup quest like "set up VirtualBox" is filed under Independent
+   for scheduling, but the actual work is reading technical docs, writing up what happened,
+   computer-science concepts, and (for the Retro OS Museum track) real OS history — so it should
+   get hour credit in all of those, not just Independent. */
+function subjectsFor(a){
+  var list = [a.subject];
+  if(Array.isArray(a.crossSubjects)) a.crossSubjects.forEach(function(s){ if(list.indexOf(s)<0) list.push(s); });
+  return list;
+}
 function weekBoundsMonFri(ref){
   var d = ref ? new Date(ref) : new Date();
   var idx = todayIdxFor(d);
@@ -885,6 +895,12 @@ function addForm(kidId, defaultDate){
       '<input class="af-standard" placeholder="Standard e.g. 4.NR.1 (optional)" maxlength="40" style="max-width:160px">'+
       '<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-dim)"><input type="checkbox" class="af-cross">🔀 Cross-curricular (+'+CROSS_CURRICULAR_BONUS_XP+' XP)</label>'+
       '<button class="af-add">Add</button>'+
+    '</div>'+
+    '<div style="margin-top:8px;font-size:12px;color:var(--text-dim)">Also counts toward (hours/coverage credit, e.g. an install lesson that\'s really reading + writing + CS + history):</div>'+
+    '<div class="af-also-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">'+
+      Object.keys(SUBJECT_COLOR).map(function(s){
+        return '<label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-dim)"><input type="checkbox" class="af-also" value="'+escapeHtml(s)+'">'+escapeHtml(s)+'</label>';
+      }).join("")+
     '</div>';
   wrap.querySelector(".af-add").onclick = function(){
     var titleEl = wrap.querySelector(".af-title");
@@ -895,14 +911,19 @@ function addForm(kidId, defaultDate){
     var videoEl = wrap.querySelector(".af-video");
     var standardEl = wrap.querySelector(".af-standard");
     var crossEl = wrap.querySelector(".af-cross");
+    var subjectEl = wrap.querySelector(".af-subject");
+    var alsoEls = Array.prototype.filter.call(wrap.querySelectorAll(".af-also"), function(el){ return el.checked && el.value!==subjectEl.value; });
+    var crossSubjects = alsoEls.map(function(el){ return el.value; });
     db.collection("assignments").add({
-      kidId: kidId, date: dateVal, subject: wrap.querySelector(".af-subject").value,
+      kidId: kidId, date: dateVal, subject: subjectEl.value,
       title: t, xp: Number(wrap.querySelector(".af-xp").value)||10, done:false, doneAt:null,
       materials: materialsEl.value.trim() || null, video: videoEl.value.trim() || null, standard: standardEl.value.trim() || null,
       crossCurricular: crossEl.checked || null,
+      crossSubjects: crossSubjects.length ? crossSubjects : null,
       createdAt: new Date().toISOString()
     });
     titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = ""; crossEl.checked = false;
+    Array.prototype.forEach.call(wrap.querySelectorAll(".af-also"), function(el){ el.checked = false; });
   };
   return wrap;
 }
@@ -1132,20 +1153,24 @@ function exportProgressCSV(kidId){
   lines.push(["Attendance Days Logged", (kd.attendanceCount||0)+" / "+GA_ANNUAL_DAYS_TARGET].map(csvEscape).join(","));
   lines.push("");
 
-  var bySubjHours = {}, standards = {};
+  /* A quest tagged with crossSubjects (e.g. the VM-install lessons — reading the docs, writing
+     up the guide, computer-science concepts, and real OS history all at once) gets its full
+     minutes credited to EVERY subject it counts toward, not split between them — that's genuine
+     integrated instructional time, not double-booked time. The overall Total below still counts
+     each quest's minutes once, so it isn't inflated by that per-subject crediting. */
+  var bySubjHours = {}, standards = {}, totalMins = 0;
   done.forEach(function(a){
     var mins = estMinutesFor(a);
-    bySubjHours[a.subject] = (bySubjHours[a.subject]||0) + mins;
+    totalMins += mins;
+    subjectsFor(a).forEach(function(s){ bySubjHours[s] = (bySubjHours[s]||0) + mins; });
     if(a.standard) standards[a.standard] = true;
   });
-  lines.push(["Subject Hours Summary (estimated)"].map(csvEscape).join(","));
+  lines.push(["Subject Hours Summary (estimated; a cross-tagged quest counts fully toward each subject)"].map(csvEscape).join(","));
   lines.push(["Subject","Estimated Hours"].map(csvEscape).join(","));
-  var totalMins = 0;
   Object.keys(bySubjHours).forEach(function(s){
-    totalMins += bySubjHours[s];
     lines.push([s, (bySubjHours[s]/60).toFixed(1)].map(csvEscape).join(","));
   });
-  lines.push(["Total", (totalMins/60).toFixed(1)].map(csvEscape).join(","));
+  lines.push(["Total (each quest counted once)", (totalMins/60).toFixed(1)].map(csvEscape).join(","));
   lines.push("");
   lines.push(["Standards Covered", Object.keys(standards).sort().join("; ")].map(csvEscape).join(","));
   lines.push("");
@@ -1229,9 +1254,11 @@ function renderQuestLogForKid(container, kidId){
   var all = assignmentsFor(kidId, null);
   var bySubj = {};
   all.forEach(function(a){
-    bySubj[a.subject] = bySubj[a.subject] || {done:0,total:0};
-    bySubj[a.subject].total++;
-    if(a.done) bySubj[a.subject].done++;
+    subjectsFor(a).forEach(function(s){
+      bySubj[s] = bySubj[s] || {done:0,total:0};
+      bySubj[s].total++;
+      if(a.done) bySubj[s].done++;
+    });
   });
   var card = document.createElement("div");
   card.className = "card";
@@ -1261,8 +1288,10 @@ function renderQuestLogForKid(container, kidId){
     if(!a.done || !a.doneAt) return;
     var when = new Date(a.doneAt);
     if(when<wk.start || when>wk.end) return;
-    byWeekSubj[a.subject] = byWeekSubj[a.subject] || {};
-    byWeekSubj[a.subject][todayIdxFor(when)] = true;
+    subjectsFor(a).forEach(function(s){
+      byWeekSubj[s] = byWeekSubj[s] || {};
+      byWeekSubj[s][todayIdxFor(when)] = true;
+    });
   });
   var wkCard = document.createElement("div");
   wkCard.className = "card";
@@ -2467,7 +2496,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:0, subject:"ELA", title:"Journal Day 1: What do you already know about Windows 95? Predict 3 things before we install it.", xp:10, standard:"3-5.F"},
   {d:0, subject:"Math", title:"RAM math: Windows 95 recommends 4MB RAM. Convert 4MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 95 also often shipped with 8MB RAM in some computers. Convert 8MB to KB and to bytes.","A different 1995 computer had 2MB of video RAM. Convert 2MB to KB."]},
   {d:0, subject:"Reading", title:"Read the Windows 95 section of \"Microsoft Windows version history\" — note 3 facts for your journal.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=0Ol8ZSE-PEk"},
-  {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"https://www.howtogeek.com/329301/how-to-install-windows-95-in-a-virtual-machine/", video:"https://www.youtube.com/watch?v=LxOY5IIC0uo", installHelp:"win95"},
+  {d:0, subject:"Independent", title:"Set up VirtualBox and start installing Windows 95 from your ISO.", xp:20, materials:"https://www.howtogeek.com/329301/how-to-install-windows-95-in-a-virtual-machine/", video:"https://www.youtube.com/watch?v=LxOY5IIC0uo", installHelp:"win95", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:0, subject:"Social Studies", title:"US History reading (Revolution era) — read about the American Revolution and note 3 facts.", xp:10, standard:"SS4H1", materials:"https://www.ducksters.com/history/american_revolution.php", quiz:[
     {q:"Just like you're 'installing' Windows 95 as a totally new system, the American Revolution was the colonists installing a brand new one. What were they replacing British rule with?", choices:["A monarchy copied from France","An independent, self-governing country","No government at all","British rule, unchanged"], answerIndex:1},
     {q:"Which document, like a 'system requirements' list for the new country, declared the colonies' independence in 1776?", choices:["The Constitution","The Declaration of Independence","The Bill of Rights","The Magna Carta"], answerIndex:1},
@@ -2481,7 +2510,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
   {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 98 came out in 1998. How many years after Windows 95 was that?","If a Windows 95 computer was bought new in 1995 and used for 10 years, what year did it stop being used?"]},
   {d:1, subject:"Reading", title:"Read a short bio excerpt on Bill Gates or Paul Allen — note 2 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Bill_Gates"},
-  {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20, installHelp:"win95"},
+  {d:1, subject:"Independent", title:"Finish the Windows 95 install; take a screenshot of the desktop for your guide.", xp:20, installHelp:"win95", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:2, subject:"ELA", title:"Journal Day 3: Draft the intro paragraph of your Windows 95 User Guide.", xp:10, standard:"Writing strands"},
@@ -2506,7 +2535,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:5, subject:"ELA", title:"Journal Day 6: What do you already know about Windows 98? Predict 3 differences from Windows 95.", xp:10, standard:"Writing strands"},
   {d:5, subject:"Math", title:"RAM math: Windows 98 recommends 16MB RAM. Convert 16MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 98 SE later recommended 24MB RAM. Convert 24MB to KB.","A 1998-era hard drive held 2GB. Convert 2GB to MB."]},
   {d:5, subject:"Reading", title:"Read the Windows 98 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=2IzcFUuuUw4"},
-  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/", installHelp:"win98"},
+  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/", installHelp:"win98", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:5, subject:"Social Studies", title:"US History reading (next era) — read about westward expansion and note 3 facts.", xp:10, standard:"SS4H2", materials:"https://www.ducksters.com/history/westward_expansion.php", quiz:[
     {q:"Just like each new Windows version added way more storage and 'territory' to explore, the Louisiana Purchase roughly doubled the size of the US. Who was president when that deal happened?", choices:["George Washington","Thomas Jefferson","Abraham Lincoln","James Monroe"], answerIndex:1},
     {q:"Which two explorers led the famous expedition to map the newly purchased western land?", choices:["Lewis and Clark","Columbus and Magellan","Washington and Adams","Boone and Crockett"], answerIndex:0},
@@ -2520,7 +2549,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:6, subject:"Math", title:"Timeline math: Windows 98 came 3 years after Windows 95 (1995). How many years ago was 1998 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows XP came out 3 years after Windows 98. What year was that?","If a Windows 98 computer was used for 7 years starting in 1998, what year did it stop being used?"]},
   {d:6, subject:"Reading", title:"Read about USB — what problem did it solve compared to older cables and ports?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/USB", video:"https://www.youtube.com/watch?v=lT4cYF6nm-g"},
-  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20, installHelp:"win98"},
+  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20, installHelp:"win98", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:6, subject:"Science", title:"Late-90s PCs added bigger cooling fans. Read about how fans move air (forces & motion).", xp:10, standard:"S4P3", materials:"https://kids.britannica.com/students/article/fan/274175", video:"https://www.youtube.com/watch?v=5F76jSb2Byg"},
 
   {d:7, subject:"ELA", title:"Journal Day 8: Draft the intro paragraph of your Windows 98 User Guide.", xp:10, standard:"Writing strands"},
@@ -2545,7 +2574,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:10, subject:"ELA", title:"Journal Day 11: What do you already know about Windows XP? Predict 3 differences from Windows 98.", xp:10, standard:"Writing strands"},
   {d:10, subject:"Math", title:"RAM math: Windows XP recommends 128MB RAM. Convert 128MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows XP's minimum RAM was actually 64MB. Convert 64MB to KB.","A typical 2001-era hard drive held 20GB. Convert 20GB to MB."]},
   {d:10, subject:"Reading", title:"Read the Windows XP section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history"},
-  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/", installHelp:"winxp"},
+  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/", installHelp:"winxp", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:10, subject:"Social Studies", title:"US History reading (next era) — read about the causes and effects of the Civil War and note 3 facts.", xp:10, standard:"SS4H3", materials:"https://www.ducksters.com/history/civil_war.php", quiz:[
     {q:"Kind of like two incompatible operating systems that couldn't run on the same machine, the North and South split into two sides in the Civil War. What was the main issue dividing them?", choices:["Which language to speak","Slavery","Which sport to play","Where the capital should be"], answerIndex:1},
     {q:"Who was president of the United States during the Civil War?", choices:["Abraham Lincoln","George Washington","Thomas Jefferson","Ulysses S. Grant"], answerIndex:0},
@@ -2559,7 +2588,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 7 came out 8 years after XP (2001). What year was that?","If a computer bought in 2001 was used until 2011, how many years was that?"]},
   {d:11, subject:"Reading", title:"Read about why XP was built on the \"NT kernel\" instead of DOS like 95/98 — what does more stable mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_NT_kernel"},
-  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20, installHelp:"winxp"},
+  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20, installHelp:"winxp", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:12, subject:"ELA", title:"Journal Day 13: Draft the intro paragraph of your Windows XP User Guide.", xp:10, standard:"Writing strands"},
@@ -2584,7 +2613,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
   {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 7's minimum RAM (32-bit) was 1GB. Convert 1GB to MB and to KB.","A 2009-era laptop hard drive held 250GB. Convert 250GB to MB."]},
   {d:15, subject:"Reading", title:"Read the Windows 7 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=g6PT7_YHWCA"},
-  {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive (using WinToUSB or Rufus), then boot from it to see it start up.", xp:20, installHelp:"win7usb"},
+  {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive (using WinToUSB or Rufus), then boot from it to see it start up.", xp:20, installHelp:"win7usb", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:15, subject:"Social Studies", title:"US History reading (next era) — read about Reconstruction and note 3 facts.", xp:10, standard:"SS4H4", materials:"https://www.ducksters.com/history/civil_war/reconstruction.php", quiz:[
     {q:"Just like rebuilding a crashed computer after a bad install, Reconstruction was the period of rebuilding the country after the Civil War. About what years did it cover?", choices:["1776-1783","1865-1877","1900-1920","1941-1945"], answerIndex:1},
     {q:"Which amendment to the Constitution, passed during Reconstruction, ended slavery in the United States?", choices:["1st Amendment","13th Amendment","19th Amendment","22nd Amendment"], answerIndex:1},
@@ -2598,7 +2627,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 8 came out 3 years after Windows 7 (2009). What year was that?","How many years passed between Windows 95 (1995) and Windows 7 (2009)?"]},
   {d:16, subject:"Reading", title:"Read about why Windows 7 was seen as fixing problems from Windows Vista — what does a \"follow-up release\" mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_7"},
-  {d:16, subject:"Independent", title:"Boot a computer from your Windows 7 USB and explore it, then screenshot the desktop (or the Setup screens) for your guide. If installing for real instead of running from the USB, ask a parent first — Setup erases the target drive.", xp:20, installHelp:"win7usb"},
+  {d:16, subject:"Independent", title:"Boot a computer from your Windows 7 USB and explore it, then screenshot the desktop (or the Setup screens) for your guide. If installing for real instead of running from the USB, ask a parent first — Setup erases the target drive.", xp:20, installHelp:"win7usb", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:16, subject:"Science", title:"Windows 7's taskbar previews use tiny live thumbnails. Read about how monitors use light (pixels) to show moving images.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/television/277292", video:"https://www.youtube.com/watch?v=GSorr3ddKAo"},
 
   {d:17, subject:"ELA", title:"Journal Day 18: Draft the intro paragraph of your Windows 7 User Guide.", xp:10, standard:"Writing strands"},
@@ -3182,7 +3211,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
@@ -3383,6 +3412,30 @@ function patchInstallHelp(kidId){
   renderView();
 }
 
+/* Backfills crossSubjects onto already-imported VM install/setup lessons (matched by title, same
+   as patchInstallHelp) — these are filed under "Independent" for scheduling, but the real work is
+   reading technical docs, writing up the guide, computer-science concepts, and (Retro OS Museum)
+   actual OS history, so they should count toward hours/coverage in all of those subjects too. */
+function patchVMLessonCrossSubjects(kidId){
+  if(!db) return;
+  var byTitle = {};
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){
+    if(item.crossSubjects) byTitle[item.title] = item.crossSubjects;
+  });
+  var count = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var cs = byTitle[a.title];
+    if(!cs || (Array.isArray(a.crossSubjects) && a.crossSubjects.join(",")===cs.join(","))) return;
+    Object.assign(state.assignments[id], {crossSubjects: cs});
+    db.doc("assignments/"+id).update({crossSubjects: cs});
+    count++;
+  });
+  console.log("patchVMLessonCrossSubjects: updated "+count+" assignment(s)");
+  renderView();
+}
+
 /* Patches already-imported lessons (matched by exact title, any subject) with whatever materials/
    video/standard the curriculum template currently has — covers the general case where a lesson
    was imported before a real link was added to CURRICULUM_RETRO_OS_MONTH1, so the stored assignment
@@ -3467,6 +3520,7 @@ window.seedArenaQuestions = seedArenaQuestions;
 window.diagnoseScheduleDates = diagnoseScheduleDates;
 window.rescheduleFromToday = rescheduleFromToday;
 window.patchInstallHelp = patchInstallHelp;
+window.patchVMLessonCrossSubjects = patchVMLessonCrossSubjects;
 window.patchLessonLinks = patchLessonLinks;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
