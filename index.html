@@ -238,7 +238,10 @@ var SUBJECT_EST_MINUTES = {
   "Math":30,"ELA":25,"Reading":25,"Science":30,"Social Studies":30,
   "Related Arts":30,"Live Lesson":45,"Independent":45,"Computer Science":45
 };
-function estMinutesFor(a){ return SUBJECT_EST_MINUTES[a.subject] || 30; }
+/* A flat per-subject guess is fine for quick lessons, but badly undercounts a long, deep-work
+   session (e.g. hours of real VM troubleshooting/reasoning) — actualMinutes, when the leader logs
+   it, always wins over the guess. */
+function estMinutesFor(a){ return (a.actualMinutes>0 ? a.actualMinutes : null) || SUBJECT_EST_MINUTES[a.subject] || 30; }
 /* Every subject a quest counts toward for hours/coverage tracking — its primary subject plus any
    crossSubjects tags. An install/setup quest like "set up VirtualBox" is filed under Independent
    for scheduling, but the actual work is reading technical docs, writing up what happened,
@@ -1176,7 +1179,7 @@ function exportProgressCSV(kidId){
   lines.push("");
 
   lines.push(["Quest Log"].map(csvEscape).join(","));
-  lines.push(["Date Completed","Subject","Standard","Title","XP Earned","Est. Minutes"].map(csvEscape).join(","));
+  lines.push(["Date Completed","Subject","Standard","Title","XP Earned","Minutes","Minutes Source"].map(csvEscape).join(","));
   done.forEach(function(a){
     var when = new Date(a.doneAt);
     lines.push([
@@ -1185,7 +1188,8 @@ function exportProgressCSV(kidId){
       a.standard||"",
       a.title||"",
       a.xp||0,
-      estMinutesFor(a)
+      estMinutesFor(a),
+      a.actualMinutes>0 ? "logged" : "estimated"
     ].map(csvEscape).join(","));
   });
 
@@ -1331,6 +1335,11 @@ function renderQuestLogForKid(container, kidId){
   title3.style.marginTop = "14px";
   title3.textContent = "Recent Activity";
   container.appendChild(title3);
+  var recentIntro = document.createElement("div");
+  recentIntro.className = "muted";
+  recentIntro.style.cssText = "font-size:12px;margin-bottom:6px";
+  recentIntro.textContent = "Log actual minutes on anything that ran long (deep troubleshooting, real coding/reasoning) — it overrides the flat subject estimate everywhere hours are counted.";
+  container.appendChild(recentIntro);
   var recent = all.filter(function(a){return a.done && a.doneAt;}).sort(function(a,b){return new Date(b.doneAt)-new Date(a.doneAt);}).slice(0,8);
   var rcard = document.createElement("div");
   rcard.className = "card";
@@ -1341,7 +1350,22 @@ function renderQuestLogForKid(container, kidId){
       var row = document.createElement("div");
       row.className="task";
       var when = new Date(a.doneAt);
-      row.innerHTML = '<div style="width:26px;text-align:center">✅</div><div class="task-body"><div class="task-title">'+escapeHtml(a.title)+'</div><div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+when.toLocaleDateString(undefined,{month:"short",day:"numeric"})+'</div></div><div class="task-xp">+'+a.xp+' XP</div>';
+      row.innerHTML =
+        '<div style="width:26px;text-align:center">✅</div>'+
+        '<div class="task-body"><div class="task-title">'+escapeHtml(a.title)+'</div><div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+when.toLocaleDateString(undefined,{month:"short",day:"numeric"})+'</div></div>'+
+        '<div style="display:flex;align-items:center;gap:4px;flex:none">'+
+          '<input type="number" min="0" step="5" class="actual-min-input" style="width:56px;padding:5px 6px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:12.5px" placeholder="'+estMinutesFor(a)+'" value="'+(a.actualMinutes||"")+'">'+
+          '<span class="muted" style="font-size:11px">min</span>'+
+        '</div>';
+      var minInput = row.querySelector(".actual-min-input");
+      minInput.addEventListener("blur", function(){
+        var v = Math.max(0, Number(minInput.value)||0);
+        if(!db) return;
+        var updates = {actualMinutes: v>0 ? v : null};
+        if(state.assignments[a.id]) Object.assign(state.assignments[a.id], updates);
+        db.doc("assignments/"+a.id).update(updates);
+        toast(v>0 ? "⏱️ Logged "+v+" real minutes" : "Cleared — back to the estimate");
+      });
       rcard.appendChild(row);
     });
   }
@@ -3211,7 +3235,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
