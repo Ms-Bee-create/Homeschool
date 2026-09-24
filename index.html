@@ -3847,8 +3847,18 @@ function syncAll(){
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     updateLibraryTabVisibility();
     renderKidbar(); renderXpBar();
-    if(!state.quiz && !state.miniGame && state.lessonDetailId==null) renderView();
+    /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
+       underlying data, it just holds off replacing the DOM (and wiping unsaved text) until the
+       field loses focus. Same root cause as the earlier lesson-detail work-box fix, generalized
+       so it covers Morning Launch/Show & Teach and anything typed anywhere, not just that one page. */
+    if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField()) renderView();
   }).catch(function(){});
+}
+function isTypingInFormField(){
+  var el = document.activeElement;
+  if(!el) return false;
+  var tag = el.tagName;
+  return tag==="TEXTAREA" || (tag==="INPUT" && el.type!=="checkbox" && el.type!=="radio" && el.type!=="file");
 }
 
 /* ---------- Momma Money deposit (works now — this is a real webpage, not sandboxed) ---------- */
