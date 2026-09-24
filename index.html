@@ -2888,6 +2888,39 @@ function resetLeaderPin(){
   }).catch(function(err){ console.error(err); console.log("resetLeaderPin failed — check your connection."); });
 }
 
+/* Ryan installed every Windows version (95-7) on his own, outside the tracker, over several months.
+   The install lessons for 98/XP/7 got replaced with new networking/field-guide projects, but the
+   original install assignments already sitting in his data need to be marked done so he gets credit
+   instead of leaving them open forever — console-only, one-time cleanup. */
+function markLegacyOsInstallsComplete(kidId){
+  if(!db){ console.log("Not connected yet — try again in a moment"); return; }
+  var titleMatches = [
+    "start installing Windows 98", "Finish the Windows 98 install",
+    "start installing Windows XP", "Finish the XP install",
+    "Make a bootable Windows 7 USB", "Boot a computer from your Windows 7 USB"
+  ];
+  var matched = Object.keys(state.assignments).filter(function(id){
+    var a = state.assignments[id];
+    return a.kidId===kidId && !a.done && titleMatches.some(function(t){ return a.title.indexOf(t)>=0; });
+  });
+  if(!matched.length){ console.log("markLegacyOsInstallsComplete: no matching open assignments found for "+kidId); return; }
+  var xpTotal = 0;
+  var now = new Date().toISOString();
+  matched.forEach(function(id){
+    var a = state.assignments[id];
+    a.done = true;
+    a.doneAt = now;
+    xpTotal += a.xp || 0;
+    db.doc("assignments/"+id).update({done:true, doneAt:now});
+  });
+  if(state.kids[kidId]){
+    state.kids[kidId].xp = (state.kids[kidId].xp||0) + xpTotal;
+    db.doc("kids/"+kidId).update({xp: state.kids[kidId].xp});
+  }
+  console.log("markLegacyOsInstallsComplete: marked "+matched.length+" assignment(s) done, awarded "+xpTotal+" XP.");
+  renderView();
+}
+
 function nextMondayISO(){
   var d = new Date();
   var day = d.getDay(); // 0=Sun..6=Sat
@@ -2995,7 +3028,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:5, subject:"ELA", title:"Journal Day 6: What do you already know about Windows 98? Predict 3 differences from Windows 95.", xp:10, standard:"Writing strands"},
   {d:5, subject:"Math", title:"RAM math: Windows 98 recommends 16MB RAM. Convert 16MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 98 SE later recommended 24MB RAM. Convert 24MB to KB.","A 1998-era hard drive held 2GB. Convert 2GB to MB."]},
   {d:5, subject:"Reading", title:"Read the Windows 98 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=2IzcFUuuUw4"},
-  {d:5, subject:"Independent", title:"Set up VirtualBox and start installing Windows 98 from your ISO.", xp:20, materials:"https://www.sysnettechsolutions.com/en/install-windows-98-virtualbox-windows-10/", installHelp:"win98", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:5, subject:"Independent", title:"VM Networking Challenge, Part 1: Set up a virtual network between two of your VMs (try \"Internal Network\" or \"Host-only\" in VirtualBox's Network settings). Get them to see each other — a successful ping is enough. Screenshot the network settings and the ping working.", xp:20, crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:5, subject:"Social Studies", title:"US History reading (next era) — read about westward expansion and note 3 facts.", xp:10, standard:"SS4H2", materials:"https://www.ducksters.com/history/westward_expansion.php", quiz:[
     {q:"Just like each new Windows version added way more storage and 'territory' to explore, the Louisiana Purchase roughly doubled the size of the US. Who was president when that deal happened?", choices:["George Washington","Thomas Jefferson","Abraham Lincoln","James Monroe"], answerIndex:1},
     {q:"Which two explorers led the famous expedition to map the newly purchased western land?", choices:["Lewis and Clark","Columbus and Magellan","Washington and Adams","Boone and Crockett"], answerIndex:0},
@@ -3009,7 +3042,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:6, subject:"ELA", title:"Journal Day 7: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:6, subject:"Math", title:"Timeline math: Windows 98 came 3 years after Windows 95 (1995). How many years ago was 1998 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows XP came out 3 years after Windows 98. What year was that?","If a Windows 98 computer was used for 7 years starting in 1998, what year did it stop being used?"]},
   {d:6, subject:"Reading", title:"Read about USB — what problem did it solve compared to older cables and ports?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/USB", video:"https://www.youtube.com/watch?v=lT4cYF6nm-g"},
-  {d:6, subject:"Independent", title:"Finish the Windows 98 install; screenshot the desktop for your guide.", xp:20, installHelp:"win98", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:6, subject:"Independent", title:"VM Networking Challenge, Part 2: With your two VMs still networked, share a file between them (a shared folder, or copying it straight across the network). Screenshot the file showing up on the second machine. Guided questions to think through as you go (just think or say out loud, no writing needed): Which VM sent the file? How do you know it actually crossed the network instead of just sitting on one machine? What would break if the two VMs weren't on the same network setting?", xp:20, crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:6, subject:"Science", title:"Late-90s PCs added bigger cooling fans. Read about how fans move air (forces & motion).", xp:10, standard:"S4P3", materials:"https://kids.britannica.com/students/article/fan/274175", video:"https://www.youtube.com/watch?v=5F76jSb2Byg"},
 
   {d:7, subject:"ELA", title:"Journal Day 8: Draft the intro paragraph of your Windows 98 User Guide.", xp:10, standard:"Writing strands"},
@@ -3034,7 +3067,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:10, subject:"ELA", title:"Journal Day 11: What do you already know about Windows XP? Predict 3 differences from Windows 98.", xp:10, standard:"Writing strands"},
   {d:10, subject:"Math", title:"RAM math: Windows XP recommends 128MB RAM. Convert 128MB to KB and to bytes.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows XP's minimum RAM was actually 64MB. Convert 64MB to KB.","A typical 2001-era hard drive held 20GB. Convert 20GB to MB."]},
   {d:10, subject:"Reading", title:"Read the Windows XP section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history"},
-  {d:10, subject:"Independent", title:"Set up VirtualBox and start installing Windows XP from your ISO.", xp:20, materials:"https://techtactician.com/how-to-install-windows-xp-in-virtualbox-tutorial/", installHelp:"winxp", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:10, subject:"Independent", title:"Retro Field Guide: Photo Wall. Screenshot the desktop of every Windows version you have running (95, 98, XP, 7) and line them up side by side in Paint or a photo app, like a museum wall — no writing needed, just the photos. Guided questions to look for while you build it (answer out loud or just point, don't write): Which one has the roundest icons? Which taskbar is the tallest? Which one looks the most like a phone screen? Which one looks the most \"empty\" or plain?", xp:20, crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:10, subject:"Social Studies", title:"US History reading (next era) — read about the causes and effects of the Civil War and note 3 facts.", xp:10, standard:"SS4H3", materials:"https://www.ducksters.com/history/civil_war.php", quiz:[
     {q:"Kind of like two incompatible operating systems that couldn't run on the same machine, the North and South split into two sides in the Civil War. What was the main issue dividing them?", choices:["Which language to speak","Slavery","Which sport to play","Where the capital should be"], answerIndex:1},
     {q:"Who was president of the United States during the Civil War?", choices:["Abraham Lincoln","George Washington","Thomas Jefferson","Ulysses S. Grant"], answerIndex:0},
@@ -3048,7 +3081,15 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:11, subject:"ELA", title:"Journal Day 12: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:11, subject:"Math", title:"Timeline math: XP released in 2001, three years after Windows 98 (1998). How many years ago was 2001 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 7 came out 8 years after XP (2001). What year was that?","If a computer bought in 2001 was used until 2011, how many years was that?"]},
   {d:11, subject:"Reading", title:"Read about why XP was built on the \"NT kernel\" instead of DOS like 95/98 — what does more stable mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_NT_kernel"},
-  {d:11, subject:"Independent", title:"Finish the XP install; screenshot the Luna desktop theme for your guide.", xp:20, installHelp:"winxp", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:11, subject:"Independent", title:"Retro Field Guide: Spot the Differences. Look back at your photo wall from yesterday and take the quiz below — no writing, just pick what you see.", xp:15, quiz:[
+    {q:"Which version in your photo wall was the first to have a Start button and taskbar at all?", choices:["Windows 95","Windows 98","Windows XP","Windows 7"], answerIndex:0},
+    {q:"Which version has the colorful, rounded blue \"Luna\" theme as its default look?", choices:["Windows 95","Windows 98","Windows XP","Windows 7"], answerIndex:2},
+    {q:"Which version added pinning programs directly onto the taskbar itself (not just a small Quick Launch strip)?", choices:["Windows 95","Windows 98","Windows XP","Windows 7"], answerIndex:3}
+  ], quizRetry:[
+    {q:"Which version in your photo wall looks the plainest/grayest overall?", choices:["Windows 95","Windows 98","Windows XP","Windows 7"], answerIndex:0},
+    {q:"Which version's icons look the most like a modern phone app icon (glossy, colorful)?", choices:["Windows 95","Windows XP","Both look about the same","Neither"], answerIndex:1},
+    {q:"Between XP and Windows 7, which one is the newer release?", choices:["XP","Windows 7"], answerIndex:1}
+  ], crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:11, subject:"Science", title:"XP's startup sound and login chime — read about how sound files (WAV) store vibrations as data.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:12, subject:"ELA", title:"Journal Day 13: Draft the intro paragraph of your Windows XP User Guide.", xp:10, standard:"Writing strands"},
@@ -3073,7 +3114,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:15, subject:"ELA", title:"Journal Day 16: What do you already know about Windows 7? Predict 3 differences from XP.", xp:10, standard:"Writing strands"},
   {d:15, subject:"Math", title:"RAM math: Windows 7 recommends 2GB RAM (64-bit). Convert 2GB to MB and to KB.", xp:15, standard:"4.NR.1/4.NR.2", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", mathSkill:"byte", practice:["Windows 7's minimum RAM (32-bit) was 1GB. Convert 1GB to MB and to KB.","A 2009-era laptop hard drive held 250GB. Convert 250GB to MB."]},
   {d:15, subject:"Reading", title:"Read the Windows 7 section of \"Microsoft Windows version history\" — note 3 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history", video:"https://www.youtube.com/watch?v=g6PT7_YHWCA"},
-  {d:15, subject:"Independent", title:"Make a bootable Windows 7 USB drive (using WinToUSB or Rufus), then boot from it to see it start up.", xp:20, installHelp:"win7usb", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:15, subject:"Independent", title:"VM Networking Challenge, Part 3: Add a third VM to your network — try connecting an older one (95 or 98) with a newer one (XP or 7). Screenshot all three seeing each other. Guided questions to think through: Was it harder to network the old one with the new one than the two you did before? Why might an old and new computer have more trouble talking to each other than two similar ones?", xp:20, crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:15, subject:"Social Studies", title:"US History reading (next era) — read about Reconstruction and note 3 facts.", xp:10, standard:"SS4H4", materials:"https://www.ducksters.com/history/civil_war/reconstruction.php", quiz:[
     {q:"Just like rebuilding a crashed computer after a bad install, Reconstruction was the period of rebuilding the country after the Civil War. About what years did it cover?", choices:["1776-1783","1865-1877","1900-1920","1941-1945"], answerIndex:1},
     {q:"Which amendment to the Constitution, passed during Reconstruction, ended slavery in the United States?", choices:["1st Amendment","13th Amendment","19th Amendment","22nd Amendment"], answerIndex:1},
@@ -3087,7 +3128,11 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:16, subject:"ELA", title:"Journal Day 17: Log today's install progress.", xp:10, standard:"Writing strands"},
   {d:16, subject:"Math", title:"Timeline math: Windows 7 released in 2009, eight years after XP (2001). How many years ago was 2009 from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 8 came out 3 years after Windows 7 (2009). What year was that?","How many years passed between Windows 95 (1995) and Windows 7 (2009)?"]},
   {d:16, subject:"Reading", title:"Read about why Windows 7 was seen as fixing problems from Windows Vista — what does a \"follow-up release\" mean?", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Windows_7"},
-  {d:16, subject:"Independent", title:"Boot a computer from your Windows 7 USB and explore it, then screenshot the desktop (or the Setup screens) for your guide. If installing for real instead of running from the USB, ask a parent first — Setup erases the target drive.", xp:20, installHelp:"win7usb", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:16, subject:"Independent", title:"Retro Field Guide Capstone: Give a spoken tour comparing two OS versions side by side to a parent (like Show & Teach) — point out 3 things that changed between them. Guided questions to use during your tour: Which one loads faster? Which one looks easier to use? Which one would confuse someone who's only ever used a phone? Then tap through the quiz below.", xp:25, quiz:[
+    {q:"Which two versions in your museum share the same sturdier \"NT\" core under the hood (95 and 98 don't have this)?", choices:["95 & 98","98 & XP","XP & 7","95 & 7"], answerIndex:2},
+    {q:"Which version was the last one built on old-style MS-DOS instead of the newer, more stable system?", choices:["Windows 95","Windows 98","Windows XP","Windows 7"], answerIndex:1},
+    {q:"Windows 95 came out in 1995 and Windows 7 in 2009 — about how many years apart is that?", choices:["4 years","9 years","14 years","20 years"], answerIndex:2}
+  ], crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:16, subject:"Science", title:"Windows 7's taskbar previews use tiny live thumbnails. Read about how monitors use light (pixels) to show moving images.", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/television/277292", video:"https://www.youtube.com/watch?v=GSorr3ddKAo"},
 
   {d:17, subject:"ELA", title:"Journal Day 18: Draft the intro paragraph of your Windows 7 User Guide.", xp:10, standard:"Writing strands"},
@@ -4019,8 +4064,10 @@ function seedArenaQuestions(kidId){
    diagnoseScheduleDates(state.activeKid)        — read-only: prints each lesson's date vs. its expected day-in-sequence
    rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched
    patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons
-   patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template */
+   patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template
+   markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
+window.markLegacyOsInstallsComplete = markLegacyOsInstallsComplete;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
 window.resetLeaderPin = resetLeaderPin;
 window.resetKidLegacyData = resetKidLegacyData;
