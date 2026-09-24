@@ -216,6 +216,12 @@ button{font:inherit;cursor:pointer}
 .launch-streak-row{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--coral)}
 .launch-streak-row.pulse{animation:launchStreakGlow 1s ease-in-out 3}
 @keyframes launchStreakGlow{0%,100%{text-shadow:none}50%{text-shadow:0 0 10px var(--coral),0 0 18px var(--coral)}}
+
+/* ===== Anti-cheat guarded text fields (Morning Launch note, Show & Teach reflection) ===== */
+.ac-field-ok{border-color:var(--gold) !important;box-shadow:0 0 0 2px var(--gold-soft)}
+.ac-warn{display:none;align-items:center;gap:6px;font-size:12.5px;color:var(--coral);background:var(--coral-soft);border-radius:8px;padding:6px 9px;margin:-4px 0 10px}
+.ac-warn.show{display:flex}
+.ac-warn-icon{font-size:14px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -814,6 +820,41 @@ function blockComplete(blockKey, kidId, iso, tasksByBlock){
 }
 function disablePaste(el){ el.addEventListener("paste", function(e){ e.preventDefault(); }); }
 
+/* ===== Anti-cheat guards for reflection/journaling text fields =====
+   Three layers, since paste-blocking alone doesn't stop everything (drag-and-drop text, or a
+   determined kid typing/pasting around the block on a device where events behave differently):
+     1. Block paste, drag-drop, and right-click-paste outright.
+     2. Reject suspiciously "not their own words" content on save — URLs, wall-of-text paragraphs,
+        or a single absurdly long unbroken "word" (the shape copy-pasted text tends to have).
+     3. Track whether a paste/drop was ever attempted on this field, so a leader reviewing the
+        saved reflection later can see it even if the kid ultimately typed something valid instead. */
+function isSuspiciousReflectionText(text, maxLen){
+  if(!text) return null;
+  if(text.length > maxLen) return "That's a lot for this box — try writing it in your own words.";
+  if(/https?:\/\/|www\./i.test(text)) return "This field is for your own reflection.";
+  if(text.split(/\s+/).some(function(w){ return w.length > 25; })) return "This field is for your own reflection.";
+  if(/\n{2,}/.test(text) || text.split(/\s+/).length > 60) return "Try writing this in your own words.";
+  return null;
+}
+
+/* Wires paste/drop blocking onto a text field and tracks attempts via el.dataset.pasteAttempted,
+   which callers read at save time to persist alongside the entry. Purely a UI-layer guard — the
+   real gate against bad content is isSuspiciousReflectionText() run again at save time below. */
+function attachAntiCheatGuards(el){
+  el.dataset.pasteAttempted = "0";
+  el.addEventListener("paste", function(e){ e.preventDefault(); el.dataset.pasteAttempted = "1"; });
+  el.addEventListener("drop", function(e){ e.preventDefault(); el.dataset.pasteAttempted = "1"; });
+  el.addEventListener("dragover", function(e){ e.preventDefault(); });
+}
+
+/* Shows/hides the small inline rejection tooltip next to a guarded field. */
+function showAntiCheatWarning(warnEl, message){
+  if(!warnEl) return;
+  if(!message){ warnEl.classList.remove("show"); return; }
+  warnEl.innerHTML = '<span class="ac-warn-icon">⚠️</span> '+escapeHtml(message);
+  warnEl.classList.add("show");
+}
+
 function renderModeToggleRow(kidId){
   var row = document.createElement("div");
   row.style.cssText = "display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap";
@@ -1093,7 +1134,7 @@ function renderMorningLaunch(kidId, iso){
       lbl.textContent = "Uploading…";
       sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
         lbl.textContent = label;
-        if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+        if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); return; }
         var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
         var fieldUpdates = {}; fieldUpdates[field] = url;
         existing = saveLaunchField(kidId, iso, existing, fieldUpdates);
@@ -1108,6 +1149,37 @@ function renderMorningLaunch(kidId, iso){
   mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
   wrap.appendChild(mediaRow);
   wrap.appendChild(mediaPreview);
+
+  /* --- Optional short note, own-words only. Guarded the same way as Show & Teach's text box:
+     no pasting/dragging in text, and anything URL-like, wall-of-text, or suspiciously long gets
+     rejected at save time rather than silently stored. --- */
+  var noteLabel = document.createElement("div");
+  noteLabel.style.cssText = "font-size:12.5px;font-weight:600;margin:2px 0 4px";
+  noteLabel.textContent = "Anything else? (optional)";
+  wrap.appendChild(noteLabel);
+
+  var noteEl = document.createElement("textarea");
+  noteEl.className = "launch-note";
+  noteEl.rows = 2; noteEl.maxLength = 120;
+  noteEl.spellcheck = false; noteEl.autocorrect = "off"; noteEl.autocapitalize = "off"; noteEl.autocomplete = "off";
+  noteEl.style.cssText = "width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:6px;box-sizing:border-box";
+  noteEl.placeholder = "In your own words — no pasting";
+  noteEl.value = existing && existing.launchNote ? existing.launchNote : "";
+  wrap.appendChild(noteEl);
+
+  var noteWarn = document.createElement("div");
+  noteWarn.className = "ac-warn";
+  wrap.appendChild(noteWarn);
+
+  attachAntiCheatGuards(noteEl);
+  noteEl.addEventListener("input", function(){ showAntiCheatWarning(noteWarn, null); });
+  noteEl.addEventListener("blur", function(){
+    var val = noteEl.value.trim();
+    if(!val) return;
+    var reason = isSuspiciousReflectionText(val, 120);
+    if(reason){ showAntiCheatWarning(noteWarn, reason); return; }
+    existing = saveLaunchField(kidId, iso, existing, {launchNote: val, attemptedPaste: noteEl.dataset.pasteAttempted==="1"});
+  });
 
   /* --- E. Self-Start Streak display --- */
   var kd = kidData(kidId);
@@ -1134,13 +1206,16 @@ function renderShowTeach(kidId, iso){
   var existing = reflectionFor(kidId, iso);
   wrap.innerHTML =
     '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Pick ONE thing you fixed, figured out, or got working today — show it, don\'t just tell it.</div>'+
-    '<textarea class="st-text" rows="2" maxlength="200" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:10px;box-sizing:border-box" placeholder="One-sentence reflection (or upload audio/photo/video instead) — no pasting"></textarea>'+
+    '<textarea class="st-text" rows="2" maxlength="200" spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" style="width:100%;font:inherit;font-size:13.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);margin-bottom:6px;box-sizing:border-box" placeholder="One-sentence reflection (or upload audio/photo/video instead) — no pasting"></textarea>'+
+    '<div class="ac-warn st-warn"></div>'+
     '<div class="st-upload-row" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>'+
     '<div class="st-uploaded muted" style="font-size:12px;margin-bottom:8px"></div>'+
     '<button class="primary-btn st-save">💾 Save Show &amp; Teach</button>';
   var textEl = wrap.querySelector(".st-text");
+  var stWarn = wrap.querySelector(".st-warn");
   textEl.value = existing && existing.type==="text" ? existing.text||"" : "";
-  disablePaste(textEl);
+  attachAntiCheatGuards(textEl);
+  textEl.addEventListener("input", function(){ showAntiCheatWarning(stWarn, null); });
 
   var uploadedNote = wrap.querySelector(".st-uploaded");
   var pendingUpload = existing && existing.type!=="text" ? {type:existing.type, url:existing.url} : null;
@@ -1161,7 +1236,7 @@ function renderShowTeach(kidId, iso){
       lbl.textContent = "Uploading…";
       sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
         lbl.textContent = label;
-        if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+        if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); return; }
         var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
         pendingUpload = {type:type, url:url};
         uploadedNote.textContent = type+" ready — tap Save to finish.";
@@ -1177,9 +1252,14 @@ function renderShowTeach(kidId, iso){
   wrap.querySelector(".st-save").onclick = function(){
     if(!db) return;
     var text = textEl.value.trim();
+    var attemptedPaste = textEl.dataset.pasteAttempted === "1";
+    if(!pendingUpload && text){
+      var reason = isSuspiciousReflectionText(text, 200);
+      if(reason){ showAntiCheatWarning(stWarn, reason); return; }
+    }
     var payload;
-    if(pendingUpload) payload = {type: pendingUpload.type, url: pendingUpload.url, text: text || null};
-    else if(text) payload = {type:"text", text: text, url: null};
+    if(pendingUpload) payload = {type: pendingUpload.type, url: pendingUpload.url, text: text || null, attemptedPaste: attemptedPaste};
+    else if(text) payload = {type:"text", text: text, url: null, attemptedPaste: attemptedPaste};
     else { toast("Add a sentence or an upload first"); return; }
     if(existing && existing.id){
       Object.assign(existing, payload);
@@ -4055,8 +4135,8 @@ var FIELD_MAP = {
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
-  journal: { kidId:"kid_id", createdAt:"created_at", launchMood:"launch_mood", launchGoal:"launch_goal", launchVoiceUrl:"launch_voice_url", launchSnapshotUrl:"launch_snapshot_url" },
-  reflections: { kidId:"kid_id", createdAt:"created_at" },
+  journal: { kidId:"kid_id", createdAt:"created_at", launchMood:"launch_mood", launchGoal:"launch_goal", launchVoiceUrl:"launch_voice_url", launchSnapshotUrl:"launch_snapshot_url", launchNote:"launch_note", inputRejected:"input_rejected", rejectionReason:"rejection_reason", attemptedPaste:"attempted_paste" },
+  reflections: { kidId:"kid_id", createdAt:"created_at", inputRejected:"input_rejected", rejectionReason:"rejection_reason", attemptedPaste:"attempted_paste" },
   breaks: { kidId:"kid_id" }
 };
 function logBreak(kidId){
