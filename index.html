@@ -3383,6 +3383,53 @@ function diagnoseScheduleDates(kidId){
   return out;
 }
 
+/* Read-only, full-picture audit of one kid's assignments — run this first whenever something
+   "looks off" (stale dates, duplicates, a subject's numbers not matching what's actually there)
+   before touching any data. Prints several console.table sections and returns everything so it
+   can be inspected further (e.g. auditAssignments('kid2').duplicates). Changes nothing. */
+function auditAssignments(kidId){
+  var todayStr = todayISO();
+  var all = Object.keys(state.assignments)
+    .map(function(id){ return Object.assign({id:id}, state.assignments[id]); })
+    .filter(function(a){ return a.kidId===kidId; })
+    .sort(function(a,b){ return (a.date||"").localeCompare(b.date||"") || (a.subject||"").localeCompare(b.subject||""); });
+
+  var full = all.map(function(a){
+    var dow = a.date ? new Date(a.date+"T00:00:00").toLocaleDateString(undefined,{weekday:"short"}) : "(no date)";
+    return {
+      id: a.id, date: a.date||"(none)", day: dow, subject: a.subject||"", block: blockKeyFor(a),
+      title: (a.title||"").length>60 ? a.title.slice(0,60)+"…" : (a.title||""),
+      standard: a.standard||"", done: !!a.done, xp: a.xp||0,
+      crossSubjects: Array.isArray(a.crossSubjects) ? a.crossSubjects.join(", ") : ""
+    };
+  });
+  console.log("=== auditAssignments("+kidId+") — "+full.length+" total assignments ===");
+  console.table(full);
+
+  var byKey = {};
+  all.forEach(function(a){ (byKey[(a.date||"")+"::"+(a.title||"")] = byKey[(a.date||"")+"::"+(a.title||"")] || []).push(a); });
+  var duplicates = [];
+  Object.keys(byKey).forEach(function(k){ if(byKey[k].length>1) duplicates = duplicates.concat(byKey[k]); });
+  console.log("=== Duplicates (same date + title) — "+duplicates.length+" row(s) ===");
+  if(duplicates.length) console.table(duplicates.map(function(a){ return {id:a.id, date:a.date, title:a.title, done:a.done}; }));
+
+  var staleIncomplete = all.filter(function(a){ return a.date && a.date<todayStr && !a.done; });
+  console.log("=== Past-due, still not done — "+staleIncomplete.length+" row(s) (either finish, delete, or reschedule these) ===");
+  if(staleIncomplete.length) console.table(staleIncomplete.map(function(a){ return {id:a.id, date:a.date, subject:a.subject, title:a.title}; }));
+
+  var noDate = all.filter(function(a){ return !a.date; });
+  console.log("=== Missing a date entirely — "+noDate.length+" row(s) (won't show on Today/Week at all) ===");
+  if(noDate.length) console.table(noDate.map(function(a){ return {id:a.id, subject:a.subject, title:a.title}; }));
+
+  var readingRelated = all.filter(function(a){ return a.subject==="Reading" || a.subject==="ELA" || (Array.isArray(a.crossSubjects) && (a.crossSubjects.indexOf("Reading")>=0 || a.crossSubjects.indexOf("ELA")>=0)); });
+  console.log("=== Everything touching Reading/ELA (own subject OR cross-tagged) — "+readingRelated.length+" row(s) ===");
+  console.table(readingRelated.map(function(a){
+    return {date:a.date, subject:a.subject, title:(a.title||"").slice(0,60), done:a.done, viaCrossTag: a.subject!=="Reading" && a.subject!=="ELA"};
+  }));
+
+  return {full:full, duplicates:duplicates, staleIncomplete:staleIncomplete, noDate:noDate, readingRelated:readingRelated};
+}
+
 /* Moves every NOT-YET-DONE curriculum assignment onto a fresh Monday-through-Friday-only schedule
    starting today (or the next school day, if today's a weekend) — grouping same-day lessons (across
    subjects) together so the sequence stays intact. Anything already marked done is left completely
@@ -3583,6 +3630,7 @@ window.resetKidLegacyData = resetKidLegacyData;
 window.patchMathLessons = patchMathLessons;
 window.seedArenaQuestions = seedArenaQuestions;
 window.diagnoseScheduleDates = diagnoseScheduleDates;
+window.auditAssignments = auditAssignments;
 window.rescheduleFromToday = rescheduleFromToday;
 window.patchInstallHelp = patchInstallHelp;
 window.patchVMLessonCrossSubjects = patchVMLessonCrossSubjects;
