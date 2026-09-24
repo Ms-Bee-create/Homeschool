@@ -920,6 +920,12 @@ function addForm(kidId, defaultDate){
       '<input class="af-materials" placeholder="Materials link or note (optional)" maxlength="300">'+
       '<input class="af-video" placeholder="Video link (optional)" maxlength="300">'+
       '<input class="af-standard" placeholder="Standard e.g. 4.NR.1 (optional)" maxlength="40" style="max-width:160px">'+
+      '<select class="af-block" title="Which daily block this shows up under (default: auto by subject)">'+
+        '<option value="">Block: Auto (by subject)</option>'+
+        DAILY_BLOCKS.filter(function(b){ return b.key!=="morning" && b.key!=="showTeach"; }).map(function(b){
+          return '<option value="'+b.key+'">Block: '+escapeHtml(b.label)+'</option>';
+        }).join("")+
+      '</select>'+
       '<label style="display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--text-dim)"><input type="checkbox" class="af-cross">🔀 Cross-curricular (+'+CROSS_CURRICULAR_BONUS_XP+' XP)</label>'+
       '<button class="af-add">Add</button>'+
     '</div>'+
@@ -939,6 +945,7 @@ function addForm(kidId, defaultDate){
     var standardEl = wrap.querySelector(".af-standard");
     var crossEl = wrap.querySelector(".af-cross");
     var subjectEl = wrap.querySelector(".af-subject");
+    var blockEl = wrap.querySelector(".af-block");
     var alsoEls = Array.prototype.filter.call(wrap.querySelectorAll(".af-also"), function(el){ return el.checked && el.value!==subjectEl.value; });
     var crossSubjects = alsoEls.map(function(el){ return el.value; });
     db.collection("assignments").add({
@@ -947,9 +954,10 @@ function addForm(kidId, defaultDate){
       materials: materialsEl.value.trim() || null, video: videoEl.value.trim() || null, standard: standardEl.value.trim() || null,
       crossCurricular: crossEl.checked || null,
       crossSubjects: crossSubjects.length ? crossSubjects : null,
+      block: blockEl.value || null,
       createdAt: new Date().toISOString()
     });
-    titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = ""; crossEl.checked = false;
+    titleEl.value = ""; materialsEl.value = ""; videoEl.value = ""; standardEl.value = ""; crossEl.checked = false; blockEl.value = "";
     Array.prototype.forEach.call(wrap.querySelectorAll(".af-also"), function(el){ el.checked = false; });
   };
   return wrap;
