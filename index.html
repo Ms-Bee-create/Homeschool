@@ -2308,7 +2308,22 @@ var VM_INSTALL_HELP = {
       "<b>Boots fine in Safe Mode but gives a \"Windows Protection Error\" / \"you need to restart your computer\" message in normal mode:</b> this is the #1 cause and it's almost always CPU speed, not something broken. Windows 95 miscounts CPU cycles on modern host processors, which triggers a protection fault the instant it tries to load hardware drivers (skipped in Safe Mode). Fix: VM Settings → System → Processor → set the <b>Execution Cap</b> to around 90% (try lower, like 60-80%, if 90% still errors). Also confirm only <b>1 CPU</b> is assigned under Processor — Windows 95 has no multi-core support and extra CPUs alone can cause this exact error.",
       "<b>Number of CPUs:</b> Set Processor count to exactly 1 in VM Settings → System → Processor. More than 1 will cause instability/protection errors even with everything else set correctly.",
       "<b>Still get the Windows Protection Error after setting Execution Cap AND 1 CPU:</b> there's one more setting that causes this exact error, but it only exists on <b>VirtualBox 5.0 or newer</b> — check Help → About first, and update VirtualBox if you're on an older version like 4.x (see the top of this list). Once you're on a current version: VM Settings → System → Acceleration → set <b>Paravirtualization Interface</b> to <b>None</b> (or \"Legacy\" if None isn't listed) — the default assumes a modern OS and confuses Windows 95's timing code the same way CPU speed does. If it's still happening after that, drop the Execution Cap much lower, like 40-50%, and double-check I/O APIC is off (System → Motherboard tab, not just Processor).",
-      "<b>Tried EVERYTHING above (execution cap, 1 CPU, paravirtualization off, VT-x/AMD-V off, chipset set to PIIX3) and it still throws the Windows Protection Error?</b> That's not you doing anything wrong — it means VirtualBox's virtual CPU just can't be throttled precisely enough to match real 1995 hardware timing, even in software mode. Time to pivot to a tool built specifically for this: <b>DOSBox-X</b> (you already have it installed). Unlike VirtualBox, DOSBox-X lets you set an exact CPU <i>cycle count</i> instead of a rough percentage cap — that's the real fix for a CPU that's running \"too fast\" for Windows 95. Next session: (1) create a blank hard disk image in DOSBox-X, (2) boot your Windows 95 setup CD/floppy image against it, (3) before installing, set cycles low — start around <code>cycles=5000</code> to <code>10000</code> (DOSBox-X's \"auto\" default is tuned for DOS games, way too fast for Win95) using the config file or the Ctrl+F11/Ctrl+F12 speed keys, (4) run through the same fdisk → format → setup steps you already know from the VirtualBox attempts, and (5) nudge cycles up or down after boot if it's too slow or the error comes back. If DOSBox-X still doesn't get you there, the next tool to try is <b>86Box</b>, which emulates a full period-accurate PC (motherboard, chipset, and all) rather than approximating one."
+      "<b>Tried EVERYTHING above (execution cap, 1 CPU, paravirtualization off, VT-x/AMD-V off, chipset set to PIIX3) and it still throws the Windows Protection Error?</b> That's not you doing anything wrong — it means VirtualBox's virtual CPU just can't be throttled precisely enough to match real 1995 hardware timing, even in software mode. Time to pivot to a tool built specifically for this: <b>DOSBox-X</b> (you already have it installed). Unlike VirtualBox, DOSBox-X lets you set an exact CPU <i>cycle count</i> instead of a rough percentage cap — that's the real fix for a CPU that's running \"too fast\" for Windows 95. See the DOSBox-X guide for the actual step-by-step. If DOSBox-X still doesn't get you there, the next tool to try is <b>86Box</b>, which emulates a full period-accurate PC (motherboard, chipset, and all) rather than approximating one."
+    ]
+  },
+  win95dosbox: {
+    title: "Installing Windows 95 in DOSBox-X",
+    steps: [
+      "<b>Create the blank hard disk image:</b> Open DOSBox-X's menu → Drive → Create blank disk image (or run <code>imgmake c.img -t hd_500</code> from the command line for a ~500MB drive — plenty for Windows 95). This makes the empty \"hard drive\" Windows 95 will install onto.",
+      "<b>Mount the hard disk and your Windows 95 CD/floppy:</b> In the DOSBox-X config or command line: <code>imgmount c c.img -t hdd</code> for the hard disk, then <code>imgmount d win95.iso -t iso</code> for the CD (or <code>imgmount a boot.img -t floppy</code> for a boot floppy image). If it says \"Drive does not exist,\" check the file path/name is typed exactly right — this is the #1 cause of mount errors.",
+      "<b>Set cycles LOW before you boot anything:</b> Windows 95 expects a computer far slower than DOSBox-X's default \"auto\" speed (which is tuned for fast-paced DOS games). In the DOSBox-X config file, set <code>cycles=5000</code> to start — or use <b>Ctrl+F11</b> (slower) / <b>Ctrl+F12</b> (faster) live while it's running to nudge it up or down. Getting this number right is most of the battle.",
+      "<b>Partition and format, same as before:</b> Boot from the floppy/CD, run <code>fdisk</code> to create a partition, reboot, run <code>format c:</code>, then start <code>setup</code> from the CD — this part is identical to what you already did in VirtualBox.",
+      "<b>Screen freezes or the install crawls to a stop:</b> cycles are too HIGH for this step. Drop it — try 3000, then lower again if it's still frozen after a minute. Setup itself often needs a lower number than just booting to DOS did.",
+      "<b>\"System halted\" or a black screen right after the setup screen appears:</b> cycles are usually too high here too — same fix, drop the number. If dropping cycles doesn't help, double check the hard disk image was created large enough (under 500MB can fail partway through a full install).",
+      "<b>No sound, or sound is garbled/crackly once Windows 95 is running:</b> this is a DOSBox-X sound card emulation setting, not a Windows 95 problem — check the config file's <code>sbtype</code>/<code>oplmode</code> settings match a Sound Blaster 16, which is what most Windows 95 sound drivers expect.",
+      "<b>Mouse won't move, or is stuck in the corner:</b> DOSBox-X \"captures\" the mouse for the guest OS — press <b>Ctrl+F10</b> to release/recapture it. If it's still stuck after that, the mouse type in DOSBox-X's config may need to be set to a serial or PS/2 mouse to match what Windows 95's setup expects.",
+      "<b>It boots and installs, but runs painfully slow even after raising cycles:</b> some slowness is expected and period-accurate — Windows 95 on real 1995 hardware wasn't fast either. If it feels broken-slow rather than retro-slow, confirm <code>core=dynamic</code> is set in the config (not <code>core=normal</code>), which speeds up emulation significantly without changing the cycle count.",
+      "<b>Stuck on something not listed above?</b> Type exactly what's happening into the box below — the more specific (what step you're on, the exact error text), the better the match."
     ]
   },
   win98: {
@@ -3589,7 +3604,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:1, subject:"ELA", title:"Journal Day 2: Log today's install progress — what worked, what didn't.", xp:10, standard:"Writing strands"},
   {d:1, subject:"Math", title:"Timeline math: Windows 95 released in 1995. How many years ago was that from this year?", xp:15, standard:"4.MDR.6", video:"https://www.youtube.com/watch?v=UhMM68fq9FA", mathSkill:"timeline", practice:["Windows 98 came out in 1998. How many years after Windows 95 was that?","If a Windows 95 computer was bought new in 1995 and used for 10 years, what year did it stop being used?"]},
   {d:1, subject:"Reading", title:"Read a short bio excerpt on Bill Gates or Paul Allen — note 2 facts.", xp:10, standard:"Reading strands", materials:"https://en.wikipedia.org/wiki/Bill_Gates"},
-  {d:1, subject:"Independent", title:"Pivot day: VirtualBox couldn't get Windows 95 stable even after every fix, so switch tools — install Windows 95 in DOSBox-X instead, using manual CPU cycle control to match real 1995 hardware speed. Take a screenshot of the desktop for your guide once it boots.", xp:25, installHelp:"win95", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
+  {d:1, subject:"Independent", title:"Pivot day: VirtualBox couldn't get Windows 95 stable even after every fix, so switch tools — install Windows 95 in DOSBox-X instead, using manual CPU cycle control to match real 1995 hardware speed. Take a screenshot of the desktop for your guide once it boots.", xp:25, installHelp:"win95dosbox", crossSubjects:["Reading","ELA","Computer Science","Social Studies"]},
   {d:1, subject:"Science", title:"Why does the Windows 95 startup sound work the way it does? Read about how PC speakers make sound (vibration).", xp:10, standard:"S4P1/S4P2", materials:"https://kids.britannica.com/students/article/sound/277144", video:"https://www.youtube.com/watch?v=5qmgB8ggm3g"},
 
   {d:2, subject:"ELA", title:"Journal Day 3: Draft the intro paragraph of your Windows 95 User Guide.", xp:10, standard:"Writing strands"},
@@ -4706,17 +4721,27 @@ function seedArenaQuestions(kidId){
 
 /* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
    whose Month 1 import happened before this specific curriculum item existed (so it never got
-   created) and who now wants to actually take it on. Safe to run once; checks for the exact title
-   first so it won't duplicate if it's already there somewhere. */
+   created) and who now wants to actually take it on. If it was already added with the old
+   installHelp value (pointing at the VirtualBox guide), patches it to the dedicated DOSBox-X guide
+   instead of creating a duplicate. */
 function addDosboxPivotTask(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var title = "Pivot day: VirtualBox couldn't get Windows 95 stable even after every fix, so switch tools — install Windows 95 in DOSBox-X instead, using manual CPU cycle control to match real 1995 hardware speed. Take a screenshot of the desktop for your guide once it boots.";
-  var already = Object.keys(state.assignments).some(function(id){ return state.assignments[id].kidId===kidId && state.assignments[id].title===title; });
-  if(already){ console.log("addDosboxPivotTask: "+kidId+" already has this assignment — not adding a duplicate."); return; }
+  var existingId = Object.keys(state.assignments).filter(function(id){ return state.assignments[id].kidId===kidId && state.assignments[id].title===title; })[0];
+  if(existingId){
+    if(state.assignments[existingId].installHelp!=="win95dosbox"){
+      state.assignments[existingId].installHelp = "win95dosbox";
+      db.doc("assignments/"+existingId).update({installHelp:"win95dosbox"});
+      console.log("addDosboxPivotTask: "+kidId+" already had this assignment — updated it to the dedicated DOSBox-X guide.");
+    } else {
+      console.log("addDosboxPivotTask: "+kidId+" already has this assignment with the right guide — nothing to do.");
+    }
+    return;
+  }
   db.collection("assignments").add({
     kidId: kidId, date: todayISO(), subject:"Independent", title: title,
     xp: 25, done:false, doneAt:null,
-    installHelp: "win95", crossSubjects: ["Reading","ELA","Computer Science","Social Studies"],
+    installHelp: "win95dosbox", crossSubjects: ["Reading","ELA","Computer Science","Social Studies"],
     createdAt: new Date().toISOString()
   });
   console.log("addDosboxPivotTask: added for "+kidId+", dated today.");
