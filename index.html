@@ -562,6 +562,14 @@ function renderKidbar(){
       '<button type="button" class="avatar-change-link">Change avatar</button>'+
       '<div class="avatar-picker-holder"></div>';
     row.appendChild(meta);
+    /* Whether the grid is open lives in state, not just this row's DOM — the background sync
+       rebuilds the whole kidbar every few seconds, and a purely-local "is it open" flag would get
+       silently reset (and the grid would look like it slammed shut) on every one of those rebuilds. */
+    if(state.avatarPickerOpenFor===k.id){
+      var openGrid = document.createElement("div");
+      meta.querySelector(".avatar-picker-holder").appendChild(openGrid);
+      renderAvatarPickerGrid(k.id, openGrid);
+    }
 
     row.addEventListener("click", function(){
       cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null;
@@ -592,13 +600,10 @@ function renderKidbar(){
     nameEl.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); nameEl.blur(); } });
 
     var changeLink = meta.querySelector(".avatar-change-link");
-    var pickerHolder = meta.querySelector(".avatar-picker-holder");
     changeLink.addEventListener("click", function(e){
       e.stopPropagation();
-      if(pickerHolder.childElementCount){ pickerHolder.innerHTML = ""; return; }
-      var grid = document.createElement("div");
-      pickerHolder.appendChild(grid);
-      renderAvatarPickerGrid(k.id, grid);
+      state.avatarPickerOpenFor = (state.avatarPickerOpenFor===k.id) ? null : k.id;
+      renderKidbar();
     });
 
     menu.appendChild(row);
