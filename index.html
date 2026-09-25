@@ -4983,8 +4983,10 @@ function syncAll(){
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
        underlying data, it just holds off replacing the DOM (and wiping unsaved text) until the
        field loses focus. Same root cause as the earlier lesson-detail work-box fix, generalized
-       so it covers Morning Launch/Show & Teach and anything typed anywhere, not just that one page. */
-    if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField()) renderView();
+       so it covers Morning Launch/Show & Teach and anything typed anywhere, not just that one page.
+       Also holds off while a file input's native picker might still be open (state.fileInputActive)
+       — see the window "focus" listener below for why. */
+    if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField() && !state.fileInputActive) renderView();
   }).catch(function(){});
 }
 function isTypingInFormField(){
@@ -4993,6 +4995,29 @@ function isTypingInFormField(){
   var tag = el.tagName;
   return tag==="TEXTAREA" || (tag==="INPUT" && el.type!=="checkbox" && el.type!=="radio" && el.type!=="file");
 }
+
+/* A tapped file input opens the native OS picker, which can stay open for a while (browsing a
+   video library takes a lot longer than snapping a photo) — long enough for the background sync
+   to fire mid-browse, rebuild the DOM underneath it, and swap in a fresh upload button the user
+   never actually sees. Their file then lands on the old, orphaned button instead of the one on
+   screen, and it looks like nothing happened. Suspending the sync's re-render for the whole time a
+   file input is "active" (tap until the browser window regains focus, since opening/closing any
+   native picker blurs/refocuses the tab) closes that gap the same way the typing guard already
+   does for text fields. */
+state.fileInputActive = false;
+document.addEventListener("click", function(e){
+  if(e.target && e.target.tagName==="INPUT" && e.target.type==="file") state.fileInputActive = true;
+}, true);
+window.addEventListener("focus", function(){
+  if(!state.fileInputActive) return;
+  state.fileInputActive = false;
+  /* Give the input's own change handler a moment to run first (it fires around the same time as
+     this focus event, order isn't guaranteed across browsers) before catching up on any render
+     the sync held back while the picker was open. */
+  setTimeout(function(){
+    if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField()) renderView();
+  }, 300);
+});
 
 /* ---------- Momma Money deposit (works now — this is a real webpage, not sandboxed) ---------- */
 function mmDepositLevelUp(kidId, lvl){
