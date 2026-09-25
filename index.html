@@ -1098,6 +1098,24 @@ function renderModeToggleRow(kidId){
   calmBtn.onclick = function(){ setModeFlag("al_calm", kidId, !calmOn); renderView(); };
   row.appendChild(calmBtn);
 
+  if(isWeekendIso(todayISO())){
+    var kd = kidData(kidId);
+    var extrasOn = !!kd.weekendExtrasOn;
+    var extrasBtn = document.createElement("button");
+    extrasBtn.type = "button";
+    extrasBtn.className = "reward-skip";
+    extrasBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;"+
+      (extrasOn ? "background:var(--success-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+    extrasBtn.textContent = extrasOn ? "🎮 Weekend Extra: ON" : "🎮 Weekend Extra";
+    extrasBtn.onclick = function(){
+      kd.weekendExtrasOn = !extrasOn;
+      state.kids[kidId] = kd;
+      if(db) db.doc("kids/"+kidId).update({weekendExtrasOn: !extrasOn});
+      renderView();
+    };
+    row.appendChild(extrasBtn);
+  }
+
   if(calmOn){
     var breakBtn = document.createElement("button");
     breakBtn.type = "button";
