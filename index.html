@@ -742,6 +742,7 @@ function taskRow(a){
         (a.crossCurricular ? ' &nbsp;<span class="chip" style="background:var(--gold-soft);color:var(--gold)">🔀 cross-curricular +'+CROSS_CURRICULAR_BONUS_XP+' XP</span>' : '')+
         (hasWork(a) ? ' &nbsp;<span class="chip" style="background:var(--teal-soft);color:var(--teal)">📝 work saved</span>' : '')+
         (a.reviewStatus==="flagged" ? ' &nbsp;<span class="chip" style="background:var(--coral-soft);color:var(--coral)">🚩 needs another look</span>' : '')+
+        (a.choiceGroup ? ' &nbsp;<span class="chip" style="background:var(--gold-soft);color:var(--gold)">🎲 pick one</span>' : '')+
       '</div>'+
       (a.materials ? '<div class="task-sub" style="margin-top:3px">'+materialsLinkHtml(a.materials)+'</div>' : '')+
       (a.video ? '<div class="task-sub" style="margin-top:3px">'+videoLinkHtml(a.video)+'</div>' : '')+
@@ -957,6 +958,19 @@ function journalEntryFor(kidId, iso){
 function reflectionFor(kidId, iso){
   return (state.reflections||[]).filter(function(r){ return r.kidId===kidId && r.date===iso; })[0] || null;
 }
+/* Tasks sharing a choiceGroup are alternatives, not separate requirements — the group counts as
+   done once any one member is done, matching the "pick one of 2-3" pool mechanic. A task without
+   a choiceGroup is required on its own, same as before. */
+function tasksUnitsComplete(tasks){
+  var groupDone = {};
+  return tasks.every(function(a){
+    if(!a.choiceGroup) return !!a.done;
+    if(!(a.choiceGroup in groupDone)){
+      groupDone[a.choiceGroup] = tasks.some(function(t){ return t.choiceGroup===a.choiceGroup && t.done; });
+    }
+    return groupDone[a.choiceGroup];
+  });
+}
 function blockComplete(blockKey, kidId, iso, tasksByBlock){
   if(blockKey==="morning"){
     var j = journalEntryFor(kidId, iso);
@@ -965,7 +979,7 @@ function blockComplete(blockKey, kidId, iso, tasksByBlock){
   if(blockKey==="showTeach") return !!reflectionFor(kidId, iso);
   var tasks = tasksByBlock[blockKey] || [];
   if(!tasks.length) return true; // nothing assigned to this block today — auto-pass, don't block the day on it
-  return tasks.every(function(a){ return a.done; });
+  return tasksUnitsComplete(tasks);
 }
 function disablePaste(el){ el.addEventListener("paste", function(e){ e.preventDefault(); }); }
 
@@ -1148,7 +1162,15 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
       empty.textContent = "Nothing assigned to this block today.";
       body.appendChild(empty);
     } else {
-      tasks.forEach(function(a){ body.appendChild(taskRow(a)); });
+      /* Once one option in a choiceGroup is done, its siblings quietly disappear for the day
+         instead of sticking around looking like unfinished work — he picked, that's the point. */
+      tasks.forEach(function(a){
+        if(a.choiceGroup && !a.done){
+          var groupDone = tasks.some(function(t){ return t.choiceGroup===a.choiceGroup && t.done; });
+          if(groupDone) return;
+        }
+        body.appendChild(taskRow(a));
+      });
     }
     card.appendChild(body);
   }
@@ -3718,6 +3740,68 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:19, subject:"Social Studies", title:"Budget it: if you could buy all 4 retro PCs (95/98/XP/7 era) today from a collector, budget $2,000 across all 4 — show your math and reasoning.", xp:20, standard:"SS4E1/SS4E2", video:"https://www.youtube.com/watch?v=0-fR24PWEmo"}
 ];
 
+/* OS Museum Archive Challenge — 3 bonus days (d:20-22) appended after Month 1. Math and Science &
+   Social Studies each offer a small pool of 2-4 alternatives per day instead of one fixed task;
+   members of the same choiceGroup are alternatives, not separate requirements (see
+   tasksUnitsComplete). Each item is a single tap-to-answer Quick Check (multiple choice, no
+   writing required) with a quizRetry — a differently-worded second attempt at the same fact,
+   served automatically if he misses it, so a wrong answer becomes a second try instead of a dead
+   end. These are a placeholder second question, not a fully distinct one, until a real second
+   angle is written per topic. Links are as sourced/reviewed with the parent; not independently
+   verified from this session. */
+var CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE = [
+  {d:20, subject:"Math", choiceGroup:"archiveMathA", title:"Timeline Ruler: Windows 1.0 (1985) to Windows 11 (2021) — how many years apart are they?", xp:15, materials:"https://www.auslogics.com/en/articles/timeline-of-all-windows-os-versions-from-start-to-now/",
+    quiz:[{q:"Windows 1.0 came out in 1985 and Windows 11 came out in 2021. How many years passed between them?", choices:["30","36","41","50"], answerIndex:1}],
+    quizRetry:[{q:"From 1985 to 2021 is how many years?", choices:["36","26","46","16"], answerIndex:0}]},
+  {d:20, subject:"Math", choiceGroup:"archiveMathA", title:"Version Naming: which came first, Windows 3.11 or Windows 95?", xp:15, materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history",
+    quiz:[{q:"Which came out first: Windows 3.11 or Windows 95?", choices:["Windows 3.11","Windows 95","They released the same year","Neither existed"], answerIndex:0}],
+    quizRetry:[{q:"How many years apart were Windows 95 (1995) and Windows 98 (1998)?", choices:["1","2","3","5"], answerIndex:2}]},
+  {d:20, subject:"Science", choiceGroup:"archiveSciA", title:"Field Report: why could the PC speaker only beep?", xp:10, materials:"https://www.vgmpf.com/Wiki/index.php/PC_Speaker",
+    quiz:[{q:"Why could the original PC speaker only make simple beeps instead of music or voices?", choices:["It had no power","It could only switch on/off to make one tone at a time","It was broken on purpose","It needed the internet"], answerIndex:1}],
+    quizRetry:[{q:"What kind of simple sound wave could the old PC speaker make?", choices:["A square wave (on/off)","A rainbow wave","No sound at all","A radio wave"], answerIndex:0}]},
+  {d:20, subject:"Science", choiceGroup:"archiveSciA", title:"Interview the Composer: the story of the Windows 95 startup sound", xp:10, materials:"https://blog.codinghorror.com/the-windows-95-startup-sound/",
+    quiz:[{q:"Who composed the famous Windows 95 startup sound, and what kind of computer did he use to make it?", choices:["Brian Eno, on a Macintosh","Bill Gates, on a PC","An unknown engineer, on a calculator","Steve Jobs, on an iPhone"], answerIndex:0}],
+    quizRetry:[{q:"About how many seconds long is the Windows 95 startup sound?", choices:["1 second","3.25 seconds","10 seconds","30 seconds"], answerIndex:1}]},
+  {d:20, subject:"Social Studies", choiceGroup:"archiveSciA", title:"Case File: Bill Gates & Paul Allen", xp:10, materials:"https://kids.britannica.com/kids/article/Bill-Gates/353168",
+    quiz:[{q:"Who did Bill Gates start Microsoft with in 1975?", choices:["Steve Jobs","Paul Allen","Steve Wozniak","Tim Berners-Lee"], answerIndex:1}],
+    quizRetry:[{q:"What was the first program a young Bill Gates wrote?", choices:["A calculator app","A tic-tac-toe game","A web browser","An operating system"], answerIndex:1}]},
+
+  {d:21, subject:"Math", choiceGroup:"archiveMathB", title:"Upgrade Cycle Math: shortest gap between OS releases", xp:15, materials:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history",
+    quiz:[{q:"Looking at Windows 98 (1998), 2000, XP (2001), and Vista (2006) — what was the shortest gap between two releases?", choices:["1 year","3 years","5 years","8 years"], answerIndex:0}],
+    quizRetry:[{q:"Which two OS releases came out closest together in time?", choices:["98 & 2000","95 & 98","XP & Vista","2000 & Vista"], answerIndex:0}]},
+  {d:21, subject:"Math", choiceGroup:"archiveMathB", title:"System Benchmark: floppy disks vs. modern storage", xp:15,
+    quiz:[{q:"A floppy disk holds 1.44 Megabytes (MB). About how many floppy disks would you need to equal 144 MB?", choices:["10","50","100","144"], answerIndex:2}],
+    quizRetry:[{q:"If one floppy holds about 1.5MB, roughly how many do you need for 150MB?", choices:["15","100","150","200"], answerIndex:1}]},
+  {d:21, subject:"Science", choiceGroup:"archiveSciB", title:"How Speakers Work: what actually vibrates?", xp:10, materials:"https://www.vgmpf.com/Wiki/index.php/PC_Speaker",
+    quiz:[{q:"What part inside a speaker physically vibrates to push air and make sound?", choices:["The speaker cone","The power cord","The plastic case","The volume knob"], answerIndex:0}],
+    quizRetry:[{q:"What pushes the speaker cone back and forth?", choices:["An electromagnet","A battery alone","A fan","Sunlight"], answerIndex:0}]},
+  {d:21, subject:"Science", choiceGroup:"archiveSciB", title:"Decode the Archive: computer circuit logic (1s and 0s)", xp:10, materials:"https://kids.kiddle.co/File_system",
+    quiz:[{q:"In computer circuits, what does the number '1' usually represent?", choices:["Electricity is flowing (ON)","No electricity (OFF)","A broken wire","A sound wave"], answerIndex:0}],
+    quizRetry:[{q:"What does '0' represent in computer circuits?", choices:["ON","OFF","Loud","Quiet"], answerIndex:1}]},
+  {d:21, subject:"Social Studies", choiceGroup:"archiveSciB", title:"Case File: how the GUI was invented", xp:10, materials:"https://kids.kiddle.co/History_of_the_graphical_user_interface",
+    quiz:[{q:"What does GUI stand for, and where was the idea of clickable desktop icons first invented?", choices:["Graphical User Interface — Xerox PARC","General Use Internet — Microsoft","Global Utility Index — IBM","Graphic Universal Icon — Apple"], answerIndex:0}],
+    quizRetry:[{q:"Which came first: typing text commands (CLI) or clicking icons (GUI)?", choices:["CLI (typing commands)","GUI (clicking icons)","They started at the same time","Neither existed before computers"], answerIndex:0}]},
+
+  {d:22, subject:"Math", choiceGroup:"archiveMathC", title:"Retro Pixel Art: counting a 32x32 icon grid", xp:15, materials:"https://commons.wikimedia.org/wiki/Category:Windows_95_icons",
+    quiz:[{q:"A classic desktop icon is a 32x32 pixel grid. How many total pixels is that?", choices:["64","256","1024","3200"], answerIndex:2}],
+    quizRetry:[{q:"32 times 32 equals what?", choices:["640","1024","962","1124"], answerIndex:1}]},
+  {d:22, subject:"Math", choiceGroup:"archiveMathC", title:"Boot Time Race: retro vs. modern", xp:15, video:"https://www.youtube.com/watch?v=NgS5MB_fWX8",
+    quiz:[{q:"An old 1990s PC took 120 seconds to boot Windows 95. A modern SSD PC boots Windows 11 in 15 seconds. How many times faster is the modern PC?", choices:["4","6","8","10"], answerIndex:2}],
+    quizRetry:[{q:"120 divided by 15 equals what?", choices:["6","8","10","12"], answerIndex:1}]},
+  {d:22, subject:"Social Studies", choiceGroup:"archiveSciC", title:"Case File: the IBM/Microsoft deal", xp:10, materials:"https://www.diy.org/article/bill_gates",
+    quiz:[{q:"Which big computer company partnered with Microsoft in 1980 to put MS-DOS on their personal computers?", choices:["Apple","IBM","Sony","Intel"], answerIndex:1}],
+    quizRetry:[{q:"What was the name of the operating system Microsoft licensed to that company?", choices:["MS-DOS","Windows 95","Mac OS","Linux"], answerIndex:0}]},
+  {d:22, subject:"Science", choiceGroup:"archiveSciC", title:"Real-World Mission: why cable management matters", xp:10, materials:"https://www.cables.com/blogs/cables-blog/the-importance-of-proper-cable-management",
+    quiz:[{q:"Why is it important to keep computer cables tidy and organized?", choices:["It looks cooler and that's it","It prevents damage and helps airflow so parts don't overheat","It makes the computer louder","It's required by law"], answerIndex:1}],
+    quizRetry:[{q:"What can happen if cables are tangled and blocking airflow inside a computer?", choices:["Nothing at all","The computer can overheat","The screen turns purple","The keyboard stops working"], answerIndex:1}]},
+  {d:22, subject:"Science", choiceGroup:"archiveSciC", title:"Real-World Mission: why backups matter", xp:10, materials:"https://kids.kiddle.co/File_system",
+    quiz:[{q:"Why is saving a second copy of your work called a 'backup'?", choices:["It protects your data if the original gets lost or broken","It makes the file bigger","It's required to turn on the computer","It deletes the original automatically"], answerIndex:0}],
+    quizRetry:[{q:"Why were old floppy disks especially risky to store files on without a backup?", choices:["They were easily damaged by magnets, heat, or wear","They were too big to lose","They never broke","They were invisible"], answerIndex:0}]},
+  {d:22, subject:"Science", choiceGroup:"archiveSciC", title:"Real-World Mission: how file systems organize your stuff", xp:10, materials:"https://kids.kiddle.co/File_system",
+    quiz:[{q:"How does a file system help organize your files?", choices:["It sorts them randomly","It organizes files into folders and subfolders like a tree","It deletes old files automatically","It only allows one file total"], answerIndex:1}],
+    quizRetry:[{q:"What's the special name for information about a file, like its size or creation date?", choices:["Metadata","Bytecode","Firmware","Pixels"], answerIndex:0}]}
+];
+
 /* A starter mix of quick-fire quiz questions across every subject, so the Arena has something
    in the question bank right away instead of showing "no questions yet". Console-seeded via
    seedArenaQuestions() rather than a permanent import button, since this only needs to run once. */
@@ -4280,7 +4364,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
@@ -4620,6 +4704,38 @@ function seedArenaQuestions(kidId){
   console.log("seedArenaQuestions: added "+added+" question(s)");
 }
 
+/* Adds the 16-item OS Museum Archive Challenge (choice-pool bonus days, d:20-22) for a kid who
+   already has Month 1 imported. Anchors off their existing Day 0 assignment date so it lands
+   right after Month 1 ends, same math as diagnoseScheduleDates. Safe to run only once — running
+   it twice will create duplicate choice options; check auditAssignments first if unsure. */
+function addOsMuseumArchiveChallenge(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var anchorTitle = null;
+  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){ if(item.d===0) anchorTitle = anchorTitle || item.title; });
+  var anchorRow = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kidId && a.title===anchorTitle; })[0];
+  if(!anchorRow){ console.log("addOsMuseumArchiveChallenge: couldn't find "+kidId+"'s Day 0 assignment to anchor from — has Month 1 been imported yet?"); return; }
+  var anchorDate = new Date(anchorRow.date+"T00:00:00");
+  var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  var added = 0;
+  CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.forEach(function(item){
+    if(existingTitles.indexOf(item.title)!==-1) return; // already added — skip, don't duplicate
+    var week = Math.floor(item.d/5), weekday = item.d%5;
+    var d = new Date(anchorDate);
+    d.setDate(d.getDate() + week*7 + weekday);
+    db.collection("assignments").add({
+      kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
+      xp: item.xp, done:false, doneAt:null,
+      materials: item.materials||null, video: item.video||null,
+      choiceGroup: item.choiceGroup||null, quiz: item.quiz||null, quizRetry: item.quizRetry||null,
+      createdAt: new Date().toISOString()
+    });
+    added++;
+  });
+  console.log("addOsMuseumArchiveChallenge: added "+added+" of "+CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.length+" archive challenge assignment(s) for "+kidId);
+}
+
 /* One-time maintenance utilities — intentionally not in the UI, run from the browser console when actually needed:
    removeDuplicateAssignments(state.activeKid)   — cleans up accidental double-imports
    resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe
@@ -4629,7 +4745,8 @@ function seedArenaQuestions(kidId){
    rescheduleFromToday(state.activeKid)          — moves not-yet-done lessons onto a Mon-Fri-only schedule starting today; leaves done work untouched
    patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons
    patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template
-   markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker */
+   markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker
+   addOsMuseumArchiveChallenge(state.activeKid)  — adds the 16-item choice-pool bonus days (Math/Science/Social Studies, d:20-22) after Month 1 */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.markLegacyOsInstallsComplete = markLegacyOsInstallsComplete;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
@@ -4645,6 +4762,7 @@ window.patchVMLessonCrossSubjects = patchVMLessonCrossSubjects;
 window.patchLessonLinks = patchLessonLinks;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
+window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
