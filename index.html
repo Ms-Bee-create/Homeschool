@@ -4023,6 +4023,27 @@ function grantXP(kidId, amount){
   if(lvl.gained>0) logLevelUpReward(kidId, lvl);
 }
 
+/* Arcade mini-games (Space Mission / Parkour) were paying out XP per action with no ceiling, so a
+   long play session could rack up level-ups and Momma Money fast — momma money that's meant to
+   *limit* screen time was instead fueling it. This caps how much of that XP actually counts each
+   day; he can keep playing for fun past the cap, it just stops paying out. */
+var DAILY_MINIGAME_XP_CAP = 25;
+function grantMiniGameXP(kidId, amount){
+  if(amount<=0) return;
+  var kd = kidData(kidId);
+  var today = todayISO();
+  var soFar = (kd.lastMiniGameXpDate===today) ? (kd.miniGameXpToday||0) : 0;
+  var allowed = Math.max(0, Math.min(amount, DAILY_MINIGAME_XP_CAP-soFar));
+  var updates = {miniGameXpToday: soFar+allowed, lastMiniGameXpDate: today};
+  Object.assign(kd, updates);
+  state.kids[kidId] = kd;
+  if(db) db.doc("kids/"+kidId).update(updates);
+  if(allowed>0) grantXP(kidId, allowed);
+  /* soFar<CAP here means this action is the one that crossed the cap — show the notice once,
+     not on every subsequent action once he's already at the ceiling. */
+  if(allowed<amount && soFar<DAILY_MINIGAME_XP_CAP) toast("🎮 That's today's Arcade XP cap — keep playing for fun!");
+}
+
 function grantMommaMoney(kidId, amount){
   if(!db || amount<=0) return;
   var kd = kidData(kidId);
@@ -4234,7 +4255,7 @@ function spaceLoop(ctx, canvas){
       mg.boosting = false;
       mg.ship.y = canvas.height-30;
       var dx = Math.abs(mg.ship.x-mg.padX);
-      if(dx<30){ mg.score++; grantXP(state.activeKid, 20); toast("🪐 Landed! +20 XP"); }
+      if(dx<30){ mg.score++; grantMiniGameXP(state.activeKid, 8); toast("🪐 Landed! +8 XP"); }
       else toast("Missed the pad — try again!");
       mg.padX = 40+Math.random()*(canvas.width-80);
     }
@@ -4325,8 +4346,8 @@ function parkourLoop(ctx, canvas){
           mg.runner.y = p.y; mg.runner.vy = 0; mg.runner.jumping = false;
           if(!p.scored){
             p.scored = true; mg.score++;
-            grantXP(state.activeKid, p.flag?20:5);
-            toast(p.flag ? "🚩 Flag platform! +20 XP" : "+5 XP");
+            grantMiniGameXP(state.activeKid, p.flag?8:2);
+            toast(p.flag ? "🚩 Flag platform! +8 XP" : "+2 XP");
           }
         }
       });
@@ -4497,7 +4518,7 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
