@@ -335,6 +335,43 @@ function avatarFor(kidId){
   var key = kidData(kidId).avatarKey;
   return AVATARS.filter(function(a){ return a.key===key; })[0] || null;
 }
+
+/* Weekend Extras — Ryan's own idea: an optional, no-pressure card that shows up on Saturday/Sunday
+   when a leader has switched it on for that kid. No XP, no completion checkbox, nothing to review —
+   just a fun video or a tinkering idea, since the whole point is that weekends stay actually
+   optional. Off by default per kid. */
+var WEEKEND_EXTRAS = [
+  {title:"The story of the Windows 95 startup sound", blurb:"Composer Brian Eno wrote it on a Mac, not a PC — the brief was just \"make it 3.25 seconds and inspiring.\"", link:"https://blog.codinghorror.com/the-windows-95-startup-sound/"},
+  {title:"Browse the Windows 95 icon gallery", blurb:"See how many of these you recognize from your own install — pick a favorite and try recreating it pixel-by-pixel.", link:"https://commons.wikimedia.org/wiki/Category:Windows_95_icons"},
+  {title:"Tinker idea: speed-run a boot", blurb:"Pick one of your installed OS versions and time how fast you can get it from power-on to a usable desktop. Try changing a setting and see if you can beat your own time.", link:null},
+  {title:"Tinker idea: theme swap", blurb:"Change the wallpaper, colors, or sounds on one of your VMs to match a totally different era than it's from — see how weird you can make it look.", link:null},
+  {title:"How fast is a modern computer really?", blurb:"An old 1990s PC could take 2 minutes just to boot. See how long your everyday device takes, and guess why the difference is so huge.", link:"https://www.youtube.com/watch?v=NgS5MB_fWX8"}
+];
+function isWeekendIso(iso){
+  var dow = new Date(iso+"T00:00:00").getDay();
+  return dow===0 || dow===6;
+}
+/* Same pick all day (and the same pick if he checks back later), different pick most weekends —
+   keyed off the date so it doesn't reshuffle on every render. */
+function weekendExtraFor(iso){
+  var dayNum = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
+  return WEEKEND_EXTRAS[((dayNum % WEEKEND_EXTRAS.length) + WEEKEND_EXTRAS.length) % WEEKEND_EXTRAS.length];
+}
+function renderWeekendExtraCard(kidId, iso){
+  var extra = weekendExtraFor(iso);
+  var card = document.createElement("div");
+  card.className = "card";
+  card.style.cssText = "margin-bottom:10px;border:1px dashed var(--border);background:var(--paper)";
+  card.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
+      '<span style="font-size:18px">🎮</span>'+
+      '<div style="font-weight:700">Weekend Extra — totally optional</div>'+
+    '</div>'+
+    '<div style="font-weight:600;font-size:14.5px;margin-bottom:3px">'+escapeHtml(extra.title)+'</div>'+
+    '<div class="muted" style="font-size:13px;margin-bottom:'+(extra.link?"8px":"0")+'">'+escapeHtml(extra.blurb)+'</div>'+
+    (extra.link ? (/youtube\.com|youtu\.be/i.test(extra.link) ? videoLinkHtml(extra.link) : materialsLinkHtml(extra.link)) : '');
+  return card;
+}
 var DAYS = ["Mon","Tue","Wed","Thu","Fri"];
 var DAY_LABEL = {Mon:"Monday",Tue:"Tuesday",Wed:"Wednesday",Thu:"Thursday",Fri:"Friday"};
 var SUBJECT_COLOR = {
@@ -1061,6 +1098,24 @@ function renderModeToggleRow(kidId){
   calmBtn.onclick = function(){ setModeFlag("al_calm", kidId, !calmOn); renderView(); };
   row.appendChild(calmBtn);
 
+  if(isWeekendIso(todayISO())){
+    var kd = kidData(kidId);
+    var extrasOn = !!kd.weekendExtrasOn;
+    var extrasBtn = document.createElement("button");
+    extrasBtn.type = "button";
+    extrasBtn.className = "reward-skip";
+    extrasBtn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 10px;"+
+      (extrasOn ? "background:var(--success-soft);color:var(--ink);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+    extrasBtn.textContent = extrasOn ? "🎮 Weekend Extra: ON" : "🎮 Weekend Extra";
+    extrasBtn.onclick = function(){
+      kd.weekendExtrasOn = !extrasOn;
+      state.kids[kidId] = kd;
+      if(db) db.doc("kids/"+kidId).update({weekendExtrasOn: !extrasOn});
+      renderView();
+    };
+    row.appendChild(extrasBtn);
+  }
+
   if(calmOn){
     var breakBtn = document.createElement("button");
     breakBtn.type = "button";
@@ -1094,6 +1149,10 @@ function renderToday(){
   title.textContent = fmtDate(iso) + "'s Daily Rhythm";
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
+
+  if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
+    els.view.appendChild(renderWeekendExtraCard(kidId, iso));
+  }
 
   var blocks = orderedBlocksFor(kidId);
   var listOn = isListMode(kidId);
@@ -3207,6 +3266,45 @@ function renderCompletedFolder(){
   if(anyUnreadCleared) updateCompletedTabBadge();
 }
 
+/* Off by default per kid — a leader turns it on, and it shows up as a small optional card on
+   Saturday/Sunday (see renderWeekendExtraCard). Ryan's own idea: something to look at/tinker with
+   over the weekend, with no XP and nothing to check off, so it can't turn into a chore. */
+function renderWeekendExtrasSettingsCard(){
+  var card = document.createElement("div");
+  card.className = "card";
+  card.style.marginBottom = "14px";
+  var head = document.createElement("div");
+  head.innerHTML =
+    '<div style="font-weight:700;margin-bottom:2px">🎮 Weekend Extras</div>'+
+    '<div class="muted" style="font-size:12.5px;margin-bottom:10px">Optional fun videos/tinkering ideas on Sat &amp; Sun — no XP, nothing to complete. Off by default.</div>';
+  card.appendChild(head);
+  KIDS.forEach(function(k){
+    var kd = kidData(k.id);
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;"+(k.id!==KIDS[KIDS.length-1].id?"border-bottom:1px solid var(--border)":"");
+    var label = document.createElement("div");
+    label.style.fontWeight = "600";
+    label.textContent = kd.name;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "reward-skip";
+    var on = !!kd.weekendExtrasOn;
+    btn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:6px 12px;"+
+      (on ? "background:var(--success-soft);color:var(--success);font-weight:700" : "background:var(--card);color:var(--text-dim)");
+    btn.textContent = on ? "On" : "Off";
+    btn.onclick = function(){
+      kd.weekendExtrasOn = !on;
+      state.kids[k.id] = kd;
+      if(db) db.doc("kids/"+k.id).update({weekendExtrasOn: !on});
+      renderView();
+    };
+    row.appendChild(label);
+    row.appendChild(btn);
+    card.appendChild(row);
+  });
+  return card;
+}
+
 function renderLeaderArea(){
   els.view.innerHTML = "";
   if(!state.leaderUnlocked || state.changingPin){ return renderLeaderPinGate(); }
@@ -3228,6 +3326,7 @@ function renderLeaderArea(){
   els.view.appendChild(lockRow);
 
   els.view.appendChild(leaderGuideCard());
+  els.view.appendChild(renderWeekendExtrasSettingsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
@@ -4398,7 +4497,7 @@ var MM_MEMBERS = { kid2: "5839b72b-c7d7-410a-b335-2f940309bdc7" };
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
