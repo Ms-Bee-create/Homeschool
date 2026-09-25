@@ -613,6 +613,18 @@ function renderKidbar(){
   els.kidbar.appendChild(wrap);
 }
 
+/* Closes the profile dropdown and any open avatar picker on a click anywhere outside the
+   profile-switch control, instead of requiring the kid's name/row specifically. One listener on
+   document, added once — renderKidbar() rebuilds the whole .profile-switch tree on every render,
+   so there's nothing here to re-attach. */
+document.addEventListener("click", function(e){
+  if(!state.profileMenuOpen && state.avatarPickerOpenFor==null) return;
+  if(e.target.closest(".profile-switch")) return;
+  state.profileMenuOpen = false;
+  state.avatarPickerOpenFor = null;
+  renderKidbar();
+});
+
 function renderXpBar(){
   var kd = kidData(state.activeKid);
   var pct = progressFor(kd.xp);
