@@ -2906,7 +2906,7 @@ function renderLessonDetail(){
     addPicLabel.textContent = "Uploading...";
     sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
       addPicLabel.textContent = "📸 Add picture";
-      if(res.error){ toast("⚠️ Couldn't upload — check your connection and try again"); return; }
+      if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); return; }
       var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
       blocks.push({type:"image", url: url});
       renderBlocks();
