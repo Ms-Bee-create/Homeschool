@@ -4704,6 +4704,24 @@ function seedArenaQuestions(kidId){
   console.log("seedArenaQuestions: added "+added+" question(s)");
 }
 
+/* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
+   whose Month 1 import happened before this specific curriculum item existed (so it never got
+   created) and who now wants to actually take it on. Safe to run once; checks for the exact title
+   first so it won't duplicate if it's already there somewhere. */
+function addDosboxPivotTask(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var title = "Pivot day: VirtualBox couldn't get Windows 95 stable even after every fix, so switch tools — install Windows 95 in DOSBox-X instead, using manual CPU cycle control to match real 1995 hardware speed. Take a screenshot of the desktop for your guide once it boots.";
+  var already = Object.keys(state.assignments).some(function(id){ return state.assignments[id].kidId===kidId && state.assignments[id].title===title; });
+  if(already){ console.log("addDosboxPivotTask: "+kidId+" already has this assignment — not adding a duplicate."); return; }
+  db.collection("assignments").add({
+    kidId: kidId, date: todayISO(), subject:"Independent", title: title,
+    xp: 25, done:false, doneAt:null,
+    installHelp: "win95", crossSubjects: ["Reading","ELA","Computer Science","Social Studies"],
+    createdAt: new Date().toISOString()
+  });
+  console.log("addDosboxPivotTask: added for "+kidId+", dated today.");
+}
+
 /* Adds the 16-item OS Museum Archive Challenge (choice-pool bonus days, d:20-22) for a kid who
    already has Month 1 imported. Anchors off their existing Day 0 assignment date so it lands
    right after Month 1 ends, same math as diagnoseScheduleDates. Safe to run only once — running
@@ -4746,7 +4764,8 @@ function addOsMuseumArchiveChallenge(kidId){
    patchInstallHelp(state.activeKid)             — adds the VM install troubleshooting card to already-imported install lessons
    patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template
    markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker
-   addOsMuseumArchiveChallenge(state.activeKid)  — adds the 16-item choice-pool bonus days (Math/Science/Social Studies, d:20-22) after Month 1 */
+   addOsMuseumArchiveChallenge(state.activeKid)  — adds the 16-item choice-pool bonus days (Math/Science/Social Studies, d:20-22) after Month 1
+   addDosboxPivotTask(state.activeKid)           — adds the DOSBox-X Windows 95 pivot task dated today, for a kid whose Month 1 import predates this item */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.markLegacyOsInstallsComplete = markLegacyOsInstallsComplete;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
@@ -4763,6 +4782,7 @@ window.patchLessonLinks = patchLessonLinks;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
+window.addDosboxPivotTask = addDosboxPivotTask;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
