@@ -336,40 +336,63 @@ function avatarFor(kidId){
   return AVATARS.filter(function(a){ return a.key===key; })[0] || null;
 }
 
-/* Weekend Extras — Ryan's own idea: an optional, no-pressure card that shows up on Saturday/Sunday
-   when a leader has switched it on for that kid. No XP, no completion checkbox, nothing to review —
-   just a fun video or a tinkering idea, since the whole point is that weekends stay actually
-   optional. Off by default per kid. */
+/* Weekend Extras — Ryan's own idea: an optional, no-pressure set of cards that shows up on
+   Saturday/Sunday when a leader has switched it on for that kid. No XP, no completion checkbox,
+   nothing to review — but he asked for something closer to a real project he can pick from, with
+   old-tech videos, rather than one thin sentence. Each item pairs a real video/article with a
+   small hands-on project idea; he sees 3 options and picks whichever sounds fun, or none at all.
+   Off by default per kid. Links verified via web search, not guessed — see PR history. */
 var WEEKEND_EXTRAS = [
-  {title:"The story of the Windows 95 startup sound", blurb:"Composer Brian Eno wrote it on a Mac, not a PC — the brief was just \"make it 3.25 seconds and inspiring.\"", link:"https://blog.codinghorror.com/the-windows-95-startup-sound/"},
-  {title:"Browse the Windows 95 icon gallery", blurb:"See how many of these you recognize from your own install — pick a favorite and try recreating it pixel-by-pixel.", link:"https://commons.wikimedia.org/wiki/Category:Windows_95_icons"},
-  {title:"Tinker idea: speed-run a boot", blurb:"Pick one of your installed OS versions and time how fast you can get it from power-on to a usable desktop. Try changing a setting and see if you can beat your own time.", link:null},
-  {title:"Tinker idea: theme swap", blurb:"Change the wallpaper, colors, or sounds on one of your VMs to match a totally different era than it's from — see how weird you can make it look.", link:null},
-  {title:"How fast is a modern computer really?", blurb:"An old 1990s PC could take 2 minutes just to boot. See how long your everyday device takes, and guess why the difference is so huge.", link:"https://www.youtube.com/watch?v=NgS5MB_fWX8"}
+  {title:"The story of the Windows 95 startup sound", blurb:"Composer Brian Eno wrote it on a Mac, not a PC — the brief was just \"make it 3.25 seconds and inspiring.\"", link:"https://blog.codinghorror.com/the-windows-95-startup-sound/",
+    steps:["Watch the video/read the story above.","Pick something you're proud of that you've built — a VM, a game, an app.","Record a 2-4 second sound with your voice or an instrument to be its \"startup sound.\"","Play it the next time you show that project off."]},
+  {title:"Browse the Windows 95 icon gallery", blurb:"See how many of these you recognize from your own install.", link:"https://commons.wikimedia.org/wiki/Category:Windows_95_icons",
+    steps:["Browse the gallery and pick your favorite icon.","Open Paint (or any pixel-art tool) and set up a small grid to draw on.","Recreate the icon pixel-by-pixel, matching the colors as closely as you can.","Put yours next to the original and see how close you got."]},
+  {title:"Tinker idea: speed-run a boot", blurb:"No video for this one — just you and a stopwatch.", link:null,
+    steps:["Pick one of your installed OS versions.","Time how long it takes from power-on to a usable desktop.","Change one setting (RAM, CPU cycles, graphics) and time it again.","See if you can beat your first time — write down your best."]},
+  {title:"Tinker idea: theme swap", blurb:"No video for this one — just you and your VMs.", link:null,
+    steps:["Pick one of your VMs.","Change its wallpaper, color scheme, or system sounds.","Try to make it look like it's from a totally different era than it actually is.","Take a screenshot of the mismatched result."]},
+  {title:"LGR installs real Windows 95, nearly 30 years later", blurb:"LGR (Clint Basinger) is one of the best-known retro computing YouTubers — this one's an unboxing of a sealed, brand-new Windows 95 box.", link:"https://www.youtube.com/watch?v=LxOY5IIC0uo",
+    steps:["Watch Clint's video above.","Pick one of your own OS installs.","Give it a full \"first boot\" tour like a real reviewer — narrate what you see as you go.","Show your tour to someone in your family, like Clint shows his audience."]},
+  {title:"Explore the Computer History Museum's channel", blurb:"Real historic computers, lectures, and machines most people have never heard of.", link:"https://www.youtube.com/user/computerhistory",
+    steps:["Browse the channel above.","Find one machine you've never heard of before.","Learn (and remember) 3 real facts about it.","Teach those 3 facts to someone in your family."]},
+  {title:"Steve's Retro Day Out — Cambridge Computing History Museum", blurb:"A real video tour through a museum full of old computers.", link:"https://www.youtube.com/watch?v=dxyAVmf_7O0",
+    steps:["Watch the museum tour above.","Pick one of your own VM installs.","Write a short \"museum placard\" for it — name, year, why it matters.","Read your placard out loud like a tour guide would."]},
+  {title:"How does a floppy disk actually work?", blurb:"The magnetic disk spinning inside that plastic shell is how an entire game used to fit on one \"floppy.\"", link:"https://www.youtube.com/watch?v=FLJTUvlsVBg",
+    steps:["Watch the video above.","Without looking anything up, explain to someone in your family how a floppy disk stores data.","See if you can answer it if they ask a follow-up question."]}
 ];
 function isWeekendIso(iso){
   var dow = new Date(iso+"T00:00:00").getDay();
   return dow===0 || dow===6;
 }
-/* Same pick all day (and the same pick if he checks back later), different pick most weekends —
-   keyed off the date so it doesn't reshuffle on every render. */
-function weekendExtraFor(iso){
+/* Same 3 picks all day (and if he checks back later), a different trio most weekends — keyed off
+   the date so it doesn't reshuffle on every render, rotating through the whole pool over several
+   weekends rather than showing the same set every time. */
+function weekendExtrasFor(iso){
+  var n = WEEKEND_EXTRAS.length;
   var dayNum = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
-  return WEEKEND_EXTRAS[((dayNum % WEEKEND_EXTRAS.length) + WEEKEND_EXTRAS.length) % WEEKEND_EXTRAS.length];
+  var base = ((dayNum % n) + n) % n;
+  return [WEEKEND_EXTRAS[base], WEEKEND_EXTRAS[(base+1)%n], WEEKEND_EXTRAS[(base+2)%n]];
 }
 function renderWeekendExtraCard(kidId, iso){
-  var extra = weekendExtraFor(iso);
+  var picks = weekendExtrasFor(iso);
   var card = document.createElement("div");
   card.className = "card";
   card.style.cssText = "margin-bottom:10px;border:1px dashed var(--border);background:var(--paper)";
-  card.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'+
-      '<span style="font-size:18px">🎮</span>'+
-      '<div style="font-weight:700">Weekend Extra — totally optional</div>'+
-    '</div>'+
-    '<div style="font-weight:600;font-size:14.5px;margin-bottom:3px">'+escapeHtml(extra.title)+'</div>'+
-    '<div class="muted" style="font-size:13px;margin-bottom:'+(extra.link?"8px":"0")+'">'+escapeHtml(extra.blurb)+'</div>'+
-    (extra.link ? (/youtube\.com|youtu\.be/i.test(extra.link) ? videoLinkHtml(extra.link) : materialsLinkHtml(extra.link)) : '');
+  var head = document.createElement("div");
+  head.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:10px";
+  head.innerHTML = '<span style="font-size:18px">🎮</span><div style="font-weight:700">Weekend Extras — totally optional, pick whichever sounds fun (or none)</div>';
+  card.appendChild(head);
+  picks.forEach(function(extra, i){
+    var item = document.createElement("div");
+    item.style.cssText = "padding:10px 0;"+(i<picks.length-1 ? "border-bottom:1px solid var(--border)" : "");
+    item.innerHTML =
+      '<div style="font-weight:600;font-size:14.5px;margin-bottom:3px">'+escapeHtml(extra.title)+'</div>'+
+      '<div class="muted" style="font-size:12.5px;margin-bottom:5px">'+escapeHtml(extra.blurb)+'</div>'+
+      (extra.link ? '<div style="margin-bottom:6px">'+(/youtube\.com|youtu\.be/i.test(extra.link) ? videoLinkHtml(extra.link) : materialsLinkHtml(extra.link))+'</div>' : '')+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:2px">Project idea:</div>'+
+      '<ol style="margin:0 0 0 18px;padding:0;font-size:13px">'+extra.steps.map(function(s){ return '<li style="margin-bottom:3px">'+escapeHtml(s)+'</li>'; }).join("")+'</ol>';
+    card.appendChild(item);
+  });
   return card;
 }
 var DAYS = ["Mon","Tue","Wed","Thu","Fri"];
