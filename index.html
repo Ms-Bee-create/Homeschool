@@ -1174,7 +1174,11 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
 
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
+    /* Weekends have no real curriculum assigned, so the usual 6 blocks would just show up as a
+       row of "nothing assigned to this block today" placeholders — noise on what's supposed to be
+       a free day. Weekend Extra mode replaces that whole list with just the project card. */
     els.view.appendChild(renderWeekendExtraCard(kidId, iso));
+    return;
   }
 
   var blocks = orderedBlocksFor(kidId);
