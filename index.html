@@ -4554,7 +4554,7 @@ var HOUSEHOLD_ID = null;
 function checkWriteError(res){
   if(res && res.error){
     console.error("Academy Log sync error:", res.error);
-    toast("⚠️ Couldn't save — check your connection and try again");
+    toast("⚠️ Couldn't save"+(res.error.message ? ": "+res.error.message : " — check your connection and try again"));
   }
   syncSoon();
   return res;
