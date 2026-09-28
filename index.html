@@ -4886,6 +4886,63 @@ function seedArenaQuestions(kidId){
   console.log("seedArenaQuestions: added "+added+" question(s)");
 }
 
+/* Anna (kid1) content drop, requested 2026-09-28: two study guides' worth of quiz questions plus
+   a day of assignments for 2026-09-29. Needs a "topic" column on al_questions (SQL below) since
+   the existing question bank never grouped by topic before. */
+var KID1_QUESTIONS_20260929 = [
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Creek Nation", q:"Where did most Creek towns build their homes?", choices:["Along rivers","On mountaintops","In the desert","On islands only"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Cherokee Nation", q:"The Cherokee mostly lived in which part of Georgia?", choices:["The north Georgia mountains","The Atlantic beaches","The Okefenokee Swamp","Middle Georgia flatlands"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Cherokee Nation", q:"Sequoyah is famous for creating...", choices:["A written alphabet for the Cherokee language","The first Georgia flag","A new kind of canoe","The city of Savannah"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Creek & Cherokee Life", q:"Corn, beans, and squash grown together were sometimes called...", choices:["The Three Sisters","The Three Kings","The Garden Trio","The Harvest Squad"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Oglethorpe & Georgia's Founding", q:"James Oglethorpe founded Georgia in...", choices:["1733","1620","1776","1861"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Oglethorpe & Georgia's Founding", q:"Georgia was founded partly to give a fresh start to...", choices:["People who were in debt back in England","Only soldiers","Only farmers","Only royalty"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Tomochichi & Mary Musgrove", q:"Tomochichi was a leader of which group who became friends with Oglethorpe?", choices:["The Yamacraw","The Vikings","The Pilgrims","The Romans"], answerIndex:0},
+  {subject:"Social Studies", studyGuide:"Georgia's First People & Founders", topic:"Tomochichi & Mary Musgrove", q:"Mary Musgrove helped the colonists mainly by...", choices:["Translating and trading between colonists and Creek people","Building the first Georgia road","Painting portraits of the king","Sailing ships to England"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Two-Digit Addition", q:"36 + 27 = ?", choices:["63","53","73","54"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Two-Digit Addition", q:"When 8 + 6 makes 14, that's more than a ten! What do you do with the extra ten?", choices:["Carry (regroup) it into the tens place","Throw it away","Turn it into a hundred","Ignore it"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Regrouping (Carrying)", q:"48 + 35 = ?", choices:["83","73","82","93"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Regrouping (Carrying)", q:"In 27 + 15, you add the ones first: 7 + 5 = 12. What does that give you?", choices:["1 ten and 2 ones","2 tens and 1 one","12 tens","0 tens and 12 ones"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Subtraction Strategies", q:"62 - 28 = ?", choices:["34","44","36","24"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Subtraction Strategies", q:"What's a good strategy for solving 50 - 23?", choices:["Count up from 23 to 50","Multiply first","Add 23 and 50 together","Skip it — it can't be solved"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Measuring in Inches & Centimeters", q:"Which unit would you use to measure the length of your pencil?", choices:["Inches","Miles","Pounds","Gallons"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Measuring in Inches & Centimeters", q:"About how many inches are in 1 foot?", choices:["12","10","6","24"], answerIndex:0},
+  {subject:"Math", studyGuide:"Two-Digit Addition & Subtraction", topic:"Measuring in Inches & Centimeters", q:"You're measuring a poster for your Design Studio and it's 2 feet long. How many inches is that?", choices:["24","12","20","26"], answerIndex:0}
+];
+var KID1_ASSIGNMENTS_20260929 = [
+  {subject:"Reading", title:"Reading Block: bug guide or cookbook (your pick) + a fun read-aloud chapter", xp:10},
+  {subject:"Math", title:"Trail Mix Math — measure ingredients, add up the totals (2-digit addition w/ regrouping)", xp:15},
+  {subject:"Science", title:"Bug Lab: outdoor hunt — find a bug, journal where it lives and why that's its habitat", xp:15},
+  {subject:"Related Arts", title:"Design Studio: design a \"Bug Hotel\" poster — measure it out in inches or centimeters", xp:15},
+  {subject:"Social Studies", title:"Alexa Wonder Time: \"Why did people start brand-new colonies like Georgia hundreds of years ago?\"", xp:10},
+  {subject:"Independent", title:"Show & Celebrate: present your Bug Hotel design, trail mix math, and where Alexa Wonder Time wandered", xp:10}
+];
+function addKid1ContentSep29(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var existingQ = {};
+  state.questions.forEach(function(q){ existingQ[q.subject+"||"+q.q] = true; });
+  var addedQ = 0;
+  KID1_QUESTIONS_20260929.forEach(function(item){
+    if(existingQ[item.subject+"||"+item.q]) return;
+    db.collection("questions").add({
+      kidId:"kid1", subject:item.subject, studyGuide:item.studyGuide, topic:item.topic,
+      q:item.q, choices:item.choices, answerIndex:item.answerIndex, xp:15
+    });
+    addedQ++;
+  });
+  var existingA = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId==="kid1"; }).map(function(a){ return a.title; });
+  var addedA = 0;
+  KID1_ASSIGNMENTS_20260929.forEach(function(item){
+    if(existingA.indexOf(item.title)!==-1) return;
+    db.collection("assignments").add({
+      kidId:"kid1", date:"2026-09-29", subject:item.subject, title:item.title,
+      xp:item.xp, done:false, doneAt:null, createdAt:new Date().toISOString()
+    });
+    addedA++;
+  });
+  console.log("addKid1ContentSep29: added "+addedQ+" of "+KID1_QUESTIONS_20260929.length+" question(s), "+addedA+" of "+KID1_ASSIGNMENTS_20260929.length+" assignment(s)");
+}
+
 /* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
    whose Month 1 import happened before this specific curriculum item existed (so it never got
    created) and who now wants to actually take it on. If it was already added with the old
@@ -4957,7 +5014,8 @@ function addOsMuseumArchiveChallenge(kidId){
    patchLessonLinks(state.activeKid)             — backfills materials/video/standard on any already-imported lesson from the current curriculum template
    markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker
    addOsMuseumArchiveChallenge(state.activeKid)  — adds the 16-item choice-pool bonus days (Math/Science/Social Studies, d:20-22) after Month 1
-   addDosboxPivotTask(state.activeKid)           — adds the DOSBox-X Windows 95 pivot task dated today, for a kid whose Month 1 import predates this item */
+   addDosboxPivotTask(state.activeKid)           — adds the DOSBox-X Windows 95 pivot task dated today, for a kid whose Month 1 import predates this item
+   addKid1ContentSep29()                         — one-time: adds Anna's 17 quiz questions (2 study guides) + 6 assignments dated 2026-09-29 */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.markLegacyOsInstallsComplete = markLegacyOsInstallsComplete;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
@@ -4975,6 +5033,7 @@ window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
 window.addDosboxPivotTask = addDosboxPivotTask;
+window.addKid1ContentSep29 = addKid1ContentSep29;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
