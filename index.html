@@ -5010,7 +5010,8 @@ var KID1_LESSON_LINKS_PATCH = [
     video:"https://www.khanacademy.org/math/cc-2nd-grade-math/cc-2nd-add-subtract-100/cc-2nd-add-100/v/addition-with-regrouping",
     materials:"https://www.youtube.com/watch?v=egjDLFX9VHg"},
   {title:"Design Studio: design a \"Bug Hotel\" poster — measure it out in inches or centimeters",
-    video:"https://www.youtube.com/watch?v=eUK_f6tDaTk"},
+    video:"https://www.youtube.com/watch?v=eUK_f6tDaTk",
+    passage:"Here's how to build your Bug Hotel poster, one step at a time. First, get a plain sheet of paper, a pencil, a ruler, and some crayons or markers. Second, write a title at the very top, like \"Anna's Bug Hotel.\" Third, use your pencil to draw one big rectangle in the middle of the paper — that's the outside wall of your hotel. Fourth, draw two or three lines inside your rectangle to split it into small rooms, like a dollhouse, one room for each kind of bug, like ladybugs, worms, or pillbugs. Fifth, grab your ruler and measure how wide your rectangle is, then write the number right on your poster, like \"6 inches wide\" or \"15 centimeters wide.\" Sixth, measure how tall it is too, and write that number down as well. Seventh, color in each little room and add tiny details, like leaves, sticks, or rocks, for your bugs to enjoy. Last, write your name at the bottom so everyone knows whose amazing hotel it is."},
   {title:"Alexa Wonder Time: \"Why did people start brand-new colonies like Georgia hundreds of years ago?\"",
     video:"https://www.youtube.com/watch?v=0H9evCb4mNc",
     materials:"https://www.gpb.org/education/georgiastories/establishing-savannah",
@@ -5067,22 +5068,24 @@ function addDosboxPivotTask(kidId){
    already has Month 1 imported. Anchors off their existing Day 0 assignment date so it lands
    right after Month 1 ends, same math as diagnoseScheduleDates. Safe to run only once — running
    it twice will create duplicate choice options; check auditAssignments first if unsure. */
+/* Originally anchored after Month 1 (day 19) so it couldn't collide with anything already
+   scheduled — but at his actual pace that landed ~3.5 weeks out, further than intended. Since this
+   content is all optional/choice-based (no pressure, nothing required), it's safe to run alongside
+   whatever he's currently on instead of strictly after it. Now anchored off today: the 3 archive
+   days (originally d:20-22) land today, tomorrow, and the day after, in parallel with Month 1
+   rather than queued behind it. */
 function addOsMuseumArchiveChallenge(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
-  var anchorTitle = null;
-  CURRICULUM_RETRO_OS_MONTH1.forEach(function(item){ if(item.d===0) anchorTitle = anchorTitle || item.title; });
-  var anchorRow = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
-    .filter(function(a){ return a.kidId===kidId && a.title===anchorTitle; })[0];
-  if(!anchorRow){ console.log("addOsMuseumArchiveChallenge: couldn't find "+kidId+"'s Day 0 assignment to anchor from — has Month 1 been imported yet?"); return; }
-  var anchorDate = new Date(anchorRow.date+"T00:00:00");
+  var archiveDays = CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.map(function(item){ return item.d; });
+  var minArchiveDay = Math.min.apply(null, archiveDays);
+  var todayDate = new Date(todayISO()+"T00:00:00");
   var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   var added = 0;
   CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return; // already added — skip, don't duplicate
-    var week = Math.floor(item.d/5), weekday = item.d%5;
-    var d = new Date(anchorDate);
-    d.setDate(d.getDate() + week*7 + weekday);
+    var d = new Date(todayDate);
+    d.setDate(d.getDate() + (item.d - minArchiveDay));
     db.collection("assignments").add({
       kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
       xp: item.xp, done:false, doneAt:null,
@@ -5092,7 +5095,7 @@ function addOsMuseumArchiveChallenge(kidId){
     });
     added++;
   });
-  console.log("addOsMuseumArchiveChallenge: added "+added+" of "+CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.length+" archive challenge assignment(s) for "+kidId);
+  console.log("addOsMuseumArchiveChallenge: added "+added+" of "+CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.length+" archive challenge assignment(s) for "+kidId+", starting today");
 }
 
 /* One-time maintenance utilities — intentionally not in the UI, run from the browser console when actually needed:
