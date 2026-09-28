@@ -15,6 +15,7 @@
   --gold:#c8952d; --gold-soft:#f4e3ba;
   --teal:#2e7d52; --teal-soft:#dcece1;
   --coral:#b5602f; --coral-soft:#f5e2d3;
+  --pink:#c94f8c; --pink-soft:#f9dfec;
   --success:#3f8f52; --success-soft:#e0f0e3;
   --warn:#c8952d;
   --shadow: 0 1px 2px rgba(28,87,56,.07), 0 6px 16px rgba(28,87,56,.06);
@@ -26,6 +27,7 @@
     --gold:#e0b155; --gold-soft:#3a3320;
     --teal:#6bbf8c; --teal-soft:#1c3327;
     --coral:#e29a68; --coral-soft:#3a2a1e;
+    --pink:#e685b8; --pink-soft:#3a2030;
     --success:#7dcf93; --success-soft:#1e3324;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
   }
@@ -36,6 +38,7 @@
   --gold:#e0b155; --gold-soft:#3a3320;
   --teal:#6bbf8c; --teal-soft:#1c3327;
   --coral:#e29a68; --coral-soft:#3a2a1e;
+  --pink:#e685b8; --pink-soft:#3a2030;
   --success:#7dcf93; --success-soft:#1e3324;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
 }
@@ -316,7 +319,7 @@ button{font:inherit;cursor:pointer}
 "use strict";
 
 var KIDS = [
-  {id:"kid1", defaultName:"2nd Grader", color:"teal"},
+  {id:"kid1", defaultName:"2nd Grader", color:"pink"},
   {id:"kid2", defaultName:"4th Grader", color:"coral"}
 ];
 /* Shared avatar pool — either kid can pick any of these for their profile. Add more here as new
@@ -951,6 +954,29 @@ var DAILY_BLOCKS = [
   {key:"sciSocial", label:"Science & Social Studies", icon:"🔬", subjects:["Science","Social Studies"]},
   {key:"showTeach", label:"Show & Teach", icon:"🎤"}
 ];
+/* Same six blocks, same keys/subjects (so assignment matching never changes) — just a different
+   label/icon per kid so the day actually feels like theirs. Ryan gets the tech/retro default
+   above; Anna gets something that matches her (unicorns, sunshine, rainbows), not his interests
+   wearing a different name. Add more kids here as needed; a kid with no entry just gets the
+   default DAILY_BLOCKS labels. */
+var KID_BLOCK_THEME = {
+  kid1: {
+    morning: {label:"Sunshine Start", icon:"🌞"},
+    math: {label:"Unicorn Math", icon:"🦄"},
+    reading: {label:"Storytime", icon:"📚"},
+    project: {label:"Creative Studio", icon:"🌈"},
+    sciSocial: {label:"Discovery Time", icon:"🌸"},
+    showTeach: {label:"Sparkle & Share", icon:"🌟"}
+  }
+};
+function blocksForKid(kidId){
+  var theme = KID_BLOCK_THEME[kidId];
+  if(!theme) return DAILY_BLOCKS;
+  return DAILY_BLOCKS.map(function(b){
+    var override = theme[b.key];
+    return override ? Object.assign({}, b, override) : b;
+  });
+}
 function blockKeyFor(a){
   if(a.block) return a.block;
   for(var i=0;i<DAILY_BLOCKS.length;i++){
@@ -975,7 +1001,7 @@ function getBlockOrder(kidId){
 function orderedBlocksFor(kidId){
   var order = getBlockOrder(kidId);
   var byKey = {};
-  DAILY_BLOCKS.forEach(function(b){ byKey[b.key] = b; });
+  blocksForKid(kidId).forEach(function(b){ byKey[b.key] = b; });
   return order.map(function(k){ return byKey[k]; });
 }
 function saveBlockOrder(kidId, order){
@@ -993,7 +1019,7 @@ function renderBlockOrderCard(kidId){
   card.className = "card";
   var order = getBlockOrder(kidId);
   var byKey = {};
-  DAILY_BLOCKS.forEach(function(b){ byKey[b.key] = b; });
+  blocksForKid(kidId).forEach(function(b){ byKey[b.key] = b; });
   order.forEach(function(key, i){
     var block = byKey[key];
     var row = document.createElement("div");
@@ -1169,7 +1195,7 @@ function renderToday(){
 
   var title = document.createElement("div");
   title.className = "section-title";
-  title.textContent = fmtDate(iso) + "'s Daily Rhythm";
+  title.textContent = kidId==="kid1" ? "✨ "+fmtDate(iso)+"'s Rainbow Day" : fmtDate(iso) + "'s Daily Rhythm";
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
 
