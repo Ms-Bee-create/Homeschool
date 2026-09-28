@@ -2946,10 +2946,10 @@ function renderLessonDetail(){
         quizBody.appendChild(qRow);
       });
     }
-    renderQuizItems(a.quiz, false);
+    renderQuizItems(a.quiz.map(shuffleQuestionChoices), false);
     retryBtn.onclick = function(){
       usingRetrySet = !usingRetrySet;
-      renderQuizItems(usingRetrySet ? a.quizRetry : a.quiz, usingRetrySet);
+      renderQuizItems((usingRetrySet ? a.quizRetry : a.quiz).map(shuffleQuestionChoices), usingRetrySet);
     };
   }
 
@@ -4421,6 +4421,24 @@ function parkourLoop(ctx, canvas){
   mg.raf = requestAnimationFrame(function(){ parkourLoop(ctx, canvas); });
 }
 
+/* Returns a copy of the question with its choices shuffled and answerIndex remapped to match —
+   the underlying stored question/data never changes, so if the correct answer always happens to
+   be written first (or in any other fixed spot), it still lands somewhere random each time a kid
+   actually sees it instead of being guessable by position. */
+function shuffleQuestionChoices(q){
+  /* Fisher-Yates, not the sort(()=>Math.random()-.5) trick — that one is a well-known biased
+     shuffle (some positions come up far more than others), which would just trade one kind of
+     guessable pattern for another instead of actually fixing it. */
+  var order = q.choices.map(function(_,i){ return i; });
+  for(var i=order.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+  }
+  return Object.assign({}, q, {
+    choices: order.map(function(i){ return q.choices[i]; }),
+    answerIndex: order.indexOf(q.answerIndex)
+  });
+}
 function startQuiz(subject, studyGuide){
   var pool = state.questions.filter(function(q){
     if(q.kidId!==state.activeKid && q.kidId!=="any") return false;
@@ -4429,6 +4447,7 @@ function startQuiz(subject, studyGuide){
   });
   pool = pool.slice().sort(function(){return Math.random()-.5;});
   if(!studyGuide) pool = pool.slice(0,8); // subject quick-fire stays short; study guide mode covers everything so it can be replayed like a full study session
+  pool = pool.map(shuffleQuestionChoices);
   state.quiz = {subject: subject, studyGuide: studyGuide||null, pool: pool, idx:0, score:0, xpEarned:0, phase:"question", timer:studyGuide?25:15, timerHandle:null, timeoutId:null};
   renderArena();
   armTimer();
