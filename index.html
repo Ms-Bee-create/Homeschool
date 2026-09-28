@@ -523,6 +523,13 @@ function todayIdx(){ var d = new Date().getDay(); return d===0?6:d-1; } // 0=Mon
 function todayKey(){ var i = todayIdx(); return i<5 ? DAYS[i] : null; }
 function isoDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function todayISO(){ return isoDate(new Date()); }
+/* The most recent school day before d, skipping weekends — so a streak built Mon-Fri doesn't
+   break just because there's no school on Saturday/Sunday. */
+function prevSchoolDay(d){
+  var p = new Date(d); p.setDate(p.getDate()-1);
+  while(p.getDay()===0 || p.getDay()===6){ p.setDate(p.getDate()-1); }
+  return p;
+}
 function fmtDate(iso){
   if(!iso) return "";
   var d = new Date(iso+"T00:00:00");
@@ -858,7 +865,7 @@ function toggleAssignment(a){
     var last = kd.lastCompletedDate;
     var todayStr = new Date().toDateString();
     if(last !== todayStr){
-      var y = new Date(); y.setDate(y.getDate()-1);
+      var y = prevSchoolDay(new Date());
       updates.streak = (last === y.toDateString()) ? (kd.streak||0)+1 : 1;
       updates.lastCompletedDate = todayStr;
       newStreakDay = true;
@@ -1344,7 +1351,7 @@ function maybeAdvanceSelfStartStreak(kidId, entry){
   var kd = kidData(kidId);
   var todayStr = new Date().toDateString();
   if(kd.lastSelfStartDate === todayStr) return null; // already counted today
-  var y = new Date(); y.setDate(y.getDate()-1);
+  var y = prevSchoolDay(new Date());
   var newStreak = (kd.lastSelfStartDate === y.toDateString()) ? (kd.selfStartStreak||0)+1 : 1;
   var updates = {selfStartStreak: newStreak, lastSelfStartDate: todayStr};
   Object.assign(kd, updates);
