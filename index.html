@@ -2775,6 +2775,16 @@ function renderLessonDetail(){
 
   var materialsHtml = a.materials ? '<div style="margin-bottom:14px">'+materialsLinkHtml(a.materials)+'</div>' : '';
 
+  /* A short, original lesson passage with its own listen button — for a kid who won't sit and
+     read a long article the way another kid might. Written by us specifically to be heard, not
+     linked out to someone else's page. */
+  var passageHtml = a.passage
+    ? '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)">'+
+        '<div style="font-weight:700;margin-bottom:6px">📖 Lesson '+speakerBtnHtml()+'</div>'+
+        '<div style="font-size:14.5px;line-height:1.5">'+escapeHtml(a.passage)+'</div>'+
+      '</div>'
+    : '';
+
   var guideHtml = "";
   var gIdx = (a.subject==="Math" && a.mathSkill!=null) ? MATH_SKILL_GUIDE_INDEX[a.mathSkill] : undefined;
   if(gIdx!=null){
@@ -2811,9 +2821,10 @@ function renderLessonDetail(){
     ? '<div id="flagBanner" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:var(--coral-soft);color:var(--coral);font-weight:600;font-size:13.5px">🚩 Your leader flagged this — please take another look'+(a.reviewNote?': '+escapeHtml(a.reviewNote):'.')+'</div>'
     : '<div id="flagBanner"></div>';
 
-  card.innerHTML = headHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
-  var titleSpeakBtn = card.querySelector(".speak-btn");
-  if(titleSpeakBtn) titleSpeakBtn.onclick = function(){ speak(a.title); };
+  card.innerHTML = headHtml + passageHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+  var speakBtns = card.querySelectorAll(".speak-btn");
+  if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
+  if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(a.passage); };
 
   if(vmHelp){
     var tsWrap = document.createElement("div");
@@ -4962,6 +4973,42 @@ function addKid1ContentSep29(){
   console.log("addKid1ContentSep29: added "+addedQ+" of "+KID1_QUESTIONS_20260929.length+" question(s), "+addedA+" of "+KID1_ASSIGNMENTS_20260929.length+" assignment(s)");
 }
 
+/* Attaches real lesson resources to Anna's (kid1) Math and Social Studies assignments from
+   addKid1ContentSep29. The two Social Studies source articles (a GPB history page and a
+   gardening-lesson page) were both too long for her to sit and read, so instead of linking them
+   she gets one short original passage — written here, not copied from anywhere — with a listen
+   button (renderLessonDetail's passageHtml), the same idea as materials/video but for a kid who'd
+   rather hear it than read it. Matches by title, so safe to run more than once. */
+var KID1_LESSON_LINKS_PATCH = [
+  {title:"Trail Mix Math — measure ingredients, add up the totals (2-digit addition w/ regrouping)",
+    video:"https://www.khanacademy.org/math/cc-2nd-grade-math/cc-2nd-add-subtract-100/cc-2nd-add-100/v/addition-with-regrouping",
+    materials:"https://www.youtube.com/watch?v=egjDLFX9VHg"},
+  {title:"Design Studio: design a \"Bug Hotel\" poster — measure it out in inches or centimeters",
+    video:"https://www.youtube.com/watch?v=eUK_f6tDaTk"},
+  {title:"Alexa Wonder Time: \"Why did people start brand-new colonies like Georgia hundreds of years ago?\"",
+    video:"https://www.youtube.com/watch?v=0H9evCb4mNc",
+    materials:"https://www.gpb.org/education/georgiastories/establishing-savannah",
+    passage:"Long before Georgia became a colony, the Creek and Cherokee people already called this land home. The Cherokee lived up in the north Georgia mountains, while Creek towns built their homes along rivers. Both groups grew corn, beans, and squash together in the same garden, a trick called the Three Sisters, where each plant helps the other two grow. In 1733, a British general named James Oglethorpe sailed over to start a brand-new colony called Georgia. When he arrived, he met Tomochichi, a Yamacraw leader, who welcomed him and helped him pick the land for a new city called Savannah. A woman named Mary Musgrove, who spoke both English and Creek, helped Oglethorpe and Tomochichi understand each other by translating between them. Their friendship and cooperation helped Georgia's very first colony get off to a peaceful start."}
+];
+function patchKid1LessonLinks(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1") return;
+    var match = KID1_LESSON_LINKS_PATCH.filter(function(p){ return p.title===a.title; })[0];
+    if(!match) return;
+    var updates = {};
+    if(match.video) updates.video = match.video;
+    if(match.materials) updates.materials = match.materials;
+    if(match.passage) updates.passage = match.passage;
+    Object.assign(a, updates);
+    db.doc("assignments/"+id).update(updates);
+    patched++;
+  });
+  console.log("patchKid1LessonLinks: patched "+patched+" of "+KID1_LESSON_LINKS_PATCH.length+" assignment(s)");
+}
+
 /* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
    whose Month 1 import happened before this specific curriculum item existed (so it never got
    created) and who now wants to actually take it on. If it was already added with the old
@@ -5034,7 +5081,8 @@ function addOsMuseumArchiveChallenge(kidId){
    markLegacyOsInstallsComplete(state.activeKid) — marks the old Win98/XP/7 install assignments done + awards XP, for OS installs already done off-tracker
    addOsMuseumArchiveChallenge(state.activeKid)  — adds the 16-item choice-pool bonus days (Math/Science/Social Studies, d:20-22) after Month 1
    addDosboxPivotTask(state.activeKid)           — adds the DOSBox-X Windows 95 pivot task dated today, for a kid whose Month 1 import predates this item
-   addKid1ContentSep29()                         — one-time: adds Anna's 17 quiz questions (2 study guides) + 6 assignments dated 2026-09-29 */
+   addKid1ContentSep29()                         — one-time: adds Anna's 17 quiz questions (2 study guides) + 6 assignments dated 2026-09-29
+   patchKid1LessonLinks()                        — one-time: attaches videos/materials/an original listen-able passage to Anna's Math & Social Studies assignments */
 window.removeDuplicateAssignments = removeDuplicateAssignments;
 window.markLegacyOsInstallsComplete = markLegacyOsInstallsComplete;
 window.removeDuplicateTitlesAcrossDates = removeDuplicateTitlesAcrossDates;
@@ -5053,6 +5101,7 @@ window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
 window.addDosboxPivotTask = addDosboxPivotTask;
 window.addKid1ContentSep29 = addKid1ContentSep29;
+window.patchKid1LessonLinks = patchKid1LessonLinks;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
