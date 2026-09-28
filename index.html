@@ -1943,6 +1943,38 @@ function annaLibraryCard(){
   return wrap;
 }
 
+/* Ryan's favorite retro-computing channel, gathered in one spot — same channel his lesson videos
+   already pull from. Links go to real, WebSearch-verified LGR videos/playlists, not guessed URLs. */
+var LGR_LIBRARY_LINKS = [
+  {subject:"LGR Channel", icon:"📼", desc:"Clint Basinger's full retro computing channel", url:"https://www.youtube.com/@LGR"},
+  {subject:"Windows 98", icon:"🖥️", desc:"Building & exploring a Windows 98 PC", url:"https://www.youtube.com/watch?v=K5_JFrEHmTk"},
+  {subject:"Windows XP", icon:"💾", desc:"Building his dream Windows XP PC", url:"https://www.youtube.com/watch?v=-XTnL4Mang0"},
+  {subject:"Windows 7", icon:"🪟", desc:"Windows 7, 15 years later retrospective", url:"https://www.youtube.com/watch?v=M6tmK-NQ-EI"},
+  {subject:"More LGR Videos", icon:"🔍", desc:"Search LGR's channel for more retro OS & tech videos", url:"https://www.youtube.com/@LGR/search?query=windows"}
+];
+function lgrLibraryCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var head = document.createElement("div");
+  head.className = "task-title";
+  head.style.cssText = "padding:10px 14px 0";
+  head.textContent = "📼 LGR — Retro Computing Videos";
+  wrap.appendChild(head);
+  LGR_LIBRARY_LINKS.forEach(function(item){
+    var row = document.createElement("a");
+    row.href = item.url; row.target = "_blank"; row.rel = "noopener";
+    row.className = "task";
+    row.style.cssText = "text-decoration:none;color:inherit;display:flex";
+    row.innerHTML =
+      '<div style="width:26px;text-align:center;font-size:18px">'+item.icon+'</div>'+
+      '<div class="task-body"><div class="task-title">'+escapeHtml(item.subject)+'</div>'+
+      '<div class="task-sub">'+escapeHtml(item.desc)+'</div></div>'+
+      '<div class="task-xp">↗</div>';
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
 function renderLibrary(){
   els.view.innerHTML = "";
   var title = document.createElement("div");
@@ -1960,6 +1992,7 @@ function renderLibrary(){
     els.view.appendChild(curriculumLibraryCard());
     els.view.appendChild(microbitCurriculumCard());
     els.view.appendChild(mathFieldGuideCard());
+    els.view.appendChild(lgrLibraryCard());
   } else {
     intro.textContent = "A few real, kid-safe channels by subject — more (including her Connections Academy content) coming later.";
     els.view.appendChild(annaLibraryCard());
