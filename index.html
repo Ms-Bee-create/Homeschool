@@ -5323,8 +5323,8 @@ var ANNA_OCT_SKILL_BLOCKS = [
       {q:"What is 68 − 29?", choices:["39","49","41","31"], answerIndex:0, explain:"Borrow from the tens: 68 becomes 5 tens 18 ones; 18−9=9, 5−2=3 → 39."},
       {q:"How many tens are in 370?", choices:["3","7","37","70"], answerIndex:2, explain:"370 = 3 hundreds, 7 tens, 0 ones — but counted as just tens, 370 is 37 groups of ten."}
     ]},
-  {dayOffset:14, subject:"Math", skillId:"anna-math-place-value", stage:"apply", standard:"2.NR.1", xp:15,
-    title:"Math: Place Value Capstone — Design a Number Poster",
+  {dayOffset:14, subject:"Related Arts", crossSubjects:["Math"], skillId:"anna-math-place-value", stage:"apply", standard:"2.NR.1", xp:15,
+    title:"Design Studio: Place Value Capstone — Design a Number Poster",
     passage:"Pick a 3-digit number that means something to you (your age in days, a bug count, anything). Draw it three ways: as hundreds/tens/ones blocks, written in expanded form (like 300 + 40 + 2), and in words. Show a grown-up all three and explain how they match."},
   {dayOffset:17, subject:"Math", skillId:"anna-math-place-value", stage:"practice", standard:"2.NR.1", xp:15,
     title:"Math: One More Round — Place Value Check",
@@ -5371,8 +5371,8 @@ var ANNA_OCT_SKILL_BLOCKS = [
     title:"Social Studies: Creek & Cherokee Nations — Here's the Idea",
     materials:"https://www.georgiaencyclopedia.org/articles/history-archaeology/cherokee-indians/",
     passage:"Before Georgia was even called Georgia, two groups of people already lived here: the Creek and the Cherokee. The Cherokee lived up in the north Georgia mountains. The Creek lived along the rivers in the middle and south. Both grew corn, beans, and squash together — called the Three Sisters — because the three plants help each other grow.\nPick one nation, Creek or Cherokee. Find where they lived on a map and put your finger on it. List three things about how they lived: their home, their food, and one more detail you find interesting.\nCheck yourself: can you point to where your nation lived without looking at your notes?\nYour quiz for this one is already live in your Academy Log Arena — \"Georgia's First People & Founders.\""},
-  {dayOffset:1, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"apply", standard:"SS2H2", xp:15,
-    title:"Social Studies: Show What You Know — Creek & Cherokee",
+  {dayOffset:1, subject:"Related Arts", crossSubjects:["Social Studies"], skillId:"anna-ss-creek-cherokee", stage:"apply", standard:"SS2H2", xp:15,
+    title:"Design Studio: Show What You Know — Creek & Cherokee",
     passage:"Draw a Creek river-town next to a Cherokee mountain-town — show what's different about where each one is built.\nIn each town, draw or label at least one home, one food they grew (corn, beans, or squash), and one detail that makes that nation special.\nCheck yourself: could someone tell which town is Creek and which is Cherokee just by looking at your drawing, without you explaining it?\nWant a refresher first? Replay \"Georgia's First People & Founders\" in your Academy Log Arena."},
   {dayOffset:5, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"practice", standard:"SS2H2", xp:15,
     title:"Social Studies: Practice — Creek & Cherokee Details",
@@ -5409,7 +5409,23 @@ var ANNA_OCT_SKILL_BLOCKS = [
     passage:"Draw a story map with 4 boxes: Character, Setting, Problem, Message. Fill in all four for your favorite book or chapter so far.\nCheck yourself: could someone else read your story map and understand the whole story, even if they've never read it?"},
   {dayOffset:13, subject:"ELA", skillId:"anna-ela-story-elements", stage:"mixed", standard:"ELAGSE2RL2-RL5", xp:15,
     title:"ELA Capstone — Retell Your Favorite Story",
-    passage:"Pick your favorite story from this month. Retell the whole thing out loud to a grown-up (or to Alexa), making sure you hit character, problem, and message — no skipping straight to \"what happened.\""}
+    passage:"Pick your favorite story from this month. Retell the whole thing out loud to a grown-up (or to Alexa), making sure you hit character, problem, and message — no skipping straight to \"what happened.\""},
+
+  // --- Design Studio: standalone creative rotation — her Daily Rhythm has Design Studio/Art as
+  // its own dedicated block, not something that only shows up when another subject's apply day
+  // happens to be visual. These fill the gap days so Creative Studio isn't empty. ---
+  {dayOffset:4, subject:"Related Arts", skillId:"anna-design-studio", stage:"apply", xp:15,
+    title:"Design Studio: Decorate Your Journal Cover",
+    passage:"Your journal is where all your math, science, and story work lives this month — give it a cover! Draw or decorate a title page with your name, something you're proud of learning so far, and your favorite color scheme."},
+  {dayOffset:7, subject:"Related Arts", crossSubjects:["Science"], skillId:"anna-design-studio", stage:"apply", xp:15,
+    title:"Design Studio: Build a Bug Habitat Diorama",
+    passage:"Using a shoebox, paper, or whatever you have, build a tiny 3D diorama of your bug's habitat from this month's Bug Journal — the leaves, dirt, or water it needs.\nCheck yourself: does your diorama actually match what you wrote about that habitat, or did you add things it doesn't really have?"},
+  {dayOffset:12, subject:"Related Arts", skillId:"anna-design-studio", stage:"apply", xp:15,
+    title:"Design Studio: Design a Poster for Show & Celebrate",
+    passage:"Pick your favorite thing you've made or learned this month and design a poster about it for Friday's Show & Celebrate — a title, a picture, and 2-3 facts or details."},
+  {dayOffset:19, subject:"Related Arts", skillId:"anna-design-studio", stage:"apply", xp:15,
+    title:"Design Studio: Free Design Day",
+    passage:"Your choice today: design a poster, build something out of craft supplies, or draw a comic — anything creative you want to make. Show a grown-up when you're done and tell them about it."}
 ];
 function addAnnaOctoberSkillBlocks(){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
@@ -5423,11 +5439,36 @@ function addAnnaOctoberSkillBlocks(){
       kidId:"kid1", date:isoDate(due), subject:item.subject, title:item.title,
       xp:item.xp, done:false, doneAt:null, skillId:item.skillId, stage:item.stage, standard:item.standard||null,
       materials:item.materials||null, video:item.video||null, passage:item.passage||null,
-      quiz:item.quiz||null, createdAt:new Date().toISOString()
+      quiz:item.quiz||null, crossSubjects:item.crossSubjects||null, createdAt:new Date().toISOString()
     });
     added++;
   });
   console.log("addAnnaOctoberSkillBlocks: added "+added+" of "+ANNA_OCT_SKILL_BLOCKS.length+" Skill Block assignment(s), starting today");
+}
+/* Creative Studio (Related Arts) was showing empty most days — her Daily Rhythm has Design
+   Studio/Art as its own dedicated block, but none of her October content used that subject. Two
+   tasks that are genuinely design/drawing work got moved from Math/Social Studies into Related
+   Arts (with crossSubjects so they still credit those subjects' hours), which also renamed them —
+   this migrates any already-created rows under their OLD title instead of letting a re-run of
+   addAnnaOctoberSkillBlocks() create duplicates under the new title. Safe to run more than once. */
+var ANNA_CREATIVE_STUDIO_RETAG = [
+  {oldTitle:"Math: Place Value Capstone — Design a Number Poster", newTitle:"Design Studio: Place Value Capstone — Design a Number Poster", subject:"Related Arts", crossSubjects:["Math"]},
+  {oldTitle:"Social Studies: Show What You Know — Creek & Cherokee", newTitle:"Design Studio: Show What You Know — Creek & Cherokee", subject:"Related Arts", crossSubjects:["Social Studies"]}
+];
+function patchAnnaCreativeStudioRetag(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1") return;
+    var match = ANNA_CREATIVE_STUDIO_RETAG.filter(function(p){ return p.oldTitle===a.title; })[0];
+    if(!match) return;
+    var updates = {title: match.newTitle, subject: match.subject, crossSubjects: match.crossSubjects};
+    Object.assign(a, updates);
+    db.doc("assignments/"+id).update(updates);
+    patched++;
+  });
+  console.log("patchAnnaCreativeStudioRetag: patched "+patched+" of "+ANNA_CREATIVE_STUDIO_RETAG.length+" assignment(s)");
 }
 /* Several of Anna's Skill Block materials links were bare homepages or browse-everything pages
    instead of the one specific thing she needs — she's 7, and "go browse this site and figure out
@@ -5721,6 +5762,7 @@ window.addKid1ContentSep29 = addKid1ContentSep29;
 window.patchKid1LessonLinks = patchKid1LessonLinks;
 window.addAnnaOctoberSkillBlocks = addAnnaOctoberSkillBlocks;
 window.patchAnnaHomepageLinks = patchAnnaHomepageLinks;
+window.patchAnnaCreativeStudioRetag = patchAnnaCreativeStudioRetag;
 window.patchKid2RetroVideos = patchKid2RetroVideos;
 window.patchRyanSkillBlockDemo = patchRyanSkillBlockDemo;
 
