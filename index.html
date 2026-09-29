@@ -4037,7 +4037,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:3, subject:"Independent", title:"Write the \"Getting Started\" section of your Windows 95 User Guide.", xp:20, standard:"Writing / Reading strands"},
   {d:3, subject:"Science", title:"Why do old hard drives fail more in humid basements? Read about heat/humidity and electronics.", xp:10, standard:"S4E3/S4E4", materials:"https://kids.kiddle.co/Humidity", video:"https://www.youtube.com/watch?v=uZDyPxeS-Mc"},
 
-  {d:4, subject:"ELA", title:"Show & Teach: Teach a family member how to use Windows 95, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:4, subject:"ELA", title:"Teach-Back: Teach a family member how to use Windows 95, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
   {d:4, subject:"Math", title:"Review: redo one problem from this week that was tricky, and explain your fix.", xp:10, standard:"4.NR.1/4.NR.2", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math", video:"https://www.youtube.com/watch?v=DaQlieZH1kk", practice:["Which of this week's math topics (RAM math, timeline math, fractions, or binary patterns) felt trickiest, and why?"]},
   {d:4, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10, standard:"Reading strands"},
   {d:4, subject:"Independent", title:"Finish and save your Windows 95 User Guide as a PDF or doc in your project folder.", xp:25, standard:"Writing / Reading strands"},
@@ -4076,7 +4076,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:8, subject:"Independent", title:"Write the \"Troubleshooting\" section of your Windows 98 User Guide.", xp:20, standard:"Writing / Reading strands"},
   {d:8, subject:"Science", title:"The Windows 95 startup sound was composed by musician Brian Eno. Read about how sound (WAV files) stores vibration as data.", xp:10, standard:"S4P1/S4P2", materials:"https://faroutmagazine.co.uk/how-brian-eno-created-the-microsoft-windows-95-startup-sound/"},
 
-  {d:9, subject:"ELA", title:"Show & Teach: Teach a family member one Windows 98 feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:9, subject:"ELA", title:"Teach-Back: Teach a family member one Windows 98 feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
   {d:9, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math", video:"https://www.youtube.com/watch?v=zRjLZROI7wc", practice:["Which of this week's math topics (RAM math, timeline math, fractions, or binary patterns) felt trickiest, and why?"]},
   {d:9, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10, standard:"Reading strands"},
   {d:9, subject:"Independent", title:"Finish and save your Windows 98 User Guide.", xp:25, video:"https://www.youtube.com/watch?v=K5_JFrEHmTk", standard:"Writing / Reading strands"},
@@ -4123,7 +4123,7 @@ var CURRICULUM_RETRO_OS_MONTH1 = [
   {d:13, subject:"Independent", title:"Write the \"Troubleshooting\" section of your Windows XP User Guide.", xp:20, standard:"Writing / Reading strands"},
   {d:13, subject:"Science", title:"XP-era PCs used bigger cooling fans. Read about how fans move air to cool electronics (forces & motion).", xp:10, standard:"S4P3", materials:"https://kids.britannica.com/students/article/fan/274175", video:"https://www.youtube.com/watch?v=5F76jSb2Byg"},
 
-  {d:14, subject:"ELA", title:"Show & Teach: Teach a family member one XP feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
+  {d:14, subject:"ELA", title:"Teach-Back: Teach a family member one XP feature, then write 3 sentences about how it went.", xp:15, standard:"Writing strands"},
   {d:14, subject:"Math", title:"Review: redo one tricky problem from this week and explain your fix.", xp:10, standard:"4.NR.4/4.NR.5", materials:"https://www.khanacademy.org/math/cc-fourth-grade-math", video:"https://www.youtube.com/watch?v=zRjLZROI7wc", practice:["Which of this week's math topics (RAM math, timeline math, fractions, or place-value patterns) felt trickiest, and why?"]},
   {d:14, subject:"Reading", title:"Free reading: 20 minutes of a book or article of your choice.", xp:10, standard:"Reading strands"},
   {d:14, subject:"Independent", title:"Finish and save your Windows XP User Guide.", xp:25, standard:"Writing / Reading strands"},
@@ -5553,6 +5553,32 @@ function patchRyanSkillBlockDemo(){
   console.log("patchRyanSkillBlockDemo: patched "+patched+" of "+RYAN_SKILL_BLOCK_DEMO_PATCH.length+" assignment(s)");
 }
 
+/* Renames any already-live assignments still titled "Show & Teach: ..." to "Teach-Back: ..." —
+   that title collided with the app's own fixed end-of-day "Show & Teach" reflection block, so a
+   kid (and a parent skimming the day) saw what looked like two Show & Teach items every time this
+   task landed, when it was really one curriculum task plus the unrelated always-there block. Fixes
+   the source content going forward and any rows already imported under the old title. */
+var SHOW_TEACH_TITLE_RENAMES = [
+  {oldTitle:"Show & Teach: Teach a family member how to use Windows 95, then write 3 sentences about how it went.", newTitle:"Teach-Back: Teach a family member how to use Windows 95, then write 3 sentences about how it went."},
+  {oldTitle:"Show & Teach: Teach a family member one Windows 98 feature, then write 3 sentences about how it went.", newTitle:"Teach-Back: Teach a family member one Windows 98 feature, then write 3 sentences about how it went."},
+  {oldTitle:"Show & Teach: Teach a family member one XP feature, then write 3 sentences about how it went.", newTitle:"Teach-Back: Teach a family member one XP feature, then write 3 sentences about how it went."},
+  {oldTitle:"Show & Teach: give a tour of your finished biome build, pointing out one thing you changed after terraforming, one math decision, and one real biome fact you used.", newTitle:"Teach-Back: give a tour of your finished biome build, pointing out one thing you changed after terraforming, one math decision, and one real biome fact you used."}
+];
+function patchShowTeachTitleCollisions(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var match = SHOW_TEACH_TITLE_RENAMES.filter(function(p){ return p.oldTitle===a.title; })[0];
+    if(!match) return;
+    Object.assign(a, {title: match.newTitle});
+    db.doc("assignments/"+id).update({title: match.newTitle});
+    patched++;
+  });
+  console.log("patchShowTeachTitleCollisions: patched "+patched+" of "+SHOW_TEACH_TITLE_RENAMES.length+" assignment(s)");
+}
+
 /* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
    whose Month 1 import happened before this specific curriculum item existed (so it never got
    created) and who now wants to actually take it on. If it was already added with the old
@@ -5656,7 +5682,7 @@ var CURRICULUM_MINECRAFT_WORLD2 = [
   {d:8, subject:"Science", title:"Dig a cross-section into a hillside and label the soil layers you'd expect to see in real life (topsoil, subsoil, bedrock).", xp:15, standard:"S4E4",
     materials:"https://www.ducksters.com/science/earth_science/soil_science.php"},
 
-  {d:9, subject:"Related Arts", title:"Show & Teach: give a tour of your finished biome build, pointing out one thing you changed after terraforming, one math decision, and one real biome fact you used.", xp:20, standard:"3-5.F"}
+  {d:9, subject:"Related Arts", title:"Teach-Back: give a tour of your finished biome build, pointing out one thing you changed after terraforming, one math decision, and one real biome fact you used.", xp:20, standard:"3-5.F"}
 ];
 function addMinecraftWorld2(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
@@ -5765,6 +5791,7 @@ window.patchAnnaHomepageLinks = patchAnnaHomepageLinks;
 window.patchAnnaCreativeStudioRetag = patchAnnaCreativeStudioRetag;
 window.patchKid2RetroVideos = patchKid2RetroVideos;
 window.patchRyanSkillBlockDemo = patchRyanSkillBlockDemo;
+window.patchShowTeachTitleCollisions = patchShowTeachTitleCollisions;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }

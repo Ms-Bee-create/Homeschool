@@ -132,3 +132,15 @@ Real, evidence-backed alternatives: teach-back ("explain it to Mom/Alexa"), a po
 ("why do you think that happened?" — works best once there's some background knowledge, so lean on
 it more for Ryan than for Anna's brand-new topics). Default every `apply`/`mixed` stage toward a
 "Show What You Know" menu of options like this rather than only ever generating another quiz.
+
+## 16. Never title an assignment the same as a fixed UI block or feature name
+
+The app has a small set of fixed, always-present daily block/feature names — currently
+**"Show & Teach"** (the end-of-day reflection block) and **"Morning Launch"** (the mood/goal block).
+An assignment titled the same thing as one of these creates a confusing "which one is real"
+duplicate on the Today view and the printed/planner grid, even though they're two unrelated things.
+
+**Before titling any assignment, check it doesn't start with or exactly match a fixed block name.**
+If a lesson is genuinely about teaching something back to a family member, name it something else
+that means the same thing — `"Teach-Back: ..."` is the established pattern here — never `"Show &
+Teach: ..."`. Same logic for any other fixed block name introduced later.
