@@ -5308,6 +5308,24 @@ var ANNA_OCT_SKILL_BLOCKS = [
   {dayOffset:3, subject:"Math", skillId:"anna-math-place-value", stage:"apply", standard:"2.NR.1", xp:15,
     title:"Math: Show What You Know — Place Value",
     passage:"Pick one and show a grown-up when you're done: play the Math Arena quiz again, teach the \"bundle into tens\" trick back like you're the teacher, or make a poster showing 1 one / 1 ten / 1 hundred with drawings."},
+  {dayOffset:6, subject:"Math", skillId:"anna-math-place-value", stage:"practice", standard:"2.NR.1", xp:15,
+    title:"Math: Place Value Challenge — Comparing Numbers",
+    materials:"https://toytheater.com",
+    passage:"Your place-value trick works for comparing numbers too — the number with more hundreds always wins, and if the hundreds match, compare the tens next.",
+    quiz:[
+      {q:"Which is bigger: 342 or 423?", choices:["342","423","They're equal","Can't tell"], answerIndex:1, explain:"Compare the hundreds digit first — 4 hundreds beats 3 hundreds, so 423 is bigger no matter what the other digits are."},
+      {q:"Which is smaller: 508 or 580?", choices:["508","580","They're equal","Can't tell"], answerIndex:0, explain:"Both have 5 hundreds, so compare the tens next — 0 tens is less than 8 tens, so 508 is smaller."}
+    ]},
+  {dayOffset:10, subject:"Math", skillId:"anna-math-place-value", stage:"mixed", standard:"2.NR.1", xp:15,
+    title:"Math: Mixed Review #2 — Place Value + Addition & Subtraction",
+    passage:"Another mixed set — same idea as before: figure out which trick each problem actually needs.",
+    quiz:[
+      {q:"What is 68 − 29?", choices:["39","49","41","31"], answerIndex:0, explain:"Borrow from the tens: 68 becomes 5 tens 18 ones; 18−9=9, 5−2=3 → 39."},
+      {q:"How many tens are in 370?", choices:["3","7","37","70"], answerIndex:2, explain:"370 = 3 hundreds, 7 tens, 0 ones — but counted as just tens, 370 is 37 groups of ten."}
+    ]},
+  {dayOffset:14, subject:"Math", skillId:"anna-math-place-value", stage:"apply", standard:"2.NR.1", xp:15,
+    title:"Math: Place Value Capstone — Design a Number Poster",
+    passage:"Pick a 3-digit number that means something to you (your age in days, a bug count, anything). Draw it three ways: as hundreds/tens/ones blocks, written in expanded form (like 300 + 40 + 2), and in words. Show a grown-up all three and explain how they match."},
 
   // --- Science: Habitats & Life Cycles (S2L1) — teach + apply ---
   {dayOffset:0, subject:"Science", skillId:"anna-sci-life-cycles", stage:"teach", standard:"S2L1", xp:10,
@@ -5318,18 +5336,65 @@ var ANNA_OCT_SKILL_BLOCKS = [
     title:"Science: Show What You Know — Habitats & Life Cycles",
     passage:"Look up your bug in a bug guide, or just watch it closely.\nFigure out what stage it's in right now.\nWrite or draw the stages it goes through, in order.\nNext to each stage, write what habitat it needs there.\nCheck yourself: does every stage need something different? If two stages look the same, look again.\nShow what you know: draw the life cycle as a comic strip, teach it back like the teacher, or add a labeled diagram to your Bug Journal.",
     quiz:[{q:"A caterpillar needs leaves to eat. What does a grown butterfly need instead?", choices:["Flowers for nectar","More leaves","Nothing at all","A chrysalis"], answerIndex:0, explain:"The habitat a bug needs changes at each life stage — a butterfly drinks nectar from flowers, it doesn't eat leaves anymore."}]},
+  {dayOffset:5, subject:"Science", skillId:"anna-sci-life-cycles", stage:"practice", standard:"S2L1", xp:15,
+    title:"Science: Compare Two Bug Life Cycles",
+    materials:"https://www.inaturalist.org/pages/seek_app",
+    passage:"Find a second, different bug (or look one up with Seek). Draw its life cycle next to your first bug's. What stages are the same? What's different?",
+    quiz:[{q:"A ladybug goes through egg, larva, pupa, adult. A butterfly goes through egg, caterpillar, chrysalis, adult. What's true about both?", choices:["They both have 4 stages","They eat the same food at every stage","They have no habitat needs","They never change shape"], answerIndex:0, explain:"Both insects go through 4 life stages, even though the stages look different and need different habitats."}]},
+  {dayOffset:9, subject:"Science", skillId:"anna-sci-life-cycles", stage:"apply", standard:"S2L1", xp:15,
+    title:"Science: Habitat Journal — Track Changes This Week",
+    passage:"Check on your bug's habitat for 3 days in a row this week. Each day, write or draw one thing that stayed the same and one thing that changed (weather, leaves, how many bugs you see).\nCheck yourself: did you notice something different by the third day?"},
+  {dayOffset:13, subject:"Science", skillId:"anna-sci-life-cycles", stage:"mixed", standard:"S2L1", xp:15,
+    title:"Science: Mixed Review — Life Cycles & Habitats",
+    quiz:[
+      {q:"Which comes first in a butterfly's life cycle?", choices:["Egg","Chrysalis","Caterpillar","Adult"], answerIndex:0, explain:"Egg is always first — egg → caterpillar → chrysalis → butterfly, in that order."},
+      {q:"Why can't a caterpillar just stay a caterpillar forever?", choices:["It has to grow and change to become an adult that can reproduce","Caterpillars get bored","It's against the rules","Caterpillars don't like leaves"], answerIndex:0, explain:"Every stage of a life cycle exists so the animal can eventually grow into an adult and have offspring of its own."}
+    ]},
 
-  // --- Social Studies: Creek & Cherokee Nations (SS2H2) — apply only, quiz already live ---
+  // --- Social Studies: Creek & Cherokee Nations (SS2H2) ---
   {dayOffset:0, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"teach", standard:"SS2H2", xp:10,
     title:"Social Studies: Creek & Cherokee Nations — Here's the Idea",
     materials:"https://www.georgiaencyclopedia.org",
     passage:"Before Georgia was even called Georgia, two groups of people already lived here: the Creek and the Cherokee. The Cherokee lived up in the north Georgia mountains. The Creek lived along the rivers in the middle and south. Both grew corn, beans, and squash together — called the Three Sisters — because the three plants help each other grow.\nPick one nation, Creek or Cherokee. Find where they lived on a map and put your finger on it. List three things about how they lived: their home, their food, and one more detail you find interesting.\nCheck yourself: can you point to where your nation lived without looking at your notes?\nYour quiz for this one is already live in your Academy Log Arena — \"Georgia's First People & Founders.\""},
+  {dayOffset:1, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"apply", standard:"SS2H2", xp:15,
+    title:"Social Studies: Show What You Know — Creek & Cherokee",
+    passage:"Draw a Creek river-town next to a Cherokee mountain-town — show what's different about where each one is built.\nIn each town, draw or label at least one home, one food they grew (corn, beans, or squash), and one detail that makes that nation special.\nCheck yourself: could someone tell which town is Creek and which is Cherokee just by looking at your drawing, without you explaining it?\nWant a refresher first? Replay \"Georgia's First People & Founders\" in your Academy Log Arena."},
+  {dayOffset:5, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"practice", standard:"SS2H2", xp:15,
+    title:"Social Studies: Practice — Creek & Cherokee Details",
+    quiz:[
+      {q:"What were the 'Three Sisters' the Creek and Cherokee grew together?", choices:["Corn, beans, and squash","Apples, oranges, and pears","Wheat, rice, and oats","Cotton, tobacco, and rice"], answerIndex:0, explain:"Corn, beans, and squash were grown together because each plant helps the other two grow — that's why they're called the Three Sisters."},
+      {q:"Where did the Cherokee mostly live in Georgia?", choices:["Up in the north Georgia mountains","On the beach","In the desert","In a big city"], answerIndex:0, explain:"The Cherokee lived up in the north Georgia mountains, while the Creek built towns along rivers in the middle and south."}
+    ]},
+  {dayOffset:9, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"apply", standard:"SS2H2", xp:15,
+    title:"Social Studies: Field Report — Corn, Beans & Squash",
+    passage:"If you can, plant (or just look closely at) corn, beans, and squash seeds side by side. If planting isn't possible, draw all three growing together in one garden bed.\nLabel how each plant helps the other two: corn gives beans something to climb, beans add nutrients back to the soil, and squash's big leaves shade out weeds.\nCheck yourself: can you explain why growing them together works better than growing just one alone?"},
+  {dayOffset:13, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"mixed", standard:"SS2H2", xp:15,
+    title:"Social Studies Capstone — Then vs. Now",
+    passage:"Pick one thing the Creek or Cherokee did (grew their own food, built their own homes, made their own tools) and compare it to how your family does that same thing today.\nShow what you know: tell a grown-up one way it's the same and one way it's different."},
 
-  // --- ELA: Story Elements & Central Message (ELAGSE2RL2-RL5) — single lesson ---
+  // --- ELA: Story Elements & Central Message (ELAGSE2RL2-RL5) ---
   {dayOffset:0, subject:"ELA", skillId:"anna-ela-story-elements", stage:"teach", standard:"ELAGSE2RL2-RL5", xp:10,
     title:"ELA: Story Elements & Central Message",
     materials:"https://storylineonline.net",
-    passage:"Every story has a main character who wants something, a problem that gets in the way, and usually a message underneath it all. Find all three in whatever chapter you read last night.\nThink back through last night's chapter. Say out loud (or write): who's the main character, what's the problem, and what do you think the message is. Retell the whole chapter in your own words, hitting all three parts.\nCheck yourself: did you mention the character, the problem, AND the message — not just what happened?\nShow what you know: act out the chapter with your stuffed animals, draw the four parts as a comic strip, or tell it to Alexa as your Wonder Time recap. If you want more read-alouds like this, Storyline Online above has actors reading picture books on video."}
+    passage:"Every story has a main character who wants something, a problem that gets in the way, and usually a message underneath it all. Find all three in whatever chapter you read last night.\nThink back through last night's chapter. Say out loud (or write): who's the main character, what's the problem, and what do you think the message is. Retell the whole chapter in your own words, hitting all three parts.\nCheck yourself: did you mention the character, the problem, AND the message — not just what happened?\nShow what you know: act out the chapter with your stuffed animals, draw the four parts as a comic strip, or tell it to Alexa as your Wonder Time recap. If you want more read-alouds like this, Storyline Online above has actors reading picture books on video."},
+  {dayOffset:1, subject:"ELA", skillId:"anna-ela-story-elements", stage:"practice", standard:"ELAGSE2RL2-RL5", xp:15,
+    title:"ELA: Practice — Story Elements",
+    passage:"Quick practice using yesterday's story — same three parts: character, problem, message.",
+    quiz:[
+      {q:"What's the 'problem' in a story?", choices:["The something that gets in the character's way", "The last page of the book", "The author's name", "The title"], answerIndex:0, explain:"The problem is whatever stands between the main character and what they want — it's what makes the story a story."},
+      {q:"What is the 'central message' of a story?", choices:["How many pages it has", "The lesson or idea underneath the events", "The illustrator's name", "The chapter number"], answerIndex:1, explain:"The central message is the deeper idea the story is really about, underneath what literally happens."}
+    ]},
+  {dayOffset:5, subject:"ELA", skillId:"anna-ela-story-elements", stage:"practice", standard:"ELAGSE2RL2-RL5", xp:15,
+    title:"ELA: Practice — A New Chapter",
+    passage:"Using tonight's new chapter, find the same three things again: character, problem, message. Does the problem from before get solved, or is it still going?",
+    quiz:[{q:"If a character's problem gets solved by the end of a story, what usually comes right after?", choices:["A resolution or happy ending","The story starts over","Nothing changes","A new character is born"], answerIndex:0, explain:"Once the main problem is solved, the story wraps up — that wrap-up part is called the resolution."}]},
+  {dayOffset:9, subject:"ELA", skillId:"anna-ela-story-elements", stage:"apply", standard:"ELAGSE2RL2-RL5", xp:15,
+    title:"ELA: Show What You Know — Story Map",
+    materials:"https://storylineonline.net",
+    passage:"Draw a story map with 4 boxes: Character, Setting, Problem, Message. Fill in all four for your favorite book or chapter so far.\nCheck yourself: could someone else read your story map and understand the whole story, even if they've never read it?"},
+  {dayOffset:13, subject:"ELA", skillId:"anna-ela-story-elements", stage:"mixed", standard:"ELAGSE2RL2-RL5", xp:15,
+    title:"ELA Capstone — Retell Your Favorite Story",
+    passage:"Pick your favorite story from this month. Retell the whole thing out loud to a grown-up (or to Alexa), making sure you hit character, problem, and message — no skipping straight to \"what happened.\""}
 ];
 function addAnnaOctoberSkillBlocks(){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
