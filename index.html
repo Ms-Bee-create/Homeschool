@@ -4602,11 +4602,11 @@ var SUPABASE_URL = "https://fbrnxuargsilbyyjrjop.supabase.co";
 var SUPABASE_ANON_KEY = "sb_publishable_Mone0y3izX-PRYKO_Y8CEg_jhclQ4WN";
 var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Real Momma Money member ids, so level-up bonuses deposit for real. This was pointing at a
-// stray duplicate Ryan profile that wasn't the one he actually uses for chores/screen time —
-// fixed to his real profile below. Add Anna's kid1 id here once you have it (see Momma Money's
-// members table) so her deposits stop falling back to the manual "mark logged" placeholder.
-var MM_MEMBERS = { kid2: "415565c3-3beb-410d-9af9-7988901b4ccf" };
+// Real Momma Money member ids, so level-up bonuses deposit for real.
+var MM_MEMBERS = {
+  kid1: "7a3f4bcc-00c3-4d23-8013-5f6dbf828212", // Anna
+  kid2: "415565c3-3beb-410d-9af9-7988901b4ccf"  // Ryan
+};
 
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
