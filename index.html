@@ -1591,6 +1591,16 @@ function renderShowTeach(kidId, iso){
   if(pendingUpload) uploadedNote.textContent = "Saved "+pendingUpload.type+" attached.";
 
   var uploadRow = wrap.querySelector(".st-upload-row");
+  var saveBtn = wrap.querySelector(".st-save");
+  /* An upload takes a moment over the network, but Save was always clickable — tap Save right
+     after picking a file (the natural instinct) and the upload hadn't registered yet, so it fell
+     through to "add a sentence," even though a kid genuinely had just attached something. Save is
+     now disabled for the whole upload, so it can't be clicked out from under an in-flight upload. */
+  function setUploading(isUploading){
+    saveBtn.disabled = isUploading;
+    saveBtn.style.opacity = isUploading ? "0.5" : "";
+    saveBtn.style.cursor = isUploading ? "not-allowed" : "";
+  }
   function makeUploadBtn(label, accept, type){
     var lbl = document.createElement("label");
     lbl.className = "reward-skip";
@@ -1603,8 +1613,10 @@ function renderShowTeach(kidId, iso){
       if(!file || !HOUSEHOLD_ID) return;
       var path = HOUSEHOLD_ID+"/show-teach/"+kidId+"/"+iso+"-"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
       lbl.textContent = "Uploading…";
+      setUploading(true);
       sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
         lbl.textContent = label;
+        setUploading(false);
         if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); return; }
         var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
         pendingUpload = {type:type, url:url};
@@ -1618,8 +1630,8 @@ function renderShowTeach(kidId, iso){
   uploadRow.appendChild(makeUploadBtn("📸 Photo", "image/*", "photo"));
   uploadRow.appendChild(makeUploadBtn("🎥 Video", "video/*", "video"));
 
-  wrap.querySelector(".st-save").onclick = function(){
-    if(!db) return;
+  saveBtn.onclick = function(){
+    if(!db || saveBtn.disabled) return;
     var text = textEl.value.trim();
     var attemptedPaste = textEl.dataset.pasteAttempted === "1";
     if(!pendingUpload && text){
