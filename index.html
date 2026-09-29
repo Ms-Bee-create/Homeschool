@@ -530,6 +530,36 @@ function prevSchoolDay(d){
   while(p.getDay()===0 || p.getDay()===6){ p.setDate(p.getDate()-1); }
   return p;
 }
+/* n school days after d (skipping weekends) — used to space out review questions. */
+function addSchoolDays(d, n){
+  var p = new Date(d);
+  while(n>0){
+    p.setDate(p.getDate()+1);
+    if(p.getDay()!==0 && p.getDay()!==6) n--;
+  }
+  return p;
+}
+/* Mastery Loop core mechanic: a missed quiz question doesn't just get an instant reworded retry
+   and then disappear forever — it resurfaces a few school days later as its own tiny review
+   assignment, so the skill actually comes back until it's solid. Dedups against anything already
+   queued for the same source question so re-missing it in the same session doesn't spam the day. */
+function queueSkillReview(kidId, sourceAssignment, item){
+  if(!db || !sourceAssignment) return;
+  var already = Object.keys(state.assignments).some(function(id){
+    var x = state.assignments[id];
+    return x.kidId===kidId && x.reviewOf===sourceAssignment.id && x.quiz && x.quiz[0] && x.quiz[0].q===item.q;
+  });
+  if(already) return;
+  var due = addSchoolDays(new Date(), 3);
+  db.collection("assignments").add({
+    kidId: kidId, date: isoDate(due), subject: sourceAssignment.subject,
+    title: "🔁 Review: " + (sourceAssignment.skillId || sourceAssignment.title),
+    xp: 5, done: false, doneAt: null, stage: "review",
+    skillId: sourceAssignment.skillId || null, reviewOf: sourceAssignment.id || null,
+    quiz: [{ q: item.q, choices: item.choices, answerIndex: item.answerIndex, explain: item.explain || null }],
+    createdAt: new Date().toISOString()
+  });
+}
 function fmtDate(iso){
   if(!iso) return "";
   var d = new Date(iso+"T00:00:00");
@@ -2004,6 +2034,24 @@ function renderLibrary(){
     intro.textContent = "A few real, kid-safe channels by subject — more (including her Connections Academy content) coming later.";
     els.view.appendChild(annaLibraryCard());
   }
+  els.view.appendChild(familyUnschoolingLibraryCard());
+}
+/* The full curated family library (free/low-cost books, sites, videos, field trips) lives as its
+   own filterable page — this is just a doorway into it from inside the app, for both kids. */
+function familyUnschoolingLibraryCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var row = document.createElement("a");
+  row.href = "https://claude.ai/artifact/GTSum5evpvkWbs4Wbu6Vjz"; row.target = "_blank"; row.rel = "noopener";
+  row.className = "task";
+  row.style.cssText = "text-decoration:none;color:inherit;display:flex";
+  row.innerHTML =
+    '<div style="width:26px;text-align:center;font-size:18px">📖</div>'+
+    '<div class="task-body"><div class="task-title">Our Unschooling Library</div>'+
+    '<div class="task-sub">Every free/low-cost book, site, video &amp; Augusta field trip, filterable by kid</div></div>'+
+    '<div class="task-xp">↗</div>';
+  wrap.appendChild(row);
+  return wrap;
 }
 
 function csvEscape(v){
@@ -4662,7 +4710,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group", skillId:"skill_id", reviewOf:"review_of" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
@@ -5096,6 +5144,82 @@ function patchKid1LessonLinks(){
   console.log("patchKid1LessonLinks: patched "+patched+" of "+KID1_LESSON_LINKS_PATCH.length+" assignment(s)");
 }
 
+/* ---------- Mastery Loop: Anna's October Skill Blocks ----------
+   Anna's real year-long curriculum doc (Math/Science/Social Studies/ELA, real GA Standards of
+   Excellence) gives October's content in full, written directly to her using her own 5-step
+   pattern (Here's the Idea / See It Done / Your Turn / Check Yourself / Show What You Know).
+   This wires that pattern into the Mastery Loop structure agreed on: a skill gets a multi-day
+   arc (teach -> practice -> mixed/interleaved -> apply) tagged with a shared skillId, instead of
+   one quiz on one day that's never revisited. Real resources from the family's Unschooling
+   Library are wired in as materials links (Math Learning Center virtual base-ten blocks, Seek by
+   iNaturalist, New Georgia Encyclopedia, Storyline Online) rather than anything invented.
+   Run addAnnaOctoberSkillBlocks() once from the console, logged in as Anna. Safe to run twice —
+   it skips anything already added by exact title match, same pattern as every other patch here. */
+var ANNA_OCT_SKILL_BLOCKS = [
+  // --- Math: Place Value to 1,000 (2.NR.1) — full 4-stage arc ---
+  {dayOffset:0, subject:"Math", skillId:"anna-math-place-value", stage:"teach", standard:"2.NR.1", xp:10,
+    title:"Math: Place Value to 1,000 — Here's the Idea",
+    materials:"https://www.mathlearningcenter.org/apps",
+    passage:"You've got a pile of buttons for your Design Studio project — today you're going to figure out exactly how many are in there, and learn the trick grown-ups use so they never have to count one-by-one past ten.\nWatch how this works: once you get past 9 of something, bundle them into a group of ten. Once you get past 9 tens, that whole bundle becomes a hundred.\nSo a number is really just how many hundreds, tens, and ones you've got. Example: 236 buttons is 2 piles of 100, 3 piles of 10, and 6 loose ones — written as 236 = 2 hundreds, 3 tens, 6 ones.\nTry it with the virtual base-ten blocks link above before you grab your real buttons tomorrow."},
+  {dayOffset:1, subject:"Math", skillId:"anna-math-place-value", stage:"practice", standard:"2.NR.1", xp:15,
+    title:"Math: Place Value — Your Turn",
+    passage:"Grab your own pile of buttons, beans, or LEGO pieces.\nMake groups of ten until you can't anymore.\nBundle ten tens into a hundred if you have enough.\nCount what's left over — those are your ones.\nWrite it in your journal like this: ___ = ___ hundreds, ___ tens, ___ ones.\nCheck yourself: count your whole pile one-by-one — does it match your hundreds + tens + ones total?",
+    quiz:[
+      {q:"You have 3 hundreds, 4 tens, and 2 ones. What number is that?", choices:["342","324","432","234"], answerIndex:0, explain:"Hundreds come first, then tens, then ones — 3 hundreds, 4 tens, 2 ones lines up as 3-4-2."},
+      {q:"Which is the same as 5 tens?", choices:["5","50","500","15"], answerIndex:1, explain:"Each ten is worth 10, so 5 tens = 5 × 10 = 50."}
+    ]},
+  {dayOffset:2, subject:"Math", skillId:"anna-math-place-value", stage:"mixed", standard:"2.NR.1", xp:15,
+    title:"Math: Mixed Review — Place Value + Addition & Subtraction",
+    passage:"Today's quiz mixes your new place-value trick with the two-digit addition and subtraction you already know — real math means being able to tell which trick a problem needs, not just repeating the newest one.",
+    quiz:[
+      {q:"What is 47 + 26?", choices:["63","73","83","72"], answerIndex:1, explain:"7+6=13, write 3 carry 1; 4+2+1=7 → 73."},
+      {q:"How many hundreds are in 508?", choices:["5","8","50","0"], answerIndex:0, explain:"508 = 5 hundreds, 0 tens, 8 ones — the hundreds digit is 5."}
+    ]},
+  {dayOffset:3, subject:"Math", skillId:"anna-math-place-value", stage:"apply", standard:"2.NR.1", xp:15,
+    title:"Math: Show What You Know — Place Value",
+    passage:"Pick one and show a grown-up when you're done: play the Math Arena quiz again, teach the \"bundle into tens\" trick back like you're the teacher, or make a poster showing 1 one / 1 ten / 1 hundred with drawings."},
+
+  // --- Science: Habitats & Life Cycles (S2L1) — teach + apply ---
+  {dayOffset:0, subject:"Science", skillId:"anna-sci-life-cycles", stage:"teach", standard:"S2L1", xp:10,
+    title:"Science: Habitats & Life Cycles — Here's the Idea",
+    materials:"https://www.inaturalist.org/pages/seek_app",
+    passage:"That bug you found — every living thing goes through a life cycle, the stages it passes through from being born or hatched to being all grown up. A habitat is the place that gives it everything it needs at each stage.\nHere's a butterfly's life cycle: egg → caterpillar → chrysalis → butterfly. At the egg and caterpillar stage it needs leaves to eat; at the chrysalis stage it needs somewhere safe and still; as a butterfly it needs flowers for nectar. The habitat it needs actually changes at each stage.\nUse the Seek app above to identify whatever bug you find today."},
+  {dayOffset:1, subject:"Science", skillId:"anna-sci-life-cycles", stage:"apply", standard:"S2L1", xp:15,
+    title:"Science: Show What You Know — Habitats & Life Cycles",
+    passage:"Look up your bug in a bug guide, or just watch it closely.\nFigure out what stage it's in right now.\nWrite or draw the stages it goes through, in order.\nNext to each stage, write what habitat it needs there.\nCheck yourself: does every stage need something different? If two stages look the same, look again.\nShow what you know: draw the life cycle as a comic strip, teach it back like the teacher, or add a labeled diagram to your Bug Journal.",
+    quiz:[{q:"A caterpillar needs leaves to eat. What does a grown butterfly need instead?", choices:["Flowers for nectar","More leaves","Nothing at all","A chrysalis"], answerIndex:0, explain:"The habitat a bug needs changes at each life stage — a butterfly drinks nectar from flowers, it doesn't eat leaves anymore."}]},
+
+  // --- Social Studies: Creek & Cherokee Nations (SS2H2) — apply only, quiz already live ---
+  {dayOffset:0, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"teach", standard:"SS2H2", xp:10,
+    title:"Social Studies: Creek & Cherokee Nations — Here's the Idea",
+    materials:"https://www.georgiaencyclopedia.org",
+    passage:"Before Georgia was even called Georgia, two groups of people already lived here: the Creek and the Cherokee. The Cherokee lived up in the north Georgia mountains. The Creek lived along the rivers in the middle and south. Both grew corn, beans, and squash together — called the Three Sisters — because the three plants help each other grow.\nPick one nation, Creek or Cherokee. Find where they lived on a map and put your finger on it. List three things about how they lived: their home, their food, and one more detail you find interesting.\nCheck yourself: can you point to where your nation lived without looking at your notes?\nYour quiz for this one is already live in your Academy Log Arena — \"Georgia's First People & Founders.\""},
+
+  // --- ELA: Story Elements & Central Message (ELAGSE2RL2-RL5) — single lesson ---
+  {dayOffset:0, subject:"ELA", skillId:"anna-ela-story-elements", stage:"teach", standard:"ELAGSE2RL2-RL5", xp:10,
+    title:"ELA: Story Elements & Central Message",
+    materials:"https://storylineonline.net",
+    passage:"Every story has a main character who wants something, a problem that gets in the way, and usually a message underneath it all. Find all three in whatever chapter you read last night.\nThink back through last night's chapter. Say out loud (or write): who's the main character, what's the problem, and what do you think the message is. Retell the whole chapter in your own words, hitting all three parts.\nCheck yourself: did you mention the character, the problem, AND the message — not just what happened?\nShow what you know: act out the chapter with your stuffed animals, draw the four parts as a comic strip, or tell it to Alexa as your Wonder Time recap. If you want more read-alouds like this, Storyline Online above has actors reading picture books on video."}
+];
+function addAnnaOctoberSkillBlocks(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId==="kid1"; }).map(function(a){ return a.title; });
+  var added = 0;
+  ANNA_OCT_SKILL_BLOCKS.forEach(function(item){
+    if(existingTitles.indexOf(item.title)!==-1) return;
+    var due = addSchoolDays(new Date(), item.dayOffset);
+    db.collection("assignments").add({
+      kidId:"kid1", date:isoDate(due), subject:item.subject, title:item.title,
+      xp:item.xp, done:false, doneAt:null, skillId:item.skillId, stage:item.stage, standard:item.standard||null,
+      materials:item.materials||null, video:item.video||null, passage:item.passage||null,
+      quiz:item.quiz||null, createdAt:new Date().toISOString()
+    });
+    added++;
+  });
+  console.log("addAnnaOctoberSkillBlocks: added "+added+" of "+ANNA_OCT_SKILL_BLOCKS.length+" Skill Block assignment(s), starting today");
+}
+
 /* Ryan asked for more videos from LGR (Lazy Game Reviews) — a real, well-known retro computing
    YouTuber he already likes from the Weekend Extras/Archive Challenge content. His "explore built-in
    apps" and User Guide capstone days (the most hands-on, exploratory ones) had zero video at all,
@@ -5120,6 +5244,36 @@ function patchKid2RetroVideos(){
     patched++;
   });
   console.log("patchKid2RetroVideos: patched "+patched+" of "+KID2_RETRO_VIDEOS_PATCH.length+" assignment(s)");
+}
+
+/* Mastery Loop for Ryan too, not just Anna — retrofits his existing "PC speaker / how sound
+   works" cluster (Archive Challenge days 20-21) into one shared skillId across the teach-then-
+   apply days it already naturally forms, and adds explain-on-miss text to those quiz questions.
+   Proves the same Skill Block/review-queue engine works on already-imported content, not just
+   brand-new lessons. Matches by exact title, safe to run more than once. */
+var RYAN_SKILL_BLOCK_DEMO_PATCH = [
+  {title:"Field Report: why could the PC speaker only beep?", skillId:"ryan-sci-pc-speaker", stage:"teach",
+    explain:"The original PC speaker could only switch fully on or fully off — one tone at a time — so it could beep but not play music or voices, which need many tones blended together."},
+  {title:"How Speakers Work: what actually vibrates?", skillId:"ryan-sci-pc-speaker", stage:"apply",
+    explain:"The speaker cone is what physically moves back and forth. An electromagnet pushes and pulls it, and that motion pushes air to make the sound you hear."}
+];
+function patchRyanSkillBlockDemo(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid2") return;
+    var match = RYAN_SKILL_BLOCK_DEMO_PATCH.filter(function(p){ return p.title===a.title; })[0];
+    if(!match) return;
+    var updates = {skillId: match.skillId, stage: match.stage};
+    if(Array.isArray(a.quiz) && a.quiz.length){
+      updates.quiz = a.quiz.map(function(q){ return Object.assign({}, q, {explain: match.explain}); });
+    }
+    Object.assign(a, updates);
+    db.doc("assignments/"+id).update(updates);
+    patched++;
+  });
+  console.log("patchRyanSkillBlockDemo: patched "+patched+" of "+RYAN_SKILL_BLOCK_DEMO_PATCH.length+" assignment(s)");
 }
 
 /* Adds the "Windows 95 in DOSBox-X" pivot task as a standalone assignment dated today, for a kid
@@ -5218,7 +5372,9 @@ window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
 window.addDosboxPivotTask = addDosboxPivotTask;
 window.addKid1ContentSep29 = addKid1ContentSep29;
 window.patchKid1LessonLinks = patchKid1LessonLinks;
+window.addAnnaOctoberSkillBlocks = addAnnaOctoberSkillBlocks;
 window.patchKid2RetroVideos = patchKid2RetroVideos;
+window.patchRyanSkillBlockDemo = patchRyanSkillBlockDemo;
 
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
