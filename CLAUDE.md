@@ -82,3 +82,53 @@ committing: re-read every `materials`/`video` URL in the batch and ask "if this 
 link with zero other context, would they land exactly where the lesson says they will?" If the
 answer is "probably, but they'd have to look around a bit" — that's a fail. Fix it before shipping,
 not after a kid reports it broken.
+
+## 9. There's no such thing as "a visual kid" or "an auditory kid" — don't design around it
+
+Learning styles (visual/auditory/kinesthetic) are a well-debunked myth — matching instruction to a
+kid's supposed style produces zero measurable benefit. Never justify a content decision with "she's
+more of a visual learner" or similar. The real question is always "what method fits *this content*,"
+not "what fits this kid's style" — and per Rule 10, the answer for anything explainable is usually
+both words and a picture, for both kids, always.
+
+## 10. Pair words with a picture, video, or diagram — for everyone, always
+
+Dual coding (visual + verbal together) beats either alone for every learner, not just one kid or
+the other. A listen button is not a style accommodation for Anna specifically — audio + text/visual
+together is simply better for any lesson where it's feasible. Don't frame it as "Anna's thing."
+
+## 11. No failing state, ever — low-stakes and retryable beats anything that feels like a graded test
+
+High-stakes testing measurably raises anxiety in elementary kids; low-stakes/gamified quizzing
+lowers it while performance holds or improves. Every quiz needs a retry path and never blocks
+progress on a wrong answer. Don't add a "real grade," a pass/fail gate, or a visible score/ranking
+against other kids to any assessment — that undoes a foundational, evidence-backed design choice.
+
+## 12. Interleave practice — mix problem types, don't block them
+
+A practice set that's all one problem type in a row is weaker than a mixed set — interleaving forces
+a kid to choose the right strategy instead of just repeating the last one. Once a Mixed/Review stage
+pulls in more than one skill (see `queueSkillReview`), actually mix the question order — don't group
+all of skill A's questions before all of skill B's.
+
+## 13. Hands-on only counts if the object actually represents the concept
+
+A manipulative that doesn't clearly map to the idea can actively confuse a kid, not help one — this
+isn't "any craft satisfies Rule 3." Before adding a hands-on apply-stage task, check that the
+physical thing (buttons for place value, a drawn map for geography, base-ten blocks) is a direct,
+legible stand-in for the concept, not just an activity that happens to be hands-on.
+
+## 14. Projects reinforce — they don't replace teaching the underlying skill
+
+Project-based learning has real but genuinely mixed evidence for core academic gains specifically
+(strong for motivation and applied skill, weaker than its reputation for teaching new facts/skills
+from scratch). Never let a project (Bug Hotel, a Minecraft build, a capstone) stand in for a `teach`
+stage — the skill still needs direct instruction first; the project is the `apply` stage after.
+
+## 15. A quiz isn't the only way to check understanding — and doesn't need to be the default
+
+Real, evidence-backed alternatives: teach-back ("explain it to Mom/Alexa"), a portfolio artifact
+(photo of the build, a journal entry), a short project demo, or an elaborative-interrogation prompt
+("why do you think that happened?" — works best once there's some background knowledge, so lean on
+it more for Ryan than for Anna's brand-new topics). Default every `apply`/`mixed` stage toward a
+"Show What You Know" menu of options like this rather than only ever generating another quiz.
