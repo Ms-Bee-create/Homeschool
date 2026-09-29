@@ -523,6 +523,21 @@ function todayIdx(){ var d = new Date().getDay(); return d===0?6:d-1; } // 0=Mon
 function todayKey(){ var i = todayIdx(); return i<5 ? DAYS[i] : null; }
 function isoDate(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function todayISO(){ return isoDate(new Date()); }
+
+/* Persisted open/closed state for <details> elements, so expanding one doesn't silently collapse
+   again on the next re-render or a full page reload — every collapsible section in the app should
+   use this instead of relying on the browser's own (render-cycle-local) open state. Stored in
+   localStorage, scoped by a caller-built key, so it survives a hard reload, not just an in-memory
+   re-render. */
+function detailsOpenKey(scope, who, shared, name){
+  return "al_details_"+scope+"_"+who+"_"+(shared?"shared":"own")+"_"+name;
+}
+function isDetailsOpen(key){
+  try{ return localStorage.getItem(key)==="1"; } catch(e){ return false; }
+}
+function setDetailsOpen(key, isOpen){
+  try{ if(isOpen) localStorage.setItem(key, "1"); else localStorage.removeItem(key); } catch(e){}
+}
 /* The most recent school day before d, skipping weekends — so a streak built Mon-Fri doesn't
    break just because there's no school on Saturday/Sunday. */
 function prevSchoolDay(d){
@@ -2146,6 +2161,9 @@ function familyLibrarySectionCard(kidId, shared){
     if(!items.length) return;
     var det = document.createElement("details");
     det.style.cssText = "padding:0 14px";
+    var openKey = detailsOpenKey("library", who, shared, name);
+    if(isDetailsOpen(openKey)) det.open = true;
+    det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
     var sum = document.createElement("summary");
     sum.style.cssText = "cursor:pointer;padding:8px 0;font-size:13.5px;font-weight:600;color:var(--text-dim)";
     sum.textContent = name + " (" + items.length + ")";
