@@ -3004,6 +3004,16 @@ function renderLessonDetail(){
               var buttons = choicesWrap.querySelectorAll("button");
               buttons[item.answerIndex].style.background = "var(--success-soft)";
               buttons[item.answerIndex].style.borderColor = "var(--success)";
+              /* Corrective feedback given at the moment of the miss, not just marking it wrong —
+                 elementary kids need the "why" right then, while the question is still active in
+                 working memory, not just a reworded retry with no explanation. */
+              if(item.explain){
+                var explainRow = document.createElement("div");
+                explainRow.style.cssText = "margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--border);font-size:13px;color:var(--text-dim)";
+                explainRow.textContent = "💡 " + item.explain;
+                qRow.appendChild(explainRow);
+              }
+              queueSkillReview(state.activeKid, a, item);
             } else {
               correctCount++;
               grantXP(state.activeKid, 5);
