@@ -2034,10 +2034,140 @@ function renderLibrary(){
     intro.textContent = "A few real, kid-safe channels by subject — more (including her Connections Academy content) coming later.";
     els.view.appendChild(annaLibraryCard());
   }
+  els.view.appendChild(familyLibrarySectionCard(kidId, false));
+  els.view.appendChild(familyLibrarySectionCard(kidId, true));
   els.view.appendChild(familyUnschoolingLibraryCard());
 }
-/* The full curated family library (free/low-cost books, sites, videos, field trips) lives as its
-   own filterable page — this is just a doorway into it from inside the app, for both kids. */
+
+/* ---------- Family Unschooling Library, split by who it's for ----------
+   Every item is tagged who:"anna" | "ryan" | "both" — genuinely shared resources ("both") render
+   in their own Shared section rather than being duplicated or requiring a filter click. Real
+   free/low-cost resources only, matches the standalone Unschooling Library artifact 1:1. */
+var FAMILY_LIBRARY = [
+  ["Augusta & Georgia freebies", [
+    {name:"Augusta-Richmond County Public Library", url:"https://arcpls.org", desc:"Free card, kids' programs, STEM kits, museum passes.", who:"both"},
+    {name:"GA PINES (statewide library network)", url:"https://gapines.org", desc:"One card borrows from libraries across Georgia.", who:"both"},
+    {name:"GALILEO virtual library", url:"https://www.galileo.usg.edu", desc:"Georgia's free research databases, open to homeschoolers.", who:"both"},
+    {name:"GPB Education", url:"https://www.gpb.org/education", desc:"Georgia Public Broadcasting videos, virtual field trips.", who:"both"},
+    {name:"PBS LearningMedia (Georgia)", url:"https://ga.pbslearningmedia.org", desc:"Thousands of free videos and games by grade.", who:"both"},
+    {name:"New Georgia Encyclopedia", url:"https://www.georgiaencyclopedia.org", desc:"Georgia history and places for read-alongs.", who:"ryan"}
+  ]],
+  ["Augusta field trips", [
+    {name:"Phinizy Swamp Nature Park", url:"https://phinizycenter.org", desc:"Free trails and boardwalks, nature programs.", who:"both"},
+    {name:"Augusta Canal National Heritage Area", url:"https://www.augustacanal.com", desc:"Boat tours and mill history.", who:"both"},
+    {name:"Augusta Museum of History", url:"https://www.augustamuseum.org", desc:"Local history, including the James Brown exhibit.", who:"both"},
+    {name:"Lucy Craft Laney Museum of Black History", url:"https://www.lucycraftlaneymuseum.com", desc:"Local history and civil rights.", who:"ryan"},
+    {name:"Reed Creek Nature Park (Martinez)", url:"https://reedcreekpark.com", desc:"Interpretive center, animals, and trails.", who:"anna"},
+    {name:"Mistletoe State Park", url:"https://gastateparks.org/Mistletoe", desc:"Junior Ranger activities and lake trails.", who:"both"},
+    {name:"Ruth Patrick Science Education Center", url:"https://rpsec.usca.edu", desc:"Planetarium and science programs in Aiken.", who:"both"}
+  ]],
+  ["Free books & reading", [
+    {name:"Libby", url:"https://libbyapp.com", desc:"Free library ebooks and audiobooks.", who:"both"},
+    {name:"Hoopla", url:"https://www.hoopladigital.com", desc:"Ebooks, comics, audiobooks, movies, no waitlist.", who:"both"},
+    {name:"Epic!", url:"https://www.getepic.com", desc:"Huge digital kids' library.", who:"anna"},
+    {name:"Storyline Online", url:"https://storylineonline.net", desc:"Actors read picture books aloud on video.", who:"anna"},
+    {name:"Starfall", url:"https://www.starfall.com", desc:"Phonics and reading games.", who:"anna"},
+    {name:"Project Gutenberg", url:"https://www.gutenberg.org", desc:"Free classic books.", who:"ryan"},
+    {name:"LibriVox", url:"https://librivox.org", desc:"Free audiobooks of classics.", who:"both"},
+    {name:"Wow in the World (podcast)", url:"https://tinkercast.com/podcasts/wow-in-the-world/", desc:"Silly, smart science podcast for car rides.", who:"both"}
+  ]],
+  ["Math", [
+    {name:"Khan Academy Kids", url:"https://learn.khanacademy.org/khan-academy-kids/", desc:"Free early math and reading app.", who:"anna"},
+    {name:"Numberblocks", url:"https://www.youtube.com/@Numberblocks", desc:"The best show for early number sense.", who:"anna"},
+    {name:"Toy Theater", url:"https://toytheater.com", desc:"Virtual manipulatives and math games.", who:"anna"},
+    {name:"Khan Academy", url:"https://www.khanacademy.org", desc:"Free, mastery-based math for every level.", who:"ryan"},
+    {name:"Beast Academy", url:"https://beastacademy.com", desc:"Challenging comic-style math (paid).", who:"ryan"},
+    {name:"Zearn", url:"https://www.zearn.org", desc:"Free structured math lessons.", who:"ryan"},
+    {name:"Math Playground", url:"https://www.mathplayground.com", desc:"Logic and math games.", who:"both"},
+    {name:"Math Learning Center apps", url:"https://www.mathlearningcenter.org/apps", desc:"Free virtual manipulatives.", who:"both"},
+    {name:"Prodigy Math", url:"https://www.prodigygame.com", desc:"Math RPG game (free tier).", who:"both"}
+  ]],
+  ["Coding & tech", [
+    {name:"ScratchJr", url:"https://www.scratchjr.org", desc:"Block coding for younger kids.", who:"anna"},
+    {name:"CodeCombat", url:"https://codecombat.com", desc:"Learn real Python by playing a game.", who:"ryan"},
+    {name:"CodeMonkey", url:"https://www.codemonkey.com", desc:"Game-based coding lessons.", who:"ryan"},
+    {name:"Tynker", url:"https://www.tynker.com", desc:"Block to typed code (free tier).", who:"ryan"},
+    {name:"Raspberry Pi projects", url:"https://projects.raspberrypi.org", desc:"Hundreds of free step-by-step projects.", who:"ryan"},
+    {name:"Tinkercad", url:"https://www.tinkercad.com", desc:"Free 3D design and circuits in the browser.", who:"ryan"},
+    {name:"freeCodeCamp", url:"https://www.freecodecamp.org", desc:"Real web development, free, for when he's ready.", who:"ryan"},
+    {name:"Typing.com", url:"https://www.typing.com", desc:"Free typing lessons.", who:"ryan"},
+    {name:"Scratch", url:"https://scratch.mit.edu", desc:"Free MIT coding for games and animations.", who:"both"},
+    {name:"Code.org", url:"https://code.org", desc:"Free courses, Minecraft coding, Hour of Code.", who:"both"},
+    {name:"Minecraft Education", url:"https://education.minecraft.net", desc:"Coding, chemistry, and history worlds.", who:"both"}
+  ]],
+  ["Science & nature", [
+    {name:"SciShow Kids", url:"https://www.youtube.com/@scishowkids", desc:"Short science videos.", who:"anna"},
+    {name:"Cornell Lab bird cams", url:"https://www.allaboutbirds.org/cams/", desc:"Live nest cams.", who:"anna"},
+    {name:"Smithsonian Learning Lab", url:"https://learninglab.si.edu", desc:"Free museum collections.", who:"ryan"},
+    {name:"Crash Course Kids", url:"https://www.youtube.com/@crashcoursekids", desc:"Science explainers.", who:"ryan"},
+    {name:"Mark Rober", url:"https://www.youtube.com/@MarkRober", desc:"Engineering that feels like fun.", who:"ryan"},
+    {name:"NASA Space Place", url:"https://spaceplace.nasa.gov", desc:"Free space games and projects.", who:"both"},
+    {name:"National Geographic Kids", url:"https://kids.nationalgeographic.com", desc:"Animals, science, and geography.", who:"both"},
+    {name:"Seek by iNaturalist", url:"https://www.inaturalist.org/pages/seek_app", desc:"Identify plants and bugs with your phone.", who:"both"},
+    {name:"Merlin Bird ID", url:"https://merlin.allaboutbirds.org", desc:"Identify birds by sound or photo.", who:"both"}
+  ]],
+  ["History, geography & social studies", [
+    {name:"Liberty's Kids", url:"https://www.youtube.com/results?search_query=liberty%27s+kids+full+episode", desc:"Animated American Revolution series.", who:"ryan"},
+    {name:"Seterra", url:"https://www.geoguessr.com/seterra", desc:"Free map quiz games.", who:"ryan"},
+    {name:"Ducksters", url:"https://www.ducksters.com", desc:"History and science articles for kids.", who:"ryan"},
+    {name:"DocsTeach", url:"https://www.docsteach.org", desc:"Real primary sources from the National Archives.", who:"ryan"},
+    {name:"Homeschool Pop", url:"https://www.youtube.com/@HomeschoolPop", desc:"Kid-friendly history and geography videos.", who:"both"},
+    {name:"Google Earth", url:"https://earth.google.com", desc:"Fly anywhere and take Voyager tours.", who:"both"},
+    {name:"Library of Congress for families", url:"https://www.loc.gov/families/", desc:"Photos, maps, and activities.", who:"both"}
+  ]],
+  ["Art, music, writing & languages", [
+    {name:"Art for Kids Hub", url:"https://www.youtube.com/@ArtforKidsHub", desc:"Step-by-step drawing.", who:"anna"},
+    {name:"Draw So Cute", url:"https://www.youtube.com/@DrawSoCute", desc:"Simple cute drawing lessons.", who:"anna"},
+    {name:"Duolingo ABC", url:"https://www.duolingo.com/abc", desc:"Free learn-to-read app.", who:"anna"},
+    {name:"Storybird", url:"https://storybird.com", desc:"Writing prompts with illustrations.", who:"ryan"},
+    {name:"BandLab", url:"https://www.bandlab.com", desc:"Free music-making app.", who:"ryan"},
+    {name:"Duolingo", url:"https://www.duolingo.com", desc:"Free language learning.", who:"ryan"},
+    {name:"Google Arts & Culture", url:"https://artsandculture.google.com", desc:"Virtual museum tours and art games.", who:"both"},
+    {name:"Book Creator", url:"https://bookcreator.com", desc:"Kids write and illustrate their own books.", who:"both"},
+    {name:"Chrome Music Lab", url:"https://musiclab.chromeexperiments.com", desc:"Free music experiments.", who:"both"}
+  ]],
+  ["Life skills", [
+    {name:"Let Grow", url:"https://letgrow.org", desc:"Independence projects and 100+ learning resources.", who:"both"},
+    {name:"America's Test Kitchen Kids", url:"https://www.americastestkitchen.com/kids", desc:"Kid-tested recipes and experiments.", who:"both"},
+    {name:"Practical Money Skills", url:"https://www.practicalmoneyskills.com", desc:"Free money games and lessons.", who:"both"}
+  ]]
+];
+/* Builds either "{name}'s Library" (just-for-them items) or the "Shared Library" card (who:"both"),
+   grouped into collapsible categories so ~80 total links stay manageable on a phone screen. */
+function familyLibrarySectionCard(kidId, shared){
+  var who = kidId==="kid2" ? "ryan" : "anna";
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  var head = document.createElement("div");
+  head.className = "task-title";
+  head.style.cssText = "padding:10px 14px 4px";
+  head.textContent = shared ? "🤝 Shared Family Library" : (kidData(kidId).name + "'s Library");
+  wrap.appendChild(head);
+  FAMILY_LIBRARY.forEach(function(cat){
+    var name = cat[0], items = cat[1].filter(function(it){ return shared ? it.who==="both" : it.who===who; });
+    if(!items.length) return;
+    var det = document.createElement("details");
+    det.style.cssText = "padding:0 14px";
+    var sum = document.createElement("summary");
+    sum.style.cssText = "cursor:pointer;padding:8px 0;font-size:13.5px;font-weight:600;color:var(--text-dim)";
+    sum.textContent = name + " (" + items.length + ")";
+    det.appendChild(sum);
+    items.forEach(function(item){
+      var row = document.createElement("a");
+      row.href = item.url; row.target = "_blank"; row.rel = "noopener";
+      row.className = "task";
+      row.style.cssText = "text-decoration:none;color:inherit;display:flex;padding-left:0";
+      row.innerHTML =
+        '<div class="task-body"><div class="task-title" style="font-size:14px">'+escapeHtml(item.name)+'</div>'+
+        '<div class="task-sub">'+escapeHtml(item.desc)+'</div></div>'+
+        '<div class="task-xp">↗</div>';
+      det.appendChild(row);
+    });
+    wrap.appendChild(det);
+  });
+  return wrap;
+}
+/* The full standalone version (same data, searchable) for browsing outside the app. */
 function familyUnschoolingLibraryCard(){
   var wrap = document.createElement("div");
   wrap.className = "card";
