@@ -144,3 +144,18 @@ duplicate on the Today view and the printed/planner grid, even though they're tw
 If a lesson is genuinely about teaching something back to a family member, name it something else
 that means the same thing — `"Teach-Back: ..."` is the established pattern here — never `"Show &
 Teach: ..."`. Same logic for any other fixed block name introduced later.
+
+## 17. Any collapsible UI (`<details>`, accordions, expand/collapse sections) must persist its open/closed state
+
+The bug that triggered this rule: expanding a category in the Library tab collapsed itself again on
+the next reload — the app rebuilds that whole view from scratch on every render/sync, and plain
+`<details>` state lives only in that render cycle, so it silently resets. This is a general-purpose
+UI mistake, not a one-off: any future collapsible section (a `<details>`, a custom accordion, a
+"show more" toggle) will have the exact same bug unless its open/closed state is explicitly saved
+and restored across re-renders and full page reloads.
+
+**Use the existing helpers** (`detailsOpenKey()`, `isDetailsOpen()`, `setDetailsOpen()` — see the
+Library tab's `familyLibrarySectionCard()` for the pattern) rather than inventing a new mechanism:
+build a stable key, check it before setting `.open`, and write to it on the `toggle` event. Don't
+ship a new collapsible section without wiring this in — a section that silently forgets it was
+opened is confusing regardless of what the UI element actually is.
