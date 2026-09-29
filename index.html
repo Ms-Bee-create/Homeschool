@@ -538,6 +538,18 @@ function isDetailsOpen(key){
 function setDetailsOpen(key, isOpen){
   try{ if(isOpen) localStorage.setItem(key, "1"); else localStorage.removeItem(key); } catch(e){}
 }
+/* Same idea, tri-state: a block's manual expand/collapse override needs to distinguish "no
+   override yet, use the default" from "explicitly closed" — a plain isOpen boolean can't tell
+   those apart, so this stores "1"/"0"/absent and returns null when there's no override at all. */
+function getSectionOverride(key){
+  try{
+    var v = localStorage.getItem(key);
+    return v===null ? null : v==="1";
+  } catch(e){ return null; }
+}
+function setSectionOverride(key, isOpen){
+  try{ localStorage.setItem(key, isOpen ? "1" : "0"); } catch(e){}
+}
 /* The most recent school day before d, skipping weekends — so a streak built Mon-Fri doesn't
    break just because there's no school on Saturday/Sunday. */
 function prevSchoolDay(d){
@@ -1309,9 +1321,12 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
   if(isActive) card.style.borderColor = "var(--gold)";
 
   /* List Mode: every block shows fully expanded, no tapping a header to see the checkboxes —
-     the flat, everything-visible layout he asked for instead of the guided one-at-a-time flow. */
-  var hasOverride = !!(state.expandedBlocks && (block.key in state.expandedBlocks));
-  var showBody = listOn ? (hasOverride ? state.expandedBlocks[block.key] : true) : (hasOverride ? state.expandedBlocks[block.key] : isActive);
+     the flat, everything-visible layout he asked for instead of the guided one-at-a-time flow.
+     A manual expand/collapse override is persisted (localStorage), not just held in memory, so
+     tapping a block open and then reloading the page doesn't silently snap it back closed. */
+  var overrideKey = "al_block_expanded_"+kidId+"_"+block.key;
+  var override = getSectionOverride(overrideKey);
+  var showBody = listOn ? (override!==null ? override : true) : (override!==null ? override : isActive);
 
   var head = document.createElement("div");
   head.style.cssText = "display:flex;align-items:center;gap:10px;"+(listOn?"":"cursor:pointer");
@@ -1325,8 +1340,7 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
     '</div>';
   if(!listOn){
     head.onclick = function(){
-      state.expandedBlocks = state.expandedBlocks || {};
-      state.expandedBlocks[block.key] = !showBody;
+      setSectionOverride(overrideKey, !showBody);
       renderView();
     };
   }
