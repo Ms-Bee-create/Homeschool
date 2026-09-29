@@ -5289,7 +5289,7 @@ var ANNA_OCT_SKILL_BLOCKS = [
   // --- Math: Place Value to 1,000 (2.NR.1) — full 4-stage arc ---
   {dayOffset:0, subject:"Math", skillId:"anna-math-place-value", stage:"teach", standard:"2.NR.1", xp:10,
     title:"Math: Place Value to 1,000 — Here's the Idea",
-    materials:"https://www.mathlearningcenter.org/apps",
+    materials:"https://apps.mathlearningcenter.org/number-pieces",
     passage:"You've got a pile of buttons for your Design Studio project — today you're going to figure out exactly how many are in there, and learn the trick grown-ups use so they never have to count one-by-one past ten.\nWatch how this works: once you get past 9 of something, bundle them into a group of ten. Once you get past 9 tens, that whole bundle becomes a hundred.\nSo a number is really just how many hundreds, tens, and ones you've got. Example: 236 buttons is 2 piles of 100, 3 piles of 10, and 6 loose ones — written as 236 = 2 hundreds, 3 tens, 6 ones.\nTry it with the virtual base-ten blocks link above before you grab your real buttons tomorrow."},
   {dayOffset:1, subject:"Math", skillId:"anna-math-place-value", stage:"practice", standard:"2.NR.1", xp:15,
     title:"Math: Place Value — Your Turn",
@@ -5390,8 +5390,8 @@ var ANNA_OCT_SKILL_BLOCKS = [
   // --- ELA: Story Elements & Central Message (ELAGSE2RL2-RL5) ---
   {dayOffset:0, subject:"ELA", skillId:"anna-ela-story-elements", stage:"teach", standard:"ELAGSE2RL2-RL5", xp:10,
     title:"ELA: Story Elements & Central Message",
-    materials:"https://storylineonline.net",
-    passage:"Every story has a main character who wants something, a problem that gets in the way, and usually a message underneath it all. Find all three in whatever chapter you read last night.\nThink back through last night's chapter. Say out loud (or write): who's the main character, what's the problem, and what do you think the message is. Retell the whole chapter in your own words, hitting all three parts.\nCheck yourself: did you mention the character, the problem, AND the message — not just what happened?\nShow what you know: act out the chapter with your stuffed animals, draw the four parts as a comic strip, or tell it to Alexa as your Wonder Time recap. If you want more read-alouds like this, Storyline Online above has actors reading picture books on video."},
+    materials:"https://storylineonline.net/books/clark-the-shark/",
+    passage:"Every story has a main character who wants something, a problem that gets in the way, and usually a message underneath it all. Find all three in whatever chapter you read last night.\nThink back through last night's chapter. Say out loud (or write): who's the main character, what's the problem, and what do you think the message is. Retell the whole chapter in your own words, hitting all three parts.\nCheck yourself: did you mention the character, the problem, AND the message — not just what happened?\nShow what you know: act out the chapter with your stuffed animals, draw the four parts as a comic strip, or tell it to Alexa as your Wonder Time recap. Or click the link above to watch \"Clark the Shark,\" read by Chris Pine, and find the character, problem, and message in that story instead."},
   {dayOffset:1, subject:"ELA", skillId:"anna-ela-story-elements", stage:"practice", standard:"ELAGSE2RL2-RL5", xp:15,
     title:"ELA: Practice — Story Elements",
     passage:"Quick practice using yesterday's story — same three parts: character, problem, message.",
@@ -5405,7 +5405,7 @@ var ANNA_OCT_SKILL_BLOCKS = [
     quiz:[{q:"If a character's problem gets solved by the end of a story, what usually comes right after?", choices:["A resolution or happy ending","The story starts over","Nothing changes","A new character is born"], answerIndex:0, explain:"Once the main problem is solved, the story wraps up — that wrap-up part is called the resolution."}]},
   {dayOffset:9, subject:"ELA", skillId:"anna-ela-story-elements", stage:"apply", standard:"ELAGSE2RL2-RL5", xp:15,
     title:"ELA: Show What You Know — Story Map",
-    materials:"https://storylineonline.net",
+    materials:"https://storylineonline.net/books/clark-the-shark/",
     passage:"Draw a story map with 4 boxes: Character, Setting, Problem, Message. Fill in all four for your favorite book or chapter so far.\nCheck yourself: could someone else read your story map and understand the whole story, even if they've never read it?"},
   {dayOffset:13, subject:"ELA", skillId:"anna-ela-story-elements", stage:"mixed", standard:"ELAGSE2RL2-RL5", xp:15,
     title:"ELA Capstone — Retell Your Favorite Story",
@@ -5429,21 +5429,28 @@ function addAnnaOctoberSkillBlocks(){
   });
   console.log("addAnnaOctoberSkillBlocks: added "+added+" of "+ANNA_OCT_SKILL_BLOCKS.length+" Skill Block assignment(s), starting today");
 }
-/* Two of Anna's Skill Block materials links were bare homepages instead of the specific page —
-   georgiaencyclopedia.org (should be the Cherokee Indians article) and toytheater.com (should be
-   the Base Ten Blocks tool directly). Fixes already-created rows by exact title match; new imports
-   from addAnnaOctoberSkillBlocks() already use the corrected links. Safe to run more than once. */
+/* Several of Anna's Skill Block materials links were bare homepages or browse-everything pages
+   instead of the one specific thing she needs — she's 7, and "go browse this site and figure out
+   which tool/book to use" is exactly the kind of unguided task that doesn't work at her age.
+   Fixed: georgiaencyclopedia.org -> Cherokee Indians article, toytheater.com -> Base Ten Blocks
+   tool directly, mathlearningcenter.org/apps -> the Number Pieces app directly, storylineonline.net
+   -> a specific book (Clark the Shark) instead of its whole library to pick from. Fixes
+   already-created rows (materials + passage wording) by exact title match; new imports from
+   addAnnaOctoberSkillBlocks() already use the corrected links. Safe to run more than once. */
 function patchAnnaHomepageLinks(){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var patched = 0;
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(a.kidId!=="kid1") return;
-    var match = ANNA_OCT_SKILL_BLOCKS.filter(function(p){ return p.title===a.title && p.materials; })[0];
+    var match = ANNA_OCT_SKILL_BLOCKS.filter(function(p){ return p.title===a.title; })[0];
     if(!match) return;
-    if(a.materials===match.materials) return;
-    Object.assign(a, {materials: match.materials});
-    db.doc("assignments/"+id).update({materials: match.materials});
+    var updates = {};
+    if(match.materials && a.materials!==match.materials) updates.materials = match.materials;
+    if(match.passage && a.passage!==match.passage) updates.passage = match.passage;
+    if(Object.keys(updates).length===0) return;
+    Object.assign(a, updates);
+    db.doc("assignments/"+id).update(updates);
     patched++;
   });
   console.log("patchAnnaHomepageLinks: patched "+patched+" assignment(s)");
