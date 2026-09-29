@@ -5310,7 +5310,7 @@ var ANNA_OCT_SKILL_BLOCKS = [
     passage:"Pick one and show a grown-up when you're done: play the Math Arena quiz again, teach the \"bundle into tens\" trick back like you're the teacher, or make a poster showing 1 one / 1 ten / 1 hundred with drawings."},
   {dayOffset:6, subject:"Math", skillId:"anna-math-place-value", stage:"practice", standard:"2.NR.1", xp:15,
     title:"Math: Place Value Challenge — Comparing Numbers",
-    materials:"https://toytheater.com",
+    materials:"https://toytheater.com/base-ten-blocks/",
     passage:"Your place-value trick works for comparing numbers too — the number with more hundreds always wins, and if the hundreds match, compare the tens next.",
     quiz:[
       {q:"Which is bigger: 342 or 423?", choices:["342","423","They're equal","Can't tell"], answerIndex:1, explain:"Compare the hundreds digit first — 4 hundreds beats 3 hundreds, so 423 is bigger no matter what the other digits are."},
@@ -5369,7 +5369,7 @@ var ANNA_OCT_SKILL_BLOCKS = [
   // --- Social Studies: Creek & Cherokee Nations (SS2H2) ---
   {dayOffset:0, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"teach", standard:"SS2H2", xp:10,
     title:"Social Studies: Creek & Cherokee Nations — Here's the Idea",
-    materials:"https://www.georgiaencyclopedia.org",
+    materials:"https://www.georgiaencyclopedia.org/articles/history-archaeology/cherokee-indians/",
     passage:"Before Georgia was even called Georgia, two groups of people already lived here: the Creek and the Cherokee. The Cherokee lived up in the north Georgia mountains. The Creek lived along the rivers in the middle and south. Both grew corn, beans, and squash together — called the Three Sisters — because the three plants help each other grow.\nPick one nation, Creek or Cherokee. Find where they lived on a map and put your finger on it. List three things about how they lived: their home, their food, and one more detail you find interesting.\nCheck yourself: can you point to where your nation lived without looking at your notes?\nYour quiz for this one is already live in your Academy Log Arena — \"Georgia's First People & Founders.\""},
   {dayOffset:1, subject:"Social Studies", skillId:"anna-ss-creek-cherokee", stage:"apply", standard:"SS2H2", xp:15,
     title:"Social Studies: Show What You Know — Creek & Cherokee",
@@ -5428,6 +5428,25 @@ function addAnnaOctoberSkillBlocks(){
     added++;
   });
   console.log("addAnnaOctoberSkillBlocks: added "+added+" of "+ANNA_OCT_SKILL_BLOCKS.length+" Skill Block assignment(s), starting today");
+}
+/* Two of Anna's Skill Block materials links were bare homepages instead of the specific page —
+   georgiaencyclopedia.org (should be the Cherokee Indians article) and toytheater.com (should be
+   the Base Ten Blocks tool directly). Fixes already-created rows by exact title match; new imports
+   from addAnnaOctoberSkillBlocks() already use the corrected links. Safe to run more than once. */
+function patchAnnaHomepageLinks(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1") return;
+    var match = ANNA_OCT_SKILL_BLOCKS.filter(function(p){ return p.title===a.title && p.materials; })[0];
+    if(!match) return;
+    if(a.materials===match.materials) return;
+    Object.assign(a, {materials: match.materials});
+    db.doc("assignments/"+id).update({materials: match.materials});
+    patched++;
+  });
+  console.log("patchAnnaHomepageLinks: patched "+patched+" assignment(s)");
 }
 
 /* Ryan asked for more videos from LGR (Lazy Game Reviews) — a real, well-known retro computing
@@ -5694,6 +5713,7 @@ window.addDosboxPivotTask = addDosboxPivotTask;
 window.addKid1ContentSep29 = addKid1ContentSep29;
 window.patchKid1LessonLinks = patchKid1LessonLinks;
 window.addAnnaOctoberSkillBlocks = addAnnaOctoberSkillBlocks;
+window.patchAnnaHomepageLinks = patchAnnaHomepageLinks;
 window.patchKid2RetroVideos = patchKid2RetroVideos;
 window.patchRyanSkillBlockDemo = patchRyanSkillBlockDemo;
 
