@@ -5548,6 +5548,112 @@ function addOsMuseumArchiveChallenge(kidId){
   console.log("addOsMuseumArchiveChallenge: added "+added+" of "+CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.length+" archive challenge assignment(s) for "+kidId+", starting today");
 }
 
+/* ---------- World 2: Minecraft — tightened to a 2-week arc, real links, standards mapped ----------
+   Replaces the earlier stalled plan (broken/mismatched tutorial links, never actually built into
+   the app). Every link below was verified fresh via web search, not guessed or carried over from
+   the old plan. Standards pulled straight from Ryan's own curriculum doc's alignment table — same
+   standards his Retro OS Museum work already uses, so his Annual Progress Report stays consistent.
+   10 school days (2 weeks), anchored to start whenever it's run, same pattern as the Archive
+   Challenge. Run addMinecraftWorld2() once, logged in as Ryan; safe to run twice — dedups by title. */
+var CURRICULUM_MINECRAFT_WORLD2 = [
+  {d:0, subject:"Related Arts", title:"Blueprint your build: sketch your footprint on paper before opening Minecraft — mark the length and width in blocks.", xp:15, standard:"4.GSR.7/4.GSR.8",
+    materials:"https://www.youtube.com/watch?v=QiekhP8tR9U"},
+  {d:0, subject:"Math", title:"Measure your blueprint: what's the perimeter and area of your planned footprint, in blocks?", xp:15, standard:"4.GSR.7/4.GSR.8",
+    quiz:[{q:"Your build footprint is 8 blocks by 5 blocks. What's the area?", choices:["13","40","26","35"], answerIndex:1, explain:"Area = length × width = 8 × 5 = 40 square blocks."}],
+    quizRetry:[{q:"A footprint is 6 blocks by 4 blocks. What's the perimeter (distance all the way around)?", choices:["10","20","24","14"], answerIndex:1, explain:"Perimeter = 2×(length+width) = 2×(6+4) = 20 blocks."}]},
+
+  {d:1, subject:"Science", title:"Terraform your land: shape the ground before you build — smooth hills instead of sharp cliffs, curvy rivers instead of straight ones.", xp:15, standard:"S4E4",
+    materials:"https://www.minecraft.net/en-us/article/tutorial--tips-for-landscaping-and-terraforming"},
+
+  {d:2, subject:"Math", title:"Mark your build's corners with X/Z coordinates — write down all 4 corner coordinates in your lab journal.", xp:15, standard:"4.MDR.6"},
+  {d:2, subject:"Social Studies", title:"Map your build like a neighborhood: label where each structure is relative to true north.", xp:10, standard:"SS4G1/SS4G2"},
+
+  {d:3, subject:"Science", title:"Build a custom tree matching a real biome plant — research what actually grows there first.", xp:15, standard:"S4L1",
+    materials:"https://www.youtube.com/watch?v=2XCVsvaxn4U"},
+
+  {d:4, subject:"Related Arts", title:"Add structural detail: recess a window, trim a roofline, mix at least 2 block types on one wall for texture.", xp:15, standard:"4.GSR.7/4.GSR.8",
+    materials:"https://minecraft.fandom.com/wiki/Tutorials/Adding_beauty_to_constructions"},
+
+  {d:5, subject:"Math", title:"Villager trading ratios: find a villager trade and figure out the exchange ratio (e.g. how many emeralds per item).", xp:15, standard:"4.PAR.3",
+    materials:"https://attackofthefanboy.com/guides/complete-minecraft-villager-trades-list/",
+    quiz:[{q:"A villager trades 3 emeralds for 1 item. If you have 12 emeralds, how many items can you get?", choices:["3","4","9","12"], answerIndex:1, explain:"12 ÷ 3 = 4 — the ratio stays the same no matter how many trades you make."}]},
+  {d:5, subject:"Social Studies", title:"Supply & demand at the trading post: why do some villager trades cost more emeralds than others?", xp:10, standard:"SS4E1/SS4E2",
+    materials:"https://attackofthefanboy.com/guides/complete-minecraft-villager-trades-list/"},
+
+  {d:6, subject:"Science", title:"Biome report: pick a real-world biome and list 3 real facts about its climate, plants, and animals before recreating it.", xp:15, standard:"S4L1",
+    materials:"https://www.ducksters.com/science/ecosystems/world_biomes.php"},
+
+  {d:7, subject:"Math", title:"Scale check: does your build look the right size next to a Minecraft villager? Compare block height to a villager's height and explain if anything looks off.", xp:15, standard:"4.GSR.7/4.GSR.8",
+    materials:"https://illustrarch.com/articles/16033-the-importance-of-proportion-and-scale.html"},
+
+  {d:8, subject:"Science", title:"Dig a cross-section into a hillside and label the soil layers you'd expect to see in real life (topsoil, subsoil, bedrock).", xp:15, standard:"S4E4",
+    materials:"https://www.ducksters.com/science/earth_science/soil_science.php"},
+
+  {d:9, subject:"Related Arts", title:"Show & Teach: give a tour of your finished biome build, pointing out one thing you changed after terraforming, one math decision, and one real biome fact you used.", xp:20, standard:"3-5.F"}
+];
+function addMinecraftWorld2(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var todayDate = new Date(todayISO()+"T00:00:00");
+  var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  var added = 0;
+  CURRICULUM_MINECRAFT_WORLD2.forEach(function(item){
+    if(existingTitles.indexOf(item.title)!==-1) return;
+    var d = addSchoolDays(todayDate, item.d);
+    db.collection("assignments").add({
+      kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
+      xp: item.xp, done:false, doneAt:null, standard: item.standard||null,
+      materials: item.materials||null, video: item.video||null,
+      quiz: item.quiz||null, quizRetry: item.quizRetry||null,
+      skillId: "ryan-world2-minecraft",
+      createdAt: new Date().toISOString()
+    });
+    added++;
+  });
+  console.log("addMinecraftWorld2: added "+added+" of "+CURRICULUM_MINECRAFT_WORLD2.length+" World 2 assignment(s) for "+kidId+", starting today");
+}
+
+/* ---------- Weekly Thought Experiments for Ryan ----------
+   Philosophy for Children (P4C) — structured discussion of open questions, not graded, no right
+   answer — has real research behind it for critical thinking gains in this age range. One a week,
+   tagged "Live Lesson" so it lands in his Main Project block. Several tie directly into his own
+   interests: the Ring of Gyges (would you still follow rules if you could never get caught?) lines
+   up almost exactly with the Cyber Lab safety framing already in his curriculum doc. No fabricated
+   sources — these are the standard, long-established thought experiments, adapted in plain language. */
+var RYAN_THOUGHT_EXPERIMENTS = [
+  {d:0, title:"Thought Experiment: The Switch Problem",
+    passage:"A runaway cart is about to hit 5 people tied to the tracks. You're standing next to a switch — pull it, and the cart goes to a side track instead, where it will hit 1 person.\nDo you pull the switch? Why or why not?\nIs there a difference between pulling the switch (causing 1 death to prevent 5) and doing nothing (letting 5 die but not directly causing anyone's death)? Talk it through — there's no right answer, just a good argument."},
+  {d:5, title:"Thought Experiment: The Ship of Theseus",
+    passage:"A ship gets repaired over many years — every single plank eventually gets replaced, one at a time, until none of the original wood is left.\nIs it still the same ship? If not, at what exact point did it stop being the same ship?\nNow think about your own body — nearly all your cells get replaced over your lifetime. Are you still \"you\"? What actually makes something the same thing over time?"},
+  {d:10, title:"Thought Experiment: The Ring of Gyges",
+    passage:"Imagine you found a ring that made you completely invisible whenever you wanted — no one could ever see you or catch you doing anything.\nWould you still follow the rules? Why or why not?\nThis is basically the real question behind cybersecurity ethics — a hacker with skill can often act without getting caught. What's the difference between someone who could break the rules and doesn't, and someone who just never had the chance to?"},
+  {d:15, title:"Thought Experiment: The Teleporter Problem",
+    passage:"Imagine a teleporter that scans every atom in your body, builds an exact perfect copy somewhere else, and destroys the original.\nIs the person who steps out the same person who stepped in, or a brand-new person who just thinks they're you?\nWhat if the machine had a glitch and didn't destroy the original — now there are two of you. Which one is the \"real\" you?"},
+  {d:20, title:"Thought Experiment: The Sorites Paradox (the Heap)",
+    passage:"A pile of 10,000 grains of sand is definitely a \"heap.\" If you remove just one grain, it's still a heap. Keep removing grains one at a time — at what exact number does it stop being a heap?\nThere's no obvious answer. What does that tell you about words like \"heap,\" \"tall,\" or \"old\" — do they have exact definitions, or fuzzy ones? Can you think of another word like that?"},
+  {d:25, title:"Thought Experiment: The Simulation Question",
+    passage:"How would you actually know, for certain, that you're not dreaming or living inside a simulation right now?\nWhat's the difference between something being real and something just seeming completely real? Is there any test you could run to tell the difference — and if not, does it even matter?"}
+];
+function addRyanThoughtExperiments(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var todayDate = new Date(todayISO()+"T00:00:00");
+  var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  var added = 0;
+  RYAN_THOUGHT_EXPERIMENTS.forEach(function(item){
+    if(existingTitles.indexOf(item.title)!==-1) return;
+    var d = addSchoolDays(todayDate, item.d);
+    db.collection("assignments").add({
+      kidId: kidId, date: isoDate(d), subject: "Live Lesson", title: item.title,
+      xp: 15, done:false, doneAt:null, passage: item.passage,
+      skillId: "ryan-thought-experiments", stage: "discuss",
+      createdAt: new Date().toISOString()
+    });
+    added++;
+  });
+  console.log("addRyanThoughtExperiments: added "+added+" of "+RYAN_THOUGHT_EXPERIMENTS.length+" thought experiment(s) for "+kidId+", weekly starting today");
+}
+
 /* One-time maintenance utilities — intentionally not in the UI, run from the browser console when actually needed:
    removeDuplicateAssignments(state.activeKid)   — cleans up accidental double-imports
    resetKidLegacyData(state.activeKid, CURRICULUM_RETRO_OS_MONTH1, "Retro OS Museum — Month 1") — one-time legacy wipe
@@ -5579,6 +5685,8 @@ window.patchLessonLinks = patchLessonLinks;
 window.state = state;
 window.CURRICULUM_RETRO_OS_MONTH1 = CURRICULUM_RETRO_OS_MONTH1;
 window.addOsMuseumArchiveChallenge = addOsMuseumArchiveChallenge;
+window.addMinecraftWorld2 = addMinecraftWorld2;
+window.addRyanThoughtExperiments = addRyanThoughtExperiments;
 window.addDosboxPivotTask = addDosboxPivotTask;
 window.addKid1ContentSep29 = addKid1ContentSep29;
 window.patchKid1LessonLinks = patchKid1LessonLinks;
