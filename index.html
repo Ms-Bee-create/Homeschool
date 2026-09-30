@@ -928,8 +928,8 @@ function toggleAssignment(a){
       newStreakDay = true;
     }
   }
-  var lvl = willDone ? levelUpBonus(oldXp, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
-  if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+  var lvl = willDone ? levelUpBonus(kd, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
+  if(lvl.gained>0){ updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus; updates.lastMommaMoneyLevel = kd.lastMommaMoneyLevel; }
   Object.assign(kd, updates);
   state.kids[a.kidId] = kd;
   db.doc("kids/"+a.kidId).update(updates);
@@ -981,12 +981,20 @@ if(!document.getElementById("confettiKeyframes")){
   document.head.appendChild(kf);
 }
 
-/* $3 Momma Money per level gained; called after any XP change */
-function levelUpBonus(oldXp, newXp){
-  var oldLevel = levelFor(Math.max(0,oldXp));
+/* $3 Momma Money per level gained; called after any XP change. Three separate places can trigger
+   this (task completion, mini-games, quiz completion), and local state can lag behind a moment
+   after a Supabase write — comparing old/new xp on every call let the same level-up get paid
+   multiple times if two of those fired close together (e.g. 3 duplicate Level 4 deposits for one
+   real level-up). Anchoring to a persisted "highest level already paid" watermark instead of a
+   before/after delta makes this idempotent no matter how stale oldXp is or how many call sites
+   race each other — a level can never be paid twice. */
+function levelUpBonus(kd, newXp){
   var newLevel = levelFor(Math.max(0,newXp));
-  var gained = Math.max(0, newLevel-oldLevel);
-  return {gained: gained, bonus: gained*3, newLevel: newLevel};
+  var lastPaidLevel = kd.lastMommaMoneyLevel!=null ? kd.lastMommaMoneyLevel : levelFor(Math.max(0,kd.xp||0));
+  var gained = Math.max(0, newLevel-lastPaidLevel);
+  var result = {gained: gained, bonus: gained*3, newLevel: newLevel};
+  if(gained>0) kd.lastMommaMoneyLevel = newLevel; // updated synchronously so a same-tick duplicate call sees it immediately
+  return result;
 }
 function logLevelUpReward(kidId, lvl){
   if(db) db.collection("rewards").add({kidId: kidId, type:"level-up", level: lvl.newLevel, amount: lvl.bonus, at: new Date().toISOString()});
@@ -4309,9 +4317,9 @@ function grantXP(kidId, amount){
   if(!db || amount<=0) return;
   var kd = kidData(kidId);
   var oldXp = kd.xp||0, newXp = oldXp+amount;
-  var lvl = levelUpBonus(oldXp, newXp);
+  var lvl = levelUpBonus(kd, newXp);
   var updates = {xp:newXp};
-  if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0)+lvl.bonus;
+  if(lvl.gained>0){ updates.mommaMoney = (kd.mommaMoney||0)+lvl.bonus; updates.lastMommaMoneyLevel = kd.lastMommaMoneyLevel; }
   Object.assign(kd, updates);
   state.kids[kidId] = kd;
   db.doc("kids/"+kidId).update(updates);
@@ -4805,9 +4813,9 @@ function answerQuiz(choiceIdx){
       if(quiz.xpEarned>0 && db){
         var kd = kidData(state.activeKid);
         var oldXp = kd.xp||0, newXp = oldXp+quiz.xpEarned;
-        var lvl = levelUpBonus(oldXp, newXp);
+        var lvl = levelUpBonus(kd, newXp);
         var updates = {xp: newXp};
-        if(lvl.gained>0) updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus;
+        if(lvl.gained>0){ updates.mommaMoney = (kd.mommaMoney||0) + lvl.bonus; updates.lastMommaMoneyLevel = kd.lastMommaMoneyLevel; }
         Object.assign(kd, updates);
         state.kids[state.activeKid] = kd;
         db.doc("kids/"+state.activeKid).update(updates);
@@ -4836,7 +4844,7 @@ var MM_MEMBERS = {
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date", lastMommaMoneyLevel:"last_momma_money_level" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group", skillId:"skill_id", reviewOf:"review_of" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
