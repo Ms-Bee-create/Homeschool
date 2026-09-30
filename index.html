@@ -1329,7 +1329,7 @@ function renderDailyBlockCard(block, kidId, iso, tasks, isDone, isActive, listOn
      the flat, everything-visible layout he asked for instead of the guided one-at-a-time flow.
      A manual expand/collapse override is persisted (localStorage), not just held in memory, so
      tapping a block open and then reloading the page doesn't silently snap it back closed. */
-  var overrideKey = "al_block_expanded_"+kidId+"_"+block.key;
+  var overrideKey = "al_block_expanded_"+kidId+"_"+block.key+"_"+iso;
   var override = getSectionOverride(overrideKey);
   var showBody = listOn ? (override!==null ? override : true) : (override!==null ? override : isActive);
 
