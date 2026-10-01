@@ -2725,6 +2725,20 @@ var VM_INSTALL_HELP = {
       "<b>Still won't boot:</b> in the computer's BIOS/UEFI settings, make sure \"Secure Boot\" is turned off and the boot mode matches your partition scheme (Legacy/CSM for MBR, UEFI for GPT).",
       "<b>⚠️ If using Rufus to install for real:</b> Setup erases whatever drive you pick to install onto. Always double- and triple-check the right drive is selected — never the family's main computer without a parent's OK first. (WinToUSB doesn't have this risk, since Windows runs from the USB itself.)"
     ]
+  },
+  connect4qbasic: {
+    title: "Connect Four in QBasic Stuck? Try This",
+    steps: [
+      "<b>\"Syntax error\" the moment you try to run it:</b> QBasic keywords have to be spelled exactly right — PRINT, FOR, NEXT, IF, THEN, END IF. One typo (like <code>FRO</code> instead of <code>FOR</code>) stops the whole program. Check the line it highlights first.",
+      "<b>Loop runs the wrong number of times, or never stops:</b> every <code>FOR</code> needs a matching <code>NEXT</code>. If you have two loops inside each other (one for rows, one for columns), make sure each <code>NEXT</code> closes the right one, innermost first.",
+      "<b>Board looks crooked, columns don't line up:</b> QBasic prints in a fixed-width font, so every row needs the exact same number of characters before the next symbol. Count the spaces/dashes in one row and copy that exact spacing to the rest.",
+      "<b>INPUT crashes or skips over asking the question:</b> match your variable type to what you're asking for — <code>INPUT \"Column?\", col</code> expects a number; if you want to accept typed-in text instead, use <code>col$</code> (with the dollar sign) and convert it with <code>VAL(col$)</code> before using it as a number.",
+      "<b>Piece won't actually show up when you pick a column:</b> printing something new on screen isn't the same as the game remembering it. The board needs to be tracked in variables (or an array) that you update first, then re-print the whole board from those variables — not just text left over from an earlier PRINT.",
+      "<b>Win-checker never says you won, even with 4 in a row:</b> make sure you're comparing the exact same value each time (an \"X\" is not the same as an \"x\"), and that you're checking around the piece that was JUST placed, not always starting from column 1.",
+      "<b>Game only works for Player 1, Player 2 never gets a turn:</b> check your turn-switching logic actually flips after every move — a common trick is <code>turn = 3 - turn</code>, which bounces a variable between 1 and 2 each time it runs.",
+      "<b>Program crashes or closes the instant you run it:</b> look for a missing <code>END IF</code>, <code>NEXT</code>, or <code>LOOP</code> that doesn't match an earlier <code>IF</code>, <code>FOR</code>, or <code>DO</code> — QBasic needs every block you open to be closed.",
+      "<b>Stuck on something not listed above?</b> Type exactly what's happening into the box below — the more specific (what step you're on, the exact error text), the better the match."
+    ]
   }
 };
 
