@@ -4283,7 +4283,9 @@ function renderLeaderArea(){
 
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
+  els.view.appendChild(quickLogCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
@@ -6315,6 +6317,194 @@ function runAutoMigrations(){
     patchAnnaLessonContent();
     retireAnnaFillerLessons();
   }catch(e){ console.error("auto-migration error", e); }
+}
+
+/* ---------- Leader: Helper chats (what Ryan asked the AI troubleshooter) ---------- */
+function helperChatsCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"helperchats");
+  var body = document.createElement("div");
+  var loaded = false;
+  function load(){
+    var fresh = state.helperChats && (Date.now()-state.helperChats.at) < 60000;
+    if(!fresh) body.innerHTML = '<div class="muted" style="font-size:13px;margin-top:8px">Loading…</div>';
+    var p = fresh ? Promise.resolve(state.helperChats.res) : sb.from("al_ai_chats").select("*").eq("household_id", HOUSEHOLD_ID).order("created_at", {ascending:false}).limit(300);
+    p.then(function(res){
+      if(!fresh && !res.error) state.helperChats = {at: Date.now(), res: res};
+      body.innerHTML = "";
+      if(res.error){
+        body.innerHTML = '<div class="muted" style="font-size:13px;margin-top:8px">Couldn\'t load chats ('+escapeHtml(res.error.message||"error")+'). Has the al_ai_chats table been created?</div>';
+        return;
+      }
+      var rows = res.data || [];
+      if(!rows.length){
+        body.innerHTML = '<div class="muted" style="font-size:13px;margin-top:8px">No helper chats yet.</div>';
+        return;
+      }
+      var groups = {}, order = [];
+      rows.slice().reverse().forEach(function(r){
+        var day = (r.created_at||"").slice(0,10);
+        var key = r.kid_id+"|"+day+"|"+(r.assignment_title||"");
+        if(!groups[key]){ groups[key] = {kid:r.kid_id, day:day, title:r.assignment_title||"(lesson)", msgs:[]}; order.push(key); }
+        groups[key].msgs.push(r);
+      });
+      order.reverse().forEach(function(key){
+        var g = groups[key];
+        var gd = document.createElement("details");
+        gd.style.cssText = "border-top:1px solid var(--border);padding:8px 0";
+        var gk = detailsOpenKey("leader","chat",false,key);
+        if(isDetailsOpen(gk)) gd.open = true;
+        gd.addEventListener("toggle", function(){ setDetailsOpen(gk, gd.open); });
+        var sm = document.createElement("summary");
+        sm.style.cssText = "cursor:pointer;font-size:13.5px";
+        sm.textContent = kidData(g.kid).name+" · "+fmtDate(g.day)+" · "+g.title+" ("+Math.ceil(g.msgs.length/2)+" question"+(g.msgs.length>2?"s":"")+")";
+        gd.appendChild(sm);
+        g.msgs.forEach(function(m){
+          var b = document.createElement("div");
+          b.style.cssText = "margin:6px 0 0;padding:7px 10px;border-radius:8px;font-size:13px;white-space:pre-wrap;background:"+(m.role==="user"?"var(--gold-soft)":"var(--success-soft)");
+          b.textContent = (m.role==="user" ? kidData(g.kid).name+": " : "Helper: ")+m.content;
+          gd.appendChild(b);
+        });
+        body.appendChild(gd);
+      });
+    });
+  }
+  if(isDetailsOpen(openKey)){ det.open = true; loaded = true; load(); }
+  det.addEventListener("toggle", function(){
+    setDetailsOpen(openKey, det.open);
+    if(det.open && !loaded){ loaded = true; state.helperChats = null; load(); }
+  });
+  var sum = document.createElement("summary");
+  sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "💬 Helper chats — what Ryan asked the AI helper";
+  det.appendChild(sum);
+  det.appendChild(body);
+  wrap.appendChild(det);
+  return wrap;
+}
+
+/* ---------- Leader: Quick Log (real-life learning, no SQL) ---------- */
+var QUICK_LOG_SUBJECTS = ["Math","ELA","Reading","Science","Social Studies","Related Arts","Independent","Computer Science","Faith"];
+function quickLogCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"quicklog");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary");
+  sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "✍️ Quick Log — add real-life learning";
+  det.appendChild(sum);
+  /* The app re-renders in the background every few seconds, so the form's values live in
+     state.ql and are put back each time instead of being wiped mid-entry. */
+  var ql = state.ql = state.ql || {title:"", detail:"", kids:[], subj:"Math", date:todayISO(), xp:15, std:"", cross:[], done:true};
+  var form = document.createElement("div");
+  form.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:10px";
+  var inputCss = "padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px;width:100%;box-sizing:border-box";
+  function lbl(t){ var l = document.createElement("div"); l.style.cssText = "font-size:12.5px;font-weight:600;margin-top:2px"; l.textContent = t; return l; }
+  var note = document.createElement("div");
+  note.className = "muted"; note.style.fontSize = "12.5px";
+  note.textContent = "Log something that already happened (like building the nursery wall) or schedule something new. Credits hours and standards just like any lesson.";
+  form.appendChild(note);
+
+  form.appendChild(lbl("What did they do or learn?"));
+  var title = document.createElement("input");
+  title.style.cssText = inputCss; title.maxLength = 120; title.placeholder = "e.g. Real Build: reading a tape measure";
+  title.value = ql.title; title.oninput = function(){ ql.title = title.value; };
+  form.appendChild(title);
+
+  form.appendChild(lbl("Details (optional)"));
+  var detail = document.createElement("textarea");
+  detail.style.cssText = inputCss; detail.rows = 2; detail.maxLength = 500; detail.placeholder = "What happened, what they learned";
+  detail.value = ql.detail; detail.oninput = function(){ ql.detail = detail.value; };
+  form.appendChild(detail);
+
+  form.appendChild(lbl("Who?"));
+  var kidRow = document.createElement("div");
+  kidRow.style.cssText = "display:flex;gap:14px;flex-wrap:wrap";
+  var kidBoxes = KIDS.map(function(k){
+    var l = document.createElement("label");
+    l.style.cssText = "display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer";
+    var cb = document.createElement("input"); cb.type = "checkbox"; cb.value = k.id; cb.style.cssText = "width:18px;height:18px";
+    cb.checked = ql.kids.indexOf(k.id)>=0;
+    cb.onchange = function(){ ql.kids = kidBoxes.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }); };
+    l.appendChild(cb); l.appendChild(document.createTextNode(kidData(k.id).name));
+    kidRow.appendChild(l);
+    return cb;
+  });
+  form.appendChild(kidRow);
+
+  var row2 = document.createElement("div");
+  row2.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+  function field(label, el, w){ var d = document.createElement("div"); d.style.cssText = "flex:1;min-width:"+w+"px"; d.appendChild(lbl(label)); d.appendChild(el); return d; }
+  var subj = document.createElement("select"); subj.style.cssText = inputCss;
+  QUICK_LOG_SUBJECTS.forEach(function(sj){ var o = document.createElement("option"); o.value = sj; o.textContent = sj; subj.appendChild(o); });
+  subj.value = ql.subj; subj.onchange = function(){ ql.subj = subj.value; };
+  var date = document.createElement("input"); date.type = "date"; date.value = ql.date; date.style.cssText = inputCss; date.onchange = function(){ ql.date = date.value; };
+  var xp = document.createElement("input"); xp.type = "number"; xp.min = 5; xp.max = 50; xp.step = 5; xp.value = ql.xp; xp.style.cssText = inputCss; xp.oninput = function(){ ql.xp = xp.value; };
+  row2.appendChild(field("Subject", subj, 140)); row2.appendChild(field("Date", date, 140)); row2.appendChild(field("XP", xp, 80));
+  form.appendChild(row2);
+
+  var std = document.createElement("input");
+  std.style.cssText = inputCss; std.maxLength = 40; std.placeholder = "e.g. 4.MDR.6 (optional)";
+  std.value = ql.std; std.oninput = function(){ ql.std = std.value; };
+  form.appendChild(lbl("Standard (optional)")); form.appendChild(std);
+
+  form.appendChild(lbl("Also credit these subjects"));
+  var crossRow = document.createElement("div");
+  crossRow.style.cssText = "display:flex;gap:12px;flex-wrap:wrap";
+  var crossBoxes = ["Math","ELA","Science","Social Studies"].map(function(sj){
+    var l = document.createElement("label");
+    l.style.cssText = "display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer";
+    var cb = document.createElement("input"); cb.type = "checkbox"; cb.value = sj;
+    cb.checked = ql.cross.indexOf(sj)>=0;
+    cb.onchange = function(){ ql.cross = crossBoxes.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }); };
+    l.appendChild(cb); l.appendChild(document.createTextNode(sj));
+    crossRow.appendChild(l);
+    return cb;
+  });
+  form.appendChild(crossRow);
+
+  var doneLbl = document.createElement("label");
+  doneLbl.style.cssText = "display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px";
+  var doneBox = document.createElement("input"); doneBox.type = "checkbox"; doneBox.checked = ql.done; doneBox.style.cssText = "width:18px;height:18px"; doneBox.onchange = function(){ ql.done = doneBox.checked; };
+  doneLbl.appendChild(doneBox); doneLbl.appendChild(document.createTextNode("Already done — mark complete and award the XP now"));
+  form.appendChild(doneLbl);
+
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "primary-btn"; btn.textContent = "Add to the Academy Log";
+  btn.onclick = function(){
+    var kids = kidBoxes.filter(function(c){ return c.checked; }).map(function(c){ return c.value; });
+    var t = title.value.trim();
+    if(!t){ toast("Add a title first"); return; }
+    if(!kids.length){ toast("Pick at least one kid"); return; }
+    if(!db){ toast("Not connected yet — try again in a moment"); return; }
+    var amount = Math.max(5, Math.min(50, Number(xp.value)||15));
+    var cross = crossBoxes.filter(function(c){ return c.checked && c.value!==subj.value; }).map(function(c){ return c.value; });
+    var markDone = doneBox.checked;
+    var now = new Date().toISOString();
+    kids.forEach(function(kidId){
+      var row = {
+        kidId: kidId, date: date.value || todayISO(), subject: subj.value, title: t, xp: amount,
+        done: markDone, doneAt: markDone ? now : null, standard: std.value.trim() || null,
+        passage: detail.value.trim() || null, crossSubjects: cross.length ? cross : null, createdAt: now
+      };
+      db.collection("assignments").add(row);
+      if(markDone) grantXP(kidId, amount);
+    });
+    toast("Added for "+kids.length+" kid"+(kids.length>1?"s":"")+" ✓");
+    state.ql = null;
+    renderView();
+  };
+  form.appendChild(btn);
+  det.appendChild(form);
+  wrap.appendChild(det);
+  return wrap;
 }
 
 /* ---------- Leader: Content Packs (replaces the add... console commands) ---------- */
