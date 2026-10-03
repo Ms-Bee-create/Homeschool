@@ -6967,31 +6967,72 @@ window.patchShowTeachTitleCollisions = patchShowTeachTitleCollisions;
 var syncTimer = null;
 function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 250); }
 
-function syncAll(){
+/* Sync: polls Supabase, but only does real work when something changed.
+   - A failed query used to come back as empty data and wipe the screen; now any error skips the update.
+   - Drawings/photos live in work_blocks, the heaviest column. Routine polls leave it out and reuse the
+     copy already loaded, re-fetching only the rows whose submitted_at changed. A full load runs on
+     start and every 5 minutes.
+   - Nothing is replaced or re-rendered when the data is identical to last time, which also stops a
+     poll from overwriting an optimistic local change that is still being saved.
+   - Hidden tabs don't poll; coming back to the tab syncs immediately. */
+var syncState = {running:false, again:false, lastFull:0, lightCols:null, sig:""};
+function syncAll(force){
   if(!HOUSEHOLD_ID) return;
+  if(syncState.running){ syncState.again = true; return; }
+  syncState.running = true;
+  var needFull = force===true || !syncState.lightCols || (Date.now()-syncState.lastFull > 300000);
+  var assignQ = sb.from("al_assignments").select(needFull ? "*" : syncState.lightCols).eq("household_id", HOUSEHOLD_ID);
   Promise.all([
     sb.from("al_kids").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_schedule").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_assignments").select("*").eq("household_id", HOUSEHOLD_ID),
+    assignQ,
     sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_journal").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID),
     sb.from("al_settings").select("*").eq("household_id", HOUSEHOLD_ID)
   ]).then(function(results){
+    for(var ri=0; ri<results.length; ri++){
+      if(results[ri].error){
+        if(!needFull) syncState.lightCols = null; // fall back to a full load next time
+        return;
+      }
+    }
     var kidsRows = results[0].data || [], schedRows = results[1].data || [], assignRows = results[2].data || [], qRows = results[3].data || [];
     var journalRows = results[4].data || [], reflectionRows = results[5].data || [];
     var settingsRow = (results[6].data || [])[0];
-    state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
-    state.kids = {};
-    kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
-    state.schedules = {};
-    schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
-    state.assignments = {};
-    assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
-    state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
-    state.journalEntries = journalRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("journal", r)); });
-    state.reflections = reflectionRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("reflections", r)); });
+
+    var needWork = [];
+    if(needFull){
+      syncState.lastFull = Date.now();
+      if(assignRows.length) syncState.lightCols = Object.keys(assignRows[0]).filter(function(k){ return k!=="work_blocks"; }).join(",");
+    } else {
+      assignRows.forEach(function(r){
+        var prev = state.assignments[r.id];
+        if(prev && prev.workBlocks!==undefined && (r.submitted_at||null)===(prev.submittedAt||null)) r.work_blocks = prev.workBlocks;
+        else if(r.submitted_at) needWork.push(r.id);
+      });
+    }
+
+    var sigData = JSON.stringify([kidsRows, schedRows,
+      assignRows.map(function(r){ var c = Object.assign({}, r); delete c.work_blocks; return c; }),
+      qRows, journalRows, reflectionRows, settingsRow ? settingsRow.leader_pin_hash : null]);
+    var changed = sigData!==syncState.sig;
+    syncState.sig = sigData;
+
+    if(changed){
+      state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
+      state.kids = {};
+      kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
+      state.schedules = {};
+      schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
+      state.assignments = {};
+      assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
+      state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
+      state.journalEntries = journalRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("journal", r)); });
+      state.reflections = reflectionRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("reflections", r)); });
+    }
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
+    if(!changed) return;
     updateLibraryTabVisibility();
     if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); }
     renderKidbar(); renderXpBar();
@@ -7003,8 +7044,22 @@ function syncAll(){
        Also holds off while a file input's native picker might still be open (state.fileInputActive)
        — see the window "focus" listener below for why. */
     if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField() && !state.fileInputActive) renderView();
-  }).catch(function(){});
+
+    if(needWork.length){
+      sb.from("al_assignments").select("id,work_blocks").in("id", needWork).then(function(res){
+        if(res.error || !res.data) return;
+        res.data.forEach(function(r){ if(state.assignments[r.id]) state.assignments[r.id].workBlocks = r.work_blocks; });
+        if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField() && !state.fileInputActive) renderView();
+      });
+    }
+  }).catch(function(){
+    if(!needFull) syncState.lightCols = null;
+  }).then(function(){
+    syncState.running = false;
+    if(syncState.again){ syncState.again = false; syncSoon(); }
+  });
 }
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) syncAll(); });
 function isTypingInFormField(){
   var el = document.activeElement;
   if(!el) return false;
@@ -7104,7 +7159,7 @@ function showApp(){
   renderKidbar(); renderXpBar(); renderView();
   showWhoGate();
   syncAll();
-  setInterval(syncAll, 4000);
+  setInterval(function(){ if(!document.hidden) syncAll(); }, 8000);
 }
 function tryRestoreSession(){
   sb.auth.getSession().then(function(res){
