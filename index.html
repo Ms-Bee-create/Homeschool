@@ -583,7 +583,7 @@ function queueSkillReview(kidId, sourceAssignment, item){
     title: "🔁 Review: " + (sourceAssignment.skillId || sourceAssignment.title),
     xp: 5, done: false, doneAt: null, stage: "review",
     skillId: sourceAssignment.skillId || null, reviewOf: sourceAssignment.id || null,
-    quiz: [{ q: item.q, choices: item.choices, answerIndex: item.answerIndex, explain: item.explain || null }],
+    quiz: [JSON.parse(JSON.stringify(item))],
     createdAt: new Date().toISOString()
   });
 }
@@ -876,6 +876,221 @@ function speak(text){
 function speakerBtnHtml(){
   return '<button class="speak-btn" title="Read aloud" aria-label="Read aloud" style="border:none;background:none;cursor:pointer;font-size:15px;padding:0 4px;line-height:1;vertical-align:middle">🔊</button>';
 }
+
+/* ---------- Click-only Quick Check types (laptop/trackpad friendly: no dragging) ----------
+   Each builder draws its own UI into qRow and calls done(true|false) once when the kid presses
+   Check. Low-stakes by design: she can undo/rearrange freely until she checks, and a miss just
+   shows the right answer plus the explanation. Item shapes:
+   {type:"order", q, items:[correct order...], explain}
+   {type:"build", q, target:236, places:["hundreds","tens","ones"], explain}
+   {type:"sort",  q, categories:["A","B"], items:[{t:"text", c:0}], explain}
+   {type:"match", q, pairs:[["left","right"],...], explain} */
+function quizBtn(text, primary){
+  var b = document.createElement("button");
+  b.type = "button";
+  b.textContent = text;
+  b.style.cssText = "padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:"+(primary?"var(--gold-soft)":"var(--card)")+";color:var(--text);font:inherit;font-size:15px;cursor:pointer;text-align:left";
+  return b;
+}
+function shuffled(arr){
+  var a2 = arr.slice();
+  for(var i=a2.length-1;i>0;i--){ var j = Math.floor(Math.random()*(i+1)); var t = a2[i]; a2[i] = a2[j]; a2[j] = t; }
+  return a2;
+}
+function quizCheckRow(qRow, onCheck, onUndo){
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;margin-top:10px";
+  var undo = quizBtn("↩ Start over");
+  var check = quizBtn("✓ Check", true);
+  check.style.fontWeight = "700";
+  check.disabled = true; check.style.opacity = ".5";
+  undo.onclick = onUndo; check.onclick = onCheck;
+  row.appendChild(undo); row.appendChild(check);
+  qRow.appendChild(row);
+  return {row:row, undo:undo, check:check, ready:function(ok){ check.disabled = !ok; check.style.opacity = ok ? "1" : ".5"; }, lock:function(){ undo.disabled = true; check.disabled = true; row.style.opacity = ".6"; }};
+}
+function quizReveal(qRow, text){
+  var r = document.createElement("div");
+  r.style.cssText = "margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--success-soft);border:1px solid var(--success);font-size:13px";
+  r.textContent = text;
+  qRow.appendChild(r);
+}
+var INTERACTIVE_QUIZ = {
+  order: function(item, qRow, done){
+    var wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
+    var seq = [];
+    var opts = shuffled(item.items);
+    var btns = opts.map(function(txt){
+      var b = quizBtn(txt);
+      b.onclick = function(){
+        if(seq.indexOf(txt)>=0) return;
+        seq.push(txt);
+        refresh();
+      };
+      wrap.appendChild(b);
+      return b;
+    });
+    var ctl;
+    function refresh(){
+      btns.forEach(function(b, i){
+        var pos = seq.indexOf(opts[i]);
+        b.textContent = (pos>=0 ? (pos+1)+". " : "")+opts[i];
+        b.style.background = pos>=0 ? "var(--gold-soft)" : "var(--card)";
+      });
+      ctl.ready(seq.length===item.items.length);
+    }
+    ctl = quizCheckRow(qRow, function(){
+      var ok = seq.every(function(x, i){ return x===item.items[i]; });
+      ctl.lock(); btns.forEach(function(b){ b.disabled = true; });
+      btns.forEach(function(b, i){ var pos = seq.indexOf(opts[i]); b.style.background = (item.items[pos]===opts[i]) ? "var(--success-soft)" : "var(--coral-soft)"; });
+      if(!ok) quizReveal(qRow, "Right order: "+item.items.join(" → "));
+      done(ok);
+    }, function(){ seq = []; refresh(); });
+    qRow.insertBefore(wrap, ctl.row);
+    refresh();
+  },
+  build: function(item, qRow, done){
+    var places = item.places || ["hundreds","tens","ones"];
+    var mult = places.length===3 ? [100,10,1] : places.length===2 ? [10,1] : [1];
+    var vals = places.map(function(){ return 0; });
+    var wrap = document.createElement("div");
+    wrap.style.cssText = "display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end";
+    var shows = [];
+    var total = document.createElement("div");
+    total.style.cssText = "margin-top:8px;font-size:18px;font-weight:700";
+    places.forEach(function(name, i){
+      var col = document.createElement("div");
+      col.style.cssText = "text-align:center";
+      var lbl = document.createElement("div");
+      lbl.style.cssText = "font-size:13px;margin-bottom:4px";
+      lbl.textContent = name;
+      var plus = quizBtn("+"); plus.style.padding = "10px 18px";
+      var minus = quizBtn("−"); minus.style.padding = "10px 18px";
+      var show = document.createElement("div");
+      show.style.cssText = "font-size:26px;font-weight:700;margin:4px 0;min-width:48px";
+      shows.push(show);
+      plus.onclick = function(){ if(vals[i]<9){ vals[i]++; refresh(); } };
+      minus.onclick = function(){ if(vals[i]>0){ vals[i]--; refresh(); } };
+      col.appendChild(lbl); col.appendChild(plus); col.appendChild(show); col.appendChild(minus);
+      wrap.appendChild(col);
+    });
+    var ctl;
+    function sum(){ return vals.reduce(function(t, v, i){ return t+v*mult[i]; }, 0); }
+    function refresh(){
+      shows.forEach(function(sh, i){ sh.textContent = vals[i]; });
+      total.textContent = "Your number: "+sum();
+      ctl.ready(true);
+    }
+    ctl = quizCheckRow(qRow, function(){
+      var ok = sum()===item.target;
+      ctl.lock();
+      if(!ok) quizReveal(qRow, "The number was "+item.target+".");
+      done(ok);
+    }, function(){ vals = vals.map(function(){ return 0; }); refresh(); });
+    qRow.insertBefore(wrap, ctl.row);
+    qRow.insertBefore(total, ctl.row);
+    refresh();
+  },
+  sort: function(item, qRow, done){
+    var cats = item.categories;
+    var pool = shuffled(item.items.map(function(it, i){ return {t:it.t, c:it.c, id:i}; }));
+    var placed = {}; // id -> category index
+    var selected = null;
+    var poolWrap = document.createElement("div");
+    poolWrap.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px";
+    var catWrap = document.createElement("div");
+    catWrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
+    var ctl;
+    function refresh(){
+      poolWrap.innerHTML = "";
+      pool.forEach(function(it){
+        if(placed[it.id]!=null) return;
+        var b = quizBtn(it.t);
+        if(selected===it.id){ b.style.background = "var(--gold-soft)"; b.style.borderColor = "var(--gold)"; }
+        b.onclick = function(){ selected = (selected===it.id ? null : it.id); refresh(); };
+        poolWrap.appendChild(b);
+      });
+      catWrap.innerHTML = "";
+      cats.forEach(function(cat, ci){
+        var box = document.createElement("div");
+        box.style.cssText = "padding:8px;border:2px dashed var(--border);border-radius:10px";
+        var head = quizBtn("📥 "+cat, selected!=null);
+        head.style.fontWeight = "700";
+        head.onclick = function(){ if(selected!=null){ placed[selected] = ci; selected = null; refresh(); } };
+        box.appendChild(head);
+        var chips = document.createElement("div");
+        chips.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:6px";
+        pool.forEach(function(it){
+          if(placed[it.id]!==ci) return;
+          var chip = quizBtn(it.t + " ✕");
+          chip.style.fontSize = "13.5px"; chip.style.padding = "7px 10px";
+          chip.onclick = function(){ delete placed[it.id]; refresh(); };
+          chips.appendChild(chip);
+        });
+        box.appendChild(chips);
+        catWrap.appendChild(box);
+      });
+      ctl.ready(pool.every(function(it){ return placed[it.id]!=null; }));
+    }
+    ctl = quizCheckRow(qRow, function(){
+      var wrong = pool.filter(function(it){ return placed[it.id]!==it.c; });
+      ctl.lock();
+      if(wrong.length) quizReveal(qRow, wrong.map(function(it){ return it.t+" → "+cats[it.c]; }).join("; "));
+      done(wrong.length===0);
+    }, function(){ placed = {}; selected = null; refresh(); });
+    qRow.insertBefore(poolWrap, ctl.row);
+    qRow.insertBefore(catWrap, ctl.row);
+    refresh();
+  },
+  match: function(item, qRow, done){
+    var lefts = item.pairs.map(function(p, i){ return {t:p[0], id:i}; });
+    var rights = shuffled(item.pairs.map(function(p, i){ return {t:p[1], id:i}; }));
+    var link = {}; // left id -> right id
+    var selLeft = null;
+    var grid = document.createElement("div");
+    grid.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:6px 14px";
+    var ctl;
+    function refresh(){
+      grid.innerHTML = "";
+      var leftCol = document.createElement("div"), rightCol = document.createElement("div");
+      leftCol.style.cssText = rightCol.style.cssText = "display:flex;flex-direction:column;gap:6px";
+      var usedRights = Object.keys(link).map(function(k){ return link[k]; });
+      lefts.forEach(function(l){
+        var linked = link[l.id]!=null;
+        var b = quizBtn((linked ? "🔗 " : "")+l.t);
+        if(selLeft===l.id){ b.style.background = "var(--gold-soft)"; b.style.borderColor = "var(--gold)"; }
+        if(linked) b.style.background = "var(--teal-soft)";
+        b.onclick = function(){
+          if(linked){ delete link[l.id]; selLeft = null; }
+          else selLeft = (selLeft===l.id ? null : l.id);
+          refresh();
+        };
+        leftCol.appendChild(b);
+      });
+      rights.forEach(function(r){
+        var taken = usedRights.indexOf(r.id)>=0;
+        var b = quizBtn((taken ? "🔗 " : "")+r.t);
+        if(taken) b.style.background = "var(--teal-soft)";
+        b.onclick = function(){
+          if(taken || selLeft==null) return;
+          link[selLeft] = r.id; selLeft = null; refresh();
+        };
+        rightCol.appendChild(b);
+      });
+      grid.appendChild(leftCol); grid.appendChild(rightCol);
+      ctl.ready(Object.keys(link).length===lefts.length);
+    }
+    ctl = quizCheckRow(qRow, function(){
+      var wrong = lefts.filter(function(l){ return link[l.id]!==l.id; });
+      ctl.lock();
+      if(wrong.length) quizReveal(qRow, item.pairs.map(function(p){ return p[0]+" = "+p[1]; }).join("; "));
+      done(wrong.length===0);
+    }, function(){ link = {}; selLeft = null; refresh(); });
+    qRow.insertBefore(grid, ctl.row);
+    refresh();
+  }
+};
 
 function taskRow(a){
   var row = document.createElement("div");
@@ -3294,9 +3509,63 @@ function renderLessonDetail(){
         qText.style.cssText = "font-size:14px;margin-bottom:6px";
         qText.textContent = (qi+1)+". "+item.q;
         qRow.appendChild(qText);
+        var answered = false;
+        var speakQ = document.createElement("button");
+        speakQ.type = "button"; speakQ.title = "Read aloud"; speakQ.setAttribute("aria-label","Read question aloud");
+        speakQ.textContent = "🔊";
+        speakQ.style.cssText = "border:none;background:none;cursor:pointer;font-size:15px;padding:0 4px;vertical-align:middle";
+        speakQ.onclick = function(){ speak(item.q+(Array.isArray(item.choices) ? ". "+item.choices.join(". ") : "")); };
+        qText.appendChild(speakQ);
+        /* Everything that happens once a question is answered, whichever question type it was. */
+        function afterAnswer(correct){
+          answeredCount++;
+          if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
+            var startUpdates = {quizScore: 0, quizTotal: items.length};
+            if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
+            a.quizScore = 0; a.quizTotal = items.length;
+            db.doc("assignments/"+a.id).update(startUpdates);
+          }
+          if(!correct){
+            /* Corrective feedback given at the moment of the miss, not just marking it wrong —
+               elementary kids need the "why" right then, while the question is still active in
+               working memory, not just a reworded retry with no explanation. */
+            if(item.explain){
+              var explainRow = document.createElement("div");
+              explainRow.style.cssText = "margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--border);font-size:13px;color:var(--text-dim)";
+              explainRow.textContent = "💡 " + item.explain;
+              qRow.appendChild(explainRow);
+            }
+            queueSkillReview(state.activeKid, a, item);
+          } else {
+            correctCount++;
+            if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+          }
+          if(answeredCount===items.length){
+            if(db && a.id && xpEligible){
+              var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
+              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
+              Object.assign(a, quizUpdates);
+              db.doc("assignments/"+a.id).update(quizUpdates);
+            }
+            if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
+              retryBtn.style.display = "block";
+            } else if(xpEligible && isRetryAttempt && correctCount===items.length){
+              grantMommaMoney(state.activeKid, 1);
+              toast("🌟 Aced the retry — +$1 Momma Money bonus!");
+            }
+          }
+        }
+        if(item.type && INTERACTIVE_QUIZ[item.type]){
+          INTERACTIVE_QUIZ[item.type](item, qRow, function(correct){
+            if(answered) return;
+            answered = true;
+            afterAnswer(correct);
+          });
+          quizBody.appendChild(qRow);
+          return;
+        }
         var choicesWrap = document.createElement("div");
         choicesWrap.style.cssText = "display:flex;flex-direction:column;gap:6px";
-        var answered = false;
         item.choices.forEach(function(choice, ci){
           var btn = document.createElement("button");
           btn.type = "button";
@@ -3305,13 +3574,6 @@ function renderLessonDetail(){
           btn.onclick = function(){
             if(answered) return;
             answered = true;
-            answeredCount++;
-            if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
-              var startUpdates = {quizScore: 0, quizTotal: items.length};
-              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
-              a.quizScore = 0; a.quizTotal = items.length;
-              db.doc("assignments/"+a.id).update(startUpdates);
-            }
             var correct = ci===item.answerIndex;
             btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
             btn.style.borderColor = correct ? "var(--success)" : "var(--coral)";
@@ -3319,35 +3581,9 @@ function renderLessonDetail(){
               var buttons = choicesWrap.querySelectorAll("button");
               buttons[item.answerIndex].style.background = "var(--success-soft)";
               buttons[item.answerIndex].style.borderColor = "var(--success)";
-              /* Corrective feedback given at the moment of the miss, not just marking it wrong —
-                 elementary kids need the "why" right then, while the question is still active in
-                 working memory, not just a reworded retry with no explanation. */
-              if(item.explain){
-                var explainRow = document.createElement("div");
-                explainRow.style.cssText = "margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--border);font-size:13px;color:var(--text-dim)";
-                explainRow.textContent = "💡 " + item.explain;
-                qRow.appendChild(explainRow);
-              }
-              queueSkillReview(state.activeKid, a, item);
-            } else {
-              correctCount++;
-              if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
             }
             Array.prototype.forEach.call(choicesWrap.querySelectorAll("button"), function(b){ b.disabled = true; b.style.cursor = "default"; });
-            if(answeredCount===items.length){
-              if(db && a.id && xpEligible){
-                var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
-                if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
-                Object.assign(a, quizUpdates);
-                db.doc("assignments/"+a.id).update(quizUpdates);
-              }
-              if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
-                retryBtn.style.display = "block";
-              } else if(xpEligible && isRetryAttempt && correctCount===items.length){
-                grantMommaMoney(state.activeKid, 1);
-                toast("🌟 Aced the retry — +$1 Momma Money bonus!");
-              }
-            }
+            afterAnswer(correct);
           };
           choicesWrap.appendChild(btn);
         });
@@ -4942,6 +5178,7 @@ function parkourLoop(ctx, canvas){
    be written first (or in any other fixed spot), it still lands somewhere random each time a kid
    actually sees it instead of being guessable by position. */
 function shuffleQuestionChoices(q){
+  if(!Array.isArray(q.choices)) return q; // interactive types (order/build/sort/match) shuffle themselves
   /* Fisher-Yates, not the sort(()=>Math.random()-.5) trick — that one is a well-known biased
      shuffle (some positions come up far more than others), which would just trade one kind of
      guessable pattern for another instead of actually fixing it. */
