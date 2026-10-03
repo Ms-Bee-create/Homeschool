@@ -3134,6 +3134,66 @@ function renderLessonDetail(){
     tsWrap.appendChild(tsResults);
     card.appendChild(tsWrap);
 
+    /* AI helper chat — goes through the "troubleshoot" Supabase Edge Function (key stays server-side,
+       daily message cap, every chat saved for the leader). If it can't be reached, the keyword box
+       below still works. */
+    var aiWrap = document.createElement("div");
+    aiWrap.style.cssText = "margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--border)";
+    aiWrap.innerHTML = '<div style="font-weight:700;margin-bottom:4px">💬 Ask the helper</div>'+
+      '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Tell me what you see on the screen (the exact words help!). I\'ll walk you through it one step at a time. Your leader can read this chat.</div>';
+    var aiLog = document.createElement("div");
+    aiLog.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
+    var aiRow = document.createElement("div");
+    aiRow.style.cssText = "display:flex;gap:8px";
+    var aiInput = document.createElement("input");
+    aiInput.type = "text"; aiInput.maxLength = 500;
+    aiInput.placeholder = "e.g. Internet Explorer keeps opening the MSN sign-up wizard";
+    aiInput.style.cssText = tsInput.style.cssText;
+    var aiBtn = document.createElement("button");
+    aiBtn.type = "button"; aiBtn.textContent = "Send";
+    aiBtn.style.cssText = tsBtn.style.cssText;
+    aiRow.appendChild(aiInput); aiRow.appendChild(aiBtn);
+    aiWrap.appendChild(aiLog); aiWrap.appendChild(aiRow);
+    tsWrap.insertBefore(aiWrap, tsTitle);
+    tsTitle.textContent = "🔎 Or search the fix list";
+    var aiHistory = [];
+    function aiBubble(role, text){
+      var b = document.createElement("div");
+      b.style.cssText = "padding:8px 10px;border-radius:10px;font-size:13.5px;line-height:1.45;max-width:92%;white-space:pre-wrap;"+
+        (role==="user" ? "align-self:flex-end;background:var(--gold-soft)" : "align-self:flex-start;background:var(--success-soft);border:1px solid var(--success)");
+      b.textContent = text;
+      aiLog.appendChild(b);
+      return b;
+    }
+    function aiSend(){
+      var q = aiInput.value.trim();
+      if(!q || aiBtn.disabled) return;
+      aiInput.value = "";
+      aiBubble("user", q);
+      aiHistory.push({role:"user", content:q});
+      aiBtn.disabled = true;
+      var pending = aiBubble("assistant", "Thinking…");
+      sb.functions.invoke("troubleshoot", {body:{
+        kidId: a.kidId, assignmentTitle: a.title, helpTitle: vmHelp.title,
+        steps: vmHelp.steps.map(stripHtml), messages: aiHistory.slice(-12)
+      }}).then(function(res){
+        aiBtn.disabled = false;
+        if(res.error || !res.data || !res.data.reply){
+          pending.textContent = "I can't reach the helper right now. Try the fix list search below, or ask your leader.";
+          aiHistory.pop();
+          return;
+        }
+        pending.textContent = res.data.reply;
+        aiHistory.push({role:"assistant", content:res.data.reply});
+      }).catch(function(){
+        aiBtn.disabled = false;
+        pending.textContent = "I can't reach the helper right now. Try the fix list search below, or ask your leader.";
+        aiHistory.pop();
+      });
+    }
+    aiBtn.onclick = aiSend;
+    aiInput.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); aiSend(); } });
+
     var shownIndices = [];
     var lastQuery = "";
     function runTroubleshoot(isFollowUp){
