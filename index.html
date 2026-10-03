@@ -4351,6 +4351,7 @@ function renderLeaderArea(){
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
   els.view.appendChild(quickLogCard());
+  els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
@@ -6495,6 +6496,114 @@ function quickLogCard(){
     });
     toast("Added for "+kids.length+" kid"+(kids.length>1?"s":"")+" ✓");
     state.ql = null;
+    renderView();
+  };
+  form.appendChild(btn);
+  det.appendChild(form);
+  wrap.appendChild(det);
+  return wrap;
+}
+
+/* ---------- Leader: Skip & Swap ("he already did this" / "move it" / "replace it") ---------- */
+function skipSwapCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"skipswap");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary");
+  sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🔀 Skip & Swap — already did it, move it, or replace it";
+  det.appendChild(sum);
+
+  var ss = state.ss = state.ss || {kid:state.activeKid||"kid1", id:"", action:"done", date:todayISO(), reps:[{title:"",subject:"Independent",xp:15},{title:"",subject:"Independent",xp:15},{title:"",subject:"Independent",xp:15}]};
+  var inputCss = "padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px;width:100%;box-sizing:border-box";
+  var form = document.createElement("div");
+  form.style.cssText = "display:flex;flex-direction:column;gap:8px;margin-top:10px";
+  function lbl(t){ var l = document.createElement("div"); l.style.cssText = "font-size:12.5px;font-weight:600;margin-top:2px"; l.textContent = t; return l; }
+
+  form.appendChild(lbl("Who?"));
+  var kidSel = document.createElement("select"); kidSel.style.cssText = inputCss;
+  KIDS.forEach(function(k){ var o = document.createElement("option"); o.value = k.id; o.textContent = kidData(k.id).name; kidSel.appendChild(o); });
+  kidSel.value = ss.kid;
+  kidSel.onchange = function(){ ss.kid = kidSel.value; ss.id = ""; renderView(); };
+  form.appendChild(kidSel);
+
+  form.appendChild(lbl("Which lesson?"));
+  var lo = isoDate(new Date(Date.now()-7*86400000)), hi = isoDate(new Date(Date.now()+21*86400000));
+  var list = Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); })
+    .filter(function(a){ return a.kidId===ss.kid && !a.done && a.date && a.date>=lo && a.date<=hi; })
+    .sort(function(x,y){ return x.date.localeCompare(y.date) || (x.subject||"").localeCompare(y.subject||""); });
+  var lessonSel = document.createElement("select"); lessonSel.style.cssText = inputCss;
+  var o0 = document.createElement("option"); o0.value = ""; o0.textContent = list.length ? "Pick a lesson…" : "No upcoming unfinished lessons"; lessonSel.appendChild(o0);
+  list.forEach(function(a){
+    var o = document.createElement("option"); o.value = a.id;
+    o.textContent = fmtDate(a.date)+" · "+a.subject+" · "+(a.title.length>70 ? a.title.slice(0,70)+"…" : a.title);
+    lessonSel.appendChild(o);
+  });
+  lessonSel.value = ss.id;
+  lessonSel.onchange = function(){ ss.id = lessonSel.value; };
+  form.appendChild(lessonSel);
+
+  form.appendChild(lbl("What should happen to it?"));
+  var actions = [["done","✅ He already did it: mark done and award the XP"],["donenoxp","✅ Mark done, no XP (swapping it out)"],["move","📅 Move it to another day"],["remove","🗑️ Remove it (can't be undone)"]];
+  var dateIn = document.createElement("input"); dateIn.type = "date"; dateIn.style.cssText = inputCss; dateIn.value = ss.date;
+  dateIn.onchange = function(){ ss.date = dateIn.value; };
+  actions.forEach(function(ac){
+    var l = document.createElement("label");
+    l.style.cssText = "display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer";
+    var r = document.createElement("input"); r.type = "radio"; r.name = "ssAction"; r.value = ac[0]; r.checked = ss.action===ac[0];
+    r.style.cssText = "width:18px;height:18px";
+    r.onchange = function(){ ss.action = ac[0]; };
+    l.appendChild(r); l.appendChild(document.createTextNode(ac[1]));
+    form.appendChild(l);
+  });
+  form.appendChild(lbl("Move to (only used for Move)")); form.appendChild(dateIn);
+
+  form.appendChild(lbl("Replace it with (optional, up to 3). They go on the same day as the lesson, or the Move date."));
+  ss.reps.forEach(function(rp){
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
+    var t = document.createElement("input"); t.style.cssText = inputCss+";flex:3;min-width:180px;width:auto"; t.maxLength = 120; t.placeholder = "New lesson title"; t.value = rp.title; t.oninput = function(){ rp.title = t.value; };
+    var sj = document.createElement("select"); sj.style.cssText = inputCss+";flex:1;min-width:110px;width:auto";
+    QUICK_LOG_SUBJECTS.forEach(function(x){ var o = document.createElement("option"); o.value = x; o.textContent = x; sj.appendChild(o); });
+    sj.value = rp.subject; sj.onchange = function(){ rp.subject = sj.value; };
+    var x = document.createElement("input"); x.type = "number"; x.min = 5; x.max = 50; x.step = 5; x.style.cssText = inputCss+";flex:0 0 70px;width:70px"; x.value = rp.xp; x.oninput = function(){ rp.xp = x.value; };
+    row.appendChild(t); row.appendChild(sj); row.appendChild(x);
+    form.appendChild(row);
+  });
+
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "primary-btn"; btn.textContent = "Apply";
+  btn.onclick = function(){
+    if(!db){ toast("Not connected yet — try again in a moment"); return; }
+    var a = state.assignments[ss.id];
+    if(!a){ toast("Pick a lesson first"); return; }
+    var reps = ss.reps.filter(function(r){ return r.title.trim(); });
+    var baseDate = ss.action==="move" && ss.date ? ss.date : a.date;
+    var name = a.title.length>60 ? a.title.slice(0,60)+"…" : a.title;
+    if(ss.action==="remove" && !window.confirm('Permanently remove "'+name+'"?')) return;
+    var lesson = Object.assign({id:ss.id}, a);
+    if(ss.action==="done"){ toggleAssignment(lesson); }
+    else if(ss.action==="donenoxp"){
+      var u = {done:true, doneAt:new Date().toISOString(), xp:0};
+      Object.assign(a, u); db.doc("assignments/"+ss.id).update(u);
+    }
+    else if(ss.action==="move"){
+      if(!ss.date){ toast("Pick a date to move it to"); return; }
+      a.date = ss.date; db.doc("assignments/"+ss.id).update({date:ss.date});
+    }
+    else if(ss.action==="remove"){
+      delete state.assignments[ss.id]; db.doc("assignments/"+ss.id).delete();
+    }
+    reps.forEach(function(r){
+      db.collection("assignments").add({kidId:ss.kid, date:baseDate, subject:r.subject, title:r.title.trim(),
+        xp:Math.max(5,Math.min(50,Number(r.xp)||15)), done:false, doneAt:null, createdAt:new Date().toISOString()});
+    });
+    toast("Done"+(reps.length ? " — added "+reps.length+" replacement"+(reps.length>1?"s":"") : "")+" ✓");
+    state.ss = null;
     renderView();
   };
   form.appendChild(btn);
