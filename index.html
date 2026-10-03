@@ -895,9 +895,12 @@ function taskRow(a){
       (a.video ? '<div class="task-sub" style="margin-top:3px">'+videoLinkHtml(a.video)+'</div>' : '')+
     '</div>'+
     '<div class="task-xp">+'+a.xp+' XP</div>'+
-    '<button class="del" title="Remove">✕</button>';
+    (state.leaderUnlocked ? '<button class="del" title="Remove (leader only)">✕</button>' : '');
   row.querySelector(".check").onclick = function(){ toggleAssignment(a); };
-  row.querySelector(".del").onclick = function(){ if(db) db.doc("assignments/"+a.id).delete(); };
+  var delBtn = row.querySelector(".del");
+  if(delBtn) delBtn.onclick = function(){
+    if(db && window.confirm('Permanently delete "'+a.title+'"? This can\'t be undone.')) db.doc("assignments/"+a.id).delete();
+  };
   row.querySelector(".speak-btn").onclick = function(e){ e.stopPropagation(); speak(a.title); };
   var linkEls = row.querySelectorAll(".task-body a");
   Array.prototype.forEach.call(linkEls, function(el){ el.addEventListener("click", function(e){ e.stopPropagation(); }); });
@@ -914,7 +917,7 @@ function toggleAssignment(a){
   var kd = kidData(a.kidId);
   var oldXp = kd.xp||0;
   var bonusXp = (willDone && a.crossCurricular) ? CROSS_CURRICULAR_BONUS_XP : 0;
-  var delta = willDone ? (a.xp+bonusXp) : -a.xp;
+  var delta = willDone ? (a.xp+bonusXp) : -(a.xp + (a.crossCurricular ? CROSS_CURRICULAR_BONUS_XP : 0));
   var newXp = Math.max(0, oldXp + delta);
   var updates = {xp: newXp};
   var newStreakDay = false;
@@ -3180,6 +3183,15 @@ function renderLessonDetail(){
       quizBody.innerHTML = "";
       retryBtn.style.display = "none";
       var correctCount = 0, answeredCount = 0;
+      /* XP and money only on the first real attempt — reopening the lesson to re-tap answers
+         is practice, not a second paycheck. */
+      var xpEligible = isRetryAttempt ? !a.quizRetryUsed : (a.quizScore==null);
+      if(!xpEligible){
+        var repeatNote = document.createElement("div");
+        repeatNote.style.cssText = "margin-bottom:8px;font-size:12.5px;color:var(--text-dim)";
+        repeatNote.textContent = "Practice round — no XP this time, but great for remembering!";
+        quizBody.appendChild(repeatNote);
+      }
       items.forEach(function(item, qi){
         var qRow = document.createElement("div");
         qRow.style.cssText = "margin-bottom:"+(qi===items.length-1?"0":"12px");
@@ -3199,6 +3211,12 @@ function renderLessonDetail(){
             if(answered) return;
             answered = true;
             answeredCount++;
+            if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
+              var startUpdates = {quizScore: 0, quizTotal: items.length};
+              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
+              a.quizScore = 0; a.quizTotal = items.length;
+              db.doc("assignments/"+a.id).update(startUpdates);
+            }
             var correct = ci===item.answerIndex;
             btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
             btn.style.borderColor = correct ? "var(--success)" : "var(--coral)";
@@ -3218,19 +3236,19 @@ function renderLessonDetail(){
               queueSkillReview(state.activeKid, a, item);
             } else {
               correctCount++;
-              grantXP(state.activeKid, 5);
-              toast("✅ +5 XP");
+              if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
             }
             Array.prototype.forEach.call(choicesWrap.querySelectorAll("button"), function(b){ b.disabled = true; b.style.cursor = "default"; });
             if(answeredCount===items.length){
-              if(db && a.id){
-                var quizUpdates = {quizScore: correctCount, quizTotal: items.length, quizRetryUsed: !!isRetryAttempt};
+              if(db && a.id && xpEligible){
+                var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
                 if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
+                Object.assign(a, quizUpdates);
                 db.doc("assignments/"+a.id).update(quizUpdates);
               }
               if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
                 retryBtn.style.display = "block";
-              } else if(isRetryAttempt && correctCount===items.length){
+              } else if(xpEligible && isRetryAttempt && correctCount===items.length){
                 grantMommaMoney(state.activeKid, 1);
                 toast("🌟 Aced the retry — +$1 Momma Money bonus!");
               }
@@ -5538,7 +5556,7 @@ var KID2_RETRO_VIDEOS_PATCH = [
    new format. Every video below was checked against a real, specific YouTube video (not a channel
    homepage or a "browse and pick" playlist) before being added, per CLAUDE.md Rule 1/4. */
 var ANNA_FAITH_WEEKS = [
-  {dayOffset:0, subject:"Faith", title:"God's Story Time: In the Beginning — Creation", xp:15, standard:null,
+  {dayOffset:0, subject:"Faith", title:"In the Beginning — Creation", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=YalBsd56iTQ",
     passage:"Here's the Idea — Every story has a beginning, and the very first story in the Bible is about how everything — the sun, the ocean, animals, and people — got here in the first place. God made it all, on purpose, and He was happy with what He made.\nSee It Done — Watch the video linked above: \"Story of Creation | Adam & Eve | Bible Stories for Kids.\" Notice the order things happen in: light, then sky and water, then land and plants, then sun/moon/stars, then sea and sky animals, then land animals, then people — and on the seventh day, God rested.\nYour Turn — After you watch, say the order out loud from memory, day by day (it's okay to peek back at the video if you get stuck). Then think of your own answer: what's your favorite thing God made, and why?\nCheck Yourself — Can you name at least 5 of the 6 days in the right order? If yes, you've got it.\nShow What You Know — pick one: draw a 6-box comic strip, one box per day, or teach the days back to Mom or Alexa like you're the teacher.",
     quiz:[
@@ -5546,7 +5564,7 @@ var ANNA_FAITH_WEEKS = [
       {q:"What did God do on the seventh day?", choices:["Made more animals","Rested","Made the ocean","Made the sun"], answerIndex:1, explain:"After 6 days of creating, God rested on the seventh day."},
       {q:"Which came first: plants, or the sun, moon, and stars?", choices:["Plants came first","The sun, moon, and stars came first","They were made at the same time","Neither — animals came first"], answerIndex:0, explain:"Land and plants were made on Day 3, before the sun, moon, and stars on Day 4."}
     ]},
-  {dayOffset:5, subject:"Faith", title:"God's Story Time: Adam & Eve and the First Sorry", xp:15, standard:null,
+  {dayOffset:5, subject:"Faith", title:"Adam & Eve and the First Sorry", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=wAMmC3NZJPA",
     passage:"Here's the Idea — Last week you learned God made the first two people, Adam and Eve, and put them in a beautiful garden called Eden. Today's story is about the very first time someone did something they weren't supposed to do — and what happened next.\nSee It Done — Watch \"The Story of Adam and Eve for Kids (The Garden of Eden).\" Notice the story elements just like you find in a book: the characters are Adam and Eve, the problem is they ate the one fruit God told them not to eat, and the message is that our choices have consequences, but God still loved them and had a plan to fix what went wrong.\nYour Turn — Using what you just watched, say out loud: who are the characters, what's the problem, and what's the message? Then think of your own example: tell about a time you made a choice you wished you could take back, and what you did about it.\nCheck Yourself — Did you name the characters, the problem, AND the message — not just what happened? All three have to be there.\nShow What You Know — pick one: act it out with toys or stuffed animals, or draw Adam and Eve in the garden before and after, showing what changed.",
     quiz:[
@@ -5554,7 +5572,7 @@ var ANNA_FAITH_WEEKS = [
       {q:"What is the 'problem' part of this story?", choices:["They got lost in the garden","They ate the fruit God told them not to eat","They ran out of food","They fought with each other"], answerIndex:1, explain:"The problem in the story is that Adam and Eve broke the one rule God gave them."},
       {q:"What's one good way to describe the message of this story?", choices:["Gardens are dangerous","Choices have consequences, but God still loves us","Fruit is bad to eat","Rules don't matter"], answerIndex:1, explain:"Even though their choice had real consequences, God still loved Adam and Eve and had a plan."}
     ]},
-  {dayOffset:10, subject:"Faith", title:"God's Story Time: Noah Builds a Really Big Boat", xp:15, standard:null,
+  {dayOffset:10, subject:"Faith", title:"Noah Builds a Really Big Boat", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=VA6MZ613K7Y",
     passage:"Here's the Idea — Years after Adam and Eve, the world had gotten pretty messy — people weren't being kind or fair. But there was one man, Noah, who still tried to do the right thing. Today's story is about the giant project God asked him to build.\nSee It Done — Watch \"The Story of Noah's Ark for Kids.\" Characters: Noah and his family. Problem: a huge flood was coming and Noah had to build a boat big enough for his family AND two of every animal. Message: God kept His promise to keep Noah safe, and afterward He promised never to flood the whole earth again — that's what the rainbow means.\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then imagine you had to build something that big — what's the first thing you'd need to figure out?\nCheck Yourself — Can you explain why Noah needed two of each animal, in your own words? If yes, you've got it.\nShow What You Know — pick one: build a mini ark out of a shoebox with paper animal pairs, or draw the rainbow and write what it means underneath.",
     quiz:[
@@ -5562,23 +5580,23 @@ var ANNA_FAITH_WEEKS = [
       {q:"What did God send after the flood as a promise?", choices:["A dove","A rainbow","A mountain","A new ark"], answerIndex:1, explain:"The rainbow was God's promise never to flood the whole earth again."},
       {q:"Why did Noah build the ark, according to the story?", choices:["For fun","Because a flood was coming and God asked him to","To sell it","To race other boats"], answerIndex:1, explain:"God warned Noah about the coming flood and asked him to build the ark to keep his family and the animals safe."}
     ]},
-  {dayOffset:15, subject:"Faith", title:"God's Story Time: The Tower That Went Too Far", xp:15, standard:null,
-    video:"https://www.youtube.com/watch?v=vY-PDpuROUY",
+  {dayOffset:15, subject:"Faith", title:"The Tower That Went Too Far", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
+    video:"https://www.youtube.com/watch?v=vY-PDpuROUY", ssCredit:true,
     passage:"Here's the Idea — After the flood, Noah's family grew into lots and lots of people, and for a while they all spoke the same one language. Today's story is about what happened when they got a big idea that wasn't such a good one.\nSee It Done — Watch \"TOWER OF BABEL | Animated Kids Bible.\" Characters: all the people living together after the flood. Problem: instead of spreading out across the earth like God wanted, they decided to build a giant tower to make themselves famous. Message: God mixed up their languages so they couldn't understand each other anymore, and they finally spread out across the world — which is part of why people today speak so many different languages!\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then try this: get a partner and each of you whisper a made-up \"language\" (nonsense sounds) — try to give each other simple directions without using real words. What does that feel like?\nCheck Yourself — Can you explain in your own words why the people ended up speaking different languages? If yes, you've got it.\nShow What You Know — pick one: draw the tower before and after (all one crowd, then scattered groups), or teach the story back to Mom or Alexa.",
     quiz:[
       {q:"What were the people trying to do by building the tower?", choices:["Reach the ocean","Make themselves famous instead of spreading out","Hide from animals","Build a home for Noah"], answerIndex:1, explain:"They wanted to build a tower to make a name for themselves, instead of spreading out across the earth."},
       {q:"What did God do so the building stopped?", choices:["Knocked the tower down himself","Mixed up their languages so they couldn't understand each other","Sent a flood","Sent them all to sleep"], answerIndex:1, explain:"God confused their language, so they couldn't work together anymore and eventually spread out."},
       {q:"What's one thing this story explains about our world today?", choices:["Why there are mountains","Why people speak many different languages","Why there are oceans","Why animals can't talk"], answerIndex:1, explain:"The Tower of Babel story is part of why the Bible says people ended up speaking so many different languages."}
     ]},
-  {dayOffset:20, subject:"Faith", title:"God's Story Time: God's Big Promise to Abraham", xp:15, standard:null,
-    video:"https://www.youtube.com/watch?v=zUhs-MWoTbg",
+  {dayOffset:20, subject:"Faith", title:"God's Big Promise to Abraham", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
+    video:"https://www.youtube.com/watch?v=zUhs-MWoTbg", ssCredit:true,
     passage:"Here's the Idea — After the Tower of Babel, people were spread out all over the earth. God picked one man, Abraham, and made him a huge promise: leave your home, and I'll make your family into a whole nation, and through your family I'll bless the whole world.\nSee It Done — Watch \"God's Promise for Abraham | Stories of the Bible.\" Characters: Abraham and his wife Sarah. Problem: God asked Abraham to leave the only home he'd ever known and go somewhere he'd never seen, with no map, just a promise. Message: Abraham trusted God even without seeing the whole plan first.\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then think of your own example: tell about a time you had to trust someone even though you couldn't see exactly how things would turn out.\nCheck Yourself — Can you explain what God promised Abraham, in your own words? If yes, you've got it.\nShow What You Know — pick one: draw a map showing Abraham's home and an arrow to \"somewhere new,\" or teach the story back to Mom or Alexa.",
     quiz:[
       {q:"What did God ask Abraham to do?", choices:["Build a tower","Leave his home for a new land God would show him","Build an ark","Stay home and farm"], answerIndex:1, explain:"God asked Abraham to leave his home and travel to a new land, trusting God to lead the way."},
       {q:"What did God promise Abraham?", choices:["A new house only","To make his family into a great nation that would bless the world","A boat","Nothing — it was a test with no promise"], answerIndex:1, explain:"God promised to make Abraham's family into a great nation and bless the whole world through them."},
       {q:"What's the message of this story?", choices:["Never leave home","Trusting God even without seeing the whole plan","Maps are important","Promises don't matter"], answerIndex:1, explain:"Abraham trusted God's promise even though he couldn't see how it would all play out."}
     ]},
-  {dayOffset:25, subject:"Faith", title:"God's Story Time: Jacob & Esau and the Traded Birthright", xp:15, standard:null,
+  {dayOffset:25, subject:"Faith", title:"Jacob & Esau and the Traded Birthright", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=ONue2HsLw_s",
     passage:"Here's the Idea — Abraham's family grew: his son was Isaac, and Isaac had twin sons, Jacob and Esau. Even though they were twins, they were very different — and today's story is about a choice Esau made that he couldn't take back.\nSee It Done — Watch \"Jacob and Esau - The Twins & Esau Sells His Birthright.\" Characters: Jacob and Esau. Problem: Esau came home starving and traded his birthright (his special share as the older son) to Jacob for a bowl of stew. Message: something valuable can get traded away for something small if you're not thinking ahead.\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then think of your own example: tell about a time you wanted something so badly right away that you didn't think about later.\nCheck Yourself — Can you explain what a birthright was and why it mattered? If yes, you've got it.\nShow What You Know — pick one: draw a comic strip of the stew trade, or act it out with a partner.",
     quiz:[
@@ -5586,7 +5604,7 @@ var ANNA_FAITH_WEEKS = [
       {q:"What did Esau get in return?", choices:["Gold","A bowl of stew","A new coat","A trip"], answerIndex:1, explain:"Esau was so hungry he traded his valuable birthright for a single bowl of stew."},
       {q:"What's the message of this story?", choices:["Stew is delicious","Something valuable can be traded away for something small if you're not careful","Twins always agree","Being hungry is fun"], answerIndex:1, explain:"The story warns that acting on a short-term want can cost something much more valuable later."}
     ]},
-  {dayOffset:30, subject:"Faith", title:"God's Story Time: Joseph's Colorful Coat", xp:15, standard:null,
+  {dayOffset:30, subject:"Faith", title:"Joseph's Colorful Coat", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=DJNmqG-Np8g",
     passage:"Here's the Idea — Jacob had twelve sons, but Joseph was his favorite, and he showed it by giving Joseph a beautiful, colorful coat. Today's story is about how that favoritism caused real trouble in the family.\nSee It Done — Watch \"Joseph and the Coat of Many Colors.\" Characters: Joseph and his older brothers. Problem: Joseph's brothers got so jealous of him (and his dreams about ruling over them) that they sold him into slavery in Egypt and lied to their father about it. Message: jealousy can grow into something that really hurts people if it's not dealt with.\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then think of your own example: tell about a time you felt jealous of someone, and what you did with that feeling.\nCheck Yourself — Can you explain why the brothers were jealous of Joseph? If yes, you've got it.\nShow What You Know — pick one: design your own colorful coat on paper, or teach the story back to Mom or Alexa.",
     quiz:[
@@ -5594,7 +5612,7 @@ var ANNA_FAITH_WEEKS = [
       {q:"What did the brothers do to Joseph?", choices:["Gave him a party","Sold him into slavery in Egypt","Sent him to school","Nothing at all"], answerIndex:1, explain:"The brothers sold Joseph into slavery and lied to their father about what happened to him."},
       {q:"What's the message of this story?", choices:["Coats are dangerous","Jealousy can grow into something that really hurts people","Dreams don't matter","Families never fight"], answerIndex:1, explain:"Unchecked jealousy led the brothers to do something they couldn't take back."}
     ]},
-  {dayOffset:35, subject:"Faith", title:"God's Story Time: Joseph Forgives His Brothers", xp:15, standard:null,
+  {dayOffset:35, subject:"Faith", title:"Joseph Forgives His Brothers", xp:15, standard:"ELAGSE2RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=75hIRyuEIKA",
     passage:"Here's the Idea — Even after being sold into slavery, Joseph didn't give up on doing the right thing. Years later, he ended up as one of the most powerful leaders in all of Egypt. Today's story is about what happened when his brothers — the same ones who sold him — showed up needing his help.\nSee It Done — Watch \"The Story of Joseph | From Pit to Palace.\" Characters: Joseph and his brothers, years later. Problem: a terrible famine sent Joseph's brothers to Egypt for food, and they came face to face with the brother they'd betrayed — now in charge of the whole country. Message: Joseph forgave them instead of getting revenge, even though he had all the power to punish them.\nYour Turn — Say out loud: who are the characters, what's the problem, and what's the message? Then think of your own example: tell about a time it was hard to forgive someone, and what helped you do it anyway.\nCheck Yourself — Can you explain why it would have been easy for Joseph to get revenge, and why he chose not to? If yes, you've got it.\nShow What You Know — pick one: draw the reunion scene between Joseph and his brothers, or teach the story back to Mom or Alexa.",
     quiz:[
@@ -5608,7 +5626,7 @@ var ANNA_FAITH_WEEKS = [
    Minecraft-build apply tie-ins instead of inventing new UI or mechanics. Same verified videos as
    Anna's version (same real story, same source), not fabricated or re-guessed. */
 var KID2_FAITH_WEEKS = [
-  {dayOffset:0, subject:"Faith", title:"The Archive: v1.0 — The Original Build (Creation)", xp:20, standard:null,
+  {dayOffset:0, subject:"Faith", title:"v1.0 — The Original Build (Creation)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=YalBsd56iTQ",
     passage:"Every archive has a v1.0 — the very first release, before any patches or updates. In the Bible, that's the Creation story: 6 days of build work (light, sky/water, land/plants, sun/moon/stars, sea/sky animals, land animals + people), then a 7th day where the whole system went into rest mode, on purpose, not because anything broke.\nWatch the linked video for the full build log, in order. Then answer out loud or in your journal: why do you think the build log matters — why not just say \"God made everything\" in one line instead of listing it out day by day?\nApply (optional): build a 7-chunk timeline in Minecraft, one build per day of Creation, in order — sky, land, sun/moon/stars block, ocean creatures, land animals, and a rest-day structure for day 7.",
     quiz:[
@@ -5616,7 +5634,7 @@ var KID2_FAITH_WEEKS = [
       {q:"Why is Day 7 different from the other 6?", choices:["Nothing happened at all, ever again","It's a rest day, not a build day","It's when the flood happened","It's when the tower was built"], answerIndex:1, explain:"Day 7 is a deliberate rest day after 6 days of creating — not a bug, a feature of the design."},
       {q:"What's built before the sun, moon, and stars in the sequence?", choices:["Land animals","Land and plants","People","Sea creatures"], answerIndex:1, explain:"Land and plants (Day 3) come before the sun, moon, and stars (Day 4) in the order."}
     ]},
-  {dayOffset:5, subject:"Faith", title:"The Archive: The First Bug Report (Adam & Eve)", xp:20, standard:null,
+  {dayOffset:5, subject:"Faith", title:"The First Bug Report (Adam & Eve)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=wAMmC3NZJPA",
     passage:"Every system eventually gets its first bug report. In the Bible, that's Adam and Eve in the garden: one rule (don't eat from one specific tree), and they broke it anyway. Watch the linked video for the full story.\nThink Experiment: a bug report isn't just \"something broke\" — it's \"here's what was supposed to happen, here's what actually happened, and here's the impact.\" Using that structure, write your own 3-line bug report for this story: Expected / Actual / Impact.\nApply (optional): in Minecraft or on paper, design a simple 'patch' — a sign, structure, or short note showing what changed in the garden before vs. after.",
     quiz:[
@@ -5624,7 +5642,7 @@ var KID2_FAITH_WEEKS = [
       {q:"In bug-report terms, what's the 'Actual' (what really happened)?", choices:["They followed the rule perfectly","They ate from the forbidden tree","They left the garden immediately, unprompted","They planted a new tree"], answerIndex:1, explain:"'Actual' is what really happened — they ate from the one tree they were told not to."},
       {q:"What's the story's message, even after the bug report?", choices:["The system was deleted for good","God still loved them and had a plan to fix it","Nothing changed at all","The rule was removed afterward"], answerIndex:1, explain:"Despite the consequence, God still loved Adam and Eve and had a plan going forward."}
     ]},
-  {dayOffset:10, subject:"Faith", title:"The Archive: The Full System Backup (Noah's Ark)", xp:20, standard:null,
+  {dayOffset:10, subject:"Faith", title:"The Full System Backup (Noah's Ark)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=VA6MZ613K7Y",
     passage:"Sometimes a system gets so corrupted the only fix is a full backup and restore. That's Noah's Ark: the world had gotten badly off-track, and God's plan was to save Noah's family plus two of every animal — a backup of everything worth keeping — while the flood reset everything else. Watch the linked video for the full story.\nThink Experiment: if you had to design a 'backup' that could only carry the most important files (or, here, the most important living things), how would you decide what makes the cut? Write or say your reasoning.\nApply (optional): build Noah's Ark in Minecraft to scale using the Bible's measurements (300 cubits long — about 450 feet), or build a simplified version and calculate what fraction of full-size it is.",
     quiz:[
@@ -5632,23 +5650,23 @@ var KID2_FAITH_WEEKS = [
       {q:"What's the 'reset' event in this story?", choices:["A tower falling","The flood","A new language","A new build"], answerIndex:1, explain:"The flood is the reset event — the old, corrupted state is wiped and a fresh start begins with Noah's family."},
       {q:"What promise does God make after the flood, and what's the sign of it?", choices:["Never to make another animal, sealed by silence","Never to flood the whole earth again, sealed by a rainbow","To flood the earth every year, sealed by rain","No promise is made"], answerIndex:1, explain:"God promises never to flood the whole earth again, and the rainbow is the sign of that promise."}
     ]},
-  {dayOffset:15, subject:"Faith", title:"The Archive: The Merge Conflict (Tower of Babel)", xp:20, standard:null,
-    video:"https://www.youtube.com/watch?v=vY-PDpuROUY",
+  {dayOffset:15, subject:"Faith", title:"The Merge Conflict (Tower of Babel)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
+    video:"https://www.youtube.com/watch?v=vY-PDpuROUY", ssCredit:true,
     passage:"After the flood, Noah's descendants multiplied back out — one team, one shared language, working on one build: a massive tower meant to make them famous instead of spreading out like they were supposed to. Watch the linked video for the full story.\nThink Experiment: when one team can no longer understand each other's work, that's basically a merge conflict — everyone's changes stop lining up. God resolved this one by giving people different languages, which forced them to split into separate teams (nations) and spread out across the world, exactly what was supposed to happen in the first place. Write or say: how is 'forced to split into separate teams' actually a fix, not just a punishment?\nApply (optional): build a 'before tower' (one crowd, one structure) and an 'after' scene (several small scattered settlements) in Minecraft, or sketch both.",
     quiz:[
       {q:"What were the people building, and why?", choices:["A ship, to explore the ocean","A tower, to make themselves famous instead of spreading out","A wall, to keep animals out","A farm, to grow food"], answerIndex:1, explain:"They built the tower to make a name for themselves, instead of spreading out across the earth as intended."},
       {q:"How did God resolve the 'merge conflict'?", choices:["Destroyed the tower with fire","Confused their language so they couldn't work together","Sent a flood","Did nothing"], answerIndex:1, explain:"God confused their language, which broke their ability to coordinate and led them to split up and spread out."},
       {q:"What's a real-world result of this story, according to the Bible's account?", choices:["Why there's only one language today","Why people ended up speaking many different languages","Why towers are dangerous","Why floods happen"], answerIndex:1, explain:"The story explains why, according to the Bible, people ended up spread out and speaking many different languages."}
     ]},
-  {dayOffset:20, subject:"Faith", title:"The Archive: The Fork (Abraham's Promise)", xp:20, standard:null,
-    video:"https://www.youtube.com/watch?v=zUhs-MWoTbg",
+  {dayOffset:20, subject:"Faith", title:"The Fork (Abraham's Promise)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
+    video:"https://www.youtube.com/watch?v=zUhs-MWoTbg", ssCredit:true,
     passage:"In software terms, this is a fork: God picks one person, Abraham, to branch off and start something completely new — a whole nation, eventually blessing the entire world — on nothing but a promise, no visible roadmap yet. Watch the linked video for the full story.\nThink Experiment: forking a project means committing to a new direction before you can see how it turns out. What's something you'd have to \"fork\" — commit to before seeing the full plan — if you trusted the person asking you to?\nApply (optional): in Minecraft, mark a 'starting point' build and a distant 'promised land' build far away, connected by a path, to represent Abraham's journey on trust alone.",
     quiz:[
       {q:"What did God ask Abraham to do?", choices:["Stay home","Leave his home for a new land God would show him","Build a tower","Build a boat"], answerIndex:1, explain:"God asked Abraham to leave home and travel to a land God would show him."},
       {q:"What was the promise attached to that ask?", choices:["Abraham would become poor","Abraham's family would become a great nation that blesses the world","Nothing was promised","Abraham would live forever"], answerIndex:1, explain:"God promised to make Abraham's family into a great nation that would bless the whole world."},
       {q:"Why call this a 'fork' in version-history terms?", choices:["It split into two identical copies","It's a new branch/direction committed to before results are visible","It means the project failed","It means the project was deleted"], answerIndex:1, explain:"A fork commits to a new direction before you can see the outcome — same as Abraham trusting the promise before seeing the result."}
     ]},
-  {dayOffset:25, subject:"Faith", title:"The Archive: The Bad Trade (Jacob & Esau)", xp:20, standard:null,
+  {dayOffset:25, subject:"Faith", title:"The Bad Trade (Jacob & Esau)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=ONue2HsLw_s",
     passage:"Every system has trade-offs, but some trades are just bad deals. Esau, Isaac's oldest son, traded his birthright — a huge long-term asset — for one bowl of stew because he was starving in the moment. Watch the linked video for the full story.\nThink Experiment: this is a classic short-term-vs-long-term trade-off, the kind that shows up in real decisions all the time (spend now vs. save, quick fix vs. real fix). Write your own example of a short-term want that could cost something bigger long-term if you're not careful.\nApply (optional): in Minecraft, build two structures side by side — one labeled 'quick reward' (small, built fast) and one labeled 'long-term value' (bigger, takes longer) — to visualize the trade-off.",
     quiz:[
@@ -5656,7 +5674,7 @@ var KID2_FAITH_WEEKS = [
       {q:"What did he get for it?", choices:["Gold","A bowl of stew","Land","A new coat"], answerIndex:1, explain:"Esau made the trade because he was starving and wanted food immediately."},
       {q:"What kind of trade-off does this story illustrate?", choices:["Long-term planning beating short-term impulse every time, easily","A short-term want outweighing a long-term asset in the moment","No trade-off at all","A fair, well-thought-out deal"], answerIndex:1, explain:"Esau prioritized an immediate want over a much bigger long-term asset — a classic bad trade-off."}
     ]},
-  {dayOffset:30, subject:"Faith", title:"The Archive: The Hostile Fork (Joseph, Sold Out)", xp:20, standard:null,
+  {dayOffset:30, subject:"Faith", title:"The Hostile Fork (Joseph, Sold Out)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=DJNmqG-Np8g",
     passage:"Sometimes a team doesn't just disagree — they turn on one member entirely. Joseph's brothers were jealous of him (their dad's favoritism, a flashy coat, dreams about ruling over them), and instead of working it out, they sold him into slavery in Egypt and lied to their father about it. Watch the linked video for the full story.\nThink Experiment: what's the difference between healthy competition on a team and the kind of jealousy that damages it? Write or say where you'd draw that line.\nApply (optional): in Minecraft, build a 'before' scene (Joseph's family together) and an 'after' scene (Joseph alone in Egypt, far from home) to show the impact of what happened.",
     quiz:[
@@ -5664,7 +5682,7 @@ var KID2_FAITH_WEEKS = [
       {q:"What did the brothers actually do?", choices:["Talked it out with their father","Sold Joseph into slavery and lied about it","Ignored him completely, nothing more","Gave him more responsibility"], answerIndex:1, explain:"The brothers sold Joseph into slavery in Egypt and lied to their father about what happened."},
       {q:"What does this story warn about?", choices:["Coats being dangerous to wear","Jealousy that isn't dealt with growing into real harm","Dreams predicting the future exactly","Having a favorite child being harmless"], answerIndex:1, explain:"Unaddressed jealousy escalated into a betrayal that couldn't be undone."}
     ]},
-  {dayOffset:35, subject:"Faith", title:"The Archive: The Merge Back (Joseph Forgives)", xp:20, standard:null,
+  {dayOffset:35, subject:"Faith", title:"The Merge Back (Joseph Forgives)", xp:20, standard:"ELAGSE4RL2", crossSubjects:["ELA"],
     video:"https://www.youtube.com/watch?v=75hIRyuEIKA",
     passage:"Years after being sold out by his own team, Joseph ends up running one of the most powerful systems in the world — Egypt, during a famine. When his brothers show up needing help, he has every bit of power to punish them. Instead, he merges back with them: forgiveness instead of revenge. Watch the linked video for the full story.\nThink Experiment: merging back after a real conflict is harder than just avoiding the person forever. What do you think makes forgiveness possible when someone genuinely has the power to get even instead?\nApply (optional): in Minecraft or on paper, design a 'reunion' scene showing Joseph's family reunited, to represent the merge back together.",
     quiz:[
@@ -5673,6 +5691,8 @@ var KID2_FAITH_WEEKS = [
       {q:"Why call this a 'merge back' instead of just an ending?", choices:["Because nothing changed","Because the broken relationship was actively repaired, not just avoided","Because Joseph left Egypt","Because the brothers never spoke again"], answerIndex:1, explain:"Joseph didn't just let the conflict fade — he actively chose forgiveness and reunited the family."}
     ]}
 ];
+var FAITH_OLD_PREFIX = {kid1:"God's Story Time: ", kid2:"The Archive: "};
+function faithCross(item){ return item.ssCredit ? ["ELA","Social Studies"] : (item.crossSubjects||null); }
 function addFaithWeeks(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var items = kidId==="kid1" ? ANNA_FAITH_WEEKS : kidId==="kid2" ? KID2_FAITH_WEEKS : null;
@@ -5681,17 +5701,36 @@ function addFaithWeeks(kidId){
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   var added = 0;
   items.forEach(function(item){
-    if(existingTitles.indexOf(item.title)!==-1) return;
+    if(existingTitles.indexOf(item.title)!==-1 || existingTitles.indexOf(FAITH_OLD_PREFIX[kidId]+item.title)!==-1) return;
     var due = addSchoolDays(new Date(), item.dayOffset);
     db.collection("assignments").add({
       kidId:kidId, date:isoDate(due), subject:item.subject, title:item.title,
-      xp:item.xp, done:false, doneAt:null, standard:item.standard||null,
+      xp:item.xp, done:false, doneAt:null, standard:item.standard||null, crossSubjects:faithCross(item),
       video:item.video||null, passage:item.passage||null, quiz:item.quiz||null,
       createdAt:new Date().toISOString()
     });
     added++;
   });
   console.log("addFaithWeeks("+kidId+"): added "+added+" of "+items.length+" Faith assignment(s), starting today");
+}
+/* One-time migration: Faith lessons were first titled with the block name as a prefix (Rule 16
+   collision) and had no standard. Renames existing rows, adds the ELA standard, and credits
+   ELA (plus Social Studies on place/people weeks). Safe to run more than once. */
+function patchFaithRetag(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var items = kidId==="kid1" ? ANNA_FAITH_WEEKS : kidId==="kid2" ? KID2_FAITH_WEEKS : [];
+  var patched = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId) return;
+    var item = items.filter(function(i){ return FAITH_OLD_PREFIX[kidId]+i.title===a.title || i.title===a.title; })[0];
+    if(!item) return;
+    var updates = {title:item.title, standard:item.standard, crossSubjects:faithCross(item)};
+    Object.assign(a, updates);
+    db.doc("assignments/"+id).update(updates);
+    patched++;
+  });
+  console.log("patchFaithRetag("+kidId+"): patched "+patched+" of "+items.length);
 }
 function patchKid2RetroVideos(){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
@@ -5976,6 +6015,7 @@ window.patchAnnaHomepageLinks = patchAnnaHomepageLinks;
 window.patchAnnaCreativeStudioRetag = patchAnnaCreativeStudioRetag;
 window.patchKid2RetroVideos = patchKid2RetroVideos;
 window.addFaithWeeks = addFaithWeeks;
+window.patchFaithRetag = patchFaithRetag;
 window.patchRyanSkillBlockDemo = patchRyanSkillBlockDemo;
 window.patchShowTeachTitleCollisions = patchShowTeachTitleCollisions;
 
