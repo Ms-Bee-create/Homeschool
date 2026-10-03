@@ -2994,7 +2994,7 @@ function normalizeBlocks(a){
   return out;
 }
 function hasWork(a){
-  return !!((a.workBlocks && a.workBlocks.some(function(b){ return (b.type==="text" && b.text) || (b.type==="image" && b.url); })) || a.submission || a.screenshotUrl);
+  return !!((a.workBlocks && a.workBlocks.some(function(b){ return (b.type==="text" && b.text) || (b.type==="image" && b.url) || (b.type==="audio" && b.url); })) || a.submission || a.screenshotUrl);
 }
 
 function youtubeEmbedUrl(url){
@@ -3054,10 +3054,40 @@ function renderLessonDetail(){
      the content itself decides which it needs. Either way the listen button reads the whole thing
      aloud, steps and all, in order. */
   var passageLines = a.passage ? a.passage.split("\n").filter(function(l){ return l.trim(); }) : [];
+  var isAnnaMode = a.kidId==="kid1";
+  /* Anna's lessons: steps become tick-boxes she can click through (remembered per lesson), and
+     "Here's the Idea / See It Done / Your Turn…" sections get their own headings instead of
+     being numbered like steps. Trackpad-friendly: big click targets, no dragging. */
+  function checklistPassageHtml(text){
+    var lines = text.split("\n").filter(function(l){ return l.trim(); });
+    var n = 0, out = "";
+    function row(t){
+      var i = n++;
+      var on = false;
+      try{ on = localStorage.getItem("al_chk_"+a.id+"_"+i)==="1"; }catch(e){}
+      return '<label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:15px;line-height:1.5;cursor:pointer">'+
+        '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+escapeHtml(t)+'</span></label>';
+    }
+    var labeled = lines.length>1 && lines.every(function(l){ return /^[^—]{3,40} — /.test(l); });
+    lines.forEach(function(l){
+      var m = l.match(/^([^—]{3,40}) — ([\s\S]*)$/);
+      if(labeled && m){
+        out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
+        var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\d\)\s+/).filter(function(x){ return x.trim(); }) : null;
+        if(steps && steps.length>1) steps.forEach(function(st){ out += row(st); });
+        else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
+      } else {
+        out += row(l);
+      }
+    });
+    return out;
+  }
   var passageHtml = a.passage
     ? '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)">'+
         '<div style="font-weight:700;margin-bottom:6px">📖 Lesson '+speakerBtnHtml()+'</div>'+
-        (passageLines.length>1
+        (isAnnaMode && passageLines.length>1
+          ? checklistPassageHtml(a.passage)
+          : passageLines.length>1
           ? '<ol style="margin:0;padding:0 0 0 20px;font-size:14.5px;line-height:1.5">'+passageLines.map(function(l){ return '<li style="margin-bottom:5px">'+escapeHtml(l)+'</li>'; }).join("")+'</ol>'
           : '<div style="font-size:14.5px;line-height:1.5">'+escapeHtml(a.passage)+'</div>')+
       '</div>'
@@ -3100,6 +3130,11 @@ function renderLessonDetail(){
     : '<div id="flagBanner"></div>';
 
   card.innerHTML = headHtml + passageHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+  Array.prototype.forEach.call(card.querySelectorAll("input.chk"), function(cb){
+    cb.onchange = function(){
+      try{ if(cb.checked) localStorage.setItem("al_chk_"+a.id+"_"+cb.dataset.i, "1"); else localStorage.removeItem("al_chk_"+a.id+"_"+cb.dataset.i); }catch(e){}
+    };
+  });
   var speakBtns = card.querySelectorAll(".speak-btn");
   if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
   if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(a.passage); };
@@ -3347,15 +3382,29 @@ function renderLessonDetail(){
   savedNote.textContent = a.submittedAt ? "Last saved "+new Date(a.submittedAt).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
   card.appendChild(savedNote);
 
+  var showTyping = false;
+  function uploadWork(fileOrBlob, name, cb){
+    if(!db || !HOUSEHOLD_ID){ cb(null); return; }
+    var path = HOUSEHOLD_ID+"/"+a.id+"/"+Date.now()+"-"+name.replace(/[^a-zA-Z0-9._-]/g,"_");
+    sb.storage.from("lesson-uploads").upload(path, fileOrBlob, {contentType: fileOrBlob.type || undefined}).then(function(res){
+      if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); cb(null); return; }
+      cb(sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl);
+    }).catch(function(){ cb(null); });
+  }
   function renderBlocks(){
     blocksWrap.innerHTML = "";
     blocks.forEach(function(block, i){
       var row = document.createElement("div");
       row.style.cssText = "position:relative;margin-bottom:10px";
-      if(block.type==="text"){
+      if(block.type==="text" && isAnnaMode && !block.text && !showTyping) return;
+      if(block.type==="audio"){
+        var au = document.createElement("audio");
+        au.controls = true; au.src = block.url; au.style.cssText = "width:100%";
+        row.appendChild(au);
+      } else if(block.type==="text"){
         var ta = document.createElement("textarea");
         ta.value = block.text || "";
-        ta.placeholder = "Type your answer, notes, or steps here...";
+        ta.placeholder = isAnnaMode ? "Type here if you want to (you can also show or tell it above!)" : "Type your answer, notes, or steps here...";
         ta.rows = 4;
         ta.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 34px 10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
         ta.oninput = function(){ block.text = ta.value; };
@@ -3383,7 +3432,11 @@ function renderLessonDetail(){
   addTextBtn.className = "reward-skip";
   addTextBtn.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border)";
   addTextBtn.textContent = "✏️ Add text";
-  addTextBtn.onclick = function(){ blocks.push({type:"text", text:""}); renderBlocks(); };
+  addTextBtn.onclick = function(){
+    showTyping = true;
+    if(!blocks.some(function(b){ return b.type==="text" && !b.text; })) blocks.push({type:"text", text:""});
+    renderBlocks();
+  };
   toolbarWrap.appendChild(addTextBtn);
 
   var addPicLabel = document.createElement("label");
@@ -3400,7 +3453,8 @@ function renderLessonDetail(){
     var path = HOUSEHOLD_ID+"/"+a.id+"/"+Date.now()+"-"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
     addPicLabel.textContent = "Uploading...";
     sb.storage.from("lesson-uploads").upload(path, file).then(function(res){
-      addPicLabel.textContent = "📸 Add picture";
+      addPicLabel.textContent = isAnnaMode ? "🖼️ Add a picture file" : "📸 Add picture";
+      addPicLabel.appendChild(picInput);
       if(res.error){ toast("⚠️ Couldn't upload"+(res.error.message ? ": "+res.error.message : " — check your connection and try again")); return; }
       var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
       blocks.push({type:"image", url: url});
@@ -3417,6 +3471,86 @@ function renderLessonDetail(){
   addDrawBtn.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border)";
   addDrawBtn.textContent = "🖊️ Draw";
   toolbarWrap.appendChild(addDrawBtn);
+
+  var camBtn = document.createElement("button");
+  camBtn.type = "button"; camBtn.className = "reward-skip";
+  camBtn.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border)";
+  camBtn.textContent = "📷 Show it";
+  camBtn.onclick = function(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast("Camera not available here — use Add picture"); return; }
+    navigator.mediaDevices.getUserMedia({video:true}).then(function(stream){
+      var ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px";
+      var vid = document.createElement("video");
+      vid.autoplay = true; vid.playsInline = true; vid.muted = true; vid.srcObject = stream;
+      vid.style.cssText = "max-width:100%;max-height:70vh;border-radius:12px;background:#000";
+      var btns = document.createElement("div");
+      btns.style.cssText = "display:flex;gap:12px";
+      var snap = document.createElement("button");
+      snap.type = "button"; snap.className = "primary-btn"; snap.textContent = "📸 Take picture";
+      var cancel = document.createElement("button");
+      cancel.type = "button"; cancel.className = "reward-skip"; cancel.textContent = "Cancel";
+      cancel.style.cssText = "opacity:1;background:var(--card);border:1px solid var(--border)";
+      btns.appendChild(snap); btns.appendChild(cancel);
+      ov.appendChild(vid); ov.appendChild(btns);
+      document.body.appendChild(ov);
+      function stop(){ stream.getTracks().forEach(function(t){ t.stop(); }); ov.remove(); }
+      cancel.onclick = stop;
+      snap.onclick = function(){
+        var c = document.createElement("canvas");
+        c.width = vid.videoWidth || 640; c.height = vid.videoHeight || 480;
+        c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height);
+        c.toBlob(function(blob){
+          stop();
+          camBtn.textContent = "Saving…";
+          uploadWork(blob, "photo.jpg", function(url){
+            camBtn.textContent = "📷 Show it";
+            if(url){ blocks.push({type:"image", url:url}); renderBlocks(); }
+          });
+        }, "image/jpeg", 0.85);
+      };
+    }).catch(function(){ toast("Couldn't open the camera — allow camera access in the browser, or use Add picture"); });
+  };
+
+  var voiceBtn = document.createElement("button");
+  voiceBtn.type = "button"; voiceBtn.className = "reward-skip";
+  voiceBtn.style.cssText = "flex:1;color:var(--ink);opacity:1;border:1px solid var(--border)";
+  voiceBtn.textContent = "🎤 Tell it";
+  var recorder = null, recChunks = [];
+  voiceBtn.onclick = function(){
+    if(recorder){ recorder.stop(); return; }
+    if(!navigator.mediaDevices || !window.MediaRecorder){ toast("Recording isn't available here"); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      recorder = new MediaRecorder(stream); recChunks = [];
+      recorder.ondataavailable = function(e){ if(e.data && e.data.size) recChunks.push(e.data); };
+      recorder.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        var blob = new Blob(recChunks, {type: (recorder && recorder.mimeType) || "audio/webm"});
+        recorder = null;
+        voiceBtn.textContent = "Saving…";
+        uploadWork(blob, "voice.webm", function(url){
+          voiceBtn.textContent = "🎤 Tell it";
+          if(url){ blocks.push({type:"audio", url:url}); renderBlocks(); }
+        });
+      };
+      recorder.start();
+      voiceBtn.textContent = "⏹ Done talking";
+    }).catch(function(){ toast("Couldn't open the microphone — allow microphone access in the browser"); });
+  };
+  if(isAnnaMode){
+    toolbarWrap.innerHTML = "";
+    toolbarWrap.style.flexWrap = "wrap";
+    [camBtn, voiceBtn, addDrawBtn, addPicLabel, addTextBtn].forEach(function(b){
+      b.style.fontSize = "15px"; b.style.padding = "14px 12px"; b.style.minWidth = "46%";
+      toolbarWrap.appendChild(b);
+    });
+    addTextBtn.textContent = "⌨️ Type";
+    addPicLabel.textContent = "🖼️ Add a picture file";
+    addPicLabel.appendChild(picInput);
+  } else {
+    toolbarWrap.appendChild(voiceBtn);
+    toolbarWrap.appendChild(camBtn);
+  }
 
   var drawWrap = document.createElement("div");
   drawWrap.style.display = "none";
@@ -3505,9 +3639,14 @@ function renderLessonDetail(){
     addDrawingBtn.style.flex = "1";
     addDrawingBtn.textContent = "Add to work";
     addDrawingBtn.onclick = function(){
-      blocks.push({type:"image", url: canvas.toDataURL("image/png")});
-      drawWrap.style.display = "none"; drawWrap.innerHTML = ""; addDrawBtn.disabled = false;
-      renderBlocks();
+      addDrawingBtn.disabled = true; addDrawingBtn.textContent = "Saving…";
+      canvas.toBlob(function(blob){
+        uploadWork(blob, "drawing.png", function(url){
+          blocks.push({type:"image", url: url || canvas.toDataURL("image/png")});
+          drawWrap.style.display = "none"; drawWrap.innerHTML = ""; addDrawBtn.disabled = false;
+          renderBlocks();
+        });
+      }, "image/png");
     };
     drawBtnRow.appendChild(addDrawingBtn);
   };
@@ -3789,6 +3928,8 @@ function renderLeaderArea(){
     normalizeBlocks(a).forEach(function(block){
       if(block.type==="text" && block.text){
         subHtml += '<div style="white-space:pre-wrap;font-size:13.5px;padding:8px 10px;border-radius:8px;background:var(--paper);border:1px solid var(--border);margin-bottom:10px">'+escapeHtml(block.text)+'</div>';
+      } else if(block.type==="audio" && block.url){
+        subHtml += '<audio controls src="'+escapeHtml(block.url)+'" style="width:100%;margin-bottom:10px"></audio>';
       } else if(block.type==="image" && block.url){
         subHtml += '<a href="'+escapeHtml(block.url)+'" target="_blank" rel="noopener"><img src="'+escapeHtml(block.url)+'" style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--border);display:block;margin-bottom:10px"></a>';
       }
