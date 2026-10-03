@@ -3728,6 +3728,7 @@ function renderLeaderArea(){
 
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
+  els.view.appendChild(contentPacksCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
@@ -5786,11 +5787,81 @@ function patchFaithRetag(kidId){
     var item = items.filter(function(i){ return FAITH_OLD_PREFIX[kidId]+i.title===a.title || i.title===a.title; })[0];
     if(!item) return;
     var updates = {title:item.title, standard:item.standard, crossSubjects:faithCross(item)};
+    if(a.title===updates.title && a.standard===updates.standard && JSON.stringify(a.crossSubjects||null)===JSON.stringify(updates.crossSubjects)) return;
     Object.assign(a, updates);
     db.doc("assignments/"+id).update(updates);
     patched++;
   });
   console.log("patchFaithRetag("+kidId+"): patched "+patched+" of "+items.length);
+}
+/* Safe, idempotent data fixes that used to be console commands. Run once per app load after the
+   first sync; each one only touches rows that still have the old shape. */
+function runAutoMigrations(){
+  if(!db) return;
+  try{
+    patchFaithRetag("kid1"); patchFaithRetag("kid2");
+    patchAnnaCreativeStudioRetag();
+    patchShowTeachTitleCollisions("kid2");
+  }catch(e){ console.error("auto-migration error", e); }
+}
+
+/* ---------- Leader: Content Packs (replaces the add... console commands) ---------- */
+function contentPacks(){
+  return [
+    {label:"Bible: Creation → Joseph (Anna, 8 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
+    {label:"Bible: Creation → Joseph (Ryan, 8 weeks)", kid:"kid2", items:KID2_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid2, load:function(){ addFaithWeeks("kid2"); }},
+    {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
+  ];
+}
+function contentPacksCard(){
+  var wrap = document.createElement("div");
+  wrap.className = "card";
+  wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"contentpacks");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary");
+  sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "📦 Content Packs — add ready-made lessons";
+  det.appendChild(sum);
+  var note = document.createElement("div");
+  note.className = "muted";
+  note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Adds only lessons that aren't already there, scheduled starting today (weekdays). Safe to tap more than once.";
+  det.appendChild(note);
+  contentPacks().forEach(function(pack){
+    var have = {};
+    Object.keys(state.assignments).forEach(function(id){
+      var x = state.assignments[id];
+      if(x.kidId===pack.kid) have[x.title] = true;
+    });
+    var missing = pack.items.filter(function(i){ return !have[i.title] && !have[pack.oldPrefix+i.title]; }).length;
+    var row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)";
+    var txt = document.createElement("div");
+    txt.style.flex = "1";
+    txt.innerHTML = '<div style="font-weight:600;font-size:13.5px">'+escapeHtml(pack.label)+'</div>'+
+      '<div class="muted" style="font-size:12px">'+(pack.items.length-missing)+' of '+pack.items.length+' added</div>';
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "reward-skip";
+    btn.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:7px 12px;font-weight:600;color:var(--ink)";
+    if(missing===0){ btn.textContent = "✓ All added"; btn.disabled = true; btn.style.opacity = ".6"; }
+    else {
+      btn.textContent = "Add "+missing+" lesson"+(missing===1?"":"s");
+      btn.onclick = function(){
+        btn.disabled = true; btn.textContent = "Adding…";
+        pack.load();
+        toast("Added "+missing+" lesson"+(missing===1?"":"s")+" ✓");
+        setTimeout(function(){ syncSoon(); }, 1200);
+      };
+    }
+    row.appendChild(txt); row.appendChild(btn);
+    det.appendChild(row);
+  });
+  wrap.appendChild(det);
+  return wrap;
 }
 function patchKid2RetroVideos(){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
@@ -6108,6 +6179,7 @@ function syncAll(){
     state.reflections = reflectionRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("reflections", r)); });
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     updateLibraryTabVisibility();
+    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); }
     renderKidbar(); renderXpBar();
     if(whoGateEl.style.display!=="none") renderWhoGate();
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
