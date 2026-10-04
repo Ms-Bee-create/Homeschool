@@ -7565,7 +7565,22 @@ function runAutoMigrations(){
     patchAnnaLessonContent();
     retireAnnaFillerLessons();
     patchKid2Content();
+    moveWeekendLessonsToMonday();
   }catch(e){ console.error("auto-migration error", e); }
+}
+/* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
+   Saturday or Sunday moves to the next Monday (this is how a Design Studio lesson ended up on a
+   Sunday). Past dates are left alone so nothing looks like it vanished. */
+function moveWeekendLessonsToMonday(){
+  if(!db) return;
+  var today = todayISO(), moved = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if((a.kidId!=="kid1" && a.kidId!=="kid2") || a.done || !a.date || a.date<today || !isWeekendIso(a.date) || hasWork(a)) return;
+    var mon = isoDate(addSchoolDays(new Date(a.date+"T00:00:00"), 1));
+    a.date = mon; db.doc("assignments/"+id).update({date:mon}); moved++;
+  });
+  if(moved) console.log("moveWeekendLessonsToMonday: moved "+moved+" lesson(s)");
 }
 
 /* ---------- Leader: Helper chats (what Ryan asked the AI troubleshooter) ---------- */
@@ -8074,8 +8089,7 @@ function addOsMuseumArchiveChallenge(kidId){
   var added = 0;
   CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return; // already added — skip, don't duplicate
-    var d = new Date(todayDate);
-    d.setDate(d.getDate() + (item.d - minArchiveDay));
+    var d = addSchoolDays(todayDate, item.d - minArchiveDay);
     db.collection("assignments").add({
       kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
       xp: item.xp, done:false, doneAt:null,
