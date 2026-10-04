@@ -427,6 +427,25 @@ body.ryan-skin .qz-opt.correct{background:#c3e5c3}
 body.ryan-skin .qz-opt.wrong{background:#f0cdb2}
 body.ryan-skin .qz-timer{font-family:"JetBrains Mono",monospace}
 body.ryan-skin .sd-wrap{text-align:center}
+
+/* Anna's "Treat Time" (was Quick Check) and scratch-work card */
+body.anna-skin .quiz-wrap{background:linear-gradient(135deg,#fff1f8,#f1ecff)!important;border:3px solid #ffd0e6!important;border-radius:26px!important;padding:18px!important;--gold-soft:#ffe0ef;--coral-soft:#ffe9d6;--success-soft:#d7f7ec}
+body.anna-skin .tt-title{font-family:"Fredoka",sans-serif;font-size:24px!important;color:#d6459a}
+body.anna-skin .tt-treats{font-size:22px;letter-spacing:2px}
+.tt-sub{font-family:"Nunito Sans",sans-serif;font-size:14px;font-weight:700;color:var(--text-dim);margin-top:2px}
+body.anna-skin .quiz-wrap [style*="font-size:14px"]{font-size:19px!important;font-family:"Fredoka",sans-serif;font-weight:500}
+body.anna-skin .quiz-wrap button{border-radius:18px!important;border:2px solid #ffd0e6!important;font-family:"Fredoka",sans-serif!important;font-size:18px!important;padding:12px 16px!important;transition:transform .12s}
+body.anna-skin .quiz-wrap button:not(:disabled):hover{transform:translateY(-2px)}
+body.anna-skin .quiz-wrap button:disabled{opacity:1}
+.treat{position:fixed;z-index:40;font-size:34px;pointer-events:none;animation:treatdrop .9s ease-in forwards}
+@keyframes treatdrop{0%{transform:translateY(-170px) scale(.6);opacity:0}20%{opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+.scratch-card{margin-bottom:14px;padding:16px 18px;border-radius:26px;background:#e6f3ff;border:3px dashed #4aa8f0}
+.sc-title{font-family:"Fredoka",sans-serif;font-weight:700;font-size:22px;color:#2a7fc4}
+.sc-sub{font-size:15px;font-weight:700;margin:4px 0 10px}
+.sc-btns{display:flex;gap:10px;flex-wrap:wrap}
+.sc-btns button{border:0;border-radius:18px;background:#4aa8f0;color:#fff;font-family:"Fredoka",sans-serif;font-weight:600;font-size:18px;padding:12px 18px;box-shadow:var(--shadow)}
+.sc-status{margin-top:10px;font-weight:800;font-size:14px;color:var(--text-dim)}
+.sc-status.ok{color:#1f9f82}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -1450,6 +1469,24 @@ function petSay(text){
 }
 /* Reminders should still reach a kid who hid the pet — fall back to a toast. */
 function planSay(text){ if(!petSay(text)) toast(text); }
+var TREATS = ["\uD83C\uDF53","\uD83C\uDF4E","\uD83E\uDD55","\uD83C\uDF6A","\uD83E\uDDC1","\uD83C\uDF4C","\uD83C\uDF47"];
+/* A right answer drops a treat to her pet; a miss gets a kind line and no treat. Returns the treat emoji. */
+function petTreat(correct){
+  if(state.activeKid!=="kid1") return "";
+  var em = correct ? petPick(TREATS) : "";
+  if(!petEl || !petVisible()) return em;
+  petPause = 2.4;
+  if(correct){
+    var r = petEl.querySelector(".walker").getBoundingClientRect();
+    var t = document.createElement("span"); t.className = "treat"; t.textContent = em;
+    t.style.left = (r.left + r.width/2 - 17)+"px"; t.style.top = (r.top - 4)+"px";
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 1000);
+    setTimeout(function(){ petHop(); petSay(petPick(["Yum! Thank you!","Nom nom nom! Delicious!","Yummy! You are the best!","More treats please!"])); petFx("\u2665", r.left + r.width/2, r.top); }, 850);
+  } else {
+    petSay(petPick(["That is okay! We learn by trying.","Oopsie! Let us learn it together.","Good try! Read the hint with me."]));
+  }
+  return em;
+}
 function petHop(){
   if(!petEl) return;
   var w = petEl.querySelector(".walker"); w.classList.remove("hop"); void w.offsetWidth; w.classList.add("hop");
@@ -4467,6 +4504,7 @@ function renderLessonDetail(){
   var embeddedQuestion = mathSplit ? mathSplit[2] : null;
 
   var annaLook = a.kidId==="kid1", retroLook = a.kidId==="kid2";
+  var scratchNeeded = annaLook && (a.subject==="Math" || /^anna-math/.test(a.skillId||""));
   var headHtml = annaLook ?
     '<div class="a-head">'+
       '<div class="a-meta">'+subjectChip(a.subject)+'<span class="a-xp">\u2B50 '+a.xp+' XP</span>'+
@@ -4515,6 +4553,7 @@ function renderLessonDetail(){
      "Here's the Idea / See It Done / Your Turn…" sections get their own headings instead of
      being numbered like steps. Trackpad-friendly: big click targets, no dragging. */
   function checklistPassageHtml(text, tick){
+    if(a.kidId==="kid1") text = text.replace(/Quick Checks?/g, "Treat Time");
     var lines = text.split("\n").filter(function(l){ return l.trim(); });
     var n = 0, out = "";
     function row(t){
@@ -4646,7 +4685,7 @@ function renderLessonDetail(){
   updateAnnaProgress();
   var speakBtns = card.querySelectorAll(".speak-btn");
   if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
-  if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(a.passage); };
+  if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(annaLook ? a.passage.replace(/Quick Checks?/g, "Treat Time") : a.passage); };
 
   if(a.skillId==="anna-math-place-value"){
     var pvBtnWrap = document.createElement("div");
@@ -4778,16 +4817,23 @@ function renderLessonDetail(){
 
   if(Array.isArray(a.quiz) && a.quiz.length){
     var quizWrap = document.createElement("div");
+    quizWrap.className = "quiz-wrap";
     quizWrap.style.cssText = "margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--gold-soft);border:1px solid var(--border)";
     var quizTitle = document.createElement("div");
     quizTitle.style.cssText = "font-weight:700;margin-bottom:8px";
-    quizTitle.textContent = "🎯 Quick Check";
+    var treatsEl = null;
+    if(annaLook){
+      var pcur = petCur();
+      quizTitle.className = "tt-title";
+      quizTitle.innerHTML = '\uD83C\uDF53 Treat Time! <span class="tt-treats"></span><div class="tt-sub">Get one right to feed '+escapeHtml(pcur ? pcur.short : "your pet")+'!</div>';
+      treatsEl = quizTitle.querySelector(".tt-treats");
+    } else quizTitle.textContent = "🎯 Quick Check";
     quizWrap.appendChild(quizTitle);
     var quizBody = document.createElement("div");
     quizWrap.appendChild(quizBody);
     var retryBtn = document.createElement("button");
     retryBtn.type = "button";
-    retryBtn.textContent = "🔄 Try a new Quick Check";
+    retryBtn.textContent = annaLook ? "\uD83D\uDD04 Try new treats!" : "🔄 Try a new Quick Check";
     retryBtn.style.cssText = "display:none;margin-top:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;font-weight:600";
     quizWrap.appendChild(retryBtn);
     card.appendChild(quizWrap);
@@ -4823,6 +4869,11 @@ function renderLessonDetail(){
         /* Everything that happens once a question is answered, whichever question type it was. */
         function afterAnswer(correct){
           answeredCount++;
+          if(annaLook){
+            var treat = petTreat(correct);
+            if(correct && treatsEl) treatsEl.textContent += " "+treat;
+            if(answeredCount===1 && scratchNeeded && !blocks.some(function(b){ return b.type==="image"; })) setTimeout(function(){ petSay("Did you do your scratch work on paper? Show me a picture!"); }, 2600);
+          }
           if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
             var startUpdates = {quizScore: 0, quizTotal: items.length};
             if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
@@ -4931,6 +4982,7 @@ function renderLessonDetail(){
       cb(sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl);
     }).catch(function(){ cb(null); });
   }
+  var scratchStatus = null;
   function renderBlocks(){
     blocksWrap.innerHTML = "";
     blocks.forEach(function(block, i){
@@ -4964,6 +5016,7 @@ function renderLessonDetail(){
       row.appendChild(rmBtn);
       blocksWrap.appendChild(row);
     });
+    if(typeof scratchStatus==="function") scratchStatus();
   }
   renderBlocks();
 
@@ -5087,6 +5140,22 @@ function renderLessonDetail(){
     addTextBtn.textContent = "⌨️ Type";
     addPicLabel.textContent = "🖼️ Add a picture file";
     addPicLabel.appendChild(picInput);
+    if(scratchNeeded){
+      var scratch = document.createElement("div"); scratch.className = "scratch-card";
+      scratch.innerHTML = '<div class="sc-title">\u270F\uFE0F Show me your thinking!</div><div class="sc-sub">Do your math on paper first. Then take a picture of your scratch work.</div><div class="sc-btns"></div><div class="sc-status"></div>';
+      var scBtns = scratch.querySelector(".sc-btns");
+      [["\uD83D\uDCF7 Show it", function(){ camBtn.click(); }], ["\uD83D\uDDBC\uFE0F Add a picture file", function(){ picInput.click(); }]].forEach(function(x){
+        var b = document.createElement("button"); b.type = "button"; b.textContent = x[0]; b.onclick = x[1]; scBtns.appendChild(b);
+      });
+      var scStatus = scratch.querySelector(".sc-status");
+      scratchStatus = function(){
+        var n = blocks.filter(function(b){ return b.type==="image"; }).length;
+        scStatus.textContent = n ? "\uD83D\uDCCE "+n+" picture"+(n>1?"s":"")+" added. Great job showing your work!" : "No picture yet. Do your scratch work, then show it!";
+        scStatus.classList.toggle("ok", n>0);
+      };
+      card.insertBefore(scratch, quizWrap || workLabel);
+      scratchStatus();
+    }
     [[camBtn,"#ff7eb6"],[voiceBtn,"#4aa8f0"],[addDrawBtn,"#e8a21a"]].forEach(function(x){
       x[0].classList.add("a-bigbtn"); x[0].style.background = x[1]; x[0].style.color = "#fff"; x[0].style.border = "0";
     });
