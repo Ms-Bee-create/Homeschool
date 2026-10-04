@@ -6089,7 +6089,7 @@ function addAnnaOctoberSkillBlocks(){
   var added = 0;
   ANNA_OCT_SKILL_BLOCKS.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return;
-    var due = addSchoolDays(new Date(), item.dayOffset);
+    var due = addSchoolDays(packStart(), item.dayOffset);
     db.collection("assignments").add({
       kidId:"kid1", date:isoDate(due), subject:item.subject, title:item.title,
       xp:item.xp, done:false, doneAt:null, skillId:item.skillId, stage:item.stage, standard:item.standard||null,
@@ -6211,7 +6211,7 @@ function addFaithWeeks(kidId){
   var added = 0;
   items.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1 || existingTitles.indexOf(FAITH_OLD_PREFIX[kidId]+item.title)!==-1) return;
-    var due = addSchoolDays(new Date(), item.dayOffset);
+    var due = addSchoolDays(packStart(), item.dayOffset);
     db.collection("assignments").add({
       kidId:kidId, date:isoDate(due), subject:item.subject, title:item.title,
       xp:item.xp, done:false, doneAt:null, standard:item.standard||null, crossSubjects:faithCross(item),
@@ -6623,6 +6623,25 @@ function skipSwapCard(){
 }
 
 /* ---------- Leader: Content Packs (replaces the add... console commands) ---------- */
+/* Start day for the next pack added. Null = today. Weekly packs step in whole school weeks, so
+   starting on a Wednesday puts every weekly lesson on a Wednesday. A weekend start rolls to Monday. */
+var packStartISO = null;
+function packStart(){
+  var d = new Date((packStartISO||todayISO())+"T00:00:00");
+  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  return d;
+}
+function packStartChoices(){
+  var out = [], d = new Date(todayISO()+"T00:00:00"), names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  while(out.length<10){
+    if(d.getDay()!==0 && d.getDay()!==6){
+      var label = (out.length===0 && isoDate(d)===todayISO() ? "Today — " : "")+names[d.getDay()]+" "+(d.getMonth()+1)+"/"+d.getDate();
+      out.push({iso:isoDate(d), label:label});
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
 function contentPacks(){
   return [
     {label:"Bible: Creation → Moses (Anna, 12 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
@@ -6648,8 +6667,19 @@ function contentPacksCard(){
   var note = document.createElement("div");
   note.className = "muted";
   note.style.cssText = "font-size:12.5px;margin:8px 0";
-  note.textContent = "Adds only lessons that aren't already there, scheduled starting today (weekdays). Safe to tap more than once.";
+  note.textContent = "Adds only lessons that aren't already there, on weekdays starting from the day you pick. Weekly lessons (Bible, Thought Experiments) land on that same weekday each week. Safe to tap more than once.";
   det.appendChild(note);
+  var startRow = document.createElement("label");
+  startRow.style.cssText = "display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px";
+  startRow.appendChild(document.createTextNode("Start on:"));
+  var startSel = document.createElement("select");
+  startSel.style.cssText = "font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card,#fff);color:var(--ink)";
+  var choices = packStartChoices();
+  choices.forEach(function(c){ var o = document.createElement("option"); o.value = c.iso; o.textContent = c.label; startSel.appendChild(o); });
+  startSel.value = choices.some(function(c){ return c.iso===packStartISO; }) ? packStartISO : choices[0].iso;
+  startSel.onchange = function(){ packStartISO = startSel.value; };
+  startRow.appendChild(startSel);
+  det.appendChild(startRow);
   contentPacks().forEach(function(pack){
     var have = {};
     Object.keys(state.assignments).forEach(function(id){
@@ -6796,7 +6826,7 @@ function addOsMuseumArchiveChallenge(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var archiveDays = CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.map(function(item){ return item.d; });
   var minArchiveDay = Math.min.apply(null, archiveDays);
-  var todayDate = new Date(todayISO()+"T00:00:00");
+  var todayDate = packStart();
   var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   var added = 0;
@@ -6862,7 +6892,7 @@ var CURRICULUM_MINECRAFT_WORLD2 = [
 ];
 function addMinecraftWorld2(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
-  var todayDate = new Date(todayISO()+"T00:00:00");
+  var todayDate = packStart();
   var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   var added = 0;
@@ -6908,7 +6938,7 @@ var RYAN_THOUGHT_EXPERIMENTS = [
 ];
 function addRyanThoughtExperiments(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
-  var todayDate = new Date(todayISO()+"T00:00:00");
+  var todayDate = packStart();
   var existingTitles = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   var added = 0;
