@@ -492,6 +492,36 @@ body.anna-skin .quiz-wrap button:disabled{opacity:1}
 .pv-chal{margin-top:14px;padding:14px;border-radius:20px;background:#fff1f8;border:2px solid #ffd0e6}
 .pv-chaltitle{font-family:"Fredoka",sans-serif;font-weight:700;font-size:19px;margin-bottom:8px}
 body.anna-skin button.pv-open{background:linear-gradient(135deg,#ff7eb6,#b79cff)!important;color:#fff!important;border:0!important;border-radius:22px!important;font-family:"Fredoka",sans-serif!important;font-size:20px!important;padding:16px!important;box-shadow:var(--shadow)}
+
+/* Anna: a more vibrant pink (these come after the base skin so they win) */
+body.anna-skin{
+  --paper:#ffe3f1; --border:#ffb8dc; --pink:#e8269a; --pink-soft:#ffd3ea;
+  --accent-pink:#ff3d9e;
+  background:linear-gradient(160deg,#ffd0e8 0%,#ffb0da 45%,#efbfff 100%) fixed;
+}
+body.anna-skin .brand h1{color:#ff1f8e}
+body.anna-skin .tab.active{background:#ff3d9e}
+body.anna-skin .tab{box-shadow:0 3px 8px rgba(214,38,140,.22)}
+body.anna-skin .card,body.anna-skin .qz-card{box-shadow:0 8px 20px rgba(214,38,140,.2)}
+body.anna-skin .task{border-color:#ff9ccf}
+body.anna-skin .task:last-child{border-bottom-color:#ff9ccf}
+body.anna-skin .check{border-color:#ff3d9e}
+body.anna-skin .card[style*="var(--gold)"]{border:3px solid #ff3d9e!important}
+body.anna-skin .a-step.now .a-dot{background:#ff3d9e;box-shadow:0 0 0 7px rgba(255,61,158,.3)}
+body.anna-skin label.arow:not(:has(input:checked)){border-color:#ff8cc6}
+body.anna-skin input.chk{accent-color:#ff3d9e}
+body.anna-skin .a-bubble{border-color:#ffc2e0}
+body.anna-skin .planner-cell{box-shadow:0 5px 14px rgba(214,38,140,.2)}
+body.anna-skin .planner-cell.planner-today-col{box-shadow:0 0 0 3px #ff3d9e inset,0 5px 14px rgba(214,38,140,.2)}
+body.anna-skin .planner-grid th.planner-today{color:#e8269a}
+body.anna-skin .arena-hero{background:linear-gradient(135deg,#ff3d9e,#c56bff)}
+body.anna-skin .primary-btn{background:#ff3d9e}
+body.anna-skin .section-title{color:#c4177c}
+body.anna-skin .quiz-wrap{border-color:#ff9ccf!important;background:linear-gradient(135deg,#ffe3f1,#f6e4ff)!important}
+body.anna-skin .tt-title{color:#e8269a}
+body.anna-skin .xpbar-row,body.anna-skin .profile-trigger{box-shadow:0 6px 16px rgba(214,38,140,.22)}
+body.anna-skin .a-meter .a-mtxt{color:#c4177c}
+body.anna-skin .a-stripes i{border-color:#ffc2e0}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
