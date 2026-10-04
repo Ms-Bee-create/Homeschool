@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Poppins:wght@600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Pixelify+Sans:wght@500;700&family=Poppins:wght@600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,400;0,6..12,600;0,6..12,700;0,6..12,800&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 :root{
   --ink:#1c5738; --paper:#faf3e6; --raised:#ffffff; --border:#ecdfc4;
@@ -218,7 +218,7 @@ button{font:inherit;cursor:pointer}
 .muted{color:var(--text-dim);font-size:12.5px}
 @media (prefers-reduced-motion: reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 
-/* ---------- Anna's skin: pastel rainbow theme + wandering pet (only while Anna is the active kid) ---------- */
+/* ---------- Kid skins (pastel rainbow for Anna, retro PC for Ryan) + wandering pet + day-plan bar ---------- */
 body.anna-skin{
   --ink:#3b2a5a; --paper:#fff1f8; --raised:#ffffff; --border:#e8e2f5;
   --text:#3b2a5a; --text-dim:#8c7cb0;
@@ -229,29 +229,75 @@ body.anna-skin{
   --success:#1f9f82; --success-soft:#d7f7ec;
   --shadow:0 6px 16px rgba(115,77,179,.16);
   background:linear-gradient(135deg,#fff1f8,#eaf4ff) fixed;
-  font-family:"Nunito Sans",system-ui,sans-serif;
 }
 body.anna-skin h1,body.anna-skin h2,body.anna-skin h3,body.anna-skin .disp,body.anna-skin .qz-q,body.anna-skin .section-title{font-family:"Fredoka","Poppins",system-ui,sans-serif}
 body.anna-skin .qz-card,body.anna-skin .card{border-radius:28px;border-color:transparent}
 body.anna-skin .chip{border-radius:999px}
 body.anna-skin .kid-card.active{box-shadow:0 0 0 4px color-mix(in srgb,var(--kc) 22%,transparent)}
 body.anna-skin input.chk{accent-color:#ff7eb6;width:26px!important;height:26px!important}
-body.anna-skin.pet-on{padding-bottom:130px}
-#annaPet{position:fixed;left:0;right:0;bottom:0;height:112px;pointer-events:none;z-index:30;display:none;
-  background:linear-gradient(to top,rgba(190,232,207,.85),rgba(190,232,207,0) 70%)}
-body.pet-on #annaPet{display:block}
-#annaPet .walker{position:absolute;bottom:4px;left:0;width:112px;height:93px;padding:0;border:0;background:none;pointer-events:auto;will-change:transform}
-#annaPet .walker svg{width:100%;height:100%;overflow:visible;animation:petbob .5s ease-in-out infinite}
+
+body.ryan-skin{
+  --ink:#000080; --paper:#dcdcdc; --raised:#c0c0c0; --border:#7a7a7a;
+  --text:#0a0a0a; --text-dim:#3d3d3d;
+  --gold:#6b5000; --gold-soft:#f1e8a8;
+  --teal:#00605c; --teal-soft:#b9e3de;
+  --coral:#8f3300; --coral-soft:#f0cdb2;
+  --pink:#7d1a63; --pink-soft:#e9c3dd;
+  --success:#0b5d0b; --success-soft:#c3e5c3;
+  --shadow:none;
+  background:#008080 fixed;
+}
+body.ryan-skin h1,body.ryan-skin h2,body.ryan-skin h3,body.ryan-skin .disp,body.ryan-skin .qz-q{font-family:"Pixelify Sans","JetBrains Mono",monospace}
+body.ryan-skin .section-title{font-family:"Pixelify Sans","JetBrains Mono",monospace;background:linear-gradient(90deg,#000080,#1084d0);color:#fff;padding:5px 10px;letter-spacing:.04em;margin-top:16px}
+body.ryan-skin .card,body.ryan-skin .qz-card,body.ryan-skin .kid-card,body.ryan-skin .date-pill,body.ryan-skin .plan-bar{
+  border:0;border-radius:0;
+  box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+body.ryan-skin .chip{border-radius:0}
+body.ryan-skin .primary-btn,body.ryan-skin button.tab{border-radius:0;background:#c0c0c0;color:#000;
+  box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+body.ryan-skin button.tab.active{box-shadow:inset 1px 1px #0a0a0a,inset -1px -1px #fff,inset 2px 2px #808080,inset -2px -2px #dfdfdf;font-weight:800}
+body.ryan-skin .toast{border-radius:0;background:#ffffe1;color:#000;border:1px solid #000}
+body.ryan-skin .tabs,body.ryan-skin .tabbar{background:transparent}
+
+body.pet-on{padding-bottom:130px}
+#kidPet{position:fixed;left:0;right:0;bottom:0;height:112px;pointer-events:none;z-index:30;display:none}
+body.anna-skin #kidPet{background:linear-gradient(to top,rgba(190,232,207,.85),rgba(190,232,207,0) 70%)}
+body.ryan-skin #kidPet{background:linear-gradient(to top,#c0c0c0 0,#c0c0c0 34px,rgba(192,192,192,0) 35px);border-top:0}
+body.pet-on #kidPet{display:block}
+#kidPet .walker{position:absolute;bottom:4px;left:0;width:112px;height:93px;padding:0;border:0;background:none;pointer-events:auto;will-change:transform}
+#kidPet .walker svg{width:100%;height:100%;overflow:visible;animation:petbob .5s ease-in-out infinite}
 @keyframes petbob{50%{transform:translateY(-5px)}}
-#annaPet .walker.hop svg{animation:pethop .6s ease}
+#kidPet .walker.hop svg{animation:pethop .6s ease}
 @keyframes pethop{30%{transform:translateY(-34px) rotate(-3deg)}60%{transform:translateY(0)}78%{transform:translateY(-10px)}}
-#annaPet .say{position:absolute;bottom:104px;left:0;max-width:240px;background:#fff;color:var(--ink);border-radius:20px;padding:10px 14px;font-weight:800;font-size:15px;line-height:1.3;box-shadow:var(--shadow);opacity:0;transform:translateY(6px);transition:.25s;pointer-events:none}
-#annaPet .say.show{opacity:1;transform:none}
+#kidPet .say{position:absolute;bottom:104px;left:0;max-width:250px;background:#fff;color:var(--ink);border-radius:20px;padding:10px 14px;font-weight:800;font-size:15px;line-height:1.3;box-shadow:var(--shadow);opacity:0;transform:translateY(6px);transition:.25s;pointer-events:none}
+body.ryan-skin #kidPet .say{border-radius:0;background:#ffffe1;color:#000;border:1px solid #000;font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700}
+#kidPet .say.show{opacity:1;transform:none}
 .petfx{position:fixed;pointer-events:none;z-index:31;animation:petfx 1.3s forwards;font-size:22px}
 @keyframes petfx{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-60px)}}
 #petCtl{position:fixed;right:10px;bottom:10px;z-index:32;display:none;gap:6px}
-body.anna-skin #petCtl{display:flex}
-#petCtl button{background:#fff;color:#9b6bff;border:0;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:.9}
+body.anna-skin #petCtl,body.ryan-skin #petCtl{display:flex}
+#petCtl button{background:#fff;color:#9b6bff;border:0;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:.92}
+body.ryan-skin #petCtl button{border-radius:0;background:#c0c0c0;color:#000;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;font-family:"JetBrains Mono",monospace}
+
+/* day plan bar (Today + lesson page) and the calm "school's done" screen */
+.plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
+.plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
+.plan-bar.screenoff{border-color:var(--teal);background:var(--teal-soft)}
+.pb-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pb-title{font-weight:800;font-size:17px;flex:1;min-width:150px}
+.pb-left{font-weight:800;font-size:15px;white-space:nowrap}
+.pb-track{height:10px;border-radius:5px;background:var(--border);margin-top:8px;overflow:hidden}
+body.ryan-skin .pb-track{border-radius:0}
+.pb-fill{height:100%;background:var(--teal);transition:width .4s}
+.plan-bar.warn .pb-fill{background:var(--gold)}
+.pb-next{font-size:12.5px;color:var(--text-dim);margin-top:6px}
+.pb-switch{font-weight:800;margin-top:6px}
+.ideas{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+.idea{background:var(--raised);border:2px solid var(--border);border-radius:16px;padding:12px;font-size:15px;line-height:1.35;font-weight:700}
+body.ryan-skin .idea{border-radius:0}
+.idea small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;font-weight:800}
+.sd-wrap{text-align:center;padding:24px 16px}
+.sd-wrap svg.sd-pet{width:190px;height:158px;max-width:60%}
 
 .login-wrap{max-width:360px;margin:80px auto;padding:0 16px}
 .login-card{background:var(--raised);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow)}
@@ -851,7 +897,7 @@ function updateFocusModeTabVisibility(){
 }
 
 
-/* ---------- Anna's pet ---------- */
+/* ---------- Kid pets (Sparkle/Pip for Anna, Byte/Disk for Ryan) ---------- */
 var PET_SPRITE = [
 '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>',
 '<symbol id="pet-uni" viewBox="0 0 230 190">',
@@ -870,21 +916,63 @@ var PET_SPRITE = [
 '<circle cx="165" cy="80" r="46" fill="#FFC9A3"/><path d="M128 52l6-34 28 22zM202 52l-6-34-28 22z" fill="#FFC9A3"/><path d="M137 40l3-14 12 10zM193 40l-3-14-12 10z" fill="#FFB4D6"/>',
 '<ellipse cx="148" cy="78" rx="6" ry="8" fill="#3B2A5A"/><ellipse cx="182" cy="78" rx="6" ry="8" fill="#3B2A5A"/><circle cx="150" cy="75" r="2.3" fill="#fff"/><circle cx="184" cy="75" r="2.3" fill="#fff"/>',
 '<path d="M160 92l5 5 5-5z" fill="#FF7EB6"/><path d="M165 97q-6 8-12 4M165 97q6 8 12 4" stroke="#B5655A" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="94" rx="9" ry="5" fill="#FF9FC8" opacity=".7"/><ellipse cx="194" cy="94" rx="9" ry="5" fill="#FF9FC8" opacity=".7"/>',
+'</symbol>',
+/* Byte: a beige CRT computer on stubby legs, pixel face on the screen */
+'<symbol id="pet-pc" viewBox="0 0 230 190">',
+'<rect x="40" y="76" width="28" height="10" fill="#B8B09A"/><rect x="162" y="76" width="28" height="10" fill="#B8B09A"/>',
+'<rect x="66" y="132" width="20" height="42" fill="#8E8878"/><rect x="144" y="132" width="20" height="42" fill="#8E8878"/>',
+'<rect x="56" y="172" width="38" height="12" fill="#4A5566"/><rect x="136" y="172" width="38" height="12" fill="#4A5566"/>',
+'<rect x="56" y="14" width="118" height="104" fill="#D8D0B8" stroke="#8E8878" stroke-width="3"/>',
+'<rect x="70" y="28" width="90" height="66" fill="#0B2A2A" stroke="#6F6A5A" stroke-width="3"/>',
+'<rect x="88" y="46" width="12" height="16" fill="#7CFFB5"/><rect x="130" y="46" width="12" height="16" fill="#7CFFB5"/>',
+'<path d="M92 72v6h46v-6" stroke="#7CFFB5" stroke-width="5" fill="none" stroke-linecap="square"/>',
+'<rect x="70" y="104" width="46" height="5" fill="#8E8878"/><rect x="140" y="102" width="12" height="9" fill="#3DE0C0"/><rect x="156" y="102" width="6" height="9" fill="#B8B09A"/>',
+'<rect x="84" y="118" width="62" height="14" fill="#C4BCA4" stroke="#8E8878" stroke-width="2"/>',
+'</symbol>',
+/* Disk: a 3.5-inch floppy with a face on its label */
+'<symbol id="pet-disk" viewBox="0 0 230 190">',
+'<rect x="64" y="126" width="14" height="44" fill="#8E8878"/><rect x="152" y="126" width="14" height="44" fill="#8E8878"/>',
+'<rect x="56" y="168" width="30" height="12" fill="#4A5566"/><rect x="144" y="168" width="30" height="12" fill="#4A5566"/>',
+'<rect x="44" y="76" width="22" height="10" fill="#1F3F94"/><rect x="164" y="76" width="22" height="10" fill="#1F3F94"/>',
+'<path d="M60 14h96l16 16v100H60z" fill="#2A5FD0" stroke="#1F3F94" stroke-width="3"/>',
+'<rect x="88" y="14" width="56" height="38" fill="#C9CED6" stroke="#8D95A3" stroke-width="2"/><rect x="124" y="20" width="12" height="26" fill="#5E6A7A"/>',
+'<rect x="76" y="70" width="80" height="54" fill="#F4F0E0"/><path d="M82 82h68M82 90h68" stroke="#C9C2A8" stroke-width="2"/>',
+'<rect x="98" y="98" width="8" height="10" fill="#222"/><rect x="126" y="98" width="8" height="10" fill="#222"/><path d="M102 114v4h28v-4" stroke="#222" stroke-width="3" fill="none"/>',
 '</symbol></defs></svg>'
 ].join("");
-var PET_LINES = {
-  step:["Yay, a star!","You are so smart!","One step closer!","Wow, nice work!","Sparkly job!"],
-  done:["You did it, Anna! Sparkle stars!","All done! Time for a rainbow dance!","That was amazing!"],
-  poke:["Hee hee! That tickles!","I love learning with you!","Look, a sparkly pebble!","Can we draw me a rainbow later?"],
-  hi:["Hi Anna! Ready to learn?","Hello! I missed you!"]
+var PETS = {
+  kid1: {skin:"anna-skin", list:[{sym:"pet-uni", name:"Sparkle", hi:"Hi! I am Sparkle!"}, {sym:"pet-cat", name:"Pip", hi:"Meow! I am Pip!"}]},
+  kid2: {skin:"ryan-skin", list:[{sym:"pet-pc", name:"Byte", hi:"Beep! I am Byte."}, {sym:"pet-disk", name:"Disk", hi:"Hello! I am Disk. 1.44 megabytes of fun."}]}
 };
-var petEl = null, petX = 40, petDir = 1, petPause = 0, petLast = 0, petSpark = 0, petSayT = null, petHi = false;
+var PET_LINES = {
+  kid1: {
+    step:["Yay, a star!","You are so smart!","One step closer!","Wow, nice work!","Sparkly job!"],
+    done:["You did it, Anna! Sparkle stars!","All done! Time for a rainbow dance!","That was amazing!"],
+    poke:["Hee hee! That tickles!","I love learning with you!","Look, a sparkly pebble!","Can we draw me a rainbow later?"],
+    hi:["Hi Anna! Ready to learn?","Hello! I missed you!"]
+  },
+  kid2: {
+    step:["Step logged.","Nice. Keep going.","Progress saved."],
+    done:["Task complete! XP deployed.","Compile successful. Nice work, Ryan.","Level up in progress..."],
+    poke:["Beep boop. Ouch, that was my power button.","Scanning... found one crumb in the keyboard.","Fun fact: I only have 640K of memory. I remember everything anyway.","Defragmenting my thoughts..."],
+    hi:["Booting up... Hi Ryan!","System ready. Let us learn something."]
+  }
+};
+var petEl = null, petX = 40, petDir = 1, petPause = 0, petLast = 0, petSpark = 0, petSayT = null, petHi = {};
 function petLS(k, v){
   try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){}
   return null;
 }
 function petPick(list){ return list[Math.floor(Math.random()*list.length)]; }
-function petWhich(){ return petLS("al_pet_which")==="cat" ? "pet-cat" : "pet-uni"; }
+function petCfg(){ return PETS[state.activeKid] || null; }
+function petOffKey(){ return "al_pet_off_"+state.activeKid; }
+function petWhichKey(){ return "al_pet_which_"+state.activeKid; }
+function petCur(){
+  var cfg = petCfg(); if(!cfg) return null;
+  var i = +petLS(petWhichKey()); if(!(i>=0 && i<cfg.list.length)) i = 0;
+  return cfg.list[i];
+}
+function petVisible(){ return document.body.classList.contains("pet-on"); }
 function petFx(ch, x, y){
   for(var i=0;i<4;i++){
     var h = document.createElement("span"); h.className = "petfx"; h.textContent = ch;
@@ -893,56 +981,65 @@ function petFx(ch, x, y){
   }
 }
 function petSay(text){
-  if(!petEl || !document.body.classList.contains("pet-on")) return;
+  if(!petEl || !petVisible()) return false;
   var say = petEl.querySelector(".say");
   say.textContent = text;
-  say.style.left = Math.max(8, Math.min(window.innerWidth-260, petX-20))+"px";
+  say.style.left = Math.max(8, Math.min(window.innerWidth-270, petX-20))+"px";
   say.classList.add("show");
-  clearTimeout(petSayT); petSayT = setTimeout(function(){ say.classList.remove("show"); }, 3600);
+  clearTimeout(petSayT); petSayT = setTimeout(function(){ say.classList.remove("show"); }, 4200);
+  return true;
 }
+/* Reminders should still reach a kid who hid the pet — fall back to a toast. */
+function planSay(text){ if(!petSay(text)) toast(text); }
 function petHop(){
   if(!petEl) return;
   var w = petEl.querySelector(".walker"); w.classList.remove("hop"); void w.offsetWidth; w.classList.add("hop");
 }
 function petCheer(kind){
-  if(state.activeKid!=="kid1") return;
+  var lines = PET_LINES[state.activeKid]; if(!lines) return;
   petHop(); petPause = 1.6;
-  petSay(petPick(PET_LINES[kind]));
-  if(kind==="done" && petEl && document.body.classList.contains("pet-on")){
+  petSay(petPick(lines[kind]));
+  if(kind==="done" && petEl && petVisible()){
     var r = petEl.querySelector(".walker").getBoundingClientRect();
-    petFx("✨", r.left + r.width/2, r.top);
+    petFx(state.activeKid==="kid1" ? "✨" : "⭐", r.left + r.width/2, r.top);
   }
 }
 function buildPet(){
   if(petEl) return;
   var sprite = document.createElement("div"); sprite.innerHTML = PET_SPRITE; document.body.appendChild(sprite.firstChild);
-  petEl = document.createElement("div"); petEl.id = "annaPet";
-  petEl.innerHTML = '<div class="say" aria-live="polite"></div><button class="walker" type="button" aria-label="Tap your pet"><svg viewBox="0 0 230 190"><use href="#'+petWhich()+'"/></svg></button>';
+  petEl = document.createElement("div"); petEl.id = "kidPet";
+  petEl.innerHTML = '<div class="say" aria-live="polite"></div><button class="walker" type="button" aria-label="Tap your pet"><svg viewBox="0 0 230 190"><use href="#pet-uni"/></svg></button>';
   document.body.appendChild(petEl);
   var ctl = document.createElement("div"); ctl.id = "petCtl";
   var chg = document.createElement("button"); chg.type = "button"; chg.textContent = "Change pet";
   var hide = document.createElement("button"); hide.type = "button";
-  function label(){ hide.textContent = petLS("al_pet_off")==="1" ? "Show pet" : "Hide pet"; }
-  label();
+  petEl._label = function(){ hide.textContent = petLS(petOffKey())==="1" ? "Show pet" : "Hide pet"; };
   chg.onclick = function(){
-    petLS("al_pet_which", petWhich()==="pet-uni" ? "cat" : "uni");
-    petEl.querySelector("use").setAttribute("href", "#"+petWhich()); petHop();
-    petSay(petWhich()==="pet-cat" ? "Meow! I am Pip!" : "Hi! I am Sparkle!");
+    var cfg = petCfg(); if(!cfg) return;
+    var i = (+petLS(petWhichKey()) || 0) + 1; if(i>=cfg.list.length) i = 0;
+    petLS(petWhichKey(), String(i)); applyPetLook(); petHop(); petSay(petCur().hi);
   };
-  hide.onclick = function(){ petLS("al_pet_off", petLS("al_pet_off")==="1" ? "0" : "1"); label(); syncAnnaSkin(); };
+  hide.onclick = function(){ petLS(petOffKey(), petLS(petOffKey())==="1" ? "0" : "1"); syncKidSkin(); };
   ctl.appendChild(chg); ctl.appendChild(hide); document.body.appendChild(ctl);
   petEl.querySelector(".walker").addEventListener("click", function(){
-    petPause = 1.8; petHop(); petSay(petPick(PET_LINES.poke));
-    var r = this.getBoundingClientRect(); petFx("♥", r.left + r.width/2, r.top);
+    var lines = PET_LINES[state.activeKid]; if(!lines) return;
+    petPause = 1.8; petHop(); petSay(petPick(lines.poke));
+    var r = this.getBoundingClientRect(); petFx(state.activeKid==="kid1" ? "♥" : "⚙", r.left + r.width/2, r.top);
   });
   if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(petTick);
   else petEl.querySelector(".walker").style.transform = "translateX(40px)";
 }
+function applyPetLook(){
+  var cur = petCur(); if(!cur || !petEl) return;
+  petEl.querySelector("use").setAttribute("href", "#"+cur.sym);
+  petEl.querySelector(".walker").setAttribute("aria-label", "Tap "+cur.name);
+  if(petEl._label) petEl._label();
+}
 function petTick(ts){
   requestAnimationFrame(petTick);
   var dt = petLast ? Math.min(.05, (ts-petLast)/1000) : 0; petLast = ts;
-  if(!petEl || !document.body.classList.contains("pet-on") || document.hidden) return;
-  var w = petEl.querySelector(".walker"), max = Math.max(20, window.innerWidth - 112 - 20);
+  if(!petEl || !petVisible() || document.hidden) return;
+  var w = petEl.querySelector(".walker"), max = Math.max(20, window.innerWidth - 112 - 20), anna = state.activeKid==="kid1";
   if(petPause>0){ petPause -= dt; }
   else {
     petX += petDir*38*dt;
@@ -953,28 +1050,276 @@ function petTick(ts){
     if(petSpark>.3){
       petSpark = 0;
       var s = document.createElement("span"); s.className = "petfx"; s.style.fontSize = "16px";
-      s.textContent = petPick(["✦","♥","✶"]);
-      s.style.color = petPick(["#FF7EB6","#FFD66B","#B79CFF","#7DDCC0","#7CC4FF"]);
+      s.textContent = anna ? petPick(["✦","♥","✶"]) : petPick(["▪","▫","•"]);
+      s.style.color = anna ? petPick(["#FF7EB6","#FFD66B","#B79CFF","#7DDCC0","#7CC4FF"]) : petPick(["#00605c","#000080","#808080"]);
       s.style.left = (petX + (petDir>0 ? 14 : 80))+"px"; s.style.top = (window.innerHeight - 30)+"px";
       document.body.appendChild(s); setTimeout(function(el){ el.remove(); }, 1500, s);
     }
   }
   w.style.transform = "translateX("+petX+"px) scaleX("+petDir+")";
 }
-function syncAnnaSkin(){
-  var anna = state.activeKid==="kid1";
-  document.body.classList.toggle("anna-skin", anna);
-  document.body.classList.toggle("pet-on", anna && petLS("al_pet_off")!=="1");
-  if(anna){
-    buildPet();
-    if(!petHi && petLS("al_pet_off")!=="1"){ petHi = true; setTimeout(function(){ petSay(petPick(PET_LINES.hi)); }, 800); }
+function syncKidSkin(){
+  var cfg = petCfg(), kid = state.activeKid;
+  document.body.classList.toggle("anna-skin", !!cfg && cfg.skin==="anna-skin");
+  document.body.classList.toggle("ryan-skin", !!cfg && cfg.skin==="ryan-skin");
+  document.body.classList.toggle("pet-on", !!cfg && petLS(petOffKey())!=="1");
+  if(cfg){
+    buildPet(); applyPetLook();
+    if(!petHi[kid] && petLS(petOffKey())!=="1"){ petHi[kid] = true; setTimeout(function(){ petSay(petPick(PET_LINES[kid].hi)); }, 800); }
   }
+  startPlanTimer();
 }
 
-function renderAll(){ syncAnnaSkin(); updateLibraryTabVisibility(); updateFocusModeTabVisibility(); updateCompletedTabBadge(); renderKidbar(); renderXpBar(); renderView(); }
+/* ---------- Daily plan: a clock for the school day, so switching and stopping are predictable ----------
+   Both kids start around 9:00 and school is done by 1:45 at the latest. The bar on Today and on the
+   lesson page counts down the current block, the pet warns 5 minutes before every switch, and at the
+   end time the app moves to a calm "school's done" screen with screen-free ideas. Leader (PIN) can
+   edit times, add ideas, and grant extra learning time for the day. The plan lives in al_kids.day_plan
+   (jsonb); until a kid has one saved, DEFAULT_PLAN is used. Break/lunch entries are not lesson blocks. */
+var PLAN_EXTRA_LABELS = {
+  break:{label:"Move Break", icon:"🤸"},
+  snack:{label:"Snack & Play", icon:"🍎"},
+  lunch:{label:"Lunch & Outside", icon:"🥪"},
+  catchup:{label:"Catch-up Time", icon:"🧩"}
+};
+var DEFAULT_PLAN = {
+  kid1:{end:"13:45", items:[["morning","09:00"],["math","09:15"],["break","09:45"],["reading","10:00"],["project","10:30"],["snack","11:10"],["sciSocial","11:40"],["lunch","12:10"],["faith","12:45"],["showTeach","13:05"],["catchup","13:20"]]},
+  kid2:{end:"13:45", items:[["morning","09:00"],["math","09:15"],["break","10:00"],["reading","10:15"],["project","10:45"],["lunch","11:35"],["sciSocial","12:15"],["faith","12:45"],["showTeach","13:05"],["catchup","13:20"]]}
+};
+var PLAN_IDEAS = {
+  kid1:{
+    move:["Rainbow dance party: dance to 3 songs","Gallop like a unicorn around the yard 10 times","Hopscotch with chalk outside","Hula hoop or jump rope: how many in a row?","Animal walk race: bunny hops, bear crawl, crab walk"],
+    make:["Build a fairy house from sticks and leaves","Make a friendship bracelet","Draw your pet on a brand new adventure","Make a play-dough unicorn with a horn and a rainbow tail","Build a pillow fort and read inside it"],
+    quiet:["Look through a picture book with a stuffed friend","Listen to an audiobook while you color","Cloud watching: how many animals can you find?","Do a puzzle"]
+  },
+  kid2:{
+    move:["Shoot 20 free throws and count how many go in","Bike or scooter loop around the block","Build an obstacle course with 5 stations, then time yourself","Backyard parkour: 3 laps, beat your best time","Jumping jacks challenge: do 50 without stopping"],
+    make:["Build a computer out of LEGO or cardboard","Make a paper circuit with an LED and a coin battery","Draw the inside of an old PC from memory, then check it","Build a cardboard Windows 98 desktop with working windows","Design a board game about your favorite retro console"],
+    quiet:["Read a book about computer history","Listen to an audiobook and sketch what you hear","Sort and label a box of cables or old parts (ask Mom first)","Write a short user manual for something you invented"]
+  }
+};
+function planMins(hhmm){ var p = String(hhmm||"0:0").split(":"); return (+p[0]||0)*60 + (+p[1]||0); }
+function fmtClock(m){ var h = Math.floor(m/60), mm = m%60, ap = h>=12 ? "pm" : "am"; h = h%12 || 12; return h+":"+(mm<10?"0":"")+mm+ap; }
+function getDayPlan(kidId){
+  var def = DEFAULT_PLAN[kidId]; if(!def) return null;
+  var saved = kidData(kidId).dayPlan;
+  var plan = {end:def.end, items:def.items.slice(), extraUntil:0, ideas:[]};
+  if(saved && typeof saved==="object"){
+    if(saved.end) plan.end = saved.end;
+    if(Array.isArray(saved.items) && saved.items.length) plan.items = saved.items;
+    plan.extraUntil = +saved.extraUntil || 0;
+    if(Array.isArray(saved.ideas)) plan.ideas = saved.ideas;
+  }
+  return plan;
+}
+function planItemInfo(kidId, key){
+  var b = blocksForKid(kidId).filter(function(x){ return x.key===key; })[0];
+  if(b) return {label:b.label, icon:b.icon, block:true};
+  var e = PLAN_EXTRA_LABELS[key] || {label:key, icon:"⏰"};
+  return {label:e.label, icon:e.icon, block:false};
+}
+/* Where is this kid in the clock right now? "off" = weekend or no plan; "before" = before the first
+   block; "running" = inside item idx; "extra" = past the end time but a parent granted extra time;
+   "over" = past the end time (or extra time ran out). */
+function planNow(kidId, now){
+  var plan = getDayPlan(kidId); if(!plan) return {phase:"off"};
+  var dow = now.getDay(); if(dow===0 || dow===6) return {phase:"off"};
+  var m = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  var end = planMins(plan.end);
+  var items = plan.items.map(function(it){ return {key:it[0], start:planMins(it[1])}; }).sort(function(a,b){ return a.start-b.start; });
+  items.forEach(function(it, i){ it.stop = i<items.length-1 ? items[i+1].start : end; });
+  if(m < items[0].start) return {phase:"before", start:items[0].start, plan:plan};
+  if(m >= end){
+    if(plan.extraUntil && now.getTime() < plan.extraUntil)
+      return {phase:"extra", plan:plan, end:end, extraMins:Math.ceil((plan.extraUntil-now.getTime())/60000)};
+    return {phase:"over", plan:plan, end:end};
+  }
+  for(var i=0;i<items.length;i++){
+    if(m>=items[i].start && m<items[i].stop){
+      return {phase:"running", idx:i, item:items[i], items:items, plan:plan, end:end, m:m,
+        minsLeft:Math.ceil(items[i].stop-m), endLeft:Math.ceil(end-m), next:items[i+1]||null};
+    }
+  }
+  return {phase:"off"};
+}
+function planIsOver(kidId){ return planNow(kidId, new Date()).phase==="over"; }
+function planIdeasFor(kidId, count){
+  var pool = PLAN_IDEAS[kidId]; if(!pool) return [];
+  var plan = getDayPlan(kidId), out = [];
+  [["move","Move your body"],["make","Make something"],["quiet","Quiet time"]].forEach(function(c){
+    out.push({tag:c[1], text:petPick(pool[c[0]])});
+  });
+  if(plan && plan.ideas.length) out.push({tag:"Mom's pick", text:petPick(plan.ideas)});
+  return out.slice(0, count||4);
+}
+function planBarEl(kidId){
+  var st = planNow(kidId, new Date());
+  if(st.phase!=="running" && st.phase!=="extra") return null;
+  var bar = document.createElement("div"); bar.className = "plan-bar";
+  if(st.phase==="extra"){
+    bar.classList.add("warn");
+    bar.innerHTML = '<div class="pb-top"><div class="pb-title">✨ Extra learning time</div><div class="pb-left">'+st.extraMins+' min left</div></div>'+
+      '<div class="pb-next">Mom or Dad gave you a little extra time. When it ends, school is done for today.</div>';
+    return bar;
+  }
+  var info = planItemInfo(kidId, st.item.key), nxt = st.next ? planItemInfo(kidId, st.next.key) : null;
+  var span = st.item.stop - st.item.start, frac = Math.max(0, Math.min(1, (st.m - st.item.start)/span));
+  var screenOff = !info.block && st.item.key!=="catchup";
+  var warn = st.minsLeft<=5 || st.endLeft<=10;
+  if(screenOff) bar.classList.add("screenoff"); else if(warn) bar.classList.add("warn");
+  var html = '<div class="pb-top"><div class="pb-title">'+info.icon+' '+escapeHtml(info.label)+
+      ' <span class="muted" style="font-weight:700">until '+fmtClock(st.item.stop)+'</span></div>'+
+    '<div class="pb-left">'+st.minsLeft+' min left</div></div>'+
+    '<div class="pb-track"><div class="pb-fill" style="width:'+Math.round(frac*100)+'%"></div></div>';
+  if(screenOff){
+    html += '<div class="pb-switch">Screens off. Your brain gets a rest.</div><div class="ideas">'+
+      planIdeasFor(kidId, 2).map(function(i){ return '<div class="idea"><small>'+escapeHtml(i.tag)+'</small>'+escapeHtml(i.text)+'</div>'; }).join("")+'</div>';
+  } else if(st.endLeft<=10){
+    html += '<div class="pb-switch">School ends at '+fmtClock(st.end)+'. Wrap up what you are on and save your work.</div>';
+  } else if(st.minsLeft<=5 && nxt){
+    html += '<div class="pb-switch">Almost time to switch. Finish the part you are on and save your work.</div>';
+  }
+  if(nxt && !(st.endLeft<=10)) html += '<div class="pb-next">Next: '+nxt.icon+' '+escapeHtml(nxt.label)+' at '+fmtClock(st.next.start)+'</div>';
+  else if(!nxt) html += '<div class="pb-next">Then school is done at '+fmtClock(st.end)+'.</div>';
+  bar.innerHTML = html;
+  return bar;
+}
+var planTimer = null, planPrevPhase = {}, planPrevIdx = {}, planSeen = {};
+function planTickOnce(){
+  var kid = state.activeKid, now = new Date(), st = planNow(kid, now), over = st.phase==="over";
+  var was = planPrevPhase[kid]; planPrevPhase[kid] = over;
+  if(was!==undefined && was!==over && state.tab!=="leader"){ renderView(); return; }
+  if(st.phase!=="running" && st.phase!=="extra") return;
+  var day = kid+"|"+todayISO();
+  if(st.phase==="running"){
+    var info = planItemInfo(kid, st.item.key);
+    var prevIdx = planPrevIdx[kid]; planPrevIdx[kid] = st.idx;
+    if(prevIdx!==undefined && prevIdx!==st.idx){
+      var screenOff = !info.block && st.item.key!=="catchup";
+      planSay(screenOff ? "Time for "+info.label.toLowerCase()+". Screens off!" : "Time to switch! Next up: "+info.label+".");
+    } else if(st.endLeft<=5 && !planSeen[day+"|end5"]){
+      planSeen[day+"|end5"] = true; planSay("School ends in 5 minutes. Save your work and wrap up.");
+    } else if(st.endLeft<=10 && st.endLeft>5 && !planSeen[day+"|end10"]){
+      planSeen[day+"|end10"] = true; planSay("10 minutes until school is done. Finish what you are on.");
+    } else if(st.minsLeft<=5 && st.next && !planSeen[day+"|"+st.idx+"|5"]){
+      planSeen[day+"|"+st.idx+"|5"] = true;
+      var nx = planItemInfo(kid, st.next.key);
+      planSay("5 more minutes, then it is time for "+nx.label+".");
+    }
+  }
+  var old = document.querySelector(".plan-bar");
+  if(old){ var fresh = planBarEl(kid); if(fresh) old.replaceWith(fresh); }
+}
+function startPlanTimer(){
+  if(planTimer) return;
+  planTimer = setInterval(function(){ if(!document.hidden) planTickOnce(); }, 15000);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) planTickOnce(); });
+}
+
+/* The calm "school's done" screen. Not a punishment: it says well done, shows what is waiting for
+   tomorrow, and offers a few screen-free ideas matched to each kid. Leader can grant extra time. */
+function renderSchoolDone(kidId){
+  els.view.innerHTML = "";
+  var kd = kidData(kidId), anna = kidId==="kid1";
+  var left = assignmentsFor(kidId, todayISO()).filter(function(a){ return !a.done; }).length;
+  var wrap = document.createElement("div"); wrap.className = "card sd-wrap";
+  var cur = petCur();
+  var ideas = planIdeasFor(kidId, 4);
+  wrap.innerHTML =
+    '<svg class="sd-pet" viewBox="0 0 230 190" aria-hidden="true"><use href="#'+(cur?cur.sym:"pet-uni")+'"/></svg>'+
+    '<h2 style="margin:6px 0 4px;font-size:26px">'+(anna ? "School is done for today, "+escapeHtml(kd.name||"Anna")+"!" : "School is done for today, "+escapeHtml(kd.name||"Ryan")+".")+'</h2>'+
+    '<div style="font-size:16px;line-height:1.5;max-width:520px;margin:0 auto 6px">'+
+      (anna ? "You worked so hard. Your brain needs a rest from the screen now." : "Good work today. Your brain does its best thinking after a break from the screen.")+'</div>'+
+    (left ? '<div class="muted" style="font-size:14px;margin-bottom:6px">'+left+' thing'+(left===1?"":"s")+' will be waiting for you. No stress, you can start there next time.</div>' : '')+
+    '<div class="section-title" style="text-align:left">Pick something screen-free</div>'+
+    '<div class="ideas" style="text-align:left">'+ideas.map(function(i){ return '<div class="idea"><small>'+escapeHtml(i.tag)+'</small>'+escapeHtml(i.text)+'</div>'; }).join("")+'</div>'+
+    '<button class="primary-btn" id="sdMore" type="button" style="margin-top:14px">Show me different ideas</button>'+
+    '<div class="muted" style="margin-top:14px;font-size:13px">Want more learning time? Ask Mom or Dad. They can add extra time.</div>';
+  els.view.appendChild(wrap);
+  wrap.querySelector("#sdMore").onclick = function(){ renderSchoolDone(kidId); };
+}
+
+/* Leader: edit the clock, add ideas, and grant extra learning time. */
+function dayPlanCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"dayplan");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "⏰ Daily schedule & screen time"; det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Both kids' days run on this clock, Monday to Friday. The pet and a countdown warn 5 minutes before each switch. At the end time the app shows a calm \"school's done\" screen with screen-free ideas.";
+  det.appendChild(note);
+  var inputCss = "font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--paper);color:var(--text)";
+  Object.keys(DEFAULT_PLAN).forEach(function(kidId){
+    var kd = kidData(kidId), plan = getDayPlan(kidId);
+    var sec = document.createElement("div"); sec.style.cssText = "border-top:1px solid var(--border);padding:12px 0";
+    var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin-bottom:8px"; h.textContent = kd.name || kidId; sec.appendChild(h);
+    var grid = document.createElement("div"); grid.style.cssText = "display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;margin-bottom:10px";
+    var timeInputs = [];
+    plan.items.forEach(function(it){
+      var info = planItemInfo(kidId, it[0]);
+      var t = document.createElement("input"); t.type = "time"; t.value = it[1]; t.style.cssText = inputCss; t.id = "plan-"+kidId+"-"+it[0];
+      var l = document.createElement("label"); l.htmlFor = t.id; l.textContent = info.icon+" "+info.label; l.style.fontSize = "14px";
+      grid.appendChild(t); grid.appendChild(l); timeInputs.push({key:it[0], el:t});
+    });
+    var endIn = document.createElement("input"); endIn.type = "time"; endIn.value = plan.end; endIn.style.cssText = inputCss; endIn.id = "plan-"+kidId+"-end";
+    var endL = document.createElement("label"); endL.htmlFor = endIn.id; endL.style.cssText = "font-size:14px;font-weight:700"; endL.textContent = "🏁 School is done at";
+    grid.appendChild(endIn); grid.appendChild(endL);
+    sec.appendChild(grid);
+    var ideasL = document.createElement("label"); ideasL.style.cssText = "display:block;font-size:13px;font-weight:700;margin-bottom:4px"; ideasL.textContent = "Your own screen-free ideas (one per line)";
+    var ideasTa = document.createElement("textarea"); ideasTa.rows = 3; ideasTa.style.cssText = inputCss+";width:100%;display:block"; ideasTa.value = plan.ideas.join("\n");
+    sec.appendChild(ideasL); sec.appendChild(ideasTa);
+    var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center";
+    function mkBtn(txt, fn){ var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:7px 12px;font-weight:600;color:var(--ink)"; b.textContent = txt; b.onclick = fn; row.appendChild(b); return b; }
+    mkBtn("Save schedule", function(){
+      var items = timeInputs.map(function(x){ return [x.key, x.el.value || "09:00"]; }).sort(function(a,b){ return planMins(a[1])-planMins(b[1]); });
+      if(planMins(endIn.value) <= planMins(items[items.length-1][1])){ toast("The end time has to be after the last block starts"); return; }
+      savePlan(kidId, {items:items, end:endIn.value, ideas:ideasTa.value.split("\n").map(function(s){ return s.trim(); }).filter(Boolean)});
+      toast("Schedule saved ✓");
+    });
+    mkBtn("Reset to default", function(){ savePlan(kidId, {items:DEFAULT_PLAN[kidId].items.slice(), end:DEFAULT_PLAN[kidId].end, ideas:[], extraUntil:0}); toast("Back to the default schedule"); renderView(); });
+    sec.appendChild(row);
+    var ex = document.createElement("div"); ex.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center";
+    var exTxt = document.createElement("span"); exTxt.style.cssText = "font-size:13px;font-weight:700";
+    exTxt.textContent = plan.extraUntil > Date.now() ? "Extra time until "+new Date(plan.extraUntil).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : "Extra learning time today:";
+    ex.appendChild(exTxt);
+    [15,30,60].forEach(function(mins){
+      var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
+      b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:7px 12px;font-weight:600;color:var(--ink)"; b.textContent = "+"+mins+" min";
+      b.onclick = function(){
+        var d = new Date(); var e = planMins(plan.end); d.setHours(Math.floor(e/60), e%60, 0, 0);
+        var base = Math.max(Date.now(), d.getTime(), plan.extraUntil||0);
+        savePlan(kidId, {extraUntil: base + mins*60000}); toast("Added "+mins+" minutes for "+(kd.name||kidId)); renderView();
+      };
+      ex.appendChild(b);
+    });
+    if(plan.extraUntil > Date.now()){
+      var c = document.createElement("button"); c.type = "button"; c.className = "reward-skip";
+      c.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12.5px;padding:7px 12px;font-weight:600;color:var(--coral)"; c.textContent = "Clear extra time";
+      c.onclick = function(){ savePlan(kidId, {extraUntil:0}); renderView(); };
+      ex.appendChild(c);
+    }
+    sec.appendChild(ex);
+    det.appendChild(sec);
+  });
+  wrap.appendChild(det);
+  return wrap;
+}
+function savePlan(kidId, patch){
+  var cur = getDayPlan(kidId);
+  var next = {end:cur.end, items:cur.items, extraUntil:cur.extraUntil, ideas:cur.ideas};
+  Object.keys(patch).forEach(function(k){ next[k] = patch[k]; });
+  var kd = kidData(kidId); kd.dayPlan = next; state.kids[kidId] = kd;
+  if(db) db.doc("kids/"+kidId).update({dayPlan:next});
+}
+
+function renderAll(){ syncKidSkin(); updateLibraryTabVisibility(); updateFocusModeTabVisibility(); updateCompletedTabBadge(); renderKidbar(); renderXpBar(); renderView(); }
 
 function renderView(){
-  syncAnnaSkin();
+  syncKidSkin();
+  if(state.tab!=="leader" && planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   updateFocusModeTabVisibility();
   updateCompletedTabBadge();
   if(state.placeValueOpen) return renderPlaceValueTool();
@@ -1527,7 +1872,7 @@ function toggleAssignment(a){
   Object.assign(kd, updates);
   state.kids[a.kidId] = kd;
   db.doc("kids/"+a.kidId).update(updates);
-  if(willDone && a.kidId==="kid1") petCheer("done");
+  if(willDone && a.kidId===state.activeKid) petCheer("done");
   if(willDone) toast(bonusXp ? "+"+a.xp+" XP + "+bonusXp+" cross-curricular bonus! 🎉" : "+"+a.xp+" XP! Nice work 🎉");
   if(a.kidId===state.activeKid) renderXpBar();
   if(newStreakDay && a.kidId===state.activeKid && !isCalmMode(a.kidId)) celebrate();
@@ -1870,6 +2215,7 @@ function renderToday(){
   title.textContent = kidId==="kid1" ? "✨ "+fmtDate(iso)+"'s Rainbow Day" : fmtDate(iso) + "'s Daily Rhythm";
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
+  var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
 
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
     /* Weekends have no real curriculum assigned, so the usual 6 blocks would just show up as a
@@ -3623,6 +3969,7 @@ function renderLessonDetail(){
   backBtn.textContent = "← Back";
   backBtn.onclick = function(){ state.lessonDetailId = null; renderView(); };
   els.view.appendChild(backBtn);
+  var lessonPlanBar = planBarEl(a.kidId); if(lessonPlanBar) els.view.appendChild(lessonPlanBar);
 
   var card = document.createElement("div");
   card.className = "qz-card";
@@ -4509,6 +4856,7 @@ function renderLeaderArea(){
 
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
+  els.view.appendChild(dayPlanCard());
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
@@ -5735,7 +6083,7 @@ var MM_MEMBERS = {
 var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedule", questions:"al_questions", rewards:"al_rewards", journal:"al_journal", reflections:"al_reflections", breaks:"al_breaks" };
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
-  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date", lastMommaMoneyLevel:"last_momma_money_level" },
+  kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date", lastMommaMoneyLevel:"last_momma_money_level", dayPlan:"day_plan" },
   assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group", skillId:"skill_id", reviewOf:"review_of" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
