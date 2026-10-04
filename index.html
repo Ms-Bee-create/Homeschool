@@ -329,6 +329,52 @@ body.anna-skin label.arow:not(:has(input:checked)){border-color:#ffb3d7}
 body.anna-skin button.a-bigbtn{font-family:"Fredoka",sans-serif!important;font-weight:700!important;font-size:21px!important;border-radius:22px!important;box-shadow:var(--shadow);transition:transform .12s}
 body.anna-skin button.a-bigbtn:hover{transform:translateY(-3px)}
 body.anna-skin button.a-bigbtn:active{transform:scale(.97)}
+
+/* Anna's new look on every page */
+body.anna-skin .brand h1{color:#ff7eb6;font-family:"Fredoka",sans-serif}
+body.anna-skin .date-pill{border-radius:999px;border:0;box-shadow:var(--shadow);font-weight:700}
+body.anna-skin .profile-trigger{border-radius:22px;border-width:3px;box-shadow:var(--shadow)}
+body.anna-skin .xpbar-row{border:0;border-radius:22px;box-shadow:var(--shadow)}
+body.anna-skin .xpbar-track{height:14px;background:#f0e6ff}
+body.anna-skin .xpbar-fill{background:linear-gradient(90deg,#ff6b8b,#ffa95c,#ffd66b,#7dd8a0,#7cc4ff,#b79cff)}
+body.anna-skin .tabs{border-bottom:0;gap:8px;padding-bottom:6px}
+body.anna-skin .tab{background:#fff;border:0;border-radius:999px;padding:9px 18px;margin:0;font-family:"Fredoka",sans-serif;font-size:16px;font-weight:600;color:var(--ink);box-shadow:var(--shadow)}
+body.anna-skin .tab.active{background:#ff7eb6;color:#fff}
+body.anna-skin .section-title{text-transform:none;letter-spacing:0;font-size:22px;color:var(--ink);margin:18px 0 10px}
+body.anna-skin .task{border:2px solid #ffd0e6;border-radius:20px;background:#fff;margin-top:10px;padding:12px 16px;transition:transform .12s,background .2s}
+body.anna-skin .task:hover{transform:translateY(-2px)}
+body.anna-skin .task:last-child{border-bottom:2px solid #ffd0e6}
+body.anna-skin .task:has(.check.done){background:var(--teal-soft);border-color:#bfeedd}
+body.anna-skin .task-title{font-family:"Fredoka",sans-serif;font-size:18px;font-weight:600;line-height:1.3}
+body.anna-skin .task-title.done{color:#6aa593}
+body.anna-skin .task-xp{font-family:"Fredoka",sans-serif;font-size:15px;color:#e08f00}
+body.anna-skin .check{width:34px;height:34px;border-radius:12px;border:3px solid #ff7eb6;background:#fff}
+body.anna-skin .check svg{width:20px;height:20px}
+body.anna-skin .check.done{background:#7ddcc0;border-color:#7ddcc0}
+body.anna-skin .card[style*="var(--gold)"]{border:3px solid #ff7eb6!important}
+body.anna-skin .planner-grid th{font-family:"Fredoka",sans-serif;font-size:15px;color:var(--ink)}
+body.anna-skin .planner-grid th.planner-today{color:#ff5aa5}
+body.anna-skin .planner-row-label .prl-name{font-family:"Fredoka",sans-serif;font-size:14px}
+body.anna-skin .planner-cell{background:#fff;border:0;border-radius:18px;box-shadow:var(--shadow)}
+body.anna-skin .planner-cell.planner-today-col{box-shadow:0 0 0 3px #ff7eb6 inset,var(--shadow)}
+body.anna-skin .planner-task .pt-title{font-size:13px;font-weight:700}
+body.anna-skin .planner-task .check{width:22px;height:22px;border-width:2px;border-radius:8px}
+body.anna-skin .planner-task .check svg{width:13px;height:13px}
+body.anna-skin .arena-hero{background:linear-gradient(135deg,#ff7eb6,#b79cff);border-radius:28px;padding:24px}
+body.anna-skin .arena-hero h2{font-family:"Fredoka",sans-serif;font-size:26px}
+body.anna-skin .arena-hero p{font-size:15px;font-weight:700}
+body.anna-skin .subj-grid{gap:14px}
+body.anna-skin .subj-btn{border:0;border-radius:26px;padding:22px 16px;min-height:104px;color:#fff;box-shadow:var(--shadow);transition:transform .12s}
+body.anna-skin .subj-btn:hover{transform:translateY(-3px)}
+body.anna-skin .subj-btn:nth-child(4n+1){background:#4aa8f0}
+body.anna-skin .subj-btn:nth-child(4n+2){background:#7ddcc0}
+body.anna-skin .subj-btn:nth-child(4n+3){background:#ff7eb6}
+body.anna-skin .subj-btn:nth-child(4n+4){background:#e8a21a}
+body.anna-skin .subj-btn .t{font-family:"Fredoka",sans-serif;font-size:21px;font-weight:700}
+body.anna-skin .subj-btn .n{color:#fff;opacity:.95;font-size:13px;font-weight:700}
+body.anna-skin .qz-opt{border-radius:20px;font-size:17px;padding:16px 12px;background:#fff;border-color:#ffd0e6}
+body.anna-skin .primary-btn{background:#ff7eb6;color:#fff;border-radius:22px;font-family:"Fredoka",sans-serif;font-size:17px;padding:13px 24px}
+body.anna-skin .empty{font-size:15px}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -1267,6 +1313,69 @@ function petLS(k, v){
   return null;
 }
 function petPick(list){ return list[Math.floor(Math.random()*list.length)]; }
+
+/* ---------- Eye-catching emoji on Anna's lesson titles (display only; saved titles never change) ---------- */
+var ANNA_EMOJI_WORDS = [
+  [/unicorn/i,"🦄"],[/rainbow/i,"🌈"],[/pond|frog|lily/i,"🐸"],[/fish|ocean|whale|\bsea\b|red sea/i,"🐠"],
+  [/butterfl/i,"🦋"],[/bug|insect|bee\b|hotel/i,"🐞"],[/bird|nest/i,"🐦"],[/plant|seed|garden|grow/i,"🌱"],[/flower|bloom/i,"🌸"],
+  [/animal|habitat|pet\b/i,"🐾"],[/weather|rain|cloud|storm/i,"🌦️"],[/rock|soil|earth|dirt/i,"🪨"],[/sun\b|sunshine|light|shadow/i,"☀️"],[/moon|star|space|planet/i,"🌙"],
+  [/place value|tens|hundreds|ones\b|button/i,"🔘"],[/add|plus|sum\b|total/i,"➕"],[/subtract|minus|take away/i,"➖"],[/shape|triangle|circle|square|rectangle/i,"🔷"],
+  [/money|coin|dollar|cent\b/i,"🪙"],[/clock|time\b|hour|minute/i,"🕐"],[/measure|ruler|tape|length|inch/i,"📏"],[/count|skip|number|digit/i,"🔢"],
+  [/map|state|georgia|geograph/i,"🗺️"],[/cherokee|creek|native|tribe/i,"🏹"],[/communit|neighbor|family|helper/i,"🏘️"],
+  [/burning bush|bush|fire/i,"🔥"],[/moses|basket|baby/i,"🧺"],[/creation|day \d|noah|ark|abraham|david|joseph|exodus|bible|god/i,"📖"],
+  [/story|read|book|chapter|character/i,"📚"],[/write|sentence|letter|spell|word|vowel|rhyme|journal/i,"✏️"],[/draw|paint|color|craft|design|poster|make a/i,"🖍️"],
+  [/teach.?back|tell|share|show/i,"🎤"],[/review/i,"🔁"]
+];
+var ANNA_EMOJI_SUBJECT = {"Math":"🔢","Science":"🔬","ELA":"📚","Reading":"📖","Social Studies":"🌎","Faith":"🕊️","Related Arts":"🎨","Independent":"🌟","Live Lesson":"🎤"};
+function annaEmoji(a){
+  var t = a.title || "";
+  for(var i=0;i<ANNA_EMOJI_WORDS.length;i++) if(ANNA_EMOJI_WORDS[i][0].test(t)) return ANNA_EMOJI_WORDS[i][1];
+  return ANNA_EMOJI_SUBJECT[a.subject] || "⭐";
+}
+function displayTitle(a, text){
+  var base = text==null ? (a.title||"") : text;
+  if(a.kidId!=="kid1" || /^[☀-➿\uD83C-\uD83E]/.test(base)) return base; // already starts with an emoji (e.g. review lessons)
+  return annaEmoji(a)+" "+base;
+}
+
+/* ---------- Pet tips that follow the kid around every page ---------- */
+var PET_TIPS = {
+  kid1: {
+    today:["Let us do the next block! I will cheer you on!","Tap a lesson to open it. You can do it!"],
+    week:["This is your whole week! Today is the pink one.","Tap any lesson to peek at it."],
+    library:["Fun videos live here! Pick one to watch.","Ooh, what will you watch?"],
+    arena:["Game time! Did you finish your steps first?","Quizzes earn bonus XP!"],
+    completed:["Look at all your finished work! So proud of you!","Check for notes from Mom and Dad!"]
+  },
+  kid2: {
+    today:["Next task is ready. Click it to open.","Check the countdown bar to see what is next."],
+    week:["Weekly view loaded. Today is highlighted."],
+    library:["Archive open. Pick something to read or watch."],
+    arena:["Arcade online. Finish your tasks first, then play."],
+    completed:["Completed folder. Check for new notes."]
+  }
+};
+var petLastView = {}, petLastTipAt = 0;
+function petViewTip(view){
+  var kid = state.activeKid, tips = PET_TIPS[kid];
+  if(!tips || state.leaderMode) return;
+  var key = kid+"|"+view;
+  if(petLastView.k===key) return;
+  petLastView.k = key;
+  if(!tips[view] || petLS(petOffKey())==="1") return;
+  setTimeout(function(){
+    if(petLastView.k!==key) return;
+    if(Date.now()-petLastTipAt < 5000) return;
+    petLastTipAt = Date.now(); petSay(petPick(tips[view]));
+  }, 900);
+}
+function petIdleTip(){
+  var kid = state.activeKid, tips = PET_TIPS[kid]; if(!tips || state.leaderMode || petLS(petOffKey())==="1") return;
+  var view = state.lessonDetailId!=null ? "lesson" : state.tab;
+  if(!tips[view] || Date.now()-petLastTipAt < 110000) return;
+  petLastTipAt = Date.now(); petSay(petPick(tips[view]));
+}
+
 function petCfg(){ return state.leaderMode ? null : (PET_SKINS[state.activeKid] ? {skin:PET_SKINS[state.activeKid]} : null); }
 function petOffKey(){ return "al_pet_off_"+state.activeKid; }
 function petWhichKey(){ return "al_pet_which_"+state.activeKid; }
@@ -1490,6 +1599,7 @@ function planBarEl(kidId){
 var planTimer = null, planPrevPhase = {}, planPrevIdx = {}, planSeen = {};
 function planTickOnce(){
   if(state.leaderMode) return;
+  petIdleTip();
   var kid = state.activeKid, now = new Date(), st = planNow(kid, now), over = st.phase==="over";
   var was = planPrevPhase[kid]; planPrevPhase[kid] = over;
   if(was!==undefined && was!==over){ renderView(); return; }
@@ -1624,6 +1734,7 @@ function renderAll(){ syncKidSkin(); updateLibraryTabVisibility(); updateFocusMo
 function renderView(){
   syncKidSkin();
   if(state.leaderMode){ cleanupMiniGame(); return renderLeaderArea(); }
+  petViewTip(state.lessonDetailId!=null ? "lesson" : (state.quiz||state.miniGame) ? "game" : state.tab);
   if(planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   updateFocusModeTabVisibility();
   updateCompletedTabBadge();
@@ -2123,7 +2234,7 @@ function taskRow(a){
   row.innerHTML =
     '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
     '<div class="task-body" style="cursor:pointer">'+
-      '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(a.title)+' '+speakerBtnHtml()+'</div>'+
+      '<div class="task-title'+(a.done?" done":"")+'">'+escapeHtml(displayTitle(a))+' '+speakerBtnHtml()+'</div>'+
       '<div class="task-sub">'+subjectChip(a.subject)+' &nbsp;'+(a.date ? fmtDate(a.date) : (DAY_LABEL[a.day]||""))+
         (a.standard ? ' &nbsp;<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+
         (a.crossCurricular ? ' &nbsp;<span class="chip" style="background:var(--gold-soft);color:var(--gold)">🔀 cross-curricular +'+CROSS_CURRICULAR_BONUS_XP+' XP</span>' : '')+
@@ -2986,7 +3097,7 @@ function plannerCompactTask(a){
   el.className = "planner-task";
   el.innerHTML =
     '<button class="check'+(a.done?" done":"")+'" aria-label="Mark complete" style="width:18px;height:18px;flex:none"><svg viewBox="0 0 24 24"><polyline points="4 13 9 18 20 6"/></svg></button>'+
-    '<span class="pt-title'+(a.done?" done":"")+'">'+escapeHtml(a.title.length>50?a.title.slice(0,50)+"…":a.title)+'</span>';
+    '<span class="pt-title'+(a.done?" done":"")+'">'+escapeHtml(displayTitle(a, a.title.length>50?a.title.slice(0,50)+"…":a.title))+'</span>';
   el.querySelector(".check").onclick = function(e){ e.stopPropagation(); toggleAssignment(a); };
   el.onclick = function(){ state.lessonDetailId = a.id; renderView(); };
   return el;
@@ -4285,6 +4396,7 @@ function renderLessonDetail(){
      fold the real question into the same numbered list as the rest, so all of them look alike. */
   var mathSplit = (a.subject==="Math" && Array.isArray(a.practice) && a.practice.length) ? a.title.match(/^([^:]+):\s*(.+)$/) : null;
   var headingText = mathSplit ? mathSplit[1] : a.title;
+  if(a.kidId==="kid1") headingText = displayTitle(a, headingText);
   var embeddedQuestion = mathSplit ? mathSplit[2] : null;
 
   var annaLook = a.kidId==="kid1";
@@ -5133,7 +5245,7 @@ function renderCompletedFolder(){
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
         '<div>'+subjectChip(a.subject)+'</div>'+statusChip+
       '</div>'+
-      '<p class="qz-q" style="font-size:15px;margin-bottom:0">'+escapeHtml(a.title)+'</p>'+
+      '<p class="qz-q" style="font-size:15px;margin-bottom:0">'+escapeHtml(displayTitle(a))+'</p>'+
       noteHtml;
     els.view.appendChild(card);
 
