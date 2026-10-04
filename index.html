@@ -390,7 +390,6 @@ body.ryan-skin .idea{border-radius:0}
     <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
     <button class="tab" id="completedTabBtn" data-tab="completed">📁 Completed</button>
-    <button class="tab" data-tab="leader">Leader</button>
   </div>
 
   <div id="view"></div>
@@ -577,6 +576,7 @@ function setModeFlagStr(key, kidId, val){
 var state = {
   activeKid: "kid1",
   tab: "today",
+  leaderMode: false, // Leader is its own profile in the dropdown, not a tab on the kids' screen
   kids: {}, // id -> data
   assignments: {}, // id -> data (kid+day+subject+title+xp+done)
   schedules: {}, // kidId -> {blocks:[]}
@@ -736,7 +736,11 @@ function renderKidbar(){
   var trigger = document.createElement("button");
   trigger.type = "button";
   trigger.className = "profile-trigger";
-  trigger.innerHTML =
+  if(state.leaderMode){
+    wrap.style.setProperty("--kc", "var(--ink)"); wrap.style.setProperty("--kc-soft", "var(--gold-soft)");
+    trigger.innerHTML = '<div class="kid-avatar">\uD83D\uDD11</div><div class="kid-meta"><div class="kid-name">Leader</div><div class="kid-lvl">Mom &amp; Dad tools</div></div>'+
+      '<span class="profile-trigger-chevron">'+(state.profileMenuOpen?'\u25B2':'\u25BC')+'</span>';
+  } else trigger.innerHTML =
     avatarHtml(state.activeKid, "kid-avatar") +
     '<div class="kid-meta">'+
       '<div class="kid-name">'+escapeHtml(activeKd.name)+'</div>'+
@@ -752,7 +756,7 @@ function renderKidbar(){
   KIDS.forEach(function(k){
     var kd = kidData(k.id);
     var row = document.createElement("div");
-    row.className = "profile-row" + (state.activeKid===k.id ? " active" : "");
+    row.className = "profile-row" + (!state.leaderMode && state.activeKid===k.id ? " active" : "");
     row.style.setProperty("--kc-soft", "var(--"+kd.color+"-soft)");
 
     var avatarBtn = document.createElement("button");
@@ -785,6 +789,7 @@ function renderKidbar(){
     row.addEventListener("click", function(){
       cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.placeValueOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null;
       state.activeKid = k.id; state.profileMenuOpen = false;
+      if(state.leaderMode){ state.leaderMode = false; setLeaderUnlocked(false); }
       renderAll();
     });
 
@@ -819,6 +824,17 @@ function renderKidbar(){
 
     menu.appendChild(row);
   });
+  var leaderRow = document.createElement("div");
+  leaderRow.className = "profile-row" + (state.leaderMode ? " active" : "");
+  leaderRow.style.setProperty("--kc-soft", "var(--gold-soft)");
+  leaderRow.innerHTML = '<button type="button" class="profile-row-avatar-btn"><div class="kid-avatar">\uD83D\uDD11</div></button>'+
+    '<div class="kid-meta" style="flex:1"><div class="kid-name-row"><span class="kid-name">Leader</span></div><div class="kid-lvl">Mom &amp; Dad tools (PIN)</div></div>';
+  leaderRow.addEventListener("click", function(){
+    cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.placeValueOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null;
+    state.leaderMode = true; state.profileMenuOpen = false;
+    renderAll();
+  });
+  menu.appendChild(leaderRow);
   wrap.appendChild(menu);
 
   els.kidbar.appendChild(wrap);
@@ -837,6 +853,8 @@ document.addEventListener("click", function(e){
 });
 
 function renderXpBar(){
+  els.xpbarRow.style.display = state.leaderMode ? "none" : "";
+  if(state.leaderMode) return;
   var kd = kidData(state.activeKid);
   var pct = progressFor(kd.xp);
   var kc = "var(--"+kd.color+")";
@@ -893,6 +911,7 @@ function updateCompletedTabBadge(){
 /* Focus Mode hides every tab but Today so a kid can't wander off into Arena/Library mid-block —
    the Focus Mode toggle itself lives on Today, so it's always reachable to turn back off. */
 function updateFocusModeTabVisibility(){
+  els.tabs.style.display = state.leaderMode ? "none" : "";
   var on = isFocusMode(state.activeKid);
   Array.prototype.forEach.call(els.tabs.querySelectorAll(".tab"), function(t){
     if(t.dataset.tab!=="today") t.style.display = on ? "none" : "";
@@ -967,7 +986,7 @@ function petLS(k, v){
   return null;
 }
 function petPick(list){ return list[Math.floor(Math.random()*list.length)]; }
-function petCfg(){ return PETS[state.activeKid] || null; }
+function petCfg(){ return state.leaderMode ? null : (PETS[state.activeKid] || null); }
 function petOffKey(){ return "al_pet_off_"+state.activeKid; }
 function petWhichKey(){ return "al_pet_which_"+state.activeKid; }
 function petCur(){
@@ -1189,9 +1208,10 @@ function planBarEl(kidId){
 }
 var planTimer = null, planPrevPhase = {}, planPrevIdx = {}, planSeen = {};
 function planTickOnce(){
+  if(state.leaderMode) return;
   var kid = state.activeKid, now = new Date(), st = planNow(kid, now), over = st.phase==="over";
   var was = planPrevPhase[kid]; planPrevPhase[kid] = over;
-  if(was!==undefined && was!==over && state.tab!=="leader"){ renderView(); return; }
+  if(was!==undefined && was!==over){ renderView(); return; }
   if(st.phase!=="running" && st.phase!=="extra") return;
   var day = kid+"|"+todayISO();
   if(st.phase==="running"){
@@ -1322,7 +1342,8 @@ function renderAll(){ syncKidSkin(); updateLibraryTabVisibility(); updateFocusMo
 
 function renderView(){
   syncKidSkin();
-  if(state.tab!=="leader" && planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
+  if(state.leaderMode){ cleanupMiniGame(); return renderLeaderArea(); }
+  if(planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   updateFocusModeTabVisibility();
   updateCompletedTabBadge();
   if(state.placeValueOpen) return renderPlaceValueTool();
@@ -1334,7 +1355,6 @@ function renderView(){
   if(state.tab==="library") return renderLibrary();
   if(state.tab==="arena") return renderArena();
   if(state.tab==="completed") return renderCompletedFolder();
-  if(state.tab==="leader") return renderLeaderArea();
 }
 
 /* ---------- helpers ---------- */
@@ -7691,6 +7711,16 @@ function renderWhoGate(){
     };
     optsEl.appendChild(btn);
   });
+  var lb = document.createElement("button");
+  lb.type = "button"; lb.className = "who-gate-opt";
+  lb.style.setProperty("--kc", "var(--ink)"); lb.style.setProperty("--kc-soft", "var(--gold-soft)");
+  lb.innerHTML = '<div class="who-gate-opt-avatar-fallback">\uD83D\uDD11</div><div class="who-gate-opt-name">Leader</div>';
+  lb.onclick = function(){
+    state.leaderMode = true; state.profileMenuOpen = false;
+    whoGateEl.style.display = "none";
+    renderAll();
+  };
+  optsEl.appendChild(lb);
 }
 function showWhoGate(){
   renderWhoGate();
