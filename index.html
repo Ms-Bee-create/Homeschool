@@ -446,6 +446,52 @@ body.anna-skin .quiz-wrap button:disabled{opacity:1}
 .sc-btns button{border:0;border-radius:18px;background:#4aa8f0;color:#fff;font-family:"Fredoka",sans-serif;font-weight:600;font-size:18px;padding:12px 18px;box-shadow:var(--shadow)}
 .sc-status{margin-top:10px;font-weight:800;font-size:14px;color:var(--text-dim)}
 .sc-status.ok{color:#1f9f82}
+
+/* Place Value Playground: blocks that glow, pop and trade up (click or drag) */
+.pv-card{padding:18px 20px}
+.pv-title{font-family:"Fredoka","Poppins",sans-serif;font-weight:700;font-size:24px;margin-bottom:4px}
+.pv-sub{font-size:15px;line-height:1.45;margin-bottom:10px;color:var(--text-dim);font-weight:700}
+.pv-big{text-align:center;margin:6px 0 12px}
+.pv-num{font-family:"Fredoka","Poppins",sans-serif;font-size:56px;font-weight:700;line-height:1}
+.pv-parts{font-size:16px;font-weight:800;margin-top:4px}
+.pv-sum{font-size:13px;color:var(--text-dim);margin-top:2px}
+.pv-mats{display:flex;gap:10px;flex-wrap:wrap}
+.pv-col{flex:1;min-width:160px;padding:10px;border-radius:20px;border:3px dashed var(--bc,#9ab);background:var(--bg,var(--paper));transition:box-shadow .2s,transform .2s}
+.pv-h{--bc:#b79cff;--bg:#f4efff}.pv-t{--bc:#4aa8f0;--bg:#e9f4ff}.pv-o{--bc:#5cc9a8;--bg:#e6f9f2}
+.pv-label{font-family:"Fredoka","Poppins",sans-serif;font-weight:700;font-size:18px;text-align:center;margin-bottom:6px}
+.pv-body{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:flex-end;min-height:120px;padding:4px}
+.pv-minus{display:block;margin:8px auto 0;border:0;background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800;color:var(--text-dim)}
+.pv-minus:disabled{opacity:.4}
+.pv-piece{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.pv-cube{width:22px;height:22px;border-radius:6px;background:#5cc9a8;border:2px solid #2f9f80;display:inline-block}
+.pv-rod{width:22px;height:96px;border-radius:6px;border:2px solid #2d83c9;background:repeating-linear-gradient(to bottom,#8cc4f2 0,#8cc4f2 8px,#2d83c9 8px,#2d83c9 9.6px);display:inline-block}
+.pv-flat{width:64px;height:64px;border-radius:8px;border:2px solid #8b6bd6;background:#cdbcf6;display:inline-grid;place-items:center;font-family:"Fredoka",sans-serif;font-weight:700;font-size:16px;color:#4b2e9a}
+.pv-rodrow{display:flex;gap:3px;align-items:flex-end;padding:6px;border-radius:12px;cursor:grab;touch-action:none;width:100%;justify-content:center}
+.pv-rodrow .pv-rod{width:15px}
+.pv-frame{display:grid;grid-template-columns:repeat(5,24px);gap:3px;padding:5px;border-radius:10px;border:2px solid #9ab;background:#fff}
+.pv-frame .pv-cell{width:24px;height:24px;border-radius:6px;border:1px dashed #b8c4cc}
+.pv-frame .pv-cube{width:24px;height:24px}
+.pv-full{border-color:#e8a21a!important;background:#fff6dd!important;cursor:grab;touch-action:none;animation:pvhint 1.4s ease-in-out infinite}
+@keyframes pvhint{50%{box-shadow:0 0 0 5px rgba(232,162,26,.3)}}
+.pv-glow{box-shadow:0 0 0 6px rgba(255,214,107,.7)}
+.pv-glow .pv-cube,.pv-glow .pv-rod{animation:pvshake .25s linear infinite;filter:brightness(1.15)}
+@keyframes pvshake{25%{transform:translateX(-2px) rotate(-3deg)}75%{transform:translateX(2px) rotate(3deg)}}
+.pv-new{animation:pvnew .6s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pvnew{0%{transform:scale(.2);opacity:0}100%{transform:scale(1);opacity:1}}
+.pv-msg{min-height:26px;text-align:center;font-weight:800;font-size:16px;margin:10px 0 2px;color:#1f9f82}
+.pv-bins{margin-top:6px;padding:12px;border-radius:20px;background:var(--paper);border:2px solid var(--border)}
+.pv-binlabel{font-weight:800;font-size:14px;margin-bottom:8px}
+.pv-binrow{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.pv-bin{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pv-binname{font-size:13px;font-weight:800}
+.pv-binpiece{box-shadow:0 3px 8px rgba(0,0,0,.18)}
+.pv-binpiece.pv-cube{width:32px;height:32px}
+.pv-binpiece.pv-rod{height:84px}
+.pv-trash{margin-left:auto;padding:10px 14px;border:3px dashed #ffb3b3;border-radius:16px;text-align:center;font-size:13px;font-weight:800;color:#c0504d;background:#fff}
+.pv-ghost{position:fixed;z-index:60;pointer-events:none;opacity:.9;transform:rotate(-4deg) scale(1.08);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.pv-chal{margin-top:14px;padding:14px;border-radius:20px;background:#fff1f8;border:2px solid #ffd0e6}
+.pv-chaltitle{font-family:"Fredoka",sans-serif;font-weight:700;font-size:19px;margin-bottom:8px}
+body.anna-skin button.pv-open{background:linear-gradient(135deg,#ff7eb6,#b79cff)!important;color:#fff!important;border:0!important;border-radius:22px!important;font-family:"Fredoka",sans-serif!important;font-size:20px!important;padding:16px!important;box-shadow:var(--shadow)}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -2134,146 +2180,210 @@ function placeValuePlaygroundCard(){
 }
 function renderPlaceValueTool(){
   els.view.innerHTML = "";
-  var pv = state.pv = state.pv || {h:0, t:0, o:0, target:null, msg:""};
+  var pv = state.pv = state.pv || {h:0, t:0, o:0, target:null, msg:"", glow:null, anim:null, busy:false};
   function total(){ return pv.h*100 + pv.t*10 + pv.o; }
-  function canAdd(n){ return total()+n<=999; }
-  function change(fn){ fn(); pv.msg = ""; renderPlaceValueTool(); }
+  function draw(){ renderPlaceValueTool(); }
+  function say(m){ pv.msg = m; draw(); }
+  function pop(){
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "triangle"; o.frequency.setValueAtTime(420, ctx.currentTime); o.frequency.exponentialRampToValueAtTime(880, ctx.currentTime+.12);
+      g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.exponentialRampToValueAtTime(.25, ctx.currentTime+.02); g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime+.25);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+.3);
+    }catch(e){}
+  }
+  /* Ten of something glows, then pops into one of the next place. Chains (10 tens -> a hundred). */
+  function glowThenBundle(col){
+    pv.busy = true; pv.glow = col; pv.msg = ""; draw();
+    setTimeout(function(){
+      if(!state.placeValueOpen || state.pv!==pv) return;
+      if(col==="o"){ pv.o -= 10; pv.t++; pv.anim = "t"; pv.msg = "10 ones made 1 ten! Pop!"; }
+      else { pv.t -= 10; pv.h++; pv.anim = "h"; pv.msg = "10 tens made 1 hundred! Pop!"; }
+      pv.glow = null; pv.busy = false; pop();
+      if(state.activeKid==="kid1") petSay(col==="o" ? "10 ones make 1 ten! Pop!" : "10 tens make 1 hundred! Wow!");
+      draw();
+      if(col==="o" && pv.t===10) glowThenBundle("t");
+    }, 750);
+  }
+  function addOne(col){
+    if(pv.busy) return;
+    var add = col==="h" ? 100 : col==="t" ? 10 : 1;
+    if(total()+add>999){ return say("That is the biggest number we can build: 999!"); }
+    if(col==="h") pv.h++; else if(col==="t") pv.t++; else pv.o++;
+    pv.msg = ""; pv.anim = null;
+    if(col==="o" && pv.o===10) return glowThenBundle("o");
+    if(col==="t" && pv.t===10) return glowThenBundle("t");
+    draw();
+  }
+  function manualBundle(col){ if(!pv.busy) glowThenBundle(col); }
+  function breakApart(kind){
+    if(pv.busy) return;
+    if(kind==="t"){ pv.t--; pv.o += 10; pv.msg = "You broke 1 ten into 10 ones."; }
+    else { pv.h--; pv.t += 10; pv.msg = "You broke 1 hundred into 10 tens."; }
+    pv.anim = null; draw();
+  }
+  function takeAway(kind){
+    if(pv.busy) return;
+    if(kind==="o") pv.o--; else if(kind==="t") pv.t--; else if(kind==="h") pv.h--;
+    else if(kind==="frame") pv.o -= 10; else if(kind==="row") pv.t -= 10;
+    pv.msg = ""; pv.anim = null; draw();
+  }
+  var HINT = {o:"Ones go in the ones place.", t:"Tens go in the tens place.", h:"Hundreds go in the hundreds place."};
+  /* What happens when a piece is clicked (kind) or dropped on a place ("o","t","h") or the trash. */
+  function clickPiece(kind){
+    if(kind==="bin-o") return addOne("o");
+    if(kind==="bin-t") return addOne("t");
+    if(kind==="bin-h") return addOne("h");
+    if(kind==="t" || kind==="h") return breakApart(kind);
+    if(kind==="frame") return manualBundle("o");
+    if(kind==="row") return manualBundle("t");
+    say("A single one stays a one. Get 10 ones to make a ten!");
+  }
+  function dropPiece(kind, where){
+    if(where==="trash"){ if(kind.indexOf("bin-")===0) return; return takeAway(kind); }
+    if(!where) return;
+    if(kind==="bin-o") return where==="o" ? addOne("o") : say(HINT.o);
+    if(kind==="bin-t") return where==="t" ? addOne("t") : say(HINT.t);
+    if(kind==="bin-h") return where==="h" ? addOne("h") : say(HINT.h);
+    if(kind==="t" && where==="o") return breakApart("t");
+    if(kind==="h" && where==="t") return breakApart("h");
+    if(kind==="frame" && where==="t") return manualBundle("o");
+    if(kind==="row" && where==="h") return manualBundle("t");
+    if(kind==="o") return say("One block alone stays a one. Make 10 to trade up!");
+    say("Try clicking it, or drag it to the place it turns into.");
+  }
+  function startDrag(e, kind, el){
+    if(e.button!=null && e.button!==0) return;
+    if(pv.busy) return;
+    e.preventDefault();
+    var r = el.getBoundingClientRect(), ghost = el.cloneNode(true), moved = false, sx = e.clientX, sy = e.clientY;
+    ghost.className += " pv-ghost"; ghost.style.width = r.width+"px"; ghost.style.height = r.height+"px";
+    function place(x, y){ ghost.style.left = (x - r.width/2)+"px"; ghost.style.top = (y - r.height/2)+"px"; }
+    function move(ev){
+      if(!moved && Math.abs(ev.clientX-sx)+Math.abs(ev.clientY-sy)>7){ moved = true; document.body.appendChild(ghost); el.style.opacity = ".35"; }
+      if(moved) place(ev.clientX, ev.clientY);
+    }
+    function up(ev){
+      window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+      ghost.remove(); el.style.opacity = "";
+      if(!moved) return clickPiece(kind);
+      var under = document.elementFromPoint(ev.clientX, ev.clientY);
+      var colEl = under && under.closest("[data-col]"), trash = under && under.closest("[data-trash]");
+      dropPiece(kind, trash ? "trash" : colEl ? colEl.dataset.col : null);
+    }
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+  }
+  function piece(cls, kind, label){
+    var d = document.createElement("div");
+    d.className = "pv-piece "+cls; d.dataset.kind = kind; if(label) d.textContent = label;
+    d.addEventListener("pointerdown", function(e){ startDrag(e, kind, d); });
+    return d;
+  }
 
   var card = document.createElement("div");
-  card.className = "card";
-  var title = document.createElement("div");
-  title.style.cssText = "font-weight:800;font-size:18px;margin-bottom:4px";
-  title.textContent = "🔟 Place Value Playground";
-  card.appendChild(title);
-  var sub = document.createElement("div");
-  sub.className = "muted";
-  sub.style.cssText = "font-size:13px;margin-bottom:10px";
-  sub.textContent = "Click + to add blocks. When you have 10 ones, bundle them into a ten. When you have 10 tens, bundle them into a hundred!";
-  card.appendChild(sub);
+  card.className = "card pv-card";
+  card.innerHTML = '<div class="pv-title">🔟 Place Value Playground</div>'+
+    '<div class="pv-sub">Click or drag blocks into the places. Get <b>10 ones</b> and they pop into <b>1 ten</b>. Get <b>10 tens</b> and they pop into <b>1 hundred</b>! Click a ten or a hundred to break it apart again.</div>';
 
   var big = document.createElement("div");
-  big.style.cssText = "text-align:center;margin:6px 0 12px";
-  big.innerHTML = '<div style="font-size:44px;font-weight:800;line-height:1">'+total()+'</div>'+
-    '<div style="font-size:14px;margin-top:4px">'+pv.h+' hundred'+(pv.h===1?"":"s")+' + '+pv.t+' ten'+(pv.t===1?"":"s")+' + '+pv.o+' one'+(pv.o===1?"":"s")+'</div>'+
-    '<div class="muted" style="font-size:13px;margin-top:2px">'+(total()>0 ? (pv.h*100)+" + "+(pv.t*10)+" + "+pv.o : "Add some blocks to begin")+'</div>';
+  big.className = "pv-big";
+  big.innerHTML = '<div class="pv-num">'+total()+'</div>'+
+    '<div class="pv-parts">'+pv.h+' hundred'+(pv.h===1?"":"s")+' + '+pv.t+' ten'+(pv.t===1?"":"s")+' + '+pv.o+' one'+(pv.o===1?"":"s")+'</div>'+
+    '<div class="pv-sum">'+(total()>0 ? (pv.h*100)+" + "+(pv.t*10)+" + "+pv.o : "Add some blocks to begin")+'</div>';
   card.appendChild(big);
 
-  function col(label, color){
-    var c = document.createElement("div");
-    c.style.cssText = "flex:1;min-width:150px;padding:10px;border-radius:12px;border:2px solid "+color+";background:var(--paper)";
-    var l = document.createElement("div");
-    l.style.cssText = "font-weight:700;text-align:center;margin-bottom:8px";
-    l.textContent = label;
-    c.appendChild(l);
-    return c;
+  var mats = document.createElement("div"); mats.className = "pv-mats";
+  function mat(col, label, cls){
+    var m = document.createElement("div"); m.className = "pv-col "+cls+(pv.glow===col ? " pv-glow" : ""); m.dataset.col = col;
+    var l = document.createElement("div"); l.className = "pv-label"; l.textContent = label; m.appendChild(l);
+    var body = document.createElement("div"); body.className = "pv-body"; m.appendChild(body);
+    var minus = document.createElement("button"); minus.type = "button"; minus.className = "pv-minus"; minus.textContent = "− take one away";
+    var have = col==="h" ? pv.h : col==="t" ? pv.t : pv.o;
+    minus.disabled = have<=0 || pv.busy; minus.onclick = function(){ takeAway(col); };
+    m.appendChild(minus);
+    mats.appendChild(m);
+    return body;
   }
-  function pmRow(onMinus, onPlus, plusLabel, plusOk, minusOk){
-    var r = document.createElement("div");
-    r.style.cssText = "display:flex;gap:6px;margin-top:8px";
-    var m = quizBtn("−"); m.style.flex = "0 0 44px"; m.style.textAlign = "center"; m.disabled = !minusOk; m.style.opacity = minusOk ? "1" : ".4";
-    var p = quizBtn(plusLabel, true); p.style.flex = "1"; p.style.textAlign = "center"; p.disabled = !plusOk; p.style.opacity = plusOk ? "1" : ".4";
-    m.onclick = onMinus; p.onclick = onPlus;
-    r.appendChild(m); r.appendChild(p);
-    return r;
-  }
-  var mats = document.createElement("div");
-  mats.style.cssText = "display:flex;gap:10px;flex-wrap:wrap";
+  var hb = mat("h", "Hundreds", "pv-h");
+  for(var i=0;i<pv.h;i++){ var fl = piece("pv-flat"+(pv.anim==="h" && i===pv.h-1 ? " pv-new" : ""), "h", "100"); hb.appendChild(fl); }
 
-  var hc = col("Hundreds", "#c0763a");
-  var hv = document.createElement("div");
-  hv.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;min-height:58px;justify-content:center";
-  for(var i=0;i<pv.h;i++){
-    var flat = document.createElement("div");
-    flat.style.cssText = "width:52px;height:52px;border-radius:6px;background:#e8b27d;border:2px solid #c0763a;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px";
-    flat.textContent = "100";
-    hv.appendChild(flat);
+  var tb = mat("t", "Tens", "pv-t");
+  var rows = Math.max(0, Math.ceil(pv.t/10));
+  for(var rI=0;rI<rows;rI++){
+    var inRow = Math.min(10, pv.t - rI*10), rowEl = document.createElement("div");
+    var fullRow = inRow===10;
+    rowEl.className = "pv-rodrow"+(fullRow ? " pv-full" : "");
+    if(fullRow){ rowEl.dataset.kind = "row"; rowEl.title = "10 tens! Click to make a hundred."; rowEl.addEventListener("pointerdown", (function(el){ return function(e){ startDrag(e, "row", el); }; })(rowEl)); }
+    for(var q=0;q<inRow;q++){
+      var rod = fullRow ? document.createElement("div") : piece("pv-rod", "t");
+      if(fullRow) rod.className = "pv-rod";
+      if(pv.anim==="t" && rI===rows-1 && q===inRow-1) rod.className += " pv-new";
+      rowEl.appendChild(rod);
+    }
+    tb.appendChild(rowEl);
   }
-  hc.appendChild(hv);
-  hc.appendChild(pmRow(function(){ change(function(){ pv.h--; }); }, function(){ change(function(){ pv.h++; }); }, "+ hundred", pv.h<9 && canAdd(100), pv.h>0));
-  mats.appendChild(hc);
 
-  var tc = col("Tens", "#3a7bc0");
-  var tv = document.createElement("div");
-  tv.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;min-height:58px;justify-content:center";
-  for(var k=0;k<pv.t;k++){
-    var rod = document.createElement("div");
-    rod.style.cssText = "width:20px;height:96px;border-radius:5px;border:2px solid #3a7bc0;background:repeating-linear-gradient(to bottom,#9cc4ee 0,#9cc4ee 8px,#3a7bc0 8px,#3a7bc0 9.6px)";
-    tv.appendChild(rod);
-  }
-  tc.appendChild(tv);
-  tc.appendChild(pmRow(function(){ change(function(){ pv.t--; }); }, function(){ change(function(){ pv.t++; }); }, "+ ten", canAdd(10), pv.t>0));
-  mats.appendChild(tc);
-
-  var oc = col("Ones", "#4aa36a");
-  var ov = document.createElement("div");
-  ov.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:58px";
+  var ob = mat("o", "Ones", "pv-o");
   var frames = Math.max(1, Math.ceil(pv.o/10));
   for(var f=0;f<frames;f++){
-    var frame = document.createElement("div");
-    var inFrame = Math.min(10, Math.max(0, pv.o - f*10));
-    frame.style.cssText = "display:grid;grid-template-columns:repeat(5,20px);gap:3px;padding:4px;border-radius:6px;border:2px solid "+(inFrame===10?"#2f8a50":"#9ab")+";background:"+(inFrame===10?"#dff3e6":"var(--card)");
+    var inFrame = Math.min(10, Math.max(0, pv.o - f*10)), frame = document.createElement("div"), full = inFrame===10;
+    frame.className = "pv-frame"+(full ? " pv-full" : "");
+    if(full){ frame.dataset.kind = "frame"; frame.title = "10 ones! Click to make a ten."; frame.addEventListener("pointerdown", (function(el){ return function(e){ startDrag(e, "frame", el); }; })(frame)); }
     for(var c2=0;c2<10;c2++){
-      var cell = document.createElement("div");
-      cell.style.cssText = "width:20px;height:20px;border-radius:50%;background:"+(c2<inFrame?"#4aa36a":"transparent")+";border:1px solid #9ab";
+      var cell;
+      if(c2<inFrame){ cell = full ? document.createElement("div") : piece("pv-cube", "o"); if(full) cell.className = "pv-cube"; }
+      else { cell = document.createElement("div"); cell.className = "pv-cell"; }
       frame.appendChild(cell);
     }
-    ov.appendChild(frame);
+    ob.appendChild(frame);
   }
-  oc.appendChild(ov);
-  oc.appendChild(pmRow(function(){ change(function(){ pv.o--; }); }, function(){ change(function(){ pv.o++; }); }, "+ one", canAdd(1), pv.o>0));
-  mats.appendChild(oc);
   card.appendChild(mats);
 
-  var actions = document.createElement("div");
-  actions.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-top:12px";
-  function act(label, ok, fn, hint){
-    var b = quizBtn(label, ok && hint);
-    b.disabled = !ok; b.style.opacity = ok ? "1" : ".45";
-    if(ok && hint) b.style.fontWeight = "700";
-    b.onclick = function(){ change(fn); };
-    actions.appendChild(b);
-  }
-  act("📦 Bundle 10 ones into 1 ten", pv.o>=10, function(){ pv.o-=10; pv.t++; }, true);
-  act("📦 Bundle 10 tens into 1 hundred", pv.t>=10, function(){ pv.t-=10; pv.h++; }, true);
-  act("↩ Break 1 ten into 10 ones", pv.t>=1 && pv.o<=89, function(){ pv.t--; pv.o+=10; }, false);
-  act("↩ Break 1 hundred into 10 tens", pv.h>=1 && pv.t<=89, function(){ pv.h--; pv.t+=10; }, false);
-  card.appendChild(actions);
+  var msgEl = document.createElement("div"); msgEl.className = "pv-msg"; msgEl.textContent = pv.msg || ""; card.appendChild(msgEl);
+
+  var bins = document.createElement("div"); bins.className = "pv-bins";
+  var binsLbl = document.createElement("div"); binsLbl.className = "pv-binlabel"; binsLbl.textContent = "Blocks to use. Click one, or drag it up to its place:"; bins.appendChild(binsLbl);
+  var binRow = document.createElement("div"); binRow.className = "pv-binrow";
+  [["bin-o","pv-cube","1 one"],["bin-t","pv-rod","1 ten"],["bin-h","pv-flat","1 hundred"]].forEach(function(b){
+    var wrapB = document.createElement("div"); wrapB.className = "pv-bin";
+    var pc = piece(b[1]+" pv-binpiece", b[0], b[1]==="pv-flat" ? "100" : "");
+    wrapB.appendChild(pc);
+    var lb = document.createElement("div"); lb.className = "pv-binname"; lb.textContent = b[2]; wrapB.appendChild(lb);
+    binRow.appendChild(wrapB);
+  });
+  var trash = document.createElement("div"); trash.className = "pv-trash"; trash.dataset.trash = "1"; trash.innerHTML = "🗑️<br>Drop here<br>to take away";
+  binRow.appendChild(trash);
+  bins.appendChild(binRow); card.appendChild(bins);
 
   var chal = document.createElement("div");
-  chal.style.cssText = "margin-top:14px;padding:12px;border-radius:12px;background:var(--gold-soft);border:1px solid var(--border)";
+  chal.className = "pv-chal";
   var ct = document.createElement("div");
-  ct.style.cssText = "font-weight:700;margin-bottom:6px";
+  ct.className = "pv-chaltitle";
   ct.textContent = pv.target ? "🎯 Build the number "+pv.target : "🎯 Challenge";
   chal.appendChild(ct);
   var crow = document.createElement("div");
   crow.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
   var newT = quizBtn(pv.target ? "🎲 A different number" : "🎲 Give me a number", !pv.target);
-  newT.onclick = function(){ pv.target = 11 + Math.floor(Math.random()*989); pv.h = 0; pv.t = 0; pv.o = 0; pv.msg = ""; renderPlaceValueTool(); };
+  newT.onclick = function(){ pv.target = 11 + Math.floor(Math.random()*989); pv.h = 0; pv.t = 0; pv.o = 0; pv.msg = ""; pv.anim = null; draw(); };
   crow.appendChild(newT);
   if(pv.target){
     var chk = quizBtn("✓ Check my number", true);
     chk.style.fontWeight = "700";
     chk.onclick = function(){
-      pv.msg = total()===pv.target
+      say(total()===pv.target
         ? "🎉 Yes! "+pv.target+" is "+Math.floor(pv.target/100)+" hundreds, "+Math.floor(pv.target/10)%10+" tens, and "+pv.target%10+" ones."
-        : "Not yet — you have "+total()+". Try changing one of the places. You can do it!";
-      renderPlaceValueTool();
+        : "Not yet. You have "+total()+". Try changing one of the places. You can do it!");
+      if(total()===pv.target && state.activeKid==="kid1") petCheer("step");
     };
     crow.appendChild(chk);
   }
   chal.appendChild(crow);
-  if(pv.msg){
-    var msg = document.createElement("div");
-    msg.style.cssText = "margin-top:8px;font-size:14px;font-weight:600";
-    msg.textContent = pv.msg;
-    chal.appendChild(msg);
-  }
   card.appendChild(chal);
 
   var row = document.createElement("div");
   row.style.cssText = "display:flex;gap:8px;margin-top:14px";
   var clr = quizBtn("Clear everything");
-  clr.onclick = function(){ pv.h = 0; pv.t = 0; pv.o = 0; pv.target = null; pv.msg = ""; renderPlaceValueTool(); };
+  clr.onclick = function(){ pv.h = 0; pv.t = 0; pv.o = 0; pv.target = null; pv.msg = ""; pv.anim = null; pv.glow = null; pv.busy = false; draw(); };
   var back = document.createElement("button");
   back.type = "button"; back.className = "primary-btn"; back.style.flex = "1"; back.textContent = "← Back";
   back.onclick = function(){ state.placeValueOpen = false; renderView(); };
@@ -4692,6 +4802,7 @@ function renderLessonDetail(){
     pvBtnWrap.style.cssText = "margin-bottom:14px";
     var pvBtn = quizBtn("🔟 Open the Place Value Playground", true);
     pvBtn.style.width = "100%"; pvBtn.style.fontWeight = "700"; pvBtn.style.textAlign = "center";
+    pvBtn.classList.add("pv-open");
     pvBtn.onclick = function(){ state.placeValueOpen = true; renderView(); };
     pvBtnWrap.appendChild(pvBtn);
     card.appendChild(pvBtnWrap);
@@ -7155,14 +7266,14 @@ function patchKid1LessonLinks(){
    it skips anything already added by exact title match, same pattern as every other patch here. */
 var ANNA_OCT_SKILL_BLOCKS = [
   // --- Math: Place Value to 1,000 (2.NR.1) — hands-on rewrite (rev:1): tool + real bundling + click-only checks ---
-  {"dayOffset": 0, "subject": "Math", "skillId": "anna-math-place-value", "stage": "teach", "standard": "2.NR.1", "xp": 10, "rev": 1, "title": "Math: Place Value to 1,000 — Here's the Idea", "materials": "https://apps.mathlearningcenter.org/number-pieces", "passage": "Gather first — Nothing to set out today! You'll use the Place Value Playground (the button below this lesson).\nHere's the Idea — Once you have 10 of something, you can bundle them into 1 group of ten. Once you have 10 tens, bundle them into 1 hundred. A number is just how many hundreds, tens, and ones you have.\nSee It Done — 236 is 2 hundreds, 3 tens, and 6 ones: 200 + 30 + 6. The 6 loose ones don't make a ten yet, so they stay as ones.\nYour Turn — 1. Open the Place Value Playground and click + one 12 times. 2. When the first frame is full, click Bundle 10 ones into 1 ten. How many tens and ones do you have now? 3. Click Give me a number and build it with hundreds, tens, and ones. 4. Click Check my number.\nCheck Yourself — Say your number out loud as hundreds, tens, and ones. Does the total in the Playground match what you said?"},
+  {"dayOffset": 0, "subject": "Math", "skillId": "anna-math-place-value", "stage": "teach", "standard": "2.NR.1", "xp": 10, "rev": 1, "title": "Math: Place Value to 1,000 — Here's the Idea", "materials": "https://apps.mathlearningcenter.org/number-pieces", "passage": "Gather first — Nothing to set out today! You'll use the Place Value Playground (the button below this lesson).\nHere's the Idea — Once you have 10 of something, you can bundle them into 1 group of ten. Once you have 10 tens, bundle them into 1 hundred. A number is just how many hundreds, tens, and ones you have.\nSee It Done — 236 is 2 hundreds, 3 tens, and 6 ones: 200 + 30 + 6. The 6 loose ones don't make a ten yet, so they stay as ones.\nYour Turn — 1. Open the Place Value Playground and click the 1 one block 10 times. Watch what happens! 2. The 10 ones glow and pop into 1 ten. How many tens and ones do you have now? 3. Click the ten to break it back into 10 ones, then click the full frame to make it a ten again. 4. Click Give me a number and build it with hundreds, tens, and ones. Then click Check my number.\nCheck Yourself — Say your number out loud as hundreds, tens, and ones. Does the total in the Playground match what you said?"},
   {"dayOffset": 1, "subject": "Math", "skillId": "anna-math-place-value", "stage": "practice", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Place Value — Your Turn", "passage": "Gather first — A pile of 30 to 50 small things (buttons, beans, or LEGO pieces) and a piece of paper.\nHere's the Idea — Yesterday you bundled on the screen. Today you bundle real things!\nYour Turn — 1. Make groups of ten until you can't make any more. 2. If you have ten groups of ten, bundle them into one hundred. 3. Count what's left over. Those are your ones. 4. Take a picture of your bundles with Show it, then say your number out loud with Tell it.\nCheck Yourself — Count your whole pile one by one. Does it match your hundreds, tens, and ones?", "quiz": [{"type": "build", "q": "Build the number 342.", "target": 342, "places": ["hundreds", "tens", "ones"], "explain": "342 is 3 hundreds, 4 tens, and 2 ones."}, {"q": "Which is the same as 5 tens?", "choices": ["5", "50", "500", "15"], "answerIndex": 1, "explain": "Each ten is worth 10, so 5 tens = 5 × 10 = 50."}, {"type": "build", "q": "Build the number 507. Watch the tens place!", "target": 507, "places": ["hundreds", "tens", "ones"], "explain": "507 is 5 hundreds, 0 tens, and 7 ones. The 0 holds the tens place."}]},
-  {"dayOffset": 2, "subject": "Math", "skillId": "anna-math-place-value", "stage": "mixed", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Mixed Review — Place Value + Addition & Subtraction", "passage": "Today mixes your place-value trick with the two-digit adding and subtracting you already know — real math means figuring out which trick a problem needs.", "quiz": [{"q": "What is 47 + 26?", "choices": ["63", "73", "83", "72"], "answerIndex": 1, "explain": "7+6=13, write 3 carry 1; 4+2+1=7 → 73."}, {"type": "build", "q": "Build the number 508.", "target": 508, "places": ["hundreds", "tens", "ones"], "explain": "508 is 5 hundreds, 0 tens, and 8 ones."}, {"q": "How many hundreds are in 508?", "choices": ["5", "8", "50", "0"], "answerIndex": 0, "explain": "508 = 5 hundreds, 0 tens, 8 ones — the hundreds digit is 5."}, {"type": "order", "q": "Put these numbers in order from smallest to biggest.", "items": ["199", "201", "342", "423"], "explain": "Compare the hundreds first, then the tens, then the ones: 199, 201, 342, 423."}]},
+  {"dayOffset": 2, "subject": "Math", "skillId": "anna-math-place-value", "stage": "mixed", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Mixed Review — Place Value + Addition & Subtraction", "passage": "Gather first — Paper and a pencil for your scratch work, and your buttons if you want them.\nHere's the Idea — Today we mix up the math you already know! Some problems ask you to add. Some ask how many hundreds, tens, and ones are in a number. Before you answer, ask yourself: what is this problem asking me to do?\nSee It Done — Let's try 47 + 26. First add the ones: 7 ones and 6 ones make 13 ones. That is 1 ten and 3 ones, so write the 3 and carry the 1 ten. Now add the tens: 4 tens + 2 tens + the 1 ten you carried = 7 tens. So 47 + 26 = 73. To check, make 47 with buttons (4 piles of ten and 7 loose ones), add 26 more, and count.\nYour Turn — 1. Do your scratch work on paper first. 2. Take a picture of your scratch work with Show it. 3. Then do the Treat Time questions below.\nCheck Yourself — Did you ask what the problem wanted before you started?", "quiz": [{"q": "What is 47 + 26?", "choices": ["63", "73", "83", "72"], "answerIndex": 1, "explain": "7+6=13, write 3 carry 1; 4+2+1=7 → 73."}, {"type": "build", "q": "Build the number 508.", "target": 508, "places": ["hundreds", "tens", "ones"], "explain": "508 is 5 hundreds, 0 tens, and 8 ones."}, {"q": "How many hundreds are in 508?", "choices": ["5", "8", "50", "0"], "answerIndex": 0, "explain": "508 = 5 hundreds, 0 tens, 8 ones — the hundreds digit is 5."}, {"type": "order", "q": "Put these numbers in order from smallest to biggest.", "items": ["199", "201", "342", "423"], "explain": "Compare the hundreds first, then the tens, then the ones: 199, 201, 342, 423."}]},
   {"dayOffset": 3, "subject": "Math", "skillId": "anna-math-place-value", "stage": "apply", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Show What You Know — Place Value", "passage": "Gather first — Your pile of buttons (or beans or LEGO) and some paper.\nHere's the Idea — Showing what you know means picking the way that feels best to you!\nYour Turn — Pick ONE: 1. Make three different numbers with your real things, bundling tens and hundreds, and take a picture of each with Show it. 2. Teach the bundling trick to a grown-up or Alexa and record it with Tell it. 3. Make a poster of 1 one, 1 ten, and 1 hundred and show it with the camera.\nCheck Yourself — Could someone who has never heard of place value understand your work?"},
-  {"dayOffset": 6, "subject": "Math", "skillId": "anna-math-place-value", "stage": "practice", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Place Value Challenge — Comparing Numbers", "materials": "https://toytheater.com/base-ten-blocks/", "passage": "Your place-value trick works for comparing numbers too — the number with more hundreds always wins, and if the hundreds match, compare the tens next.", "quiz": [{"q": "Which is bigger: 342 or 423?", "choices": ["342", "423", "They're equal", "Can't tell"], "answerIndex": 1, "explain": "Compare the hundreds digit first — 4 hundreds beats 3 hundreds, so 423 is bigger no matter what the other digits are."}, {"type": "order", "q": "Put these numbers in order from smallest to biggest.", "items": ["258", "285", "528"], "explain": "All three start with 2 or 5 hundreds: 258 and 285 have 2 hundreds, then 8 tens beats 5 tens, and 528 has 5 hundreds."}, {"q": "Which is smaller: 508 or 580?", "choices": ["508", "580", "They're equal", "Can't tell"], "answerIndex": 0, "explain": "Both have 5 hundreds, so compare the tens next — 0 tens is less than 8 tens, so 508 is smaller."}]},
-  {"dayOffset": 10, "subject": "Math", "skillId": "anna-math-place-value", "stage": "mixed", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Mixed Review #2 — Place Value + Addition & Subtraction", "passage": "Another mixed set — same idea as before: figure out which trick each problem actually needs.", "quiz": [{"q": "What is 68 − 29?", "choices": ["39", "49", "41", "31"], "answerIndex": 0, "explain": "Borrow from the tens: 68 becomes 5 tens 18 ones; 18−9=9, 5−2=3 → 39."}, {"type": "match", "q": "Match each number to its blocks.", "pairs": [["300 + 40 + 2", "342"], ["400 + 9", "409"], ["500 + 80", "580"]], "explain": "Each digit's place tells its value: 342 = 300 + 40 + 2."}, {"q": "How many tens are in 370?", "choices": ["3", "7", "37", "70"], "answerIndex": 2, "explain": "370 = 3 hundreds, 7 tens, 0 ones — but counted as just tens, 370 is 37 groups of ten."}]},
+  {"dayOffset": 6, "subject": "Math", "skillId": "anna-math-place-value", "stage": "practice", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Place Value Challenge — Comparing Numbers", "materials": "https://toytheater.com/base-ten-blocks/", "passage": "Gather first — Paper and a pencil.\nHere's the Idea — To find the bigger number, look at the hundreds first. The number with more hundreds is bigger! If the hundreds are the same, look at the tens next.\nSee It Done — Which is bigger, 342 or 423? 342 has 3 hundreds. 423 has 4 hundreds. 4 hundreds is more than 3 hundreds, so 423 is bigger. The tens and ones do not matter this time! Now try 508 and 580. Both have 5 hundreds, so look at the tens. 0 tens is less than 8 tens, so 508 is smaller.\nYour Turn — 1. Write 3 numbers on paper, like 258, 285, and 528. 2. Circle the hundreds digit in each one. 3. Put them in order from smallest to biggest and take a picture with Show it. 4. Then do the Treat Time questions below.\nCheck Yourself — Did you look at the hundreds first?", "quiz": [{"q": "Which is bigger: 342 or 423?", "choices": ["342", "423", "They're equal", "Can't tell"], "answerIndex": 1, "explain": "Compare the hundreds digit first — 4 hundreds beats 3 hundreds, so 423 is bigger no matter what the other digits are."}, {"type": "order", "q": "Put these numbers in order from smallest to biggest.", "items": ["258", "285", "528"], "explain": "All three start with 2 or 5 hundreds: 258 and 285 have 2 hundreds, then 8 tens beats 5 tens, and 528 has 5 hundreds."}, {"q": "Which is smaller: 508 or 580?", "choices": ["508", "580", "They're equal", "Can't tell"], "answerIndex": 0, "explain": "Both have 5 hundreds, so compare the tens next — 0 tens is less than 8 tens, so 508 is smaller."}]},
+  {"dayOffset": 10, "subject": "Math", "skillId": "anna-math-place-value", "stage": "mixed", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: Mixed Review #2 — Place Value + Addition & Subtraction", "passage": "Gather first — Paper and a pencil for your scratch work, and your buttons if you want them.\nHere's the Idea — Another mixed set! Read each problem and ask: am I adding, taking away, or finding hundreds, tens, and ones?\nSee It Done — Let's try 68 − 29. We cannot take 9 ones away from 8 ones. So trade 1 ten for 10 ones: 68 becomes 5 tens and 18 ones. Now 18 ones − 9 ones = 9 ones. And 5 tens − 2 tens = 3 tens. So 68 − 29 = 39. To check, make 68 with buttons, take away 29, and count what is left.\nYour Turn — 1. Do your scratch work on paper first. 2. Take a picture of your scratch work with Show it. 3. Then do the Treat Time questions below.\nCheck Yourself — When you needed more ones, did you trade a ten for ten ones?", "quiz": [{"q": "What is 68 − 29?", "choices": ["39", "49", "41", "31"], "answerIndex": 0, "explain": "Borrow from the tens: 68 becomes 5 tens 18 ones; 18−9=9, 5−2=3 → 39."}, {"type": "match", "q": "Match each number to its blocks.", "pairs": [["300 + 40 + 2", "342"], ["400 + 9", "409"], ["500 + 80", "580"]], "explain": "Each digit's place tells its value: 342 = 300 + 40 + 2."}, {"q": "How many tens are in 370?", "choices": ["3", "7", "37", "70"], "answerIndex": 2, "explain": "370 = 3 hundreds, 7 tens, 0 ones — but counted as just tens, 370 is 37 groups of ten."}]},
   {"dayOffset": 14, "subject": "Related Arts", "crossSubjects": ["Math"], "skillId": "anna-math-place-value", "stage": "apply", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Design Studio: Place Value Capstone — Design a Number Poster", "passage": "Gather first — Both exhibits from this week, paper, markers, and a grown-up visitor.\nHere's the Idea — A number can be shown three ways: with blocks, in expanded form (like 100 + 30 + 6), and in words. Today your museum opens!\nYour Turn — 1. Set up both exhibits on a table with their signs. 2. Make a poster for one exhibit that shows the number three ways: pieces, expanded form, and words. 3. Take a picture of the whole museum with Show it. 4. Give a grown-up a tour and record it with Tell it. Explain how a hundred is made of tens and a ten is made of ones.\nCheck Yourself — Do the pieces, expanded form, and words all show the same number?"},
-  {"dayOffset": 17, "subject": "Math", "skillId": "anna-math-place-value", "stage": "practice", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: One More Round — Place Value Check", "quiz": [{"type": "build", "q": "Build the number 409.", "target": 409, "places": ["hundreds", "tens", "ones"], "explain": "409 is 4 hundreds, 0 tens, and 9 ones. The 0 tens still needs its own spot."}, {"q": "Which is bigger: 199 or 201?", "choices": ["199", "201", "They're equal", "Can't tell"], "answerIndex": 1, "explain": "Both have close numbers, but 201 has 2 hundreds while 199 has 1 hundred — 201 is bigger."}]},
+  {"dayOffset": 17, "subject": "Math", "skillId": "anna-math-place-value", "stage": "practice", "standard": "2.NR.1", "xp": 15, "rev": 1, "title": "Math: One More Round — Place Value Check", "passage": "Gather first — Paper and a pencil.\nHere's the Idea — One last round to show what you know about hundreds, tens, and ones.\nSee It Done — Look at 409. The 4 is in the hundreds place, so it means 4 hundreds. The 0 is in the tens place, so it means 0 tens. The 9 is in the ones place, so it means 9 ones. That is 400 + 0 + 9. A zero still holds its place!\nYour Turn — 1. Do your scratch work on paper and take a picture with Show it. 2. Then do the Treat Time questions below.\nCheck Yourself — Can you say 409 as hundreds, tens, and ones?", "quiz": [{"type": "build", "q": "Build the number 409.", "target": 409, "places": ["hundreds", "tens", "ones"], "explain": "409 is 4 hundreds, 0 tens, and 9 ones. The 0 tens still needs its own spot."}, {"q": "Which is bigger: 199 or 201?", "choices": ["199", "201", "They're equal", "Can't tell"], "answerIndex": 1, "explain": "Both have close numbers, but 201 has 2 hundreds while 199 has 1 hundred — 201 is bigger."}]},
   {"dayOffset": 21, "subject": "Math", "skillId": "anna-math-place-value", "stage": "apply", "standard": "2.NR.1", "xp": 10, "rev": 1, "title": "Math: October Wrap-Up — Place Value Museum", "passage": "Gather first — Your favorite thing you made this month (a poster, a drawing, your buttons) and a sticky note or paper for a sign.\nHere's the Idea — A museum helps people learn by showing and telling.\nYour Turn — 1. Set up your favorite thing like a tiny museum exhibit. 2. Write or draw one sign explaining the place-value trick in your own words. 3. Give a grown-up a 1-minute tour and record it with Tell it.\nCheck Yourself — Could a visitor learn the bundling trick from your exhibit?"},
 
   // --- Science: Habitats & Life Cycles (S2L1) — hands-on rewrite (rev:1): Life Cycle Cards, outdoor observing, click-only checks ---
