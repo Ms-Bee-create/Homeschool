@@ -527,6 +527,40 @@ body.anna-skin .tt-title{color:#e8269a}
 body.anna-skin .xpbar-row,body.anna-skin .profile-trigger{box-shadow:0 6px 16px rgba(214,38,140,.22)}
 body.anna-skin .a-meter .a-mtxt{color:#c4177c}
 body.anna-skin .a-stripes i{border-color:#ffc2e0}
+
+/* Kid Home */
+.hm-hero{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px 20px;margin-bottom:12px}
+.hm-pet{width:160px;height:134px;flex:none}
+.hm-hello{flex:1;min-width:220px}
+.hm-greet{font-family:"Fredoka","Poppins",sans-serif;font-size:clamp(24px,5vw,32px);margin:0 0 8px}
+.hm-bubble{background:var(--paper);border-radius:18px;padding:10px 14px;font-weight:800;font-size:16px;line-height:1.35}
+.hm-main{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:24px;padding:18px 20px;margin-bottom:12px;color:#fff;background:linear-gradient(135deg,var(--teal),#2d83c9);box-shadow:var(--shadow)}
+.hm-main-ic{font-size:34px;flex:none}
+.hm-main-t b{display:block;font-family:"Fredoka","Poppins",sans-serif;font-size:26px}
+.hm-main-t small{font-size:14px;font-weight:700;opacity:.95}
+.hm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.hm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.hm-tile{display:flex;flex-direction:column;align-items:center;gap:4px;border:0;border-radius:22px;padding:18px 10px;text-align:center;background:var(--raised);color:var(--text);box-shadow:var(--shadow);transition:transform .12s}
+.hm-tile:hover{transform:translateY(-3px)}.hm-tile:active{transform:scale(.97)}
+.hm-ic{font-size:36px;line-height:1.1}
+.hm-tile b{font-family:"Fredoka","Poppins",sans-serif;font-size:19px}
+.hm-tile small{font-size:12.5px;font-weight:700;color:var(--text-dim);line-height:1.25}
+body.anna-skin .hm-main{background:linear-gradient(135deg,#ff3d9e,#b36bff);border-radius:28px}
+body.anna-skin .hm-bubble{background:#ffe3f1;border:2px solid #ffc2e0}
+body.anna-skin .hm-tile{color:#fff;border-radius:26px;min-height:128px;justify-content:center}
+body.anna-skin .hm-tile small{color:#fff;opacity:.95}
+body.anna-skin .hm-tile:nth-child(6n+1){background:#ff3d9e}
+body.anna-skin .hm-tile:nth-child(6n+2){background:#2fb892}
+body.anna-skin .hm-tile:nth-child(6n+3){background:#4aa8f0}
+body.anna-skin .hm-tile:nth-child(6n+4){background:#e8a21a}
+body.anna-skin .hm-tile:nth-child(6n+5){background:#b36bff}
+body.anna-skin .hm-tile:nth-child(6n+6){background:#ff7a59}
+body.ryan-skin .hm-main{border-radius:0;color:#000;background:#d4d0c8;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+body.ryan-skin .hm-main-t b,body.ryan-skin .hm-tile b,body.ryan-skin .hm-greet{font-family:"Pixelify Sans","JetBrains Mono",monospace;font-weight:500}
+body.ryan-skin .hm-bubble{background:#ffffe1;border:1px solid #000;border-radius:0;font-family:"JetBrains Mono",monospace;font-size:13px}
+body.ryan-skin .hm-tile{border-radius:0;background:#d4d0c8;color:#000;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+body.ryan-skin .hm-tile small{color:#3d3d3d;font-family:"JetBrains Mono",monospace;font-weight:500}
+body.ryan-skin .hm-ic{background:#fff;padding:6px 10px;box-shadow:inset 1px 1px #808080,inset -1px -1px #dfdfdf}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -630,7 +664,8 @@ body.ryan-skin .idea{border-radius:0}
   <div id="rewardBanner"></div>
 
   <div class="tabs" id="tabs">
-    <button class="tab active" data-tab="today">Today</button>
+    <button class="tab active" data-tab="home">Home</button>
+    <button class="tab" data-tab="today">Today</button>
     <button class="tab" data-tab="week">Planner</button>
     <button class="tab" id="libraryTabBtn" data-tab="library">Library</button>
     <button class="tab" data-tab="arena">Arena</button>
@@ -821,7 +856,7 @@ function setModeFlagStr(key, kidId, val){
 
 var state = {
   activeKid: "kid1",
-  tab: "today",
+  tab: "home",
   leaderMode: false, // Leader is its own profile in the dropdown, not a tab on the kids' screen
   kids: {}, // id -> data
   assignments: {}, // id -> data (kid+day+subject+title+xp+done)
@@ -1034,7 +1069,7 @@ function renderKidbar(){
 
     row.addEventListener("click", function(){
       cleanupMiniGame(); if(state.quiz) state.quiz=null; state.mathGuideOpen=false; state.placeValueOpen=false; state.leaderGuideOpen=false; state.lessonDetailId=null;
-      state.activeKid = k.id; state.profileMenuOpen = false;
+      state.activeKid = k.id; state.profileMenuOpen = false; state.tab = "home";
       if(state.leaderMode){ state.leaderMode = false; setLeaderUnlocked(false); }
       renderAll();
     });
@@ -1506,6 +1541,7 @@ function displayTitle(a, text){
 /* ---------- Pet tips that follow the kid around every page ---------- */
 var PET_TIPS = {
   kid1: {
+    home:["Hi! Tap Start my lessons whenever you are ready!","Want to dress me up? Tap My Pets!"],
     today:["Let us do the next block! I will cheer you on!","Tap a lesson to open it. You can do it!"],
     week:["This is your whole week! Today is the pink one.","Tap any lesson to peek at it."],
     library:["Fun videos live here! Pick one to watch.","Ooh, what will you watch?"],
@@ -1513,6 +1549,7 @@ var PET_TIPS = {
     completed:["Look at all your finished work! So proud of you!","Check for notes from Mom and Dad!"]
   },
   kid2: {
+    home:["Desktop loaded. Click Start my lessons.","Check My Pets to switch or customize me."],
     today:["Next task is ready. Click it to open.","Check the countdown bar to see what is next."],
     week:["Weekly view loaded. Today is highlighted."],
     library:["Archive open. Pick something to read or watch."],
@@ -1914,6 +1951,94 @@ function savePlan(kidId, patch){
 
 function renderAll(){ syncKidSkin(); updateLibraryTabVisibility(); updateFocusModeTabVisibility(); updateCompletedTabBadge(); renderKidbar(); renderXpBar(); renderView(); }
 
+
+/* ---------- Kid Home: one big friendly start screen (lessons, pets, Momma Money, games) ---------- */
+var MM_URL = "https://ms-bee-create.github.io/momma-money/";
+var mmCache = {}, mmLoadedAt = 0, mmLoading = false;
+function loadMommaMoney(){
+  if(mmLoading || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID || Date.now()-mmLoadedAt < 45000) return;
+  mmLoading = true;
+  var ids = Object.keys(MM_MEMBERS).map(function(k){ return MM_MEMBERS[k]; });
+  function apply(res){
+    mmLoading = false; mmLoadedAt = Date.now();
+    if(res.error || !res.data) return false;
+    res.data.forEach(function(row){
+      Object.keys(MM_MEMBERS).forEach(function(k){ if(MM_MEMBERS[k]===row.id) mmCache[k] = {bal:Number(row.current_balance)||0, min:Number(row.screen_minutes_balance)||0}; });
+    });
+    if(state.tab==="home" && !state.leaderMode && state.lessonDetailId==null) renderView();
+    return true;
+  }
+  sb.from("members").select("id,current_balance,screen_minutes_balance").in("id", ids).then(function(res){
+    if(res.error){ mmLoading = true; return sb.from("members").select("id,current_balance").in("id", ids).then(apply); }
+    apply(res);
+  }).catch(function(){ mmLoading = false; });
+}
+function syncTabs(){
+  var eff = (isFocusMode(state.activeKid) && state.tab==="home") ? "today" : state.tab;
+  Array.prototype.forEach.call(els.tabs.querySelectorAll(".tab"), function(t){ t.classList.toggle("active", t.dataset.tab===eff); });
+}
+function goTab(t){
+  state.tab = t; state.quiz = null; state.mathGuideOpen = false; state.placeValueOpen = false; state.leaderGuideOpen = false; state.lessonDetailId = null;
+  cleanupMiniGame(); syncTabs(); renderView();
+}
+function renderHome(){
+  els.view.innerHTML = "";
+  var kid = state.activeKid, kd = kidData(kid), iso = todayISO(), anna = kid==="kid1";
+  loadMommaMoney();
+  var hr = new Date().getHours();
+  var hello = hr<12 ? "Good morning" : hr<17 ? "Good afternoon" : "Good evening";
+  var list = assignmentsFor(kid, iso), total = list.length, doneN = list.filter(function(a){ return a.done; }).length;
+  var blocks = orderedBlocksFor(kid), tasksByBlock = {};
+  list.forEach(function(a){ var k2 = blockKeyFor(a); (tasksByBlock[k2] = tasksByBlock[k2] || []).push(a); });
+  var nextBlock = null;
+  for(var i=0;i<blocks.length;i++){ if(!blockComplete(blocks[i].key, kid, iso, tasksByBlock)){ nextBlock = blocks[i]; break; } }
+  var st = planNow(kid, new Date()), cur = petCur();
+
+  var say = "";
+  if(st.phase==="off") say = isWeekendIso(iso) ? "No school today. Enjoy your day!" : "Ready when you are!";
+  else if(st.phase==="before") say = "School starts at "+fmtClock(st.start)+". I will be right here!";
+  else if(st.phase==="running"){
+    var info = planItemInfo(kid, st.item.key);
+    say = (info.block ? "Right now: " : "Time for: ")+info.label+" until "+fmtClock(st.item.stop)+".";
+  } else if(st.phase==="extra") say = "You have extra learning time. Let us use it well!";
+  else say = "School is done. Great work today!";
+  if(total && doneN===total) say = anna ? "You finished everything today! I am so proud of you!" : "All tasks complete today. Nice work.";
+
+  var hero = document.createElement("div");
+  hero.className = "card hm-hero";
+  hero.innerHTML = '<svg class="hm-pet" viewBox="0 0 230 190" aria-hidden="true">'+petArtCur()+'</svg>'+
+    '<div class="hm-hello"><h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
+  els.view.appendChild(hero);
+  var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
+
+  var main = document.createElement("button");
+  main.type = "button"; main.className = "hm-main";
+  var mainLabel = !total ? "See my day" : doneN===total ? "See my finished day" : doneN===0 ? "Start my lessons" : "Keep going";
+  main.innerHTML = '<span class="hm-main-ic">'+(anna ? "🌟" : "▶")+'</span><span class="hm-main-t"><b>'+mainLabel+'</b>'+
+    '<small>'+(total ? doneN+' of '+total+' done today'+(nextBlock && doneN<total ? ' · next: '+escapeHtml(nextBlock.label) : "") : "Nothing scheduled yet")+'</small></span>';
+  main.onclick = function(){ goTab("today"); };
+  els.view.appendChild(main);
+
+  var mm = mmCache[kid];
+  var mmSub = mm ? "$"+mm.bal.toFixed(2)+(mm.min>0 ? " · "+mm.min+" min screen time" : "") : "Open the shop";
+  var unread = countUnreadNotes(kid);
+  var tiles = [
+    {ic:"🐾", t:"My Pets", s:"Switch pets, wear accessories", go:function(){ renderPetPanel(); }},
+    {ic:"💰", t:"Momma Money", s:mmSub, go:function(){ window.open(MM_URL, "_blank", "noopener"); }},
+    {ic:"🎮", t:"Games", s:"Quizzes and arcade", go:function(){ goTab("arena"); }},
+    {ic:"📚", t:"Library", s:"Videos and reading", go:function(){ goTab("library"); }},
+    {ic:"🗓️", t:"My Week", s:"See what is coming", go:function(){ goTab("week"); }},
+    {ic:"📁", t:"Finished Work", s:unread ? unread+" new note"+(unread>1?"s":"") : "Look back at your work", go:function(){ goTab("completed"); }}
+  ];
+  var grid = document.createElement("div"); grid.className = "hm-grid";
+  tiles.forEach(function(t){
+    var b = document.createElement("button"); b.type = "button"; b.className = "hm-tile";
+    b.innerHTML = '<span class="hm-ic">'+t.ic+'</span><b>'+escapeHtml(t.t)+'</b><small>'+escapeHtml(t.s)+'</small>';
+    b.onclick = t.go; grid.appendChild(b);
+  });
+  els.view.appendChild(grid);
+}
+
 /* Ryan's pages each open as a little program window: a navy title bar with the page's "file path". */
 function decorateRetroView(){
   if(state.leaderMode || state.activeKid!=="kid2" || !document.body.classList.contains("ryan-skin")) return;
@@ -1922,7 +2047,7 @@ function decorateRetroView(){
     : planIsOver(state.activeKid) ? "GOODBYE.EXE"
     : state.quiz ? "QUIZ.EXE" : state.miniGame ? "ARCADE.EXE"
     : state.mathGuideOpen ? "MATHGUIDE.EXE" : state.placeValueOpen ? "PLACEVALUE.EXE"
-    : ({today:"TODAY.EXE", week:"PLANNER.EXE", library:"ARCHIVE.EXE", arena:"ARENA.EXE", completed:"COMPLETED\\"})[state.tab];
+    : ({home:"DESKTOP.EXE", today:"TODAY.EXE", week:"PLANNER.EXE", library:"ARCHIVE.EXE", arena:"ARENA.EXE", completed:"COMPLETED\\"})[state.tab];
   if(!name) return;
   var bar = document.createElement("div"); bar.className = "r-bar";
   bar.innerHTML = '<span>C:\\FORGE_ACADEMY\\'+name+'</span><span style="letter-spacing:6px">_ \u25A1 X</span>';
@@ -1931,6 +2056,7 @@ function decorateRetroView(){
 function renderView(){ renderViewCore(); decorateRetroView(); }
 function renderViewCore(){
   syncKidSkin();
+  syncTabs();
   if(state.leaderMode){ cleanupMiniGame(); return renderLeaderArea(); }
   petViewTip(state.lessonDetailId!=null ? "lesson" : (state.quiz||state.miniGame) ? "game" : state.tab);
   if(planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
@@ -1940,6 +2066,7 @@ function renderViewCore(){
   if(state.lessonDetailId!=null) return renderLessonDetail();
   if(state.mathGuideOpen) return renderMathGuide();
   if(state.leaderGuideOpen) return renderLeaderGuide();
+  if(state.tab==="home") return isFocusMode(state.activeKid) ? renderToday() : renderHome();
   if(state.tab==="today") return renderToday();
   if(state.tab==="week") return renderPlanner();
   if(state.tab==="library") return renderLibrary();
@@ -8479,7 +8606,7 @@ function renderWhoGate(){
     btn.innerHTML = avatarHtmlStr + '<div class="who-gate-opt-name">'+escapeHtml(kd.name)+'</div>';
     btn.onclick = function(){
       state.activeKid = k.id;
-      state.profileMenuOpen = false;
+      state.profileMenuOpen = false; state.tab = "home";
       whoGateEl.style.display = "none";
       renderAll();
     };
