@@ -375,6 +375,23 @@ body.anna-skin .subj-btn .n{color:#fff;opacity:.95;font-size:13px;font-weight:70
 body.anna-skin .qz-opt{border-radius:20px;font-size:17px;padding:16px 12px;background:#fff;border-color:#ffd0e6}
 body.anna-skin .primary-btn{background:#ff7eb6;color:#fff;border-radius:22px;font-family:"Fredoka",sans-serif;font-size:17px;padding:13px 24px}
 body.anna-skin .empty{font-size:15px}
+
+/* Ryan's lesson page: retro window title bar, progress bar, tooltip-style coach, bevel rows and buttons */
+body.ryan-skin .r-head{margin-bottom:14px}
+body.ryan-skin .r-bar{background:linear-gradient(90deg,#000080,#1084d0);color:#fff;font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;padding:5px 10px;margin-bottom:12px}
+body.ryan-skin h1.a-title{font-family:"Pixelify Sans","JetBrains Mono",monospace;font-size:clamp(22px,5vw,32px);line-height:1.2;margin:0 0 12px}
+body.ryan-skin .a-xp{color:#6b5000}
+.r-prog{margin:6px 0 10px}
+.r-ptxt{font-family:"Pixelify Sans","JetBrains Mono",monospace;font-size:16px;margin-bottom:4px}
+.r-track{height:16px;background:#fff;box-shadow:inset 1px 1px #808080,inset -1px -1px #dfdfdf}
+.r-track i{display:block;height:100%;width:0;background:#000080;transition:width .4s}
+body.ryan-skin .a-bubble{background:#ffffe1;border:1px solid #000;border-radius:0;font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;box-shadow:none;padding:9px 12px}
+body.ryan-skin .a-bubble::before{border-right-color:#ffffe1}
+body.ryan-skin label.arow{display:flex;align-items:center!important;gap:12px!important;padding:8px 10px;background:#fff;border:0;border-radius:0;box-shadow:inset 1px 1px #808080,inset -1px -1px #dfdfdf;margin-bottom:6px!important;font-size:15px!important}
+body.ryan-skin label.arow:has(input:checked){color:#555}
+body.ryan-skin input.chk{accent-color:#000080;width:20px!important;height:20px!important}
+body.ryan-skin button.r-btn{border-radius:0;background:#c0c0c0;color:#000;border:0;font-family:"Pixelify Sans","JetBrains Mono",monospace;font-size:17px;padding:12px;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf}
+body.ryan-skin button.r-btn:active{box-shadow:inset 1px 1px #0a0a0a,inset -1px -1px #fff}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -4399,7 +4416,7 @@ function renderLessonDetail(){
   if(a.kidId==="kid1") headingText = displayTitle(a, headingText);
   var embeddedQuestion = mathSplit ? mathSplit[2] : null;
 
-  var annaLook = a.kidId==="kid1";
+  var annaLook = a.kidId==="kid1", retroLook = a.kidId==="kid2";
   var headHtml = annaLook ?
     '<div class="a-head">'+
       '<div class="a-meta">'+subjectChip(a.subject)+'<span class="a-xp">\u2B50 '+a.xp+' XP</span>'+
@@ -4408,6 +4425,14 @@ function renderLessonDetail(){
       '<div class="a-trail" id="aTrail"></div>'+
       '<div class="a-coach" id="aCoach"><svg class="a-pet" viewBox="0 0 230 190" aria-hidden="true">'+petArtCur()+'</svg><div class="a-bubble" id="aBubble"></div></div>'+
       '<div class="a-meter" id="aMeter"><div class="a-mtxt" id="aMtxt"></div><div class="a-stripes" id="aStripes"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>'+
+    '</div>' : retroLook ?
+    '<div class="r-head">'+
+      '<div class="r-bar">C:\\FORGE_ACADEMY\\LESSON.EXE</div>'+
+      '<div class="a-meta">'+subjectChip(a.subject)+'<span class="a-xp">\u2605 '+a.xp+' XP</span>'+
+        (a.standard ? '<span class="chip" style="background:var(--paper);color:var(--text-dim);border:1px solid var(--border)">'+escapeHtml(a.standard)+'</span>' : '')+'</div>'+
+      '<h1 class="a-title">'+escapeHtml(headingText)+' '+speakerBtnHtml()+'</h1>'+
+      '<div class="r-prog" id="rProg"><div class="r-ptxt" id="rPtxt"></div><div class="r-track"><i id="rFill"></i></div></div>'+
+      '<div class="a-coach" id="aCoach"><svg class="a-pet" viewBox="0 0 230 190" aria-hidden="true">'+petArtCur()+'</svg><div class="a-bubble" id="aBubble"></div></div>'+
     '</div>' :
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">'+
       '<div>'+subjectChip(a.subject)+
@@ -4468,7 +4493,9 @@ function renderLessonDetail(){
     ? '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)">'+
         '<div style="font-weight:700;margin-bottom:6px">📖 Lesson '+speakerBtnHtml()+'</div>'+
         (passageLines.length>1 && (isAnnaMode || /^[^—]{3,40} — /.test(passageLines[0]))
-          ? checklistPassageHtml(a.passage, isAnnaMode)
+          ? checklistPassageHtml(a.passage, isAnnaMode || retroLook)
+          : passageLines.length>1 && retroLook
+          ? checklistPassageHtml(a.passage, true)
           : passageLines.length>1
           ? '<ol style="margin:0;padding:0 0 0 20px;font-size:14.5px;line-height:1.5">'+passageLines.map(function(l){ return '<li style="margin-bottom:5px">'+escapeHtml(l)+'</li>'; }).join("")+'</ol>'
           : '<div style="font-size:14.5px;line-height:1.5">'+escapeHtml(a.passage)+'</div>')+
@@ -4515,8 +4542,22 @@ function renderLessonDetail(){
   /* Anna's progress header: the star trail, the coach bubble and the rainbow meter all read the
      same tick boxes she is already using, so every checklist lesson gets them for free. */
   function updateAnnaProgress(){
-    if(!annaLook) return;
+    if(!annaLook && !retroLook) return;
     var boxes = Array.prototype.slice.call(card.querySelectorAll("input.chk"));
+    if(retroLook){
+      var rp = card.querySelector("#rProg"), rc2 = card.querySelector("#aCoach");
+      if(!rp) return;
+      if(!boxes.length){ rp.style.display = rc2.style.display = "none"; return; }
+      var rn = boxes.length, rd = boxes.filter(function(b){ return b.checked; }).length, rl = rn - rd;
+      rp.style.display = rc2.style.display = "";
+      card.querySelector("#rPtxt").textContent = "Progress: "+rd+" of "+rn+" tasks";
+      card.querySelector("#rFill").style.width = Math.round(rd/rn*100)+"%";
+      card.querySelector("#aBubble").textContent = rl===0 ? "Mission complete! "+a.xp+" XP deployed. Nice work, Ryan."
+        : rl===1 ? "One task left. Final compile in progress."
+        : rd===0 ? "Boot sequence ready, Ryan. Start with task one."
+        : rl+" tasks left to unlock "+a.xp+" XP. Systems check: you are on track.";
+      return;
+    }
     var trailEl = card.querySelector("#aTrail"), coach = card.querySelector("#aCoach"), meter = card.querySelector("#aMeter");
     if(!trailEl) return;
     if(!boxes.length){ trailEl.style.display = coach.style.display = meter.style.display = "none"; return; }
@@ -5002,6 +5043,7 @@ function renderLessonDetail(){
   } else {
     toolbarWrap.appendChild(voiceBtn);
     toolbarWrap.appendChild(camBtn);
+    if(retroLook){ voiceBtn.classList.add("r-btn"); camBtn.classList.add("r-btn"); }
   }
 
   var drawWrap = document.createElement("div");
