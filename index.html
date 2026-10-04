@@ -282,6 +282,21 @@ body.anna-skin #petCtl,body.ryan-skin #petCtl{display:flex}
 #petCtl button{background:#fff;color:#9b6bff;border:0;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;box-shadow:var(--shadow);opacity:.92}
 body.ryan-skin #petCtl button{border-radius:0;background:#c0c0c0;color:#000;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf;font-family:"JetBrains Mono",monospace}
 
+
+#petPanel{position:fixed;right:10px;bottom:48px;width:min(94vw,400px);max-height:62vh;overflow:auto;background:var(--raised);border-radius:20px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:33;display:none}
+body.ryan-skin #petPanel{border-radius:0;box-shadow:inset -1px -1px #0a0a0a,inset 1px 1px #fff,inset -2px -2px #808080,inset 2px 2px #dfdfdf,0 8px 24px rgba(0,0,0,.35)}
+#petPanel .pp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:17px}
+#petPanel .pp-x{background:none;border:0;font-size:18px;padding:4px 8px;color:var(--text-dim)}
+#petPanel .pp-sub{font-weight:800;font-size:13px;margin:12px 0 6px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+#petPanel .pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+#petPanel .pp-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 6px;border-radius:14px;border:2px solid var(--border);background:var(--paper);text-align:center;color:var(--text)}
+body.ryan-skin #petPanel .pp-tile{border-radius:0}
+#petPanel .pp-tile.on{border-color:var(--teal);background:var(--teal-soft)}
+#petPanel .pp-tile.locked .pp-art{filter:grayscale(1);opacity:.55}
+#petPanel .pp-art svg{width:84px;height:70px}
+#petPanel .pp-name{font-size:12.5px;font-weight:800;line-height:1.2}
+#petPanel .pp-state{font-size:11px;color:var(--text-dim);font-weight:700}
+#petPanel .pp-note{font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.4}
 /* day plan bar (Today + lesson page) and the calm "school's done" screen */
 .plan-bar{border-radius:16px;padding:12px 14px;margin-bottom:12px;background:var(--raised);border:2px solid var(--border);box-shadow:var(--shadow)}
 .plan-bar.warn{border-color:var(--gold);background:var(--gold-soft)}
@@ -960,12 +975,246 @@ var PET_SPRITE = [
 '<rect x="88" y="14" width="56" height="38" fill="#C9CED6" stroke="#8D95A3" stroke-width="2"/><rect x="124" y="20" width="12" height="26" fill="#5E6A7A"/>',
 '<rect x="76" y="70" width="80" height="54" fill="#F4F0E0"/><path d="M82 82h68M82 90h68" stroke="#C9C2A8" stroke-width="2"/>',
 '<rect x="98" y="98" width="8" height="10" fill="#222"/><rect x="126" y="98" width="8" height="10" fill="#222"/><path d="M102 114v4h28v-4" stroke="#222" stroke-width="3" fill="none"/>',
-'</symbol></defs></svg>'
+'</symbol>',
+'<linearGradient id="rbwg" gradientUnits="userSpaceOnUse" x1="82" y1="0" x2="148" y2="0"><stop offset="0" stop-color="#FF6B8B"/><stop offset=".2" stop-color="#FFA95C"/><stop offset=".4" stop-color="#FFD66B"/><stop offset=".6" stop-color="#7DDCA0"/><stop offset=".8" stop-color="#7CC4FF"/><stop offset="1" stop-color="#B79CFF"/></linearGradient>',
+'<radialGradient id="orbg" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#9FE6FF"/><stop offset=".6" stop-color="#2D9BE8"/><stop offset="1" stop-color="#0A5FB5"/></radialGradient>',
+/* Rainbow Girl: a little blonde girl with blue eyes and rainbow glasses */
+'<symbol id="pet-girl" viewBox="0 0 230 190">',
+'<rect x="96" y="138" width="13" height="40" rx="6" fill="#FFE0C8"/><rect x="121" y="138" width="13" height="40" rx="6" fill="#FFE0C8"/>',
+'<ellipse cx="102" cy="180" rx="15" ry="7" fill="#FF7EB6"/><ellipse cx="128" cy="180" rx="15" ry="7" fill="#FF7EB6"/>',
+'<rect x="58" y="100" width="26" height="11" rx="5" fill="#FFE0C8" transform="rotate(-20 70 105)"/><rect x="146" y="100" width="26" height="11" rx="5" fill="#FFE0C8" transform="rotate(20 160 105)"/>',
+'<path d="M84 96h62l22 50H62z" fill="#FF9FD0"/><rect x="62" y="146" width="106" height="6" fill="#FFD66B"/><rect x="62" y="152" width="106" height="5" fill="#7DDCA0"/><rect x="62" y="157" width="106" height="5" fill="#7CC4FF"/>',
+'<circle cx="60" cy="72" r="18" fill="#F7D774"/><circle cx="170" cy="72" r="18" fill="#F7D774"/><circle cx="74" cy="60" r="6" fill="#FF7EB6"/><circle cx="156" cy="60" r="6" fill="#FF7EB6"/>',
+'<ellipse cx="115" cy="56" rx="50" ry="48" fill="#F7D774"/><circle cx="115" cy="62" r="38" fill="#FFE0C8"/>',
+'<path d="M77 54Q82 18 115 16Q148 18 153 54Q136 38 115 44Q94 38 77 54Z" fill="#F7D774"/>',
+'<circle cx="98" cy="64" r="5.5" fill="#4FA3E8"/><circle cx="132" cy="64" r="5.5" fill="#4FA3E8"/><circle cx="99.5" cy="62" r="2" fill="#fff"/><circle cx="133.5" cy="62" r="2" fill="#fff"/>',
+'<circle cx="98" cy="64" r="14" fill="#fff" fill-opacity=".25" stroke="url(#rbwg)" stroke-width="4.5"/><circle cx="132" cy="64" r="14" fill="#fff" fill-opacity=".25" stroke="url(#rbwg)" stroke-width="4.5"/><path d="M112 62q3-4 6 0" stroke="url(#rbwg)" stroke-width="4" fill="none"/>',
+'<ellipse cx="88" cy="82" rx="7" ry="4" fill="#FF9FC8" opacity=".7"/><ellipse cx="142" cy="82" rx="7" ry="4" fill="#FF9FC8" opacity=".7"/><path d="M106 84q9 8 18 0" stroke="#E0556F" stroke-width="3" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+/* Rainbow Dragon */
+'<symbol id="pet-dragon" viewBox="0 0 230 190">',
+'<path d="M44 128q-34 8-30 40q10-18 38-12z" fill="#7DDCC0"/><path d="M36 150l-16 4 10-14z" fill="#FFD66B"/>',
+'<path d="M96 96q-28-50 6-62q6 36 22 58z" fill="#FFB4D6"/><path d="M84 98q-34-34-8-60q2 30 16 56z" fill="#FF9FD0"/>',
+'<rect x="70" y="140" width="20" height="38" rx="9" fill="#7DDCC0"/><rect x="138" y="140" width="20" height="38" rx="9" fill="#7DDCC0"/><rect x="92" y="146" width="20" height="32" rx="9" fill="#6BCDB2"/><rect x="160" y="146" width="20" height="32" rx="9" fill="#6BCDB2"/>',
+'<ellipse cx="116" cy="124" rx="66" ry="42" fill="#7DDCC0"/><ellipse cx="124" cy="136" rx="40" ry="28" fill="#FFF1C9"/>',
+'<path d="M64 88l8-18 8 18z" fill="#FF6B8B"/><path d="M82 82l8-18 8 18z" fill="#FFA95C"/><path d="M100 80l8-18 8 18z" fill="#FFD66B"/><path d="M118 80l8-18 8 18z" fill="#7DDCA0"/><path d="M136 84l8-18 8 18z" fill="#7CC4FF"/>',
+'<circle cx="168" cy="84" r="36" fill="#7DDCC0"/><ellipse cx="196" cy="94" rx="20" ry="15" fill="#8FE6CF"/>',
+'<path d="M156 58l-4-24 18 14z" fill="#FFD66B"/><path d="M178 56l8-24 8 22z" fill="#FFD66B"/>',
+'<circle cx="172" cy="76" r="6" fill="#3B2A5A"/><circle cx="174" cy="74" r="2" fill="#fff"/><ellipse cx="160" cy="94" rx="8" ry="5" fill="#FF9FC8" opacity=".7"/><circle cx="198" cy="90" r="2.5" fill="#3B2A5A"/><path d="M190 102q8 5 16 0" stroke="#3B2A5A" stroke-width="2.5" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+/* Fluffy Bunny */
+'<symbol id="pet-bunny" viewBox="0 0 230 190">',
+'<circle cx="50" cy="146" r="16" fill="#fff" stroke="#EADCF5" stroke-width="2"/>',
+'<ellipse cx="108" cy="140" rx="66" ry="42" fill="#fff" stroke="#EADCF5" stroke-width="2"/>',
+'<ellipse cx="88" cy="176" rx="18" ry="9" fill="#fff" stroke="#EADCF5" stroke-width="2"/><ellipse cx="140" cy="176" rx="18" ry="9" fill="#fff" stroke="#EADCF5" stroke-width="2"/>',
+'<ellipse cx="140" cy="38" rx="14" ry="42" fill="#fff" stroke="#EADCF5" stroke-width="2"/><ellipse cx="140" cy="40" rx="7" ry="30" fill="#FFB4D6"/>',
+'<ellipse cx="182" cy="38" rx="14" ry="42" fill="#fff" stroke="#EADCF5" stroke-width="2" transform="rotate(10 182 60)"/><ellipse cx="183" cy="40" rx="7" ry="30" fill="#FFB4D6" transform="rotate(10 182 60)"/>',
+'<circle cx="160" cy="100" r="44" fill="#fff" stroke="#EADCF5" stroke-width="2"/>',
+'<ellipse cx="144" cy="94" rx="5.5" ry="7.5" fill="#3B2A5A"/><ellipse cx="176" cy="94" rx="5.5" ry="7.5" fill="#3B2A5A"/><circle cx="146" cy="91" r="2" fill="#fff"/><circle cx="178" cy="91" r="2" fill="#fff"/>',
+'<path d="M154 108l6 5 6-5z" fill="#FF7EB6"/><path d="M160 113q-6 8-13 3M160 113q6 8 13 3" stroke="#B5655A" stroke-width="2" fill="none" stroke-linecap="round"/><ellipse cx="136" cy="110" rx="9" ry="5" fill="#FF9FC8" opacity=".7"/><ellipse cx="184" cy="110" rx="9" ry="5" fill="#FF9FC8" opacity=".7"/>',
+'</symbol>',
+/* Waddles the Penguin */
+'<symbol id="pet-penguin" viewBox="0 0 230 190">',
+'<ellipse cx="96" cy="180" rx="22" ry="8" fill="#FFA033"/><ellipse cx="136" cy="180" rx="22" ry="8" fill="#FFA033"/>',
+'<ellipse cx="46" cy="110" rx="14" ry="38" fill="#2E3A59" transform="rotate(16 46 110)"/><ellipse cx="184" cy="110" rx="14" ry="38" fill="#2E3A59" transform="rotate(-16 184 110)"/>',
+'<ellipse cx="115" cy="104" rx="60" ry="74" fill="#2E3A59"/><ellipse cx="115" cy="118" rx="40" ry="56" fill="#fff"/>',
+'<circle cx="96" cy="62" r="11" fill="#fff"/><circle cx="134" cy="62" r="11" fill="#fff"/><circle cx="98" cy="63" r="5.5" fill="#222"/><circle cx="132" cy="63" r="5.5" fill="#222"/><circle cx="100" cy="61" r="2" fill="#fff"/><circle cx="134" cy="61" r="2" fill="#fff"/>',
+'<path d="M104 76h22l-11 16z" fill="#FFA033"/><ellipse cx="82" cy="80" rx="8" ry="5" fill="#FF9FC8" opacity=".8"/><ellipse cx="148" cy="80" rx="8" ry="5" fill="#FF9FC8" opacity=".8"/>',
+'</symbol>',
+/* Bolt the robot and Roomie the Roomba */
+'<symbol id="pet-bot" viewBox="0 0 230 190">',
+'<line x1="115" y1="14" x2="115" y2="38" stroke="#8FB3C9" stroke-width="5"/><circle cx="115" cy="12" r="9" fill="#FFB938"/>',
+'<rect x="62" y="36" width="106" height="74" rx="22" fill="#CFE6F5"/><rect x="74" y="50" width="82" height="44" rx="14" fill="#0F2A3A"/>',
+'<circle cx="98" cy="72" r="9" fill="#3DE0C0"/><circle cx="132" cy="72" r="9" fill="#3DE0C0"/><circle cx="101" cy="69" r="3" fill="#fff"/><circle cx="135" cy="69" r="3" fill="#fff"/>',
+'<path d="M104 86q11 7 22 0" stroke="#3DE0C0" stroke-width="3" fill="none" stroke-linecap="round"/>',
+'<rect x="76" y="114" width="78" height="46" rx="14" fill="#9FC4DC"/><rect x="100" y="126" width="30" height="8" rx="4" fill="#3DE0C0"/><circle cx="108" cy="146" r="4" fill="#FF7EB6"/><circle cx="122" cy="146" r="4" fill="#FFB938"/>',
+'<rect x="44" y="118" width="26" height="12" rx="6" fill="#9FC4DC"/><rect x="160" y="118" width="26" height="12" rx="6" fill="#9FC4DC"/>',
+'<rect x="78" y="160" width="26" height="24" rx="10" fill="#5E7F94"/><rect x="126" y="160" width="26" height="24" rx="10" fill="#5E7F94"/>',
+'</symbol>',
+'<symbol id="pet-roomba" viewBox="0 0 230 190">',
+'<ellipse cx="115" cy="170" rx="86" ry="10" fill="#000" opacity=".18"/>',
+'<ellipse cx="115" cy="140" rx="92" ry="38" fill="#3A4A58"/><ellipse cx="115" cy="128" rx="92" ry="38" fill="#CFE6F5"/>',
+'<ellipse cx="115" cy="128" rx="68" ry="26" fill="#9FC4DC"/><circle cx="115" cy="124" r="15" fill="#18303F"/><circle cx="115" cy="124" r="6" fill="#3DE0C0"/>',
+'<rect x="168" y="106" width="22" height="9" rx="4.5" fill="#FFB938" transform="rotate(18 179 110)"/>',
+'<circle cx="170" cy="150" r="7" fill="#FF7EB6"/><path d="M52 112q-10 10-4 24" stroke="#3A4A58" stroke-width="6" fill="none" stroke-linecap="round"/>',
+'<path d="M96 100l-6-12M134 100l6-12" stroke="#8FB3C9" stroke-width="4" stroke-linecap="round"/>',
+'</symbol>',
+/* Flaggy pals: simplified four-pane window mascots, one per era (original drawings, not the real logos) */
+'<symbol id="pet-flag95" viewBox="0 0 230 190">',
+'<rect x="84" y="142" width="14" height="36" fill="#6E6E6E"/><rect x="134" y="142" width="14" height="36" fill="#6E6E6E"/><rect x="76" y="176" width="30" height="9" fill="#222"/><rect x="126" y="176" width="30" height="9" fill="#222"/>',
+'<path d="M52 30Q82 20 112 32V84Q82 72 52 84Z" fill="#F35325" stroke="#222" stroke-width="3"/><path d="M120 32Q150 44 180 34V86Q150 96 120 84Z" fill="#81BC06" stroke="#222" stroke-width="3"/>',
+'<path d="M52 92Q82 80 112 92V144Q82 132 52 144Z" fill="#05A6F0" stroke="#222" stroke-width="3"/><path d="M120 92Q150 104 180 94V146Q150 156 120 144Z" fill="#FFBA08" stroke="#222" stroke-width="3"/>',
+'<circle cx="92" cy="66" r="7" fill="#fff" stroke="#222" stroke-width="2"/><circle cx="142" cy="70" r="7" fill="#fff" stroke="#222" stroke-width="2"/><circle cx="93" cy="67" r="3" fill="#222"/><circle cx="143" cy="71" r="3" fill="#222"/>',
+'<path d="M96 112Q117 128 140 114" stroke="#222" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+'<symbol id="pet-flag98" viewBox="0 0 230 190">',
+'<rect x="84" y="142" width="14" height="36" fill="#6E6E6E"/><rect x="134" y="142" width="14" height="36" fill="#6E6E6E"/><rect x="76" y="176" width="30" height="9" fill="#222"/><rect x="126" y="176" width="30" height="9" fill="#222"/>',
+'<path d="M52 30Q82 20 112 32V84Q82 72 52 84Z" fill="#F35325"/><path d="M120 32Q150 44 180 34V86Q150 96 120 84Z" fill="#81BC06"/>',
+'<path d="M52 92Q82 80 112 92V144Q82 132 52 144Z" fill="#05A6F0"/><path d="M120 92Q150 104 180 94V146Q150 156 120 144Z" fill="#FFBA08"/>',
+'<rect x="88" y="8" width="56" height="20" fill="#C0C0C0" stroke="#222" stroke-width="2"/><text x="116" y="23" text-anchor="middle" font-family="monospace" font-size="15" font-weight="700" fill="#000080">98</text>',
+'<circle cx="92" cy="66" r="7" fill="#fff"/><circle cx="142" cy="70" r="7" fill="#fff"/><circle cx="93" cy="67" r="3" fill="#222"/><circle cx="143" cy="71" r="3" fill="#222"/>',
+'<path d="M96 112Q117 128 140 114" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+'<symbol id="pet-flagxp" viewBox="0 0 230 190">',
+'<rect x="84" y="142" width="14" height="36" fill="#4A8F3C"/><rect x="134" y="142" width="14" height="36" fill="#4A8F3C"/><rect x="76" y="176" width="30" height="9" rx="4" fill="#245B1B"/><rect x="126" y="176" width="30" height="9" rx="4" fill="#245B1B"/>',
+'<path d="M50 38Q82 16 114 34V86Q82 68 50 90Z" fill="#F25022"/><path d="M120 36Q152 54 184 30V82Q152 106 120 88Z" fill="#7FBA00"/>',
+'<path d="M50 96Q82 74 114 92V144Q82 126 50 148Z" fill="#00A4EF"/><path d="M120 94Q152 112 184 88V140Q152 164 120 146Z" fill="#FFB900"/>',
+'<ellipse cx="82" cy="46" rx="26" ry="9" fill="#fff" opacity=".35"/><ellipse cx="152" cy="44" rx="26" ry="9" fill="#fff" opacity=".35"/>',
+'<circle cx="92" cy="68" r="7" fill="#fff"/><circle cx="144" cy="70" r="7" fill="#fff"/><circle cx="93" cy="69" r="3" fill="#222"/><circle cx="145" cy="71" r="3" fill="#222"/>',
+'<path d="M96 114Q118 130 142 114" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+'<symbol id="pet-orb" viewBox="0 0 230 190">',
+'<rect x="92" y="148" width="14" height="30" rx="6" fill="#0A5FB5"/><rect x="126" y="148" width="14" height="30" rx="6" fill="#0A5FB5"/><ellipse cx="99" cy="180" rx="15" ry="6" fill="#06407A"/><ellipse cx="133" cy="180" rx="15" ry="6" fill="#06407A"/>',
+'<circle cx="116" cy="92" r="62" fill="url(#orbg)" stroke="#E6F5FF" stroke-width="4"/><ellipse cx="96" cy="52" rx="30" ry="14" fill="#fff" opacity=".35"/>',
+'<g opacity=".92"><path d="M90 66Q104 60 114 66V84Q104 78 90 84Z" fill="#fff"/><path d="M118 66Q130 72 142 66V84Q130 90 118 84Z" fill="#fff"/><path d="M90 88Q104 82 114 88V106Q104 100 90 106Z" fill="#fff"/><path d="M118 88Q130 94 142 88V106Q130 112 118 106Z" fill="#fff"/></g>',
+'<circle cx="100" cy="126" r="5" fill="#fff"/><circle cx="132" cy="126" r="5" fill="#fff"/><circle cx="101" cy="127" r="2.4" fill="#06407A"/><circle cx="133" cy="127" r="2.4" fill="#06407A"/><path d="M106 138Q116 146 126 138" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+'<symbol id="pet-pane10" viewBox="0 0 230 190">',
+'<rect x="84" y="142" width="14" height="36" fill="#005A9E"/><rect x="134" y="142" width="14" height="36" fill="#005A9E"/><rect x="76" y="176" width="30" height="9" fill="#003A66"/><rect x="126" y="176" width="30" height="9" fill="#003A66"/>',
+'<rect x="54" y="28" width="58" height="56" fill="#00ADEF"/><rect x="120" y="28" width="58" height="56" fill="#0A8FE0"/><rect x="54" y="92" width="58" height="52" fill="#0A8FE0"/><rect x="120" y="92" width="58" height="52" fill="#0078D7"/>',
+'<rect x="82" y="56" width="14" height="14" fill="#fff"/><rect x="136" y="56" width="14" height="14" fill="#fff"/><rect x="87" y="61" width="6" height="6" fill="#003A66"/><rect x="141" y="61" width="6" height="6" fill="#003A66"/>',
+'<path d="M92 112v6h48v-6" stroke="#fff" stroke-width="5" fill="none"/>',
+'</symbol>',
+'<symbol id="pet-pane11" viewBox="0 0 230 190">',
+'<rect x="86" y="142" width="14" height="36" rx="7" fill="#2B6CC4"/><rect x="132" y="142" width="14" height="36" rx="7" fill="#2B6CC4"/><rect x="76" y="174" width="32" height="11" rx="5" fill="#1B4A94"/><rect x="124" y="174" width="32" height="11" rx="5" fill="#1B4A94"/>',
+'<rect x="54" y="28" width="58" height="56" rx="10" fill="#4CC2FF"/><rect x="120" y="28" width="58" height="56" rx="10" fill="#2FA8F5"/><rect x="54" y="92" width="58" height="52" rx="10" fill="#2FA8F5"/><rect x="120" y="92" width="58" height="52" rx="10" fill="#0F7FE0"/>',
+'<circle cx="89" cy="62" r="8" fill="#fff"/><circle cx="143" cy="62" r="8" fill="#fff"/><circle cx="90" cy="63" r="3.6" fill="#16365E"/><circle cx="144" cy="63" r="3.6" fill="#16365E"/>',
+'<path d="M96 114Q116 128 138 114" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round"/>',
+'</symbol>',
+/* accessories, drawn around (0,0): head ones sit above it, shades are centered on it */
+'<g id="acc-partyhat"><path d="M-20 0L0 -48L20 0Z" fill="#FF7EB6"/><path d="M-12 -18L12 -18M-16 -8L16 -8" stroke="#fff" stroke-width="4"/><circle cx="0" cy="-50" r="6" fill="#FFD66B"/></g>',
+'<g id="acc-bow"><path d="M0 -4L-26 -18V10Z" fill="#FF4D9A"/><path d="M0 -4L26 -18V10Z" fill="#FF4D9A"/><circle cx="0" cy="-4" r="7" fill="#FF86BD"/></g>',
+'<g id="acc-crown"><path d="M-26 0V-28L-13 -13L0 -34L13 -13L26 -28V0Z" fill="#FFD34D" stroke="#E0A800" stroke-width="2"/><circle cx="-13" cy="-8" r="3.5" fill="#FF6B8B"/><circle cx="0" cy="-8" r="3.5" fill="#7CC4FF"/><circle cx="13" cy="-8" r="3.5" fill="#7DDCA0"/></g>',
+'<g id="acc-shades"><rect x="-32" y="-9" width="27" height="17" rx="7" fill="#222"/><rect x="5" y="-9" width="27" height="17" rx="7" fill="#222"/><rect x="-6" y="-5" width="12" height="4" fill="#222"/><path d="M-26 -5l8 0M11 -5l8 0" stroke="#fff" stroke-width="2" opacity=".6"/></g>',
+'</defs></svg>'
 ].join("");
-var PETS = {
-  kid1: {skin:"anna-skin", list:[{sym:"pet-uni", name:"Sparkle", hi:"Hi! I am Sparkle!"}, {sym:"pet-cat", name:"Pip", hi:"Meow! I am Pip!"}]},
-  kid2: {skin:"ryan-skin", list:[{sym:"pet-pc", name:"Byte", hi:"Beep! I am Byte."}, {sym:"pet-disk", name:"Disk", hi:"Hello! I am Disk. 1.44 megabytes of fun."}]}
-};
+var PET_SKINS = {kid1:"anna-skin", kid2:"ryan-skin"};
+/* Every pet. price = what it costs in the Momma Money shop (supabase/pets.sql there seeds the same
+   list, keyed by grants "pet:<id>"). top/eyes are where accessories sit: [x, y, scale]. */
+var PET_DEFS = [
+  {id:"uni", sym:"pet-uni", name:"Sparkle the Unicorn", short:"Sparkle", price:4, top:[168,34], eyes:[196,56,.5]},
+  {id:"cat", sym:"pet-cat", name:"Pip the Kitten", short:"Pip", price:4, top:[165,34], eyes:[165,78,.9], hi:"Meow! I am Pip!"},
+  {id:"pc", sym:"pet-pc", name:"Byte the PC", short:"Byte", price:4, top:[115,14], eyes:[115,54,1.2], hi:"Beep! I am Byte."},
+  {id:"disk", sym:"pet-disk", name:"Disk the Floppy", short:"Disk", price:4, top:[116,14], eyes:[116,103,.85], hi:"Hello! I am Disk. 1.44 megabytes of fun."},
+  {id:"girl", sym:"pet-girl", name:"Rainbow Girl", short:"Rainbow Girl", price:8, top:[115,18], eyes:null, hi:"Hi! Want to be best friends?"},
+  {id:"dragon", sym:"pet-dragon", name:"Rainbow Dragon", short:"Rainbow Dragon", price:6, top:[170,38], eyes:[172,76,.5], hi:"Roar! A tiny, friendly roar."},
+  {id:"bunny", sym:"pet-bunny", name:"Fluffy Bunny", short:"Fluffy", price:4, top:[160,56], eyes:[160,94,1.1], hi:"Hop hop! Hi!"},
+  {id:"penguin", sym:"pet-penguin", name:"Waddles the Penguin", short:"Waddles", price:4, top:[115,34], eyes:[115,63,1.1], hi:"Waddle waddle! Hello!"},
+  {id:"bot", sym:"pet-bot", name:"Bolt the Robot", short:"Bolt", price:5, top:[115,6], eyes:[115,72,1], hi:"Beep boop. Bolt online."},
+  {id:"roomba", sym:"pet-roomba", name:"Roomie the Roomba", short:"Roomie", price:4, top:[115,92], eyes:null, hi:"Vroom. Cleaning up the screen."},
+  {id:"flag95", sym:"pet-flag95", name:"Flaggy 95", short:"Flaggy 95", price:5, top:[116,26], eyes:[117,68,1.15], hi:"Welcome to 1995!"},
+  {id:"flag98", sym:"pet-flag98", name:"Flaggy 98", short:"Flaggy 98", price:5, top:[116,8], eyes:[117,68,1.15], hi:"Windows 98, now with more internet!"},
+  {id:"flagxp", sym:"pet-flagxp", name:"Flaggy XP", short:"Flaggy XP", price:6, top:[116,24], eyes:[118,69,1.15], hi:"Click Start to begin."},
+  {id:"orb", sym:"pet-orb", name:"Orby", short:"Orby", price:6, top:[116,32], eyes:[116,126,.9], hi:"Glassy and shiny. Hi!"},
+  {id:"pane10", sym:"pet-pane10", name:"Paney 10", short:"Paney 10", price:6, top:[116,28], eyes:[116,63,1.15], hi:"Flat design, round heart."},
+  {id:"pane11", sym:"pet-pane11", name:"Paney 11", short:"Paney 11", price:8, top:[116,28], eyes:[116,62,1.15], hi:"Smooth corners, smooth day."}
+];
+var ACC_DEFS = [
+  {id:"partyhat", name:"Party hat", slot:"head", price:1},
+  {id:"bow", name:"Big bow", slot:"head", price:1},
+  {id:"crown", name:"Gold crown", slot:"head", price:2},
+  {id:"shades", name:"Cool shades", slot:"face", price:2}
+];
+var PET_FREE = {kid1:["uni","cat"], kid2:["pc","disk"]};
+var petOwned = {kid1:{}, kid2:{}}, petPending = {kid1:{}, kid2:{}}, petLoadedAt = 0, petLoading = false;
+function petDef(id){ return PET_DEFS.filter(function(p){ return p.id===id; })[0] || null; }
+function accDef(id){ return ACC_DEFS.filter(function(a){ return a.id===id; })[0] || null; }
+function petHas(kid, grant){
+  if(grant.indexOf("pet:")===0 && (PET_FREE[kid]||[]).indexOf(grant.slice(4))>=0) return true;
+  return !!(petOwned[kid] && petOwned[kid][grant]);
+}
+/* Which pets/accessories has each kid actually bought? Reads the Momma Money shop: an approved spend
+   whose reward item has a "grants" value. Pending ones show as "waiting for Mom". If the grants
+   column has not been added yet the query errors and everyone just keeps their free pets. */
+function loadPetOwnership(force){
+  if(petLoading || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID) return;
+  if(!force && Date.now()-petLoadedAt < 60000) return;
+  petLoading = true;
+  Promise.all([
+    sb.from("reward_items").select("id,grants").eq("household_id", HOUSEHOLD_ID).not("grants","is",null),
+    sb.from("transactions").select("member_id,reward_item_id,status").eq("household_id", HOUSEHOLD_ID).eq("type","spend").not("reward_item_id","is",null)
+  ]).then(function(res){
+    petLoading = false; petLoadedAt = Date.now();
+    if(res[0].error || res[1].error) return;
+    var g = {}, kidOf = {}, owned = {kid1:{}, kid2:{}}, pend = {kid1:{}, kid2:{}};
+    (res[0].data||[]).forEach(function(r){ g[r.id] = r.grants; });
+    Object.keys(MM_MEMBERS).forEach(function(k){ kidOf[MM_MEMBERS[k]] = k; });
+    (res[1].data||[]).forEach(function(t){
+      var kid = kidOf[t.member_id], gr = g[t.reward_item_id];
+      if(!kid || !gr) return;
+      if(t.status==="approved") owned[kid][gr] = true; else if(t.status==="pending") pend[kid][gr] = true;
+    });
+    petOwned = owned; petPending = pend;
+    applyPetLook(); if(petPanelOpen()) renderPetPanel();
+  }).catch(function(){ petLoading = false; });
+}
+function petAccKey(slot){ return "al_pet_acc_"+slot+"_"+state.activeKid; }
+function petCur(){
+  var kid = state.activeKid; if(!PET_FREE[kid] || state.leaderMode) return null;
+  var id = petLS(petWhichKey());
+  if(/^\d+$/.test(id||"")) id = PET_FREE[kid][+id];            // older saves stored an index
+  var def = petDef(id);
+  if(!def || !petHas(kid, "pet:"+def.id)) def = petDef(PET_FREE[kid][0]);
+  return def;
+}
+function petWorn(slot){
+  var id = petLS(petAccKey(slot)), kid = state.activeKid;
+  return (id && accDef(id) && petHas(kid, "acc:"+id)) ? id : null;
+}
+function petArt(def, head, face){
+  var h = '<use href="#'+def.sym+'"/>';
+  if(face && def.eyes) h += '<use href="#acc-'+face+'" transform="translate('+def.eyes[0]+' '+def.eyes[1]+') scale('+(def.eyes[2]||1)+')"/>';
+  if(head && def.top) h += '<use href="#acc-'+head+'" transform="translate('+def.top[0]+' '+def.top[1]+')"/>';
+  return h;
+}
+function petArtCur(){ var d = petCur(); return d ? petArt(d, petWorn("head"), petWorn("face")) : ""; }
+function petPanelOpen(){ var p = document.getElementById("petPanel"); return !!p && p.style.display!=="none"; }
+function closePetPanel(){ var p = document.getElementById("petPanel"); if(p) p.style.display = "none"; }
+function renderPetPanel(){
+  var kid = state.activeKid; if(!PET_FREE[kid] || state.leaderMode){ closePetPanel(); return; }
+  var p = document.getElementById("petPanel");
+  if(!p){ p = document.createElement("div"); p.id = "petPanel"; document.body.appendChild(p); }
+  p.style.display = "block";
+  var cur = petCur(), wornHead = petWorn("head"), wornFace = petWorn("face");
+  function tile(kind, d, owned, pending, active){
+    var thumb = kind==="pet"
+      ? '<svg viewBox="0 0 230 190" aria-hidden="true">'+petArt(d, null, null)+'</svg>'
+      : '<svg viewBox="-40 -56 80 70" aria-hidden="true"><use href="#acc-'+d.id+'" transform="translate(0 '+(d.slot==="face"?-10:0)+')"/></svg>';
+    var label = active ? (kind==="pet" ? "Out now" : "Wearing") : owned ? (kind==="pet" ? "Bring out" : "Wear it") : pending ? "Waiting for Mom" : "$"+d.price+" in the shop";
+    return '<button type="button" class="pp-tile'+(active?' on':'')+(owned?'':' locked')+'" data-kind="'+kind+'" data-id="'+d.id+'">'+
+      '<span class="pp-art">'+thumb+'</span><span class="pp-name">'+escapeHtml(d.short||d.name)+'</span><span class="pp-state">'+label+'</span></button>';
+  }
+  var petTiles = PET_DEFS.map(function(d){
+    var gr = "pet:"+d.id;
+    return tile("pet", d, petHas(kid, gr), !!(petPending[kid]||{})[gr], cur && cur.id===d.id);
+  }).join("");
+  var accTiles = ACC_DEFS.map(function(a){
+    var gr = "acc:"+a.id;
+    return tile("acc", a, petHas(kid, gr), !!(petPending[kid]||{})[gr], (a.slot==="head" ? wornHead : wornFace)===a.id);
+  }).join("");
+  p.innerHTML = '<div class="pp-head"><b>My pets</b><button type="button" class="pp-x" aria-label="Close">✕</button></div>'+
+    '<div class="pp-grid">'+petTiles+'</div>'+
+    '<div class="pp-sub">Accessories</div><div class="pp-grid">'+accTiles+'</div>'+
+    '<div class="pp-note">New pets and accessories are in the Momma Money shop. Ask Mom or Dad to approve your purchase.</div>';
+  p.querySelector(".pp-x").onclick = closePetPanel;
+  Array.prototype.forEach.call(p.querySelectorAll(".pp-tile"), function(b){
+    b.onclick = function(){
+      var kind = b.dataset.kind, id = b.dataset.id, kidNow = state.activeKid;
+      if(kind==="pet"){
+        var d = petDef(id);
+        if(!petHas(kidNow, "pet:"+id)){ toast(petPending[kidNow]["pet:"+id] ? "Waiting for Mom or Dad to approve it." : d.short+" costs $"+d.price+" in the Momma Money shop."); return; }
+        petLS(petWhichKey(), id); applyPetLook(); petHop(); petSay(d.hi || ("Hi! I am "+d.short+"!"));
+      } else {
+        var a = accDef(id);
+        if(!petHas(kidNow, "acc:"+id)){ toast(petPending[kidNow]["acc:"+id] ? "Waiting for Mom or Dad to approve it." : a.name+" costs $"+a.price+" in the Momma Money shop."); return; }
+        var key = petAccKey(a.slot);
+        petLS(key, petLS(key)===id ? "" : id); applyPetLook(); petHop();
+      }
+      renderPetPanel();
+    };
+  });
+}
+
 var PET_LINES = {
   kid1: {
     step:["Yay, a star!","You are so smart!","One step closer!","Wow, nice work!","Sparkly job!"],
@@ -986,14 +1235,9 @@ function petLS(k, v){
   return null;
 }
 function petPick(list){ return list[Math.floor(Math.random()*list.length)]; }
-function petCfg(){ return state.leaderMode ? null : (PETS[state.activeKid] || null); }
+function petCfg(){ return state.leaderMode ? null : (PET_SKINS[state.activeKid] ? {skin:PET_SKINS[state.activeKid]} : null); }
 function petOffKey(){ return "al_pet_off_"+state.activeKid; }
 function petWhichKey(){ return "al_pet_which_"+state.activeKid; }
-function petCur(){
-  var cfg = petCfg(); if(!cfg) return null;
-  var i = +petLS(petWhichKey()); if(!(i>=0 && i<cfg.list.length)) i = 0;
-  return cfg.list[i];
-}
 function petVisible(){ return document.body.classList.contains("pet-on"); }
 function petFx(ch, x, y){
   for(var i=0;i<4;i++){
@@ -1033,14 +1277,18 @@ function buildPet(){
   petEl.innerHTML = '<div class="say" aria-live="polite"></div><button class="walker" type="button" aria-label="Tap your pet"><svg viewBox="0 0 230 190"><use href="#pet-uni"/></svg></button>';
   document.body.appendChild(petEl);
   var ctl = document.createElement("div"); ctl.id = "petCtl";
-  var chg = document.createElement("button"); chg.type = "button"; chg.textContent = "Change pet";
+  var chg = document.createElement("button"); chg.type = "button"; chg.textContent = "My pets";
   var hide = document.createElement("button"); hide.type = "button";
   petEl._label = function(){ hide.textContent = petLS(petOffKey())==="1" ? "Show pet" : "Hide pet"; };
   chg.onclick = function(){
-    var cfg = petCfg(); if(!cfg) return;
-    var i = (+petLS(petWhichKey()) || 0) + 1; if(i>=cfg.list.length) i = 0;
-    petLS(petWhichKey(), String(i)); applyPetLook(); petHop(); petSay(petCur().hi);
+    if(petPanelOpen()){ closePetPanel(); return; }
+    renderPetPanel(); loadPetOwnership(true);
   };
+  document.addEventListener("click", function(e){
+    if(!petPanelOpen()) return;
+    if(e.target.closest("#petPanel") || e.target.closest("#petCtl")) return;
+    closePetPanel();
+  });
   hide.onclick = function(){ petLS(petOffKey(), petLS(petOffKey())==="1" ? "0" : "1"); syncKidSkin(); };
   ctl.appendChild(chg); ctl.appendChild(hide); document.body.appendChild(ctl);
   petEl.querySelector(".walker").addEventListener("click", function(){
@@ -1053,8 +1301,8 @@ function buildPet(){
 }
 function applyPetLook(){
   var cur = petCur(); if(!cur || !petEl) return;
-  petEl.querySelector("use").setAttribute("href", "#"+cur.sym);
-  petEl.querySelector(".walker").setAttribute("aria-label", "Tap "+cur.name);
+  petEl.querySelector(".walker svg").innerHTML = petArt(cur, petWorn("head"), petWorn("face"));
+  petEl.querySelector(".walker").setAttribute("aria-label", "Tap "+cur.short);
   if(petEl._label) petEl._label();
 }
 function petTick(ts){
@@ -1085,8 +1333,9 @@ function syncKidSkin(){
   document.body.classList.toggle("anna-skin", !!cfg && cfg.skin==="anna-skin");
   document.body.classList.toggle("ryan-skin", !!cfg && cfg.skin==="ryan-skin");
   document.body.classList.toggle("pet-on", !!cfg && petLS(petOffKey())!=="1");
+  if(!cfg) closePetPanel();
   if(cfg){
-    buildPet(); applyPetLook();
+    buildPet(); loadPetOwnership(); applyPetLook();
     if(!petHi[kid] && petLS(petOffKey())!=="1"){ petHi[kid] = true; setTimeout(function(){ petSay(petPick(PET_LINES[kid].hi)); }, 800); }
   }
   startPlanTimer();
@@ -1249,7 +1498,7 @@ function renderSchoolDone(kidId){
   var cur = petCur();
   var ideas = planIdeasFor(kidId, 4);
   wrap.innerHTML =
-    '<svg class="sd-pet" viewBox="0 0 230 190" aria-hidden="true"><use href="#'+(cur?cur.sym:"pet-uni")+'"/></svg>'+
+    '<svg class="sd-pet" viewBox="0 0 230 190" aria-hidden="true">'+petArtCur()+'</svg>'+
     '<h2 style="margin:6px 0 4px;font-size:26px">'+(anna ? "School is done for today, "+escapeHtml(kd.name||"Anna")+"!" : "School is done for today, "+escapeHtml(kd.name||"Ryan")+".")+'</h2>'+
     '<div style="font-size:16px;line-height:1.5;max-width:520px;margin:0 auto 6px">'+
       (anna ? "You worked so hard. Your brain needs a rest from the screen now." : "Good work today. Your brain does its best thinking after a break from the screen.")+'</div>'+
