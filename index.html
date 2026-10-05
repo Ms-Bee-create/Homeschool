@@ -7737,6 +7737,61 @@ function patchKid2Content(){
   });
   if(patched) console.log("patchKid2Content: updated "+patched+" lesson(s)");
 }
+/* Anna's daily Math and Storytime. Her October Skill Blocks are spaced out on purpose, which left
+   some school days with no Math or no Reading at all. This looks at today and the next 9 school
+   days and, for any day missing one, adds a short practice lesson. It only fills empty days, never
+   touches existing lessons, and the lessons carry no links (nothing to go stale or be wrong). */
+var ANNA_DAILY_MATH = [
+  {title:"Math: Number of the Day — 347", passage:"Gather first — About 20 buttons or coins, and paper.\nHere's the Idea — 347 is 3 hundreds, 4 tens and 7 ones. The digit's spot tells you how much it is worth. The 4 is in the tens spot, so it means 40, not 4.\nSee It Done — Show 347 on paper: draw 3 big squares (hundreds), 4 sticks (tens), 7 dots (ones). 300 + 40 + 7 = 347.\nYour Turn — 1. Pick any 3-digit number from 100 to 999 (try your house number or a birthday). 2. Draw its squares, sticks and dots. 3. Write it as hundreds + tens + ones.\nCheck Yourself — Do your squares, sticks and dots match each digit?"},
+  {title:"Math: Counting Up by 10s and 100s", passage:"Gather first — Paper and a pencil.\nHere's the Idea — Adding 10 changes only the tens digit by 1. Adding 100 changes only the hundreds digit by 1. Example: 234 + 10 = 244, and 234 + 100 = 334.\nYour Turn — 1. Start at 126. Write what you get when you add 10, then add 10 again, three times. 2. Start at 126 again and add 100 three times. 3. Say which digit changed each time.\nCheck Yourself — When you add 10, does the ones digit ever change? (It shouldn't!)"},
+  {title:"Math: Which Number Is Bigger?", passage:"Gather first — Paper and a pencil.\nHere's the Idea — To compare numbers, look at the hundreds first. If they match, look at the tens, then the ones. Example: 582 vs 528. Both have 5 hundreds. 8 tens is more than 2 tens, so 582 is bigger. We write 582 > 528.\nYour Turn — 1. Write three pairs of 3-digit numbers that start with the same digit. 2. For each pair circle the bigger one and write > or <. 3. Tell Mom which digit decided it.\nCheck Yourself — Did you look at the biggest spot first?"},
+  {title:"Math: Add Tens — Make a Ten Trade", passage:"Gather first — About 30 buttons.\nHere's the Idea — When you have 10 ones you can trade them for 1 ten. Example: 8 ones + 5 ones = 13 ones. That is 1 ten and 3 ones, so 8 + 5 = 13.\nYour Turn — 1. Make 7 ones and 6 ones with buttons. 2. Push them together and trade 10 buttons for 1 ten (a small pile or a rubber band). 3. Say how many tens and ones you have, then write the answer. 4. Try 9 + 4 and 8 + 8 the same way.\nCheck Yourself — Does your answer match your tens and ones?"},
+  {title:"Math: Skip Count and Find the Pattern", passage:"Gather first — Paper and a pencil.\nHere's the Idea — Skip counting jumps by the same amount each time. By 5s: 5, 10, 15, 20. By 10s: 10, 20, 30. Each jump adds the same number.\nYour Turn — 1. Skip count by 5s from 5 up to 100 and write it down. 2. Skip count by 10s from 130 up to 230. 3. Circle any number that shows up in both lists. 4. Tell Mom what pattern you notice in the ones digits when counting by 5s.\nCheck Yourself — Did the ones digits switch between 5 and 0?"},
+  {title:"Math: Show a Number Three Ways", passage:"Gather first — Paper and colored pencils.\nHere's the Idea — One number can look different but be worth the same. 214 = 2 hundreds + 1 ten + 4 ones. It is also 200 + 10 + 4. It is also two hundred fourteen.\nYour Turn — 1. Pick the number 463. 2. Draw it as squares, sticks and dots. 3. Write it as an addition (400 + 60 + 3). 4. Write the number in words. 5. Pick another number and show it three ways.\nCheck Yourself — Do all three ways name the same number?"},
+  {title:"Math: Missing Number Mystery", passage:"Gather first — Paper and a pencil.\nHere's the Idea — Sometimes one digit is hidden: 3_5. Use clues to find it. Example: the number is 3_5 and has 2 tens… so it is 325.\nYour Turn — 1. Clue 1: a number with 4 hundreds, 6 tens and some ones that is less than 468. List two numbers that fit. 2. Make your own clue puzzle for Mom with a hidden digit. 3. Let Mom solve it, then check it together.\nCheck Yourself — Does the answer match every clue?"},
+  {title:"Math: Place Value Treasure Hunt", passage:"Gather first — Paper and a pencil, plus a few things around the house with numbers on them (a clock, a book page, a box).\nHere's the Idea — Numbers are everywhere. A page number like 138 means 1 hundred, 3 tens and 8 ones.\nYour Turn — 1. Find 4 numbers around the house. 2. Write each one and say how many hundreds, tens and ones it has. 3. Put your 4 numbers in order from smallest to biggest.\nCheck Yourself — Is your smallest number really the smallest? Check the hundreds spot first."}
+];
+var ANNA_DAILY_READING = [
+  {title:"Storytime: Read and Tell the Beginning, Middle and End", passage:"Gather first — A book you like and a cozy spot.\nHere's the Idea — Every story has a beginning (who and where), a middle (the problem), and an end (how it gets solved). Example: in Cinderella, the beginning is her home, the middle is the ball and the lost shoe, the end is the prince finding her.\nYour Turn — 1. Read for 20 minutes, aloud or quietly. 2. When you stop, tell Mom the beginning, middle and end so far in three sentences.\nCheck Yourself — Did you say who is in it, what the problem is, and what happens?"},
+  {title:"Storytime: Who and Where?", passage:"Gather first — A book you like.\nHere's the Idea — Characters are who the story is about. The setting is where and when it happens. Example: in a story about a bunny in a garden at night, the bunny is the character and the garden at night is the setting.\nYour Turn — 1. Read for 20 minutes. 2. Draw the main character and the setting on paper. 3. Write one sentence that tells who and where.\nCheck Yourself — Does your picture match the words in the book?"},
+  {title:"Storytime: The Problem and the Fix", passage:"Gather first — A book you like.\nHere's the Idea — Most stories have a problem and a fix. Example: in The Three Little Pigs the problem is the wolf blowing houses down and the fix is the brick house.\nYour Turn — 1. Read for 20 minutes. 2. Tell Mom the problem in your story. 3. Tell what the character does about it, or what you think will happen next.\nCheck Yourself — Can you point to the page where the problem starts?"},
+  {title:"Storytime: How Did the Character Feel?", passage:"Gather first — A book you like.\nHere's the Idea — Clues tell us how a character feels, like what they say, do, or how their face looks. Example: if someone slams the door and stomps, they are probably angry.\nYour Turn — 1. Read for 20 minutes. 2. Find one place where you can tell how a character feels. 3. Show Mom the page and say the clue that told you.\nCheck Yourself — Did you use a clue from the book, not just a guess?"},
+  {title:"Storytime: Read Aloud Like a Storyteller", passage:"Gather first — A book you like.\nHere's the Idea — Reading with feeling makes a story come alive. A question goes up at the end. An exclamation is louder. A comma is a tiny pause. Example: \"Stop!\" yelled the farmer. Read it loud and fast.\nYour Turn — 1. Pick one page. 2. Read it aloud 2 times, trying a different voice for each character. 3. Read for 15 more minutes quietly.\nCheck Yourself — Could Mom tell which parts were questions and which were shouts?"},
+  {title:"Storytime: What Is the Story Teaching?", passage:"Gather first — A book you like (or one you finished).\nHere's the Idea — The central message is the lesson a story teaches. Example: in The Tortoise and the Hare, slow and steady wins, so the message is keep trying and do not show off.\nYour Turn — 1. Read for 20 minutes. 2. Tell Mom what lesson the character learned or what you learned. 3. Say which part of the story shows it.\nCheck Yourself — Does your lesson fit the whole story, not just one part?"},
+  {title:"Storytime: Hard Words Detective", passage:"Gather first — A book you like and paper.\nHere's the Idea — When you find a word you do not know, try these steps: look at the pictures, break the word into parts, and read the sentence again. Example: \"sunflower\" is sun + flower.\nYour Turn — 1. Read for 20 minutes. 2. Write down 3 words that were tricky. 3. Try the steps on each one. 4. Tell Mom what each word means.\nCheck Yourself — Does the meaning make sense in the sentence?"},
+  {title:"Storytime: Draw What You Read", passage:"Gather first — A book you like, paper and colors.\nHere's the Idea — Pictures in your mind help you remember a story. Draw your favorite part so someone else can tell what happened without the book.\nYour Turn — 1. Read for 20 minutes. 2. Draw your favorite part. 3. Write one sentence under it. 4. Show Mom and tell why it was your favorite.\nCheck Yourself — Does your sentence say what is in your picture?"}
+];
+function fillAnnaDailyBasics(){
+  if(!db) return;
+  var d = new Date(todayISO()+"T00:00:00");
+  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  var anchor = new Date("2026-01-05T00:00:00"), added = 0;
+  for(var i=0;i<10;i++){
+    var iso = isoDate(d);
+    var ordinal = 0, c = new Date(anchor);
+    while(c<d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) ordinal++; }
+    var have = {};
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId==="kid1" && a.date===iso) have[blockKeyFor(a)] = true;
+    });
+    [
+      {block:"math", subject:"Math", list:ANNA_DAILY_MATH, skillId:"anna-math-place-value", standard:"2.NR.1"},
+      {block:"reading", subject:"ELA", list:ANNA_DAILY_READING, skillId:"anna-ela-story-elements", standard:"ELAGSE2RL2-RL5"}
+    ].forEach(function(spec){
+      if(have[spec.block]) return;
+      var item = spec.list[ordinal % spec.list.length];
+      db.collection("assignments").add({
+        kidId:"kid1", date:iso, subject:spec.subject, title:item.title,
+        xp:10, done:false, doneAt:null, skillId:spec.skillId, stage:"practice", standard:spec.standard,
+        passage:item.passage, createdAt:new Date().toISOString()
+      });
+      added++;
+    });
+    d = addSchoolDays(d, 1);
+  }
+  if(added) console.log("fillAnnaDailyBasics: added "+added+" Math/Storytime lesson(s) for empty days");
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -7747,6 +7802,7 @@ function runAutoMigrations(){
     retireAnnaFillerLessons();
     patchKid2Content();
     moveWeekendLessonsToMonday();
+    fillAnnaDailyBasics();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
