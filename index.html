@@ -928,6 +928,16 @@ function prevSchoolDay(d){
   while(p.getDay()===0 || p.getDay()===6){ p.setDate(p.getDate()-1); }
   return p;
 }
+/* A streak survives as long as no school day was skipped. Last counted on or after the most recent
+   school day before today (a Friday, or a Sunday catch-up lesson) still counts, so a weekend never
+   breaks it. Dates are stored as Date.toDateString() text. */
+function streakIntact(lastStr){
+  if(!lastStr) return false;
+  var last = new Date(lastStr); if(isNaN(last)) return false;
+  last.setHours(0,0,0,0);
+  var prev = prevSchoolDay(new Date()); prev.setHours(0,0,0,0);
+  return last.getTime() >= prev.getTime();
+}
 /* n school days after d (skipping weekends) — used to space out review questions. */
 function addSchoolDays(d, n){
   var p = new Date(d);
@@ -1887,7 +1897,7 @@ function dayPlanCard(){
   if(isDetailsOpen(openKey)) det.open = true;
   det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
   var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
-  sum.textContent = "⏰ Daily schedule & screen time"; det.appendChild(sum);
+  sum.textContent = "⏰ Daily schedule & screen time  ▾ tap to open or close"; det.appendChild(sum);
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
   note.textContent = "Both kids' days run on this clock, Monday to Friday. The pet and a countdown warn 5 minutes before each switch. At the end time the app shows a calm \"school's done\" screen with screen-free ideas.";
   det.appendChild(note);
@@ -2671,10 +2681,11 @@ function toggleAssignment(a){
     var last = kd.lastCompletedDate;
     var todayStr = new Date().toDateString();
     if(last !== todayStr){
-      var y = prevSchoolDay(new Date());
-      updates.streak = (last === y.toDateString()) ? (kd.streak||0)+1 : 1;
+      var intact = streakIntact(last);
+      var wkend = isWeekendIso(todayISO());
+      updates.streak = intact ? (kd.streak||0)+(wkend ? 0 : 1) : 1;
       updates.lastCompletedDate = todayStr;
-      newStreakDay = true;
+      newStreakDay = !wkend || !intact;
     }
   }
   var lvl = willDone ? levelUpBonus(kd, newXp) : {gained:0, bonus:0, newLevel:levelFor(newXp)};
@@ -3174,8 +3185,7 @@ function maybeAdvanceSelfStartStreak(kidId, entry){
   var kd = kidData(kidId);
   var todayStr = new Date().toDateString();
   if(kd.lastSelfStartDate === todayStr) return null; // already counted today
-  var y = prevSchoolDay(new Date());
-  var newStreak = (kd.lastSelfStartDate === y.toDateString()) ? (kd.selfStartStreak||0)+1 : 1;
+  var newStreak = streakIntact(kd.lastSelfStartDate) ? (kd.selfStartStreak||0)+(isWeekendIso(todayISO()) ? 0 : 1) : 1;
   var updates = {selfStartStreak: newStreak, lastSelfStartDate: todayStr};
   Object.assign(kd, updates);
   state.kids[kidId] = kd;
@@ -5750,6 +5760,83 @@ function renderWeekendExtrasSettingsCard(){
   return card;
 }
 
+/* Leader: fix or restore a streak. Shows what the app has, suggests what the real streak is from the
+   days work was actually finished, and lets you set it by hand. Setting it also marks it as kept
+   alive through the last school day, so the next lesson done continues it instead of restarting. */
+function suggestedStreak(kidId){
+  var days = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId===kidId && a.done && a.doneAt) days[new Date(a.doneAt).toDateString()] = true;
+  });
+  var d = new Date(); d.setHours(0,0,0,0);
+  if(d.getDay()===0 || d.getDay()===6) d = prevSchoolDay(new Date(d.getTime()+86400000));
+  else if(!days[d.toDateString()]) d = prevSchoolDay(d);
+  var n = 0;
+  while(days[d.toDateString()]){ n++; d = prevSchoolDay(d); }
+  return n;
+}
+function leaderStreakCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"streaks");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🔥 Streaks — fix or reset  ▾ tap to open or close"; det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Weekends no longer break a streak. If one was broken by mistake, type the right number and save. It keeps going from the next lesson they finish.";
+  det.appendChild(note);
+  var inputCss = "font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--paper);color:var(--text);width:80px";
+  KIDS.forEach(function(k){
+    var kd = kidData(k.id);
+    var sec = document.createElement("div"); sec.style.cssText = "border-top:1px solid var(--border);padding:12px 0";
+    var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin-bottom:6px"; h.textContent = kd.name || k.id; sec.appendChild(h);
+    [["streak","Day streak","lastCompletedDate"],["selfStartStreak","Self-start streak","lastSelfStartDate"]].forEach(function(f){
+      var row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px";
+      var lbl = document.createElement("span"); lbl.style.cssText = "min-width:130px;font-size:14px";
+      lbl.textContent = f[1]+": 🔥 "+(kd[f[0]]||0)+(kd[f[2]] ? " (last counted "+kd[f[2]]+")" : "");
+      var inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.max = "999"; inp.style.cssText = inputCss; inp.value = kd[f[0]]||0;
+      var save = document.createElement("button"); save.className = "reward-skip"; save.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;font-size:13px";
+      save.textContent = "Save";
+      save.onclick = function(){ applyStreak(k.id, f[0], f[2], Math.max(0, Math.min(999, parseInt(inp.value,10)||0))); };
+      var reset = document.createElement("button"); reset.className = "reward-skip"; reset.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;font-size:13px";
+      reset.textContent = "Reset to 0";
+      reset.onclick = function(){ if(confirm("Reset "+(kd.name||k.id)+"'s "+f[1].toLowerCase()+" to 0?")) applyStreak(k.id, f[0], f[2], 0); };
+      row.appendChild(lbl); row.appendChild(inp); row.appendChild(save); row.appendChild(reset);
+      if(f[0]==="streak"){
+        var sg = suggestedStreak(k.id);
+        var sug = document.createElement("button"); sug.className = "reward-skip"; sug.style.cssText = "opacity:1;border:1px solid var(--gold);padding:6px 12px;font-size:13px";
+        sug.textContent = "Use "+sg+" (from finished work)";
+        sug.onclick = function(){ applyStreak(k.id, "streak", "lastCompletedDate", sg); };
+        row.appendChild(sug);
+      }
+      sec.appendChild(row);
+    });
+    det.appendChild(sec);
+  });
+  wrap.appendChild(det);
+  return wrap;
+}
+function applyStreak(kidId, field, dateField, n){
+  var kd = kidData(kidId), upd = {};
+  upd[field] = n;
+  if(n>0){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayWeekday = today.getDay()!==0 && today.getDay()!==6;
+    // Keep it alive: counted through the last school day, so the next lesson continues it.
+    upd[dateField] = (todayWeekday ? prevSchoolDay(today) : prevSchoolDay(new Date(today.getTime()+86400000))).toDateString();
+    if(dateField==="lastCompletedDate" && todayWeekday){
+      var did = Object.keys(state.assignments).some(function(id){ var a = state.assignments[id]; return a.kidId===kidId && a.done && a.doneAt && new Date(a.doneAt).toDateString()===today.toDateString(); });
+      if(did) upd[dateField] = today.toDateString();
+    }
+  } else upd[dateField] = null;
+  Object.assign(kd, upd); state.kids[kidId] = kd;
+  if(db) db.doc("kids/"+kidId).update(upd);
+  toast((kd.name||kidId)+"'s streak is now "+n);
+  renderView(); renderXpBar();
+}
+
 function renderLeaderArea(){
   els.view.innerHTML = "";
   if(!state.leaderUnlocked || state.changingPin){ return renderLeaderPinGate(); }
@@ -5773,6 +5860,7 @@ function renderLeaderArea(){
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
   els.view.appendChild(dayPlanCard());
+  els.view.appendChild(leaderStreakCard());
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
