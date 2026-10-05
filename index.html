@@ -533,6 +533,12 @@ body.anna-skin .a-stripes i{border-color:#ffc2e0}
 .hm-pet{width:160px;height:134px;flex:none}
 .hm-hello{flex:1;min-width:220px}
 .hm-greet{font-family:"Fredoka","Poppins",sans-serif;font-size:clamp(24px,5vw,32px);margin:0 0 8px}
+.hm-who{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.hm-who .hm-greet{margin:0}
+.hm-av-img,.hm-av{width:64px;height:64px;border-radius:50%;flex:none;object-fit:cover;border:3px solid var(--gold,#e8a838);box-shadow:0 3px 8px rgba(0,0,0,.2)}
+.hm-av{display:flex;align-items:center;justify-content:center;background:var(--kc-soft);color:var(--kc);font-family:"Fredoka","Poppins",sans-serif;font-weight:700;font-size:28px}
+body.anna-skin .hm-av-img,body.anna-skin .hm-av{border-color:#ff4fa8;box-shadow:0 4px 12px rgba(214,38,140,.35)}
+body.ryan-skin .hm-av-img,body.ryan-skin .hm-av{border-radius:0;border:2px solid #000;box-shadow:inset 1px 1px #fff,2px 2px 0 #808080}
 .hm-bubble{background:var(--paper);border-radius:18px;padding:10px 14px;font-weight:800;font-size:16px;line-height:1.35}
 .hm-main{display:flex;align-items:center;gap:14px;width:100%;text-align:left;border:0;border-radius:24px;padding:18px 20px;margin-bottom:12px;color:#fff;background:linear-gradient(135deg,var(--teal),#2d83c9);box-shadow:var(--shadow)}
 .hm-main-ic{font-size:34px;flex:none}
@@ -2007,7 +2013,7 @@ function renderHome(){
   var hero = document.createElement("div");
   hero.className = "card hm-hero";
   hero.innerHTML = '<svg class="hm-pet" viewBox="0 0 230 190" aria-hidden="true">'+petArtCur()+'</svg>'+
-    '<div class="hm-hello"><h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
+    '<div class="hm-hello"><div class="hm-who">'+avatarHtml(kid, "hm-av")+'<h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2></div><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
 
