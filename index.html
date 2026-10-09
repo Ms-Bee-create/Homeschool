@@ -8694,7 +8694,7 @@ function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 25
    - Nothing is replaced or re-rendered when the data is identical to last time, which also stops a
      poll from overwriting an optimistic local change that is still being saved.
    - Hidden tabs don't poll; coming back to the tab syncs immediately. */
-var syncState = {running:false, again:false, lastFull:0, lightCols:null, sig:""};
+var syncState = {running:false, again:false, lastFull:0, lastSlow:0, lightCols:null, sig:"", sigSlow:""};
 var lastTouchAt = Date.now();
 function syncAll(force){
   if(!HOUSEHOLD_ID) return;
@@ -8702,14 +8702,19 @@ function syncAll(force){
   syncState.running = true;
   var needFull = force===true || !syncState.lightCols || (Date.now()-syncState.lastFull > 900000);
   var assignQ = sb.from("al_assignments").select(needFull ? "*" : syncState.lightCols).eq("household_id", HOUSEHOLD_ID);
+  /* Kids and lessons change all day, so they are checked every tick. The schedule, question bank,
+     journal, reflections and PIN rarely change from another device, so they are only re-read every
+     5 minutes (or on a full load). That is 2 requests per tick instead of 7. */
+  var slow = needFull || !syncState.lastSlow || (Date.now()-syncState.lastSlow > 300000);
+  var skip = Promise.resolve({data:null});
   Promise.all([
     sb.from("al_kids").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_schedule").select("*").eq("household_id", HOUSEHOLD_ID),
+    slow ? sb.from("al_schedule").select("*").eq("household_id", HOUSEHOLD_ID) : skip,
     assignQ,
-    sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_journal").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID),
-    sb.from("al_settings").select("*").eq("household_id", HOUSEHOLD_ID)
+    slow ? sb.from("al_questions").select("*").eq("household_id", HOUSEHOLD_ID) : skip,
+    slow ? sb.from("al_journal").select("*").eq("household_id", HOUSEHOLD_ID) : skip,
+    slow ? sb.from("al_reflections").select("*").eq("household_id", HOUSEHOLD_ID) : skip,
+    slow ? sb.from("al_settings").select("*").eq("household_id", HOUSEHOLD_ID) : skip
   ]).then(function(results){
     for(var ri=0; ri<results.length; ri++){
       if(results[ri].error){
@@ -8733,20 +8738,29 @@ function syncAll(force){
       });
     }
 
-    var sigData = JSON.stringify([kidsRows, schedRows,
-      assignRows.map(function(r){ var c = Object.assign({}, r); delete c.work_blocks; return c; }),
-      qRows, journalRows, reflectionRows, settingsRow ? settingsRow.leader_pin_hash : null]);
-    var changed = sigData!==syncState.sig;
-    syncState.sig = sigData;
+    var sigFast = JSON.stringify([kidsRows,
+      assignRows.map(function(r){ var c = Object.assign({}, r); delete c.work_blocks; return c; })]);
+    var changedFast = sigFast!==syncState.sig;
+    syncState.sig = sigFast;
+    var changedSlow = false;
+    if(slow){
+      syncState.lastSlow = Date.now();
+      var sigSlow = JSON.stringify([schedRows, qRows, journalRows, reflectionRows, settingsRow ? settingsRow.leader_pin_hash : null]);
+      changedSlow = sigSlow!==syncState.sigSlow;
+      syncState.sigSlow = sigSlow;
+    }
+    var changed = changedFast || changedSlow;
 
-    if(changed){
-      state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
+    if(changedFast){
       state.kids = {};
       kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
-      state.schedules = {};
-      schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
       state.assignments = {};
       assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
+    }
+    if(changedSlow){
+      state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
+      state.schedules = {};
+      schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
       state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
       state.journalEntries = journalRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("journal", r)); });
       state.reflections = reflectionRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("reflections", r)); });
