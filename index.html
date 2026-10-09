@@ -8695,11 +8695,12 @@ function syncSoon(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncAll, 25
      poll from overwriting an optimistic local change that is still being saved.
    - Hidden tabs don't poll; coming back to the tab syncs immediately. */
 var syncState = {running:false, again:false, lastFull:0, lightCols:null, sig:""};
+var lastTouchAt = Date.now();
 function syncAll(force){
   if(!HOUSEHOLD_ID) return;
   if(syncState.running){ syncState.again = true; return; }
   syncState.running = true;
-  var needFull = force===true || !syncState.lightCols || (Date.now()-syncState.lastFull > 300000);
+  var needFull = force===true || !syncState.lightCols || (Date.now()-syncState.lastFull > 900000);
   var assignQ = sb.from("al_assignments").select(needFull ? "*" : syncState.lightCols).eq("household_id", HOUSEHOLD_ID);
   Promise.all([
     sb.from("al_kids").select("*").eq("household_id", HOUSEHOLD_ID),
@@ -8888,7 +8889,17 @@ function showApp(){
   renderKidbar(); renderXpBar(); renderView();
   showWhoGate();
   syncAll();
-  setInterval(function(){ if(!document.hidden) syncAll(); }, 8000);
+  /* Background sync is the biggest thing talking to Supabase (7 tables per device per tick), so it
+     runs every 30 seconds instead of 8, and pauses entirely while nobody has touched this screen
+     for 3 minutes (a tablet left open overnight), catching up the moment someone does. */
+  setInterval(function(){ if(!document.hidden && Date.now()-lastTouchAt < 180000) syncAll(); }, 30000);
+  ["pointerdown","keydown","touchstart"].forEach(function(evt){
+    document.addEventListener(evt, function(){
+      var wasIdle = Date.now()-lastTouchAt >= 180000;
+      lastTouchAt = Date.now();
+      if(wasIdle && !document.hidden) syncAll();
+    }, {passive:true});
+  });
 }
 function tryRestoreSession(){
   sb.auth.getSession().then(function(res){
