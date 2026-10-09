@@ -740,6 +740,34 @@ function isWeekendIso(iso){
 /* Same 3 picks all day (and if he checks back later), a different trio most weekends — keyed off
    the date so it doesn't reshuffle on every render, rotating through the whole pool over several
    weekends rather than showing the same set every time. */
+/* Featured weekend projects: shown on Today for the named kid on the listed dates, whether or not
+   Weekend Extras is switched on. Optional, no XP, nothing to complete. */
+var WEEKEND_FEATURED = [
+  {kid:"kid2", dates:["2026-10-10","2026-10-11"],
+   title:"Log in to another computer: SSH from your mom's computer to the old Chromebook",
+   blurb:"Real servers are run from far away with a typed login. Today you do it on your own home network, with a grown-up beside you.",
+   idea:"SSH stands for Secure Shell. You type a command on one computer, and it opens a command line on a different computer. Everything you type then runs on the other computer. Example: typing ssh chronos@192.168.1.23 asks the computer at address 192.168.1.23 to let user chronos in.",
+   safety:["A grown-up sits with you the whole time.","Only do this on your home Wi-Fi.","Never tell anyone the password, and never use this on Johnny's laptop.","When you finish, type exit, then forget the Wi-Fi network on the old Chromebook or turn it off."],
+   steps:["On the old Chromebook, open the developer console (Ctrl + Alt + the forward arrow) and log in as chronos. Type ip addr and press Enter. Find the line that starts with inet and has numbers like 192.168.1.23. That is the Chromebook's address. Write it down.","On your mom's Windows computer, open Command Prompt (Start menu, type cmd).","Type ssh chronos@ and then the address, with no spaces, like ssh chronos@192.168.1.23, and press Enter.","The first time, it asks whether to continue connecting. Type yes and press Enter.","Type the password you set on the Chromebook (the letters will not show as you type, which is normal) and press Enter.","You are now typing on the Chromebook from the Windows computer. Try pwd, ls, uname -a, and cat /proc/meminfo | head -3. Make a folder with mkdir ryan-test and check it with ls.","Type exit and press Enter to log out. Check that the Command Prompt is back to the Windows prompt.","If it says the connection timed out or was refused, do not keep trying. Write down the exact message and show your mom. Some Chromebooks do not allow outside logins, and that is a real answer too.","Write 3 sentences: what happened, what you ran, and one thing a real server person could do with SSH."]}
+];
+function weekendFeaturedFor(kidId, iso){
+  return WEEKEND_FEATURED.filter(function(f){ return f.kid===kidId && f.dates.indexOf(iso)>=0; });
+}
+function renderWeekendFeaturedCard(f){
+  var card = document.createElement("div");
+  card.className = "card";
+  card.style.cssText = "margin-bottom:10px;border:1px solid var(--border)";
+  card.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:18px">🖥️</span><div style="font-weight:700">Weekend project (optional, no XP)</div></div>'+
+    '<div style="font-weight:600;font-size:15px;margin-bottom:4px">'+escapeHtml(f.title)+'</div>'+
+    '<div class="muted" style="font-size:13px;margin-bottom:8px">'+escapeHtml(f.blurb)+'</div>'+
+    '<div style="font-size:13.5px;margin-bottom:10px"><b>Here\'s the Idea:</b> '+escapeHtml(f.idea)+'</div>'+
+    '<div style="padding:10px 12px;border-radius:10px;background:var(--coral-soft);margin-bottom:10px"><div style="font-weight:700;font-size:13px;margin-bottom:4px">Safety first</div><ul style="margin:0 0 0 18px;padding:0;font-size:13px">'+
+      f.safety.map(function(x){ return '<li style="margin-bottom:3px">'+escapeHtml(x)+'</li>'; }).join("")+'</ul></div>'+
+    '<div style="font-size:13px;font-weight:600;margin-bottom:2px">Your Turn:</div>'+
+    '<ol style="margin:0 0 0 18px;padding:0;font-size:13px">'+f.steps.map(function(x){ return '<li style="margin-bottom:5px">'+escapeHtml(x)+'</li>'; }).join("")+'</ol>';
+  return card;
+}
 function weekendExtrasFor(iso){
   var n = WEEKEND_EXTRAS.length;
   var dayNum = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
@@ -2026,6 +2054,13 @@ function renderHome(){
     '<div class="hm-hello"><div class="hm-who">'+avatarHtml(kid, "hm-av")+'<h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2></div><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
+  weekendFeaturedFor(kid, iso).forEach(function(f){
+    var wb = document.createElement("button");
+    wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
+    wb.innerHTML = '<span class="hm-main-ic">🖥️</span><span class="hm-main-t"><b>Weekend project (optional)</b><small>'+escapeHtml(f.title)+'</small></span>';
+    wb.onclick = function(){ goTab("today"); };
+    els.view.appendChild(wb);
+  });
 
   var main = document.createElement("button");
   main.type = "button"; main.className = "hm-main";
@@ -3038,6 +3073,7 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
 
+  weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
     /* Weekends have no real curriculum assigned, so the usual 6 blocks would just show up as a
        row of "nothing assigned to this block today" placeholders — noise on what's supposed to be
