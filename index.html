@@ -7977,6 +7977,29 @@ function autoAddRyanJohnnyBuild(){
   var has = Object.keys(state.assignments).some(function(id){ var a = state.assignments[id]; return a.kidId==="kid2" && a.skillId==="ryan-linux-birthday-build"; });
   if(!has) addRyanJohnnyBuild("kid2");
 }
+/* An optional Design Studio extra for Anna on the next Monday: friendship bracelets. Added once, the
+   first time the app opens after this update. If it is deleted later it stays deleted on the device
+   that added it (a small flag remembers). */
+var ANNA_BRACELET_EXTRA = {
+  title:"Design Studio Extra: Friendship Bracelet — Design a Pattern, Then Braid It",
+  subject:"Related Arts", crossSubjects:["Math"], xp:15, standard:"VA2.CR.2", stage:"apply",
+  passage:"Gather first — 3 colors of yarn or embroidery thread (or 3 colors of ribbon), scissors (ask a grown-up to help cut), tape, a ruler, and paper with colored pencils.\nHere's the Idea — A friendship bracelet is a gift you make for someone special. Before you braid, you plan your colors in a pattern. A pattern is colors that repeat the same way again and again. Example: pink, purple, pink, purple is an AB pattern. Pink, purple, blue, pink, purple, blue is an ABC pattern.\nSee It Done — Plan on paper first. Draw 8 little squares in a row. Color them in an AB pattern: pink, purple, pink, purple, pink, purple, pink, purple. Now try an ABC pattern with 9 squares. The colors keep repeating in the same order.\nYour Turn — 1. Draw your own pattern on paper with at least 8 squares, and say out loud which colors repeat. 2. Pick 3 colors you love. Measure and cut 3 strands, each about as long as 2 rulers. 3. Hold the 3 strands together and tie a knot about 3 fingers down from the top. Tape the knot to a table so it stays still. 4. Braid: bring the right strand over the middle one. Then bring the left strand over the middle one. Keep going right, left, right, left. 5. When your braid is long enough to go around a wrist, tie a knot at the bottom. Ask a grown-up to help trim the ends. 6. Count how many times each color shows at the top of your braid, and write the numbers on your paper.\nCheck Yourself — Does your pattern on paper repeat the same way every time? Could a friend tell which colors repeat?\nShow What You Know — Give your bracelet to a friend or family member and tell them how you chose the colors, or take a photo to keep."
+};
+function autoAddAnnaBraceletExtra(){
+  if(!db) return;
+  var has = Object.keys(state.assignments).some(function(id){ var a = state.assignments[id]; return a.kidId==="kid1" && a.title===ANNA_BRACELET_EXTRA.title; });
+  var flag = "al_bracelet_extra_added";
+  try{ if(has || localStorage.getItem(flag)) return; }catch(e){ if(has) return; }
+  var d = new Date(todayISO()+"T00:00:00");
+  do { d.setDate(d.getDate()+1); } while(d.getDay()!==1);
+  var it = ANNA_BRACELET_EXTRA;
+  db.collection("assignments").add({
+    kidId:"kid1", date:isoDate(d), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    standard:it.standard, stage:it.stage, passage:it.passage, crossSubjects:it.crossSubjects, createdAt:new Date().toISOString()
+  });
+  try{ localStorage.setItem(flag, "1"); }catch(e){}
+  console.log("autoAddAnnaBraceletExtra: added for "+isoDate(d));
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -7990,6 +8013,7 @@ function runAutoMigrations(){
     fillAnnaDailyBasics();
     patchRyanJohnnyOS();
     autoAddRyanJohnnyBuild();
+    autoAddAnnaBraceletExtra();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
