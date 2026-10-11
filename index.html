@@ -1918,6 +1918,57 @@ function renderSchoolDone(kidId){
 }
 
 /* Leader: edit the clock, add ideas, and grant extra learning time. */
+/* Parent dashboard: what to have ready. Reads the "Gather first —" line of every lesson scheduled for today and for the
+   next school day, so it stays correct for any lesson added later. Checkmarks are remembered on this device. */
+function materialsFor(iso){
+  var out = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a || a.date!==iso || !a.passage) return;
+    var m = String(a.passage).match(/Gather first\s*[—-]\s*([^\n]*)/);
+    if(!m) return;
+    var text = m[1].split(/(?<=[a-z0-9)]\.)\s+(?=[A-Z])/).filter(function(x){ return !/^(Lab book|Take a screenshot|Use your notes|Read the)/i.test(x.trim()); }).join(" ").trim();
+    if(text) out.push({id:id, kidId:a.kidId, title:a.title, text:text, done:!!a.done});
+  });
+  return out;
+}
+function materialsCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"materials");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var d1 = new Date(todayISO()+"T00:00:00");
+  if(d1.getDay()===0 || d1.getDay()===6){ while(d1.getDay()===0 || d1.getDay()===6) d1.setDate(d1.getDate()+1); }
+  var d2 = addSchoolDays(d1, 1);
+  var days = [{label:(isoDate(d1)===todayISO() ? "Today" : "Next school day"), iso:isoDate(d1)}, {label:"Tomorrow, so you can get ready", iso:isoDate(d2)}];
+  var total = 0; days.forEach(function(d){ d.items = materialsFor(d.iso); total += d.items.length; });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🧰 Materials to have ready ("+total+")  ▾ tap to open or close"; det.appendChild(sum);
+  if(!total){
+    var none = document.createElement("div"); none.className = "muted"; none.style.cssText = "font-size:13px;margin-top:8px";
+    none.textContent = "No special supplies needed for today or the next school day."; det.appendChild(none);
+  }
+  days.forEach(function(d){
+    if(!d.items.length) return;
+    var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin:12px 0 4px"; 
+    h.textContent = d.label+" · "+new Date(d.iso+"T00:00:00").toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"}); det.appendChild(h);
+    d.items.forEach(function(it){
+      var key = "al_mat_"+it.id, checked = false;
+      try{ checked = localStorage.getItem(key)==="1"; }catch(e){}
+      var row = document.createElement("label"); row.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border);font-size:13.5px";
+      var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = checked; cb.style.cssText = "margin-top:3px;flex:none";
+      var box = document.createElement("div");
+      var t = document.createElement("div"); t.style.fontWeight = "700"; t.textContent = (kidData(it.kidId).name||it.kidId)+" — "+it.title+(it.done?" (done)":"");
+      var x = document.createElement("div"); x.className = "muted"; x.textContent = it.text;
+      function paint(){ box.style.opacity = cb.checked ? "0.55" : "1"; t.style.textDecoration = cb.checked ? "line-through" : "none"; }
+      cb.onchange = function(){ try{ if(cb.checked) localStorage.setItem(key,"1"); else localStorage.removeItem(key); }catch(e){} paint(); };
+      box.appendChild(t); box.appendChild(x); row.appendChild(cb); row.appendChild(box); paint(); det.appendChild(row);
+    });
+  });
+  wrap.appendChild(det);
+  return wrap;
+}
 function dayPlanCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
   var det = document.createElement("details");
@@ -6131,6 +6182,7 @@ function renderLeaderArea(){
 
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
+  els.view.appendChild(materialsCard());
   els.view.appendChild(dayPlanCard());
   els.view.appendChild(leaderStreakCard());
   els.view.appendChild(quickLogCard());
@@ -8256,6 +8308,570 @@ function autoAddAnnaBraceletExtra(){
   try{ localStorage.setItem(flag, "1"); }catch(e){}
   console.log("autoAddAnnaBraceletExtra: added for "+isoDate(d));
 }
+/* Ryan's Minecraft Lab Book, Lab 3 "Setting a Trap" (the book's family activity + in-game build). Written in our own
+   words around the book's steps. Added once, starting the next school day; later labs get added the same way. */
+var RYAN_MC_LAB3 = [
+  {d:0, subject:"Science", stage:"teach", xp:15, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 3 — How a Trap Works, and Build a Paper Finger Trap",
+    materials:"https://minecraft.wiki/w/Pressure_Plate",
+    passage:"Gather first — scissors, construction paper in 2 colors, tape or glue, a thick marker or stick, and a ruler. Lab book p. 33 shows each step with pictures.\nHere's the Idea — Every trap has three parts: a TRIGGER (something that sets it off), a LINK (how the signal travels), and a RESULT (what happens). In Minecraft a pressure plate is a trigger: it sends out a redstone signal while something stands on it. A trapdoor can be the result: when it gets the signal, it swings open. Open the link above to see what a pressure plate does.\nSee It Done — A doorbell is a trap you already know. Trigger: you press the button. Link: the wire. Result: the bell rings. Now the Chinese finger trap: Trigger: you push a finger in and pull. Link: the woven strips tighten. Result: your finger is stuck, and pushing in loosens it.\nYour Turn — Do the family activity with a grown-up: follow lab book p. 33 to make a Chinese finger trap. 1. Cut 4 paper strips about 12 inches long and 1 inch wide, 2 of each color. 2. Tape or glue each pair of colors together at a slight angle. 3. Tape the pairs on opposite sides of the marker. 4. Braid the colors over and under around the marker until you reach the end. 5. Trim, tape the ends, and slide the marker out. 6. Put a finger in each end and pull. Then write the trigger, link, and result of your paper trap in your notebook.\nCheck Yourself — What made the trap tighter when you pulled? What did you do to get free?\nShow What You Know — Photo of your finished finger trap and your three-part notebook note.",
+    quiz:[
+      {q:"In a Minecraft trap, which part is the TRIGGER?", choices:["The lava pit","The pressure plate","The corridor walls","The bait"], answerIndex:1, explain:"The trigger is the part that starts everything. The pressure plate sends the signal when something steps on it."},
+      {q:"A trapdoor opens when the pressure plate gets stepped on. What is the trapdoor's job?", choices:["Trigger","Link","Result","Bait"], answerIndex:2, explain:"The trapdoor opening is what happens because of the signal, so it is the result."}
+    ]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 3 — Build a Lava-Pit Trap (Lab Book pp. 34–35)",
+    materials:"https://minecraft.wiki/w/Tutorial:Traps",
+    passage:"Gather first — Minecraft on the PC in Creative mode (Survival only with a grown-up nearby), a shovel, a lava bucket, a stone pressure plate, a trapdoor, bedrock, and dirt or grass blocks. Lab book pp. 34–35 show every figure.\nHere's the Idea — Yesterday you named the three parts: trigger, link, result. Today you build them. Plan first: draw your trap on paper and label TRIGGER, LINK, and RESULT before you place a single block.\nSee It Done — The book's design: dig a pit 3 blocks by 3 blocks, put bedrock on the bottom so the lava stays, pour lava in the center, cover the pit with dirt or grass, put the trapdoor in the center, and place a stone pressure plate in front of it. The pit is the result, the pressure plate is the trigger.\nYour Turn — 1. Dig the 3x3 pit and place bedrock on the bottom. 2. Pour lava in the center of the pit. 3. Cover the pit with dirt or grass and put the trapdoor in the center, hinge side away from where the monster will come from. 4. Place the stone pressure plate in front of the trapdoor. 5. Build a solid corridor with a dead end past the trap. 6. Test it with a bait mob: step on the plate yourself, then jump past. Does the trap work? 7. If it does not, change one thing and test again.\nCheck Yourself — Which block is the trigger? Which is the result? Where does your trap fail?\nShow What You Know — A screenshot of your trap and your labeled paper plan. Safety: lava is dangerous even in a game, so keep the pit covered.",
+    quiz:[
+      {q:"Your trap did not work. What is the best next step?", choices:["Delete the world","Change one thing and test again","Give up","Change everything at once"], answerIndex:1, explain:"Changing one thing at a time shows you which change fixed it."}
+    ]},
+  {d:2, subject:"Related Arts", stage:"apply", xp:15, standard:"ELAGSE4SL4",
+    title:"Teach-Back: Explain Your Trap to Mom",
+    passage:"Show Mom or a grown-up both traps, the paper finger trap and your Minecraft trap, and explain them in your own words.\nSay these three things: 1. What is the trigger, link, and result in each trap? 2. How are the two traps the same, and how are they different? 3. Why do you think the finger trap gets tighter when you pull, but loosens when you push?\nShow What You Know — Mom checks off that you explained all three parts, or you record a short video of your explanation. Optional: add the sticker to your lab book page."}
+];
+var RYAN_MC_LAB4 = [
+  {d:0, subject:"Science", stage:"teach", xp:15, standard:"S4P3",
+    title:"Minecraft Lab 4 — Launchers: Build a Marshmallow Catapult",
+    passage:"Gather first — 7 large craft sticks, a plastic spoon, 10 to 12 rubber bands, and marshmallows. Lab book p. 36 shows each step.\nHere's the Idea — A launcher stores energy and then lets it go all at once. When you bend or press the arm down, you store energy in it. When you let go, that energy pushes the marshmallow into the air. Pressing the arm down is a force, and the harder you push, the bigger the force on the marshmallow, so the farther it goes. That is an investigation of how a force changes an object's motion. In Minecraft you will use TNT as the energy source instead.\nSee It Done — The book's build: stack 5 sticks and wrap rubber bands on both ends. Attach the spoon to one more stick with 3 rubber bands. Slide that stick under the stack at one end and secure it. Then put the stack between the two parts and bind it. Load a marshmallow in the spoon, press the arm down, and let go.\nYour Turn — 1. Build the catapult. 2. Fire 3 shots and measure each in inches or centimeters with a ruler. 3. Change ONE thing (press harder, or move the stack) and fire 3 more. 4. Write your 6 distances in a table. 5. Which change made it go farther?\nCheck Yourself — What stored the energy before the marshmallow flew? What did you change, and what happened?\nShow What You Know — Photo of your catapult and your distance table.",
+    quiz:[
+      {q:"Where is the energy stored before the marshmallow flies?", choices:["In the marshmallow","In the bent arm","In the table","In the rubber band you didn't use"], answerIndex:1, explain:"Pressing the arm down stores energy. Letting go releases it and throws the marshmallow."},
+      {q:"You want to test whether pressing harder sends it farther. What should you do?", choices:["Change three things at once","Change only the push and keep everything else the same","Use a different marshmallow each time","Skip measuring"], answerIndex:1, explain:"Changing one thing at a time shows which change caused the result."}
+    ]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 4 — Build and Fire a TNT Cannon (Lab Book pp. 38–39)",
+    materials:"https://minecraft.wiki/w/TNT",
+    passage:"Gather first — Minecraft on the PC in CREATIVE mode only, with a grown-up in the room. You need stone blocks, a bucket of water, a lever or button, redstone wire, a stone slab, 4 redstone repeaters, and TNT. Lab book pp. 38–39 show every figure. Read the TNT page linked above first.\nHere's the Idea — Same idea as your catapult: TNT stores the energy, and the explosion launches the TNT block. Your build has a trigger (the lever), a link (redstone wire plus repeaters), and a result (the cannon fires). A repeater slows the signal by a set delay, so the launched block is primed just before it goes.\nSee It Done — Build two stone walls 1 block high and 9 long, 1 block apart, and close one end. Fill the bottom of the cavity with water so the cannon does not blow itself up. Run redstone wire from the lever along the walls, put the repeaters on the left wall, and set each repeater's delay.\nYour Turn — 1. Draw your cannon from above on paper and label the trigger, link, and result. 2. Build the walls and the closed end. 3. Add the water, then the lever and the wire. 4. Place the 4 repeaters and set their delays. 5. Place the TNT, switch the lever off, and fill the cavity as the book shows. 6. Pull the switch and watch the launch. 7. Change ONE thing (the amount of TNT or the repeater delay) and fire again. Which change sent it farther?\nCheck Yourself — What does the water do? What does a repeater do?\nShow What You Know — A screenshot of your cannon and your labeled paper plan. Safety: TNT builds belong in Creative mode, in a world you are okay with changing.",
+    quiz:[
+      {q:"Why does the cannon have water at the bottom?", choices:["To make it look nice","So the cannon does not blow itself up","To make the TNT bigger","So the lever works"], answerIndex:1, explain:"Water protects the blocks under the TNT from the blast, so the cannon survives and you can fire it again."}
+    ]},
+  {d:2, subject:"Related Arts", stage:"apply", xp:15, standard:"ELAGSE4SL4",
+    title:"Teach-Back: Catapult vs. Cannon — Compare Your Two Launchers",
+    passage:"Show a grown-up your marshmallow catapult and your Minecraft cannon, and explain them in your own words.\nSay these three things: 1. Where is the energy stored in each launcher? 2. What did you change in each test, and what happened to the distance? 3. Which launcher would you improve first, and how?\nShow What You Know — A grown-up checks that you explained all three parts, or you record a short video. Optional: add the sticker to your lab book page."}
+];
+var RYAN_MC_LAB5 = [
+  {d:0, subject:"Social Studies", stage:"teach", xp:15, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 5 — Patterns in Real Restaurants (Family Research)",
+    passage:"Gather first — a camera or phone, a notebook and pencil, and a grown-up. This lab works best with a real restaurant visit (lab book p. 42). If that is not possible this week, use photos or the restaurant's website with a grown-up.\nHere's the Idea — A pattern is something that repeats, and restaurants are full of them: the way tables line up, the colors and textures, the order food comes out, even the signs. Designers pick patterns on purpose to make a place feel fast and casual, or slow and fancy.\nSee It Done — Example: a pizza place has booths in a row (a repeating pattern), red-and-white checks (a color pattern), and a menu sorted by size (an order pattern). A fancy restaurant might have round tables far apart, white cloths, and soft lights.\nYour Turn — 1. Visit a restaurant you have never been to. 2. Draw the floor plan: where the kitchen, tables, and doors are. 3. Take photos and write 3 patterns you see. 4. Note the food style and how it is served. 5. If you can, compare it to a second restaurant. How are they the same, and how are they different?\nCheck Yourself — Which pattern did you notice first? What kind of restaurant feels different from the other, and why?\nShow What You Know — Your floor plan, your 3 patterns, and photos if allowed.",
+    quiz:[
+      {q:"Which is an example of a pattern in a restaurant?", choices:["One broken chair","Tables lined up in even rows","A spilled drink","One loud customer"], answerIndex:1, explain:"A pattern repeats the same way again and again, like tables in even rows."}
+    ]},
+  {d:1, subject:"Math", stage:"apply", xp:20, standard:"4.GSR.8",
+    title:"Minecraft Lab 5 — Plan Your Restaurant: Floor Plan and Area",
+    passage:"Gather first — graph paper or lined paper, a ruler, and colored pencils. Use your notes from yesterday. Lab book pp. 44–45 have the Minecraft design checklist.\nHere's the Idea — Before you build, you plan the space. Each square on graph paper is 1 block. Area is how many squares a room covers. Perimeter is the distance around it.\nSee It Done — A dining room 10 blocks long and 6 blocks wide has an area of 10 x 6 = 60 square blocks and a perimeter of 10 + 6 + 10 + 6 = 32 blocks.\nYour Turn — 1. Pick a theme: family, fine dining, fast food, or something you invent. 2. Choose the food style (for example Mexican or Greek). 3. Draw the kitchen and dining room on graph paper. 4. Find the area and perimeter of the dining room. 5. Decide where the tables go and what pattern they follow (rows, grid, or circles). 6. Name your restaurant and sketch a logo with a pattern in it.\nCheck Yourself — Does your table pattern leave room to walk? What is the dining room's area?\nShow What You Know — Your floor plan with the area and perimeter written on it.",
+    quiz:[
+      {q:"A dining room is 8 blocks long and 5 blocks wide. What is the area?", choices:["13","26","40","45"], answerIndex:2, explain:"Area is length times width: 8 x 5 = 40 square blocks."},
+      {q:"For the same room (8 by 5), what is the perimeter?", choices:["13","26","40","18"], answerIndex:1, explain:"Add all four sides: 8 + 5 + 8 + 5 = 26 blocks."}
+    ]},
+  {d:2, subject:"Related Arts", stage:"apply", xp:20, standard:"4.GSR.8",
+    title:"Minecraft Lab 5 — Build Your Restaurant (Lab Book pp. 44–45)",
+    passage:"Gather first — Minecraft on the PC in Creative mode, plus your floor plan and logo from yesterday.\nHere's the Idea — Today you turn the plan into blocks. Your patterns carry over: the table layout, the colors, and the logo.\nSee It Done — The book's example has a kitchen with a furnace and chests, a dining room with tables in a pattern, a garden outside, and a pen for animals so food is close.\nYour Turn — 1. Build the walls to match your floor plan. 2. Place the kitchen first, then the tables in your pattern. 3. Add your restaurant sign and logo. 4. Add a menu with at least 3 dishes. 5. Walk through as a customer and fix one thing that feels wrong.\nCheck Yourself — Does your build match your floor plan? Where is the pattern?\nShow What You Know — Screenshots of your restaurant and your floor plan side by side. Optional: add the sticker to your lab book page."}
+];
+var RYAN_MC_LAB6 = [
+  {d:0, subject:"Related Arts", stage:"teach", xp:15, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 6 — Pattern Weaving: Paper Banner (Family Activity)",
+    passage:"Gather first — 3 sheets of colored paper (2 different colors), scissors, glue. Lab book p. 47 shows each step.\nHere's the Idea — Weaving makes patterns by going over and under. When two colors cross, they make a grid of little squares, a lot like Minecraft's blocky pixels. The over-under rule decides which color shows at each spot, so changing the rule changes the picture.\nSee It Done — The book's design: cut one sheet into 1-inch strips. Cut a second sheet into strips of the same width but stop about 1 inch from the edge, so the strips stay joined at the top. Weave the loose strips over and under the joined ones. The book's finished design is a creeper face.\nYour Turn — 1. Cut and weave your paper. 2. Choose your own pixel pattern, like a creeper face, a heart, or zigzags. 3. Glue the finished weaving to a larger sheet of paper as a frame. 4. Look up one pattern from Native American art, such as a beaded design, with a grown-up. These patterns are made of repeating shapes and colors. Draw one shape from it. 5. Write which colors repeat and which shape repeats.\nCheck Yourself — Which part of your weaving repeats? How would the picture change if you flipped the over-under rule?\nShow What You Know — Photo of your woven banner and your drawing of one repeating shape.",
+    quiz:[{q:"In weaving, what decides which color shows at each spot?", choices:["The glue","The over-under rule","The scissors","The table"], answerIndex:1, explain:"Going over or under decides which strip shows on top at each crossing."}]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 6 — Craft Pattern Banners (Lab Book pp. 48–49)",
+    passage:"Gather first — Minecraft on the PC in Creative mode, a crafting table, banners, and dye. Optional: the Mesa biome, which newer versions call Badlands, has red and orange clay that is good inspiration.\nHere's the Idea — Banners are cloth you can decorate with patterns. A pattern is made in the crafting table: put a banner in the grid and add a dye color and a shape. Each step adds a new layer. Planning first saves lots of tries.\nSee It Done — The book's examples: put a brick block next to the banner to create a brick-like pattern, add a dye to change the pattern's color, and use a dye in a Y-shaped pattern for a gradient. Images like a creeper head or a daisy can be added too.\nYour Turn — 1. Draw 3 banner designs on paper first, using your pattern from yesterday. 2. Make each one in the crafting table. 3. Place them on a wall and on the ground. 4. Make one that uses your restaurant's logo. 5. Take a screenshot of all three.\nCheck Yourself — Which pattern repeats on your banners? Which layer changed the look most?\nShow What You Know — Screenshot of 3 banners next to your paper designs. Optional: add the sticker to your lab book page."}
+];
+var RYAN_MC_LAB7 = [
+  {d:0, subject:"Science", stage:"teach", xp:15, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 7 — Cookie Science: Texture and Change (Family Baking)",
+    passage:"Gather first — a cookie recipe (chocolate chip or peanut butter), the ingredients, and a grown-up for the oven. Check allergies first. Lab book p. 51 shows the steps and photos.\nHere's the Idea — Baking is science. When you mix ingredients, they change texture. When they bake, they change again: butter and sugar melt, and the cookie turns lumpy and firm. A physical change is a change in how something looks or feels. A chemical change turns it into something new, like dough turning into a cookie.\nSee It Done — Example: butter and sugar start as a hard block and a pile of grains. Mix them and they become smooth cream. That is a change in texture. Bake it and the dough rises, browns, and sets into a lumpy cookie. That cannot be turned back into dough.\nYour Turn — 1. Read the recipe. Notice the pattern: dry ingredients together, wet ingredients together, then mix. 2. Bake the cookies with a grown-up. 3. After each step, write one word for how it feels: powdery, gooey, smooth, lumpy, etc. 4. Try the peanut butter version and press a fork on top. The fork leaves a pattern. 5. Eat and share them.\nCheck Yourself — Which step changed the texture most? Could you turn the baked cookie back into dough?\nShow What You Know — A list of 4 steps with a texture word for each.",
+    quiz:[{q:"You cannot turn a baked cookie back into dough. What does that tell you?", choices:["It was a chemical change","It was a small physical change","Nothing happened","The oven is broken"], answerIndex:0, explain:"A chemical change makes something new that cannot easily be reversed, like baking dough."}]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 7 — Craft Cookies and Build an Oversized Cookie (Lab Book pp. 52–53)",
+    passage:"Gather first — Minecraft on the PC in Survival mode, with wheat and cocoa beans (cocoa beans hang on trees in a Jungle biome). If finding a Jungle is hard, a grown-up can help you search online for a jungle seed.\nHere's the Idea — Minecraft cookies are crafted from wheat and cocoa beans. Today you also make a BIG cookie from blocks. Last lab's idea carries over: texture and pattern. Your cookie needs a lumpy top and a pattern.\nSee It Done — The book builds an oversized cookie from wood planks, using a mix of oak and spruce for the lumpy top and dark blocks for chocolate chips. Another one uses birch planks with a creeper face on top, like a fork pattern on a peanut butter cookie.\nYour Turn — 1. Gather wheat and cocoa beans and craft cookies. 2. Look at your real cookies from yesterday. 3. Plan a cookie on graph paper: its shape and your pattern. 4. Build it with blocks in two colors for the lumpy top. 5. Add chips or a pattern.\nCheck Yourself — How did you show texture with blocks? What pattern did you use?\nShow What You Know — Screenshot of your oversized cookie and your plan. Optional: add the sticker to your lab book page."}
+];
+var RYAN_MC_LAB8 = [
+  {d:0, subject:"Science", stage:"teach", xp:15, standard:"S4L1",
+    title:"Minecraft Lab 8 — What Plants Need: Plant Seeds in a Pot (Family Activity)",
+    passage:"Gather first — a pot, soil, a packet of seeds picked for this time of year, and water. Lab book p. 55 shows the steps.\nHere's the Idea — Plants are producers: they use energy from sunlight to make their own food, which is the start of every food chain. Plants need sunlight, water, and good soil to grow. A seed starts small and slowly turns into a plant. In Minecraft plants work the same way, but they grow in minutes instead of weeks.\nSee It Done — Fill the pot almost to the top with soil. Poke a small hole with a finger, drop in a couple of seeds, cover them with soil, water them, and put the pot where it gets sunlight.\nYour Turn — 1. Plant your seeds. 2. Write what you think the seeds need and a guess about when the first sprout will show. 3. Pick ONE thing to test if you want, such as sunny window vs. shady spot. 4. Water the same amount each day. 5. Measure the height of each plant every few days with a ruler and write it in a growth table.\nCheck Yourself — What do your seeds need? What is your guess for how many days until they sprout?\nShow What You Know — Photo of your pot and your growth table.",
+    quiz:[{q:"A plant sits in a dark closet and gets water every day. What is missing?", choices:["Soil","Sunlight","A pot","Seeds"], answerIndex:1, explain:"Plants need sunlight to make their food, so a plant in a dark closet will not grow well."}]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"S4L1",
+    title:"Minecraft Lab 8 — Build a Farm: Hoe, Water, Bone Meal (Lab Book pp. 56–57)",
+    passage:"Gather first — Minecraft on the PC in Creative mode, plus wheat seeds, a hoe, water, bone meal, and iron bars or a fence.\nHere's the Idea — A farm turns the same needs into blocks: soil you till with a hoe, water close by, and light. Bone meal speeds up growth. Mobs can trample crops, so you protect them with walls.\nSee It Done — The book's design: till the ground with a hoe, plant seeds in rows, put water in the middle so the soil stays wet, add bone meal to some rows and leave the others to grow naturally, and fence the garden with iron bars to keep mobs out.\nYour Turn — 1. Plan your garden on paper with rows and a water channel. 2. Till the soil and plant three rows. 3. Add bone meal to ONE row only. 4. Wait and compare the rows. 5. Add iron bars or a fence. 6. Count the rows, crops per row, and total crops.\nCheck Yourself — Which row grew fastest and why? How many crops are there in all?\nShow What You Know — Screenshot of your farm and your row comparison. Optional: add the sticker to your lab book page."},
+  {d:6, subject:"Science", stage:"apply", xp:15, standard:"S4L1",
+    title:"Minecraft Lab 8 — Garden Check-In: Teach-Back and Growth Table",
+    passage:"Look at your pot and your growth table.\nShow Mom or a grown-up your plant and explain: 1. What did your seeds need to grow? 2. How tall is your plant now compared to the first measurement? 3. How was your Minecraft farm like your real pot, and how was it different?\nShow What You Know — A grown-up checks that you explained all three, and your growth table has at least 3 measurements. Quest 2 is done. Add the sticker for Lab 8."}
+];
+/* Ryan's "Math for Minecrafters: Adventures in Multiplication & Division" workbook, from page 27 on (he finished through p. 26).
+   Each page set gets our own teach step with a worked example first; the workbook pages are the practice. */
+var RYAN_MC_MATH = [
+  {d:0, subject:"Math", stage:"teach", xp:15, standard:"MGSE3.G.2",
+    title:"Math Workbook pp. 26–27 — Equal Parts: Split a Shape Into Equal Shares",
+    passage:"Gather first — a ruler, a pencil, and 3 strips of paper about the same size (scrap paper works).\nHere's the Idea — Partition means to split something into parts. The parts are only fair if they are EQUAL, the same size. If you split a shape into 4 equal parts, each part is 1 out of 4, written 1/4. The bottom number tells how many equal parts. The top number tells how many you are talking about.\nSee It Done — Take one paper strip. Fold it in half so the edges match exactly. Open it and you see 2 equal parts. One part is 1/2. Now fold it in half again, and you get 4 equal parts. One part is 1/4. Parts that do not match when folded are not equal.\nYour Turn — 1. Use your strips: fold one into 2 equal parts, one into 3 equal parts, and one into 4 equal parts. For the 3 parts, make the folds like an accordion and check that the parts match. 2. For each strip, color in one part and write its fraction (1/2, 1/3, 1/4). 3. Now do the workbook: finish the Equal Parts Challenge on pp. 26–27. Use a ruler to draw each cut. Remember there is more than one way to cut a shape into equal parts, like straight across or down the middle.\nCheck Yourself — Are all your parts the same size? How do you know?\nShow What You Know — Show Mom your three folded strips and tell her how you know the parts are equal.",
+    quiz:[
+      {q:"A chocolate bar is cut into 3 pieces. Two are big and one is small. Are these thirds?", choices:["Yes, there are 3 pieces","No, the pieces are not equal","Yes, any 3 pieces are thirds","Only if the small one is on the end"], answerIndex:1, explain:"Thirds must be 3 EQUAL parts. If the sizes are different, they are not thirds."},
+      {q:"A rectangle is cut into 4 equal parts. What fraction is one part?", choices:["1/3","1/4","4/1","1/2"], answerIndex:1, explain:"There are 4 equal parts, so one part is 1 out of 4, which is 1/4."}
+    ]},
+  {d:1, subject:"Math", stage:"teach", xp:15, standard:"4.NR.2.3",
+    title:"Math Workbook p. 28 — Multiply a 2-Digit Number by 1 Digit (Break It Apart)",
+    passage:"Gather first — graph paper or lined paper, a pencil, and a ruler.\nHere's the Idea — To multiply a big number, break it into tens and ones, multiply each piece, then add. This works because 57 is the same as 50 + 7.\nSee It Done — Try 48 x 3. Break 48 into 40 and 8. 40 x 3 = 120. 8 x 3 = 24. Add: 120 + 24 = 144. So 48 x 3 = 144. You can draw it as a rectangle with sides 3 and 48, split into a 40 part and an 8 part. The two areas add up to the answer.\nYour Turn — 1. On graph paper, draw the rectangle for 26 x 4: split 26 into 20 and 6. Find 20 x 4 and 6 x 4, then add. 2. Do the workbook Mystery Message on p. 28 using the same break-apart method. Write each step in the margin or on scratch paper. Each answer gives a letter for the riddle, and an answer that matches nothing means a mistake somewhere, so check it. 3. Solve the riddle.\nCheck Yourself — Did you multiply the tens first and then the ones? Did you add at the end?\nShow What You Know — Explain to Mom how you solved one problem by breaking the number apart.",
+    quiz:[
+      {q:"What is 38 x 6? Break 38 into 30 and 8.", choices:["218","228","248","188"], answerIndex:1, explain:"30 x 6 = 180 and 8 x 6 = 48, and 180 + 48 = 228."},
+      {q:"What is 25 x 4?", choices:["80","90","100","120"], answerIndex:2, explain:"20 x 4 = 80 and 5 x 4 = 20, and 80 + 20 = 100."}
+    ]},
+  {d:2, subject:"Math", stage:"teach", xp:15, standard:"MGSE3.OA.4",
+    title:"Math Workbook p. 29 — Mystery Number: Find the Missing Number",
+    passage:"Gather first — about 24 small objects like coins, buttons, or Lego pieces, and a pencil.\nHere's the Idea — Multiplication and division are opposites, like putting on and taking off a sock. If 3 x ? = 24, you can find ? by dividing: 24 / 3. If ? / 8 = 6, you can find ? by multiplying: 6 x 8. Knowing one fact gives you the other three in its fact family.\nSee It Done — Problem: 4 x ? = 28. Make 28 objects, then deal them into 4 equal rows. Each row has 7. So ? = 7, and 28 / 4 = 7 gives the same answer. Check: 4 x 7 = 28.\nYour Turn — 1. Use your objects to act out two of your own missing-number problems, such as 5 x ? = 35. 2. Now do the workbook Mystery Number on p. 29. For each problem, decide whether to multiply or divide to find the mystery number, and write the check. 3. Fill in any answer you are unsure about last.\nCheck Yourself — For each problem, how did you decide whether to multiply or divide? Did your check work?\nShow What You Know — Explain one problem to Mom and show how you checked it.",
+    quiz:[
+      {q:"? x 7 = 42. What is the missing number?", choices:["6","5","7","49"], answerIndex:0, explain:"Divide 42 by 7 to get 6. Check: 6 x 7 = 42."},
+      {q:"? / 4 = 9. What is the missing number?", choices:["5","13","36","32"], answerIndex:2, explain:"Division is undone by multiplication: 9 x 4 = 36, and 36 / 4 = 9."}
+    ]},
+  {d:3, subject:"Math", stage:"apply", xp:15, standard:"4.NR.2.3",
+    title:"Math Workbook p. 30 — Snow Golem Challenge: Place Value Meets Multiplication",
+    passage:"Gather first — scratch paper and a pencil.\nHere's the Idea — A number like 248 means 2 hundreds, 4 tens, and 8 ones. When you multiply or divide, you can check your answer by writing it in hundreds, tens, and ones, which is what this page asks you to do.\nSee It Done — Example: 62 x 4. Break it up: 60 x 4 = 240 and 2 x 4 = 8, so 240 + 8 = 248. That is 2 hundreds, 4 tens, 8 ones. For a division problem, work backward: to check 248 / 4 = 62, multiply 62 x 4 and see if you get 248.\nYour Turn — 1. Do the workbook Snow Golem's Number Challenge on p. 30. For each golem, work out its problem on scratch paper first, then match it with the hundreds, tens, and ones description. 2. Write the answer number next to each match. 3. For any division problem, check it by multiplying back.\nCheck Yourself — Did the answer you worked out have the same hundreds, tens, and ones as the description? How did you check the division?\nShow What You Know — Explain one match to Mom: the problem, the answer, and the hundreds, tens, and ones.",
+    quiz:[
+      {q:"2 hundreds, 4 tens, and 6 ones is which number?", choices:["264","246","426","2046"], answerIndex:1, explain:"2 hundreds = 200, 4 tens = 40, 6 ones = 6, and 200 + 40 + 6 = 246."},
+      {q:"What is 62 x 4?", choices:["228","248","268","208"], answerIndex:1, explain:"60 x 4 = 240 and 2 x 4 = 8, and 240 + 8 = 248."}
+    ]},
+  {d:4, subject:"Math", stage:"teach", xp:20, standard:"4.PAR.3",
+    title:"Math Workbook pp. 32–33 — Creating Potions: Make a Bigger Batch of a Recipe",
+    passage:"Gather first — a small measuring cup, a spoon, and snack ingredients for a real recipe, such as 2 spoons of cereal and 3 spoons of raisins per bag, with enough for 4 bags.\nHere's the Idea — A recipe is a rule: for each batch you need the same amounts. To make more batches, multiply every ingredient by the number of batches. A table with the batches in one row and the amounts in another shows the pattern.\nSee It Done — Recipe: 1 batch = 2 spoons of cereal + 3 spoons of raisins. For 4 batches, multiply both amounts by 4: 2 x 4 = 8 spoons of cereal, and 3 x 4 = 12 spoons of raisins. Table: batches 1, 2, 3, 4. Cereal 2, 4, 6, 8. Raisins 3, 6, 9, 12. Each row counts up by the same amount.\nYour Turn — 1. Make the real recipe for 4 bags using your table. 2. Now do the workbook Creating Potions on pp. 32–33. For each recipe, multiply BOTH ingredients by the number of potions. 3. Fill in the Invisibility Potion table and check that each row counts up by the same amount.\nCheck Yourself — Did you multiply both ingredients? Does each row in your table count up by the same amount?\nShow What You Know — Show Mom your real snack bags and your table, and explain how you scaled the recipe.",
+    quiz:[
+      {q:"1 potion = 2 mushrooms + 5 sugars. How many sugars do you need for 3 potions?", choices:["8","10","15","6"], answerIndex:2, explain:"5 sugars x 3 potions = 15 sugars. You multiply every ingredient by the number of potions."},
+      {q:"In the same recipe, how many mushrooms do you need for 3 potions?", choices:["5","6","8","2"], answerIndex:1, explain:"2 mushrooms x 3 potions = 6 mushrooms."}
+    ]}
+];
+var RYAN_MC_MATH2 = [
+ {
+  "d": 5,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.GSR.8.3",
+  "title": "Math Workbook pp. 34–35 — Perimeter and Area of a Wall",
+  "passage": "Gather first — graph paper, a pencil, and a ruler.\nHere's the Idea — Perimeter is the distance around a shape: 2 x height + 2 x width. Area is how many squares cover the inside: height x width. They measure different things, so one can change while the other stays or changes differently.\nSee It Done — A wall 3 blocks tall and 5 wide: perimeter = 2 x 3 + 2 x 5 = 6 + 10 = 16. Area = 3 x 5 = 15. Double the height to 6: perimeter = 12 + 10 = 22 and area = 6 x 5 = 30. The area doubled but the perimeter did not.\nYour Turn — 1. Draw the 3 by 5 wall on graph paper and count the squares to check the area. 2. Draw a wall 4 tall and 6 wide. Find its perimeter and area. 3. Cut off the right half so it is 4 tall and 3 wide. Find both again. 4. Now do the workbook pp. 34–35. Use the signs on the page: perimeter = 2 x height + 2 x width, and area = height x width. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — Which number changed more when you cut the wall in half, the perimeter or the area? Why?\nShow What You Know — Show Mom your graph paper wall and tell her what happened to the area when you made it half as wide.",
+  "quiz": [
+   {
+    "q": "A wall is 4 tall and 6 wide. What is its perimeter?",
+    "choices": [
+     "10",
+     "20",
+     "24",
+     "48"
+    ],
+    "answerIndex": 1,
+    "explain": "2 x 4 + 2 x 6 = 8 + 12 = 20."
+   },
+   {
+    "q": "You double the height of a 2 by 5 wall (height 2, width 5). What is the new area?",
+    "choices": [
+     "10",
+     "14",
+     "20",
+     "24"
+    ],
+    "answerIndex": 2,
+    "explain": "The new height is 4, and 4 x 5 = 20."
+   }
+  ]
+ },
+ {
+  "d": 6,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.2.3",
+  "title": "Math Workbook pp. 38–39 — Multiply Three Numbers (Find Friendly Pairs)",
+  "passage": "Gather first — scratch paper and a pencil.\nHere's the Idea — When you multiply three numbers, you can multiply them in any order and get the same answer. Look for a friendly pair first, like 5 x 2 = 10 or 4 x 25 = 100, because they are easy to multiply.\nSee It Done — 4 x 15 x 2: pair 15 x 2 = 30. Then 30 x 4 = 120. In place value, 120 is 1 hundred, 2 tens, 0 ones. Another: 5 x 7 x 2: pair 5 x 2 = 10, then 10 x 7 = 70.\nYour Turn — 1. Try 3 x 25 x 4 and 5 x 9 x 2 using friendly pairs. 2. Do the workbook pp. 38–39: for the emerald page, find each answer and match it to its letter. For the Ghastly Number Challenge, work out each equation and match it to its hundreds, tens, and ones description. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — Which pair did you pick first on each problem, and why was it friendly?\nShow What You Know — Explain one problem to Mom and show the friendly pair you used.",
+  "quiz": [
+   {
+    "q": "What is 3 x 25 x 4? Hint: 25 x 4 is friendly.",
+    "choices": [
+     "100",
+     "200",
+     "300",
+     "350"
+    ],
+    "answerIndex": 2,
+    "explain": "25 x 4 = 100, and 100 x 3 = 300."
+   },
+   {
+    "q": "Which pair is the friendliest in 5 x 9 x 2?",
+    "choices": [
+     "9 x 2",
+     "5 x 9",
+     "5 x 2",
+     "None of them"
+    ],
+    "answerIndex": 2,
+    "explain": "5 x 2 = 10, and 10 x 9 = 90 is easy."
+   }
+  ]
+ },
+ {
+  "d": 7,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.MDR.6.1",
+  "title": "Math Workbook pp. 40–41 — Measuring: Feet to Inches and Meters to Centimeters",
+  "passage": "Gather first — a tape measure or ruler, paper, and a pencil.\nHere's the Idea — A bigger unit holds many smaller units. 1 foot = 12 inches. 1 meter = 100 centimeters = 1,000 millimeters. To change a bigger unit to a smaller one, multiply.\nSee It Done — A mob 2 feet 3 inches tall: 2 x 12 = 24 inches, and 24 + 3 = 27 inches. A fence 3 meters long: 3 x 100 = 300 cm, and 3 x 1,000 = 3,000 mm. Half a meter is 50 cm, so 3.5 meters is 350 cm.\nYour Turn — 1. Measure your own height with a tape measure in feet and inches, then change it to inches only. 2. Measure the length of a table in centimeters, then write it in millimeters. 3. Do the workbook pp. 40–41: Mob Measurements first, then fill in the Metric Measurements chart. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — How did you change feet to inches? Which way did you multiply for meters?\nShow What You Know — Show Mom your height in feet and inches and in inches only.",
+  "quiz": [
+   {
+    "q": "A skeleton is 3 feet 2 inches tall. How many inches is that?",
+    "choices": [
+     "32",
+     "38",
+     "36",
+     "50"
+    ],
+    "answerIndex": 1,
+    "explain": "3 x 12 = 36, and 36 + 2 = 38 inches."
+   },
+   {
+    "q": "How many centimeters are in 5 meters?",
+    "choices": [
+     "50",
+     "500",
+     "5,000",
+     "15"
+    ],
+    "answerIndex": 1,
+    "explain": "1 meter is 100 cm, so 5 x 100 = 500 cm."
+   }
+  ]
+ },
+ {
+  "d": 8,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.GSR.7.1",
+  "title": "Math Workbook pp. 42–43 — Angles: Acute, Right, and Obtuse",
+  "passage": "Gather first — a sheet of paper, a pencil, and a ruler.\nHere's the Idea — An angle is where two lines meet. A right angle is a square corner (90 degrees). An acute angle is narrower than a right angle. An obtuse angle is wider than a right angle.\nSee It Done — Make an angle checker: fold a sheet of paper in half, then fold it in half again so the corner is square. That corner is a right angle. Hold it against an angle: if the angle fits inside the corner, it is acute. If it matches, it is right. If it is wider, it is obtuse. A clock at 3:00 shows a right angle. At 1:00 it is acute. At 4:00 it is obtuse.\nYour Turn — 1. Make your angle checker. 2. Find 3 angles around your room: one acute, one right, one obtuse. 3. Draw each and label it. 4. Do the workbook pp. 42–43: use your checker on each picture's red lines and write acute, right, or obtuse. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — What did you check an angle against? How can you tell which kind it is?\nShow What You Know — Show Mom your three room angles and your checker.",
+  "quiz": [
+   {
+    "q": "An angle is wider than a square corner. What is it called?",
+    "choices": [
+     "Acute",
+     "Right",
+     "Obtuse",
+     "Straight line"
+    ],
+    "answerIndex": 2,
+    "explain": "Wider than a right angle means obtuse."
+   },
+   {
+    "q": "What kind of angle is the corner of a book?",
+    "choices": [
+     "Acute",
+     "Right",
+     "Obtuse",
+     "None"
+    ],
+    "answerIndex": 1,
+    "explain": "A book's corner is a square corner, which is a right angle."
+   }
+  ]
+ },
+ {
+  "d": 9,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.2.3/4.NR.2.4",
+  "title": "Math Workbook pp. 44–45 — Mystery Numbers With Bigger Numbers",
+  "passage": "Gather first — scratch paper, a pencil, and a few colored pencils for bar models.\nHere's the Idea — Multiplication and division undo each other, just like with small numbers. When a number is hidden, draw a bar model: one long bar for the whole, split into equal parts. Then multiply or divide to find the hidden number.\nSee It Done — ? / 5 = 40: the whole is 5 groups of 40, so 40 x 5 = 200. 6 x ? = 138: split 138 into 6 equal parts, so 138 / 6 = 23. 96 / ? = 8: 96 split into groups of 8, so 96 / 8 = 12.\nYour Turn — 1. Draw a bar model for 144 / ? = 12 and for ? x 4 = 92. 2. Solve them and check by multiplying. 3. Do the workbook pp. 44–45: Mystery Number first, then Mystery Message. For the riddle, each answer gives a letter. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — How did you decide whether to multiply or divide? Did each check work?\nShow What You Know — Explain one mystery number to Mom with its bar model.",
+  "quiz": [
+   {
+    "q": "? / 6 = 14. What is the missing number?",
+    "choices": [
+     "8",
+     "20",
+     "84",
+     "74"
+    ],
+    "answerIndex": 2,
+    "explain": "14 x 6 = 84, so 84 / 6 = 14."
+   },
+   {
+    "q": "7 x ? = 91. What is the missing number?",
+    "choices": [
+     "12",
+     "13",
+     "14",
+     "84"
+    ],
+    "answerIndex": 1,
+    "explain": "91 / 7 = 13, and 7 x 13 = 91."
+   }
+  ]
+ },
+ {
+  "d": 10,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.2.4",
+  "title": "Math Workbook pp. 46–47 — Dividing With Place Value and Skip Counting",
+  "passage": "Gather first — scratch paper and a pencil.\nHere's the Idea — To divide a big number, split it into friendly pieces by place value. Divide each piece, then add the answers. For a skip-count pattern, find the rule by looking at the difference between two numbers that are next to each other.\nSee It Done — 936 / 4: 800 / 4 = 200, 120 / 4 = 30, 16 / 4 = 4, and 200 + 30 + 4 = 234. Skip counting: 7, 14, __, 28. The rule is +7, so the missing number is 21. Going down: 90, 80, __, 60. The rule is -10, so 70.\nYour Turn — 1. Try 648 / 3 by splitting into 600 and 48. 2. Do the workbook p. 46 and write each digit in its place value box. 3. Do the Skip Count Challenge on p. 47: figure out the rule from two known numbers before you fill any blank. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — What pieces did you split each number into? What was the rule in each skip path?\nShow What You Know — Explain one division problem to Mom piece by piece.",
+  "quiz": [
+   {
+    "q": "What is 648 / 3?",
+    "choices": [
+     "116",
+     "206",
+     "216",
+     "226"
+    ],
+    "answerIndex": 2,
+    "explain": "600 / 3 = 200 and 48 / 3 = 16, and 200 + 16 = 216."
+   },
+   {
+    "q": "Skip counting: 12, 24, 36, __. What comes next?",
+    "choices": [
+     "46",
+     "48",
+     "50",
+     "42"
+    ],
+    "answerIndex": 1,
+    "explain": "The rule is +12, so 36 + 12 = 48."
+   }
+  ]
+ },
+ {
+  "d": 11,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.2.3/4.NR.2.4",
+  "title": "Math Workbook pp. 48–49 — Animal Tally: 'Times As Many' and Fractions of a Group",
+  "passage": "Gather first — about 12 small objects like coins or buttons, scratch paper, and a pencil.\nHere's the Idea — '3 times as many' means multiply by 3. '1/4 as many' means split into 4 equal groups and take 1 group, so divide by 4.\nSee It Done — Sam has 12 pigs. Lee has 3 times as many: 12 x 3 = 36. Kim has 1/4 as many as Sam: 12 / 4 = 3. Show it with objects: put 12 coins in 4 equal groups, and one group has 3.\nYour Turn — 1. Use your objects to find 1/3 of 12 and 1/2 of 12. 2. Do the workbook pp. 48–49: read each clue, decide whether to multiply or divide, and fill in the chart. 3. Use the final clue to work out who has the most of each animal. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — Which clues needed multiplying, and which needed dividing?\nShow What You Know — Show Mom your filled chart and explain one clue.",
+  "quiz": [
+   {
+    "q": "Max has 8 cows. Jo has 5 times as many. How many does Jo have?",
+    "choices": [
+     "13",
+     "35",
+     "40",
+     "45"
+    ],
+    "answerIndex": 2,
+    "explain": "8 x 5 = 40."
+   },
+   {
+    "q": "Max has 20 sheep. Jo has 1/5 as many. How many does Jo have?",
+    "choices": [
+     "4",
+     "15",
+     "25",
+     "100"
+    ],
+    "answerIndex": 0,
+    "explain": "20 / 5 = 4."
+   }
+  ]
+ },
+ {
+  "d": 12,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.GSR.8.1",
+  "title": "Math Workbook pp. 50–51 — Parallel, Perpendicular, and Intersecting Lines",
+  "passage": "Gather first — a sheet of paper (for a right-angle checker), a ruler, and a pencil.\nHere's the Idea — Parallel lines run side by side and never meet. Perpendicular lines meet at a right angle (a square corner). Intersecting lines cross each other at any angle. Perpendicular lines are a special kind of intersecting lines.\nSee It Done — Railroad tracks are parallel. The plus sign (+) is two perpendicular lines. An X is two lines that intersect, but not at a square corner. Check by holding your paper corner against the crossing.\nYour Turn — 1. Find one example of each kind of line in your house, like a door frame, floor tiles, or a window. 2. Draw them and label them. 3. Do the workbook pp. 50–51: use your paper corner to check for perpendicular lines. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — How can you tell perpendicular from intersecting?\nShow What You Know — Show Mom your three house examples.",
+  "quiz": [
+   {
+    "q": "Two lines never meet and stay the same distance apart. What are they?",
+    "choices": [
+     "Parallel",
+     "Perpendicular",
+     "Intersecting at an angle",
+     "Acute"
+    ],
+    "answerIndex": 0,
+    "explain": "Lines that run side by side and never meet are parallel."
+   },
+   {
+    "q": "Two lines cross at a square corner. What are they?",
+    "choices": [
+     "Parallel",
+     "Perpendicular",
+     "Curved",
+     "Acute"
+    ],
+    "answerIndex": 1,
+    "explain": "Lines that cross at a right angle are perpendicular."
+   }
+  ]
+ },
+ {
+  "d": 13,
+  "subject": "Math",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "4.NR.2.3/4.NR.2.4",
+  "title": "Math Workbook pp. 52–53 — Word Problems: Read, Draw, Choose, Solve, Check",
+  "passage": "Gather first — scratch paper and a pencil.\nHere's the Idea — For any word problem: 1. Read it twice. 2. Draw a quick picture. 3. Decide whether to add, subtract, multiply, or divide. 4. Solve it. 5. Check that your answer makes sense.\nSee It Done — Each box holds 8 cards. You have 72 cards. How many boxes? Picture 72 cards in groups of 8. Divide: 72 / 8 = 9 boxes. Two steps: 5 shelves hold 12 books each, and 18 books are sold. How many are left? 5 x 12 = 60, and 60 - 18 = 42.\nYour Turn — 1. Pick two problems from the page and write which operation you will use before you solve. 2. Do the workbook pp. 52–53 with a picture for each. 3. Say your answer in a full sentence, like 'You used 930 pickaxes.' When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — Does each answer make sense in the story? Which problems took two steps?\nShow What You Know — Read one problem and your answer to Mom, and tell her why you chose that operation.",
+  "quiz": [
+   {
+    "q": "Each bag holds 6 apples. How many apples are in 7 bags?",
+    "choices": [
+     "13",
+     "36",
+     "42",
+     "48"
+    ],
+    "answerIndex": 2,
+    "explain": "7 x 6 = 42."
+   },
+   {
+    "q": "5 shelves hold 12 books each and 18 books are sold. How many are left?",
+    "choices": [
+     "42",
+     "60",
+     "78",
+     "30"
+    ],
+    "answerIndex": 0,
+    "explain": "5 x 12 = 60, and 60 - 18 = 42."
+   }
+  ]
+ },
+ {
+  "d": 14,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.2.4",
+  "title": "Math Workbook pp. 54–55 — Dividing Big Numbers and Skip Counting",
+  "passage": "Gather first — scratch paper and a pencil.\nHere's the Idea — Big numbers get easier when you think in units. 2,400 is 24 hundreds. 24 hundreds divided by 4 is 6 hundreds, which is 600. You can also split a big number into pieces and divide each piece.\nSee It Done — 6,480 / 3: 6,000 / 3 = 2,000 and 480 / 3 = 160, so the answer is 2,160. Skip counting can multiply too: 5, 10, 20, 40 doubles each time.\nYour Turn — 1. Try 7,200 / 9 by thinking in hundreds. 2. Do the workbook pp. 54–55: write each answer and put the right digit in its place value box. 3. For the Skip Count Challenge, find the rule from two neighbors first. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — How did thinking in hundreds or thousands help?\nShow What You Know — Explain one big division problem to Mom using units.",
+  "quiz": [
+   {
+    "q": "What is 2,400 / 4?",
+    "choices": [
+     "60",
+     "600",
+     "6,000",
+     "6"
+    ],
+    "answerIndex": 1,
+    "explain": "24 hundreds / 4 = 6 hundreds = 600."
+   },
+   {
+    "q": "What is 7,200 / 9?",
+    "choices": [
+     "80",
+     "800",
+     "8,000",
+     "70"
+    ],
+    "answerIndex": 1,
+    "explain": "72 hundreds / 9 = 8 hundreds = 800."
+   }
+  ]
+ },
+ {
+  "d": 15,
+  "subject": "Math",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "4.NR.4.1/4.NR.4.3",
+  "title": "Math Workbook pp. 56–57 — Comparing and Equal Fractions",
+  "passage": "Gather first — two paper strips the same size, a ruler, and colored pencils.\nHere's the Idea — To compare fractions, picture them in boxes that are the same size. Equivalent fractions name the same amount: 1/2 = 2/4 = 4/8. To make one, multiply the top and bottom by the same number.\nSee It Done — Fold two same-size strips. Fold one into halves and the other into eighths. 1/2 is 4/8, so 1/2 is greater than 3/8. Equal fractions: 1/4 = 2/8 because 1 x 2 = 2 and 4 x 2 = 8. For a time chart: 1/6 of 60 minutes is 60 / 6 = 10 minutes.\nYour Turn — 1. Make your two strips and shade 3/8 and 1/2 to compare. 2. Find a fraction equal to 2/5 with 10 on the bottom. 3. Do the workbook pp. 56–57: draw two same-size boxes for each battle in Comparing Fractions, then fill the chart in Equal Fractions. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — How did drawing same-size boxes help you compare?\nShow What You Know — Show Mom your strips and tell her which fraction is greater.",
+  "quiz": [
+   {
+    "q": "Which is greater, 1/2 or 3/8?",
+    "choices": [
+     "1/2",
+     "3/8",
+     "They are equal",
+     "Can't tell"
+    ],
+    "answerIndex": 0,
+    "explain": "1/2 is 4/8, and 4/8 is more than 3/8."
+   },
+   {
+    "q": "2/5 = ?/10",
+    "choices": [
+     "2/10",
+     "4/10",
+     "5/10",
+     "7/10"
+    ],
+    "answerIndex": 1,
+    "explain": "Multiply the top and bottom by 2: 2 x 2 = 4 and 5 x 2 = 10."
+   }
+  ]
+ },
+ {
+  "d": 16,
+  "subject": "Math",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "4.GSR.8.3",
+  "title": "Math Workbook pp. 58–59 — Geometry Word Problems: Work Backward From Area and Perimeter",
+  "passage": "Gather first — graph paper, a ruler, and a pencil.\nHere's the Idea — Sometimes you know the area or perimeter and need a side. For a square, the side times itself equals the area. For a rectangle, divide the area by one side to find the other. With perimeter, take away the known sides, then split what is left.\nSee It Done — A square with area 49: 7 x 7 = 49, so each side is 7. A rectangle with area 60 and length 12: 60 / 12 = 5 wide. A rectangle with perimeter 22 and length 8: 2 x 8 = 16, 22 - 16 = 6, and 6 / 2 = 3 wide.\nYour Turn — 1. Draw each example on graph paper to check. 2. Do the workbook pp. 58–59, drawing a quick picture for each problem. 3. For the cat house problem, test a few square sizes on graph paper. When you finish, a grown-up checks your answers with the answer key in the back of the workbook. If one does not match, redo it before looking at the key again.\nCheck Yourself — Which problems used area and which used perimeter? How did you work backward?\nShow What You Know — Pick one problem and show Mom the picture and your steps.",
+  "quiz": [
+   {
+    "q": "A square has an area of 81. How long is each side?",
+    "choices": [
+     "8",
+     "9",
+     "10",
+     "40"
+    ],
+    "answerIndex": 1,
+    "explain": "9 x 9 = 81."
+   },
+   {
+    "q": "A rectangle has perimeter 20 and one side 6. How long is the other?",
+    "choices": [
+     "4",
+     "8",
+     "14",
+     "6"
+    ],
+    "answerIndex": 0,
+    "explain": "2 x 6 = 12, 20 - 12 = 8, and 8 / 2 = 4."
+   }
+  ]
+ }
+];
+var RYAN_MC_LABS = [
+  {flag:"al_mc_lab3_added", items:RYAN_MC_LAB3, offset:0},
+  {flag:"al_mc_lab4_added", items:RYAN_MC_LAB4, offset:3},
+  {flag:"al_mc_lab5_added", items:RYAN_MC_LAB5, offset:6},
+  {flag:"al_mc_lab6_added", items:RYAN_MC_LAB6, offset:9},
+  {flag:"al_mc_lab7_added", items:RYAN_MC_LAB7, offset:11},
+  {flag:"al_mc_lab8_added", items:RYAN_MC_LAB8, offset:13},
+  {flag:"al_mc_math1_added", items:RYAN_MC_MATH, offset:0, mwf:true},
+  {flag:"al_mc_math2_added", items:RYAN_MC_MATH2, offset:0, mwf:true}
+];
+/* Math workbook lessons run 3 days a week: the nth Monday, Wednesday or Friday from the start date (n = 0 is the first). */
+function nthMonWedFri(start, n){
+  var d = new Date(start), seen = -1;
+  while(true){
+    var w = d.getDay();
+    if(w===1 || w===3 || w===5){ seen++; if(seen===n) return d; }
+    d.setDate(d.getDate()+1);
+  }
+}
+function autoAddRyanMcLab3(){
+  if(!db) return;
+  var all = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; });
+  RYAN_MC_LABS.forEach(function(lab){
+    var has = all.some(function(a){ return a.kidId==="kid2" && a.skillId==="ryan-mc-lab-book" && a.title===lab.items[0].title; });
+    try{ if(has || localStorage.getItem(lab.flag)) return; }catch(e){ if(has) return; }
+    var start = new Date(todayISO()+"T00:00:00");
+    while(start.getDay()===0 || start.getDay()===6) start.setDate(start.getDate()+1);
+    lab.items.forEach(function(it){
+      db.collection("assignments").add({
+        kidId:"kid2", date:isoDate(lab.mwf ? nthMonWedFri(start, it.d+lab.offset) : addSchoolDays(start, it.d+lab.offset)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+        standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz||null,
+        skillId:"ryan-mc-lab-book", createdAt:new Date().toISOString()
+      });
+    });
+    try{ localStorage.setItem(lab.flag, "1"); }catch(e){}
+    console.log("autoAddRyanMcLab: added "+lab.items.length+" lesson(s) for "+lab.flag);
+  });
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -8270,6 +8886,7 @@ function runAutoMigrations(){
     patchRyanJohnnyOS();
     autoAddRyanJohnnyBuild();
     autoAddAnnaBraceletExtra();
+    autoAddRyanMcLab3();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
