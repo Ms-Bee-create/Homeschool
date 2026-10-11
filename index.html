@@ -1918,6 +1918,57 @@ function renderSchoolDone(kidId){
 }
 
 /* Leader: edit the clock, add ideas, and grant extra learning time. */
+/* Parent dashboard: what to have ready. Reads the "Gather first —" line of every lesson scheduled for today and for the
+   next school day, so it stays correct for any lesson added later. Checkmarks are remembered on this device. */
+function materialsFor(iso){
+  var out = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a || a.date!==iso || !a.passage) return;
+    var m = String(a.passage).match(/Gather first\s*[—-]\s*([^\n]*)/);
+    if(!m) return;
+    var text = m[1].split(/(?<=[a-z0-9)]\.)\s+(?=[A-Z])/).filter(function(x){ return !/^(Lab book|Take a screenshot|Use your notes|Read the)/i.test(x.trim()); }).join(" ").trim();
+    if(text) out.push({id:id, kidId:a.kidId, title:a.title, text:text, done:!!a.done});
+  });
+  return out;
+}
+function materialsCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"materials");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var d1 = new Date(todayISO()+"T00:00:00");
+  if(d1.getDay()===0 || d1.getDay()===6){ while(d1.getDay()===0 || d1.getDay()===6) d1.setDate(d1.getDate()+1); }
+  var d2 = addSchoolDays(d1, 1);
+  var days = [{label:(isoDate(d1)===todayISO() ? "Today" : "Next school day"), iso:isoDate(d1)}, {label:"Tomorrow, so you can get ready", iso:isoDate(d2)}];
+  var total = 0; days.forEach(function(d){ d.items = materialsFor(d.iso); total += d.items.length; });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🧰 Materials to have ready ("+total+")  ▾ tap to open or close"; det.appendChild(sum);
+  if(!total){
+    var none = document.createElement("div"); none.className = "muted"; none.style.cssText = "font-size:13px;margin-top:8px";
+    none.textContent = "No special supplies needed for today or the next school day."; det.appendChild(none);
+  }
+  days.forEach(function(d){
+    if(!d.items.length) return;
+    var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin:12px 0 4px"; 
+    h.textContent = d.label+" · "+new Date(d.iso+"T00:00:00").toLocaleDateString([], {weekday:"long", month:"short", day:"numeric"}); det.appendChild(h);
+    d.items.forEach(function(it){
+      var key = "al_mat_"+it.id, checked = false;
+      try{ checked = localStorage.getItem(key)==="1"; }catch(e){}
+      var row = document.createElement("label"); row.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border);font-size:13.5px";
+      var cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = checked; cb.style.cssText = "margin-top:3px;flex:none";
+      var box = document.createElement("div");
+      var t = document.createElement("div"); t.style.fontWeight = "700"; t.textContent = (kidData(it.kidId).name||it.kidId)+" — "+it.title+(it.done?" (done)":"");
+      var x = document.createElement("div"); x.className = "muted"; x.textContent = it.text;
+      function paint(){ box.style.opacity = cb.checked ? "0.55" : "1"; t.style.textDecoration = cb.checked ? "line-through" : "none"; }
+      cb.onchange = function(){ try{ if(cb.checked) localStorage.setItem(key,"1"); else localStorage.removeItem(key); }catch(e){} paint(); };
+      box.appendChild(t); box.appendChild(x); row.appendChild(cb); row.appendChild(box); paint(); det.appendChild(row);
+    });
+  });
+  wrap.appendChild(det);
+  return wrap;
+}
 function dayPlanCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
   var det = document.createElement("details");
@@ -6131,6 +6182,7 @@ function renderLeaderArea(){
 
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
+  els.view.appendChild(materialsCard());
   els.view.appendChild(dayPlanCard());
   els.view.appendChild(leaderStreakCard());
   els.view.appendChild(quickLogCard());
