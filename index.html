@@ -8173,6 +8173,59 @@ var ANNA_DAILY_READING = [
   {title:"Storytime: Hard Words Detective", passage:"Gather first — A book you like and paper.\nHere's the Idea — When you find a word you do not know, try these steps: look at the pictures, break the word into parts, and read the sentence again. Example: \"sunflower\" is sun + flower.\nYour Turn — 1. Read for 20 minutes. 2. Write down 3 words that were tricky. 3. Try the steps on each one. 4. Tell Mom what each word means.\nCheck Yourself — Does the meaning make sense in the sentence?"},
   {title:"Storytime: Draw What You Read", passage:"Gather first — A book you like, paper and colors.\nHere's the Idea — Pictures in your mind help you remember a story. Draw your favorite part so someone else can tell what happened without the book.\nYour Turn — 1. Read for 20 minutes. 2. Draw your favorite part. 3. Write one sentence under it. 4. Show Mom and tell why it was your favorite.\nCheck Yourself — Does your sentence say what is in your picture?"}
 ];
+/* Anna's daily Storytime now points at the stories in her Connections Academy Readers Collection (Grade 2), one
+   after another in book order, starting Monday Oct 12 with "Hog Wild". Each entry is [title, first page, kind]; a
+   story ends where the next one starts. kind: "story" gets the rotating story-skill lessons, "info" gets a
+   facts-and-questions lesson, "either" gets a simple tell-it-back lesson (a title alone does not say which it is). */
+var ANNA_READERS_START = "2026-10-12";
+var ANNA_READERS_LAST_PAGE = 328;
+var ANNA_READERS = [
+  ["Hog Wild",1,"story"],["Tuesdays",9,"either"],["My Name's Not Chuck!",23,"story"],["The Boy Who Drew Cats",37,"story"],
+  ["Ophelia's Last Word: Cozy Campfire",49,"either"],["Team Puffin",51,"story"],["Getting Dinner",55,"either"],
+  ["Earth's Changing Surface",75,"info"],["Do Not Drop",103,"story"],["April Fools' Week",115,"story"],["Who Lives There?",129,"story"],
+  ["Mrs. Gladioli's Ravioli",135,"story"],["Martin Luther King, Jr., Day",141,"info"],["Life Cycle of a Honeybee",167,"info"],
+  ["Let's Work Together",193,"story"],["If You Were...",221,"either"],["The Story Spiders: Adapted from West African Folktales",227,"story"],
+  ["I Won't Sneeze: An Indonesian Folk Tale",229,"story"],["Bear and Turtle Have a Race: A Mohawk Folktale",235,"story"],
+  ["The Duck and the Kangaroo",239,"story"],["Greeting the Sun",247,"either"],["Where Does Your Lunch Come From?",257,"info"],
+  ["New Heights",263,"either"],["At the Aquarium",267,"either"],["My Brother Is a Rock",269,"story"],["Jumping on the Bed",285,"story"],
+  ["Monster on My Roof",287,"story"],["Serious Storms",301,"either"],["Calling Grandma",303,"story"],["Back to the Sea",309,"story"]
+];
+function annaReadersItem(d){
+  var start = new Date(ANNA_READERS_START+"T00:00:00");
+  if(d < start) return null;
+  var n = 0, c = new Date(start);
+  while(c < d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) n++; }
+  var i = n % ANNA_READERS.length, r = ANNA_READERS[i], next = ANNA_READERS[i+1];
+  var end = next ? next[1]-1 : ANNA_READERS_LAST_PAGE;
+  var where = 'your Readers Collection book, open to "'+r[0]+'" (pages '+r[1]+(end>r[1] ? "–"+end : "")+')';
+  if(r[2]==="story"){
+    var base = ANNA_DAILY_READING[n % ANNA_DAILY_READING.length];
+    var passage = base.passage.replace(/Gather first — [^\n]*/, "Gather first — "+where+", plus a cozy spot"+(/paper/i.test(base.passage.split("\n")[0]) ? ", paper and colors" : "")+".")
+      .replace(/Read for 20 minutes/g, 'Read "'+r[0]+'" aloud or quietly (if it is long, read some today and finish next time)');
+    return {title:"Storytime: "+r[0]+" — "+base.title.replace("Storytime: ",""), passage:passage};
+  }
+  if(r[2]==="info"){
+    return {title:"Storytime: "+r[0]+" — Facts and Questions", passage:
+      "Gather first — "+where+", paper and a pencil.\nHere's the Idea — Some pieces tell true facts. A fact is something that is true. While you read, look for facts and pictures that teach you something, and think about what you still wonder.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Write or draw 3 facts you learned. 3. Write one question you still have. 4. Tell Mom your favorite fact.\nCheck Yourself — Are your 3 facts really in the text?\nShow What You Know — Tell Mom what the piece was mostly about in one sentence."};
+  }
+  return {title:"Storytime: "+r[0]+" — Tell It Back", passage:
+    "Gather first — "+where+", plus a cozy spot.\nHere's the Idea — After you read, say it back in your own words. Tell what it was about, your favorite part, and one thing you felt or learned.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Tell Mom what it was about. 3. Tell your favorite part and why. 4. Tell one thing you felt or learned.\nCheck Yourself — Did you tell it in your own words, in an order that makes sense?\nShow What You Know — Draw your favorite part and write one sentence under it."};
+}
+/* Moves Anna's not-yet-done Storytime days from the "pick any book" version to the Readers Collection version. */
+function patchAnnaStorytimeFromReaders(){
+  if(!db) return;
+  var today = new Date(todayISO()+"T00:00:00");
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.done || a.skillId!=="anna-ela-story-elements" || String(a.title).indexOf("Storytime:")!==0) return;
+    var d = new Date(a.date+"T00:00:00");
+    if(d < today) return;
+    var item = annaReadersItem(d);
+    if(!item || a.title===item.title) return;
+    a.title = item.title; a.passage = item.passage;
+    db.doc("assignments/"+id).update({title:item.title, passage:item.passage});
+  });
+}
 function fillAnnaDailyBasics(){
   if(!db) return;
   var d = new Date(todayISO()+"T00:00:00");
@@ -8192,7 +8245,7 @@ function fillAnnaDailyBasics(){
       {block:"reading", subject:"ELA", list:ANNA_DAILY_READING, skillId:"anna-ela-story-elements", standard:"ELAGSE2RL2-RL5"}
     ].forEach(function(spec){
       if(have[spec.block]) return;
-      var item = spec.list[ordinal % spec.list.length];
+      var item = (spec.block==="reading" && annaReadersItem(d)) || spec.list[ordinal % spec.list.length];
       db.collection("assignments").add({
         kidId:"kid1", date:iso, subject:spec.subject, title:item.title,
         xp:10, done:false, doneAt:null, skillId:spec.skillId, stage:"practice", standard:spec.standard,
@@ -9886,6 +9939,7 @@ function runAutoMigrations(){
     patchKid2Content();
     moveWeekendLessonsToMonday();
     fillAnnaDailyBasics();
+    patchAnnaStorytimeFromReaders();
     patchRyanJohnnyOS();
     autoAddRyanJohnnyBuild();
     autoAddAnnaBraceletExtra();
