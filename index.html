@@ -8802,7 +8802,44 @@ function patchAnnaStorytimeFromReaders(){
     var item = annaReadersItem(d);
     if(!item || (a.title===item.title && (!item.quiz || a.quiz))) return;
     a.title = item.title; a.passage = item.passage; if(item.quiz) a.quiz = item.quiz;
-    db.doc("assignments/"+id).update({title:item.title, passage:item.passage, quiz:item.quiz||null});
+    a.crossSubjects = bookCross(item.title); db.doc("assignments/"+id).update({title:item.title, passage:item.passage, quiz:item.quiz||null, crossSubjects:bookCross(item.title)});
+  });
+}
+/* Lessons that genuinely count toward a second subject for hours (shown on the lesson as "Also credits ..."). Matched by title
+   (Anna's Readers stories by the story name). Added to new lessons as they are scheduled and backfilled onto ones already added. */
+var BOOK_CROSS_BY_TITLE = {
+  "Science Book, Unit 1: Think Like an Engineer — Build a Foil Boat":["Math"],
+  "Science Book, Unit 2: Pushes and Pulls Change How Things Move":["Math"],
+  "Science Book, Unit 3: The Night Sky — Stars Have Different Sizes and Brightness":["Related Arts"],
+  "Science Book, Unit 3: Where Is the Sun? (Track a Shadow)":["Math"],
+  "Science Book, Unit 3: Sunrise and Sunset — Fall and Winter":["Math"],
+  "Science Book, Unit 4: Land and Water — Draw a Map With Landforms":["Social Studies"],
+  "Math Book, Unit 5: Prime and Composite Numbers (the Sieve)":["Computer Science"],
+  "Math Book, Unit 5 Mixed Review: Input/Output Rules and Patterns Quest":["Computer Science"],
+  "Math Book, Unit 6: The Standard Algorithm (Long Division Steps)":["Computer Science"]
+};
+var BOOK_CROSS_BY_STORY = {
+  "Earth's Changing Surface":["Science"], "Getting Dinner":["Science"], "Team Puffin":["Science"],
+  "Ophelia's Last Word":["Related Arts"]
+};
+function bookCross(title){
+  title = String(title||"");
+  if(BOOK_CROSS_BY_TITLE[title]) return BOOK_CROSS_BY_TITLE[title];
+  if(title.indexOf("Storytime: ")===0){
+    var story = title.slice(11).split(" — ")[0];
+    if(BOOK_CROSS_BY_STORY[story]) return BOOK_CROSS_BY_STORY[story];
+  }
+  return null;
+}
+function patchBookCrossSubjects(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" && a.kidId!=="kid2") return;
+    var cs = bookCross(a.title);
+    if(!cs || (Array.isArray(a.crossSubjects) && a.crossSubjects.join(",")===cs.join(","))) return;
+    a.crossSubjects = cs;
+    db.doc("assignments/"+id).update({crossSubjects: cs});
   });
 }
 function fillAnnaDailyBasics(){
@@ -8828,7 +8865,7 @@ function fillAnnaDailyBasics(){
       db.collection("assignments").add({
         kidId:"kid1", date:iso, subject:spec.subject, title:item.title,
         xp:10, done:false, doneAt:null, skillId:spec.skillId, stage:"practice", standard:spec.standard,
-        passage:item.passage, quiz:item.quiz||null, createdAt:new Date().toISOString()
+        passage:item.passage, quiz:item.quiz||null, crossSubjects:bookCross(item.title), createdAt:new Date().toISOString()
       });
       added++;
     });
@@ -11525,7 +11562,7 @@ function autoAddRyanMcLab3(){
     lab.items.forEach(function(it){
       db.collection("assignments").add({
         kidId:(lab.kid||"kid2"), date:isoDate(lab.dows ? nthOfDays(start, it.d+lab.offset, lab.dows) : lab.mwf ? nthMonWedFri(start, it.d+lab.offset) : addSchoolDays(start, it.d+lab.offset)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
-        standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz||null,
+        standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz||null, crossSubjects:bookCross(it.title),
         skillId:(lab.skill||"ryan-mc-lab-book"), createdAt:new Date().toISOString()
       });
     });
@@ -11561,6 +11598,7 @@ function runAutoMigrations(){
     autoAddRyanJohnnyBuild();
     autoAddAnnaBraceletExtra();
     patchRyanMathBookTitles();
+    patchBookCrossSubjects();
     autoAddRyanMcLab3();
   }catch(e){ console.error("auto-migration error", e); }
 }
