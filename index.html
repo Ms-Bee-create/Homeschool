@@ -8397,13 +8397,53 @@ var RYAN_MC_LAB8 = [
     title:"Minecraft Lab 8 — Garden Check-In: Teach-Back and Growth Table",
     passage:"Look at your pot and your growth table.\nShow Mom or a grown-up your plant and explain: 1. What did your seeds need to grow? 2. How tall is your plant now compared to the first measurement? 3. How was your Minecraft farm like your real pot, and how was it different?\nShow What You Know — A grown-up checks that you explained all three, and your growth table has at least 3 measurements. Quest 2 is done. Add the sticker for Lab 8."}
 ];
+/* Ryan's "Math for Minecrafters: Adventures in Multiplication & Division" workbook, from page 27 on (he finished through p. 26).
+   Each page set gets our own teach step with a worked example first; the workbook pages are the practice. */
+var RYAN_MC_MATH = [
+  {d:0, subject:"Math", stage:"teach", xp:15, standard:"MGSE3.G.2",
+    title:"Math Workbook pp. 26–27 — Equal Parts: Split a Shape Into Equal Shares",
+    passage:"Gather first — a ruler, a pencil, and 3 strips of paper about the same size (scrap paper works).\nHere's the Idea — Partition means to split something into parts. The parts are only fair if they are EQUAL, the same size. If you split a shape into 4 equal parts, each part is 1 out of 4, written 1/4. The bottom number tells how many equal parts. The top number tells how many you are talking about.\nSee It Done — Take one paper strip. Fold it in half so the edges match exactly. Open it and you see 2 equal parts. One part is 1/2. Now fold it in half again, and you get 4 equal parts. One part is 1/4. Parts that do not match when folded are not equal.\nYour Turn — 1. Use your strips: fold one into 2 equal parts, one into 3 equal parts, and one into 4 equal parts. For the 3 parts, make the folds like an accordion and check that the parts match. 2. For each strip, color in one part and write its fraction (1/2, 1/3, 1/4). 3. Now do the workbook: finish the Equal Parts Challenge on pp. 26–27. Use a ruler to draw each cut. Remember there is more than one way to cut a shape into equal parts, like straight across or down the middle.\nCheck Yourself — Are all your parts the same size? How do you know?\nShow What You Know — Show Mom your three folded strips and tell her how you know the parts are equal.",
+    quiz:[
+      {q:"A chocolate bar is cut into 3 pieces. Two are big and one is small. Are these thirds?", choices:["Yes, there are 3 pieces","No, the pieces are not equal","Yes, any 3 pieces are thirds","Only if the small one is on the end"], answerIndex:1, explain:"Thirds must be 3 EQUAL parts. If the sizes are different, they are not thirds."},
+      {q:"A rectangle is cut into 4 equal parts. What fraction is one part?", choices:["1/3","1/4","4/1","1/2"], answerIndex:1, explain:"There are 4 equal parts, so one part is 1 out of 4, which is 1/4."}
+    ]},
+  {d:2, subject:"Math", stage:"teach", xp:15, standard:"4.NR.2.3",
+    title:"Math Workbook p. 28 — Multiply a 2-Digit Number by 1 Digit (Break It Apart)",
+    passage:"Gather first — graph paper or lined paper, a pencil, and a ruler.\nHere's the Idea — To multiply a big number, break it into tens and ones, multiply each piece, then add. This works because 57 is the same as 50 + 7.\nSee It Done — Try 48 x 3. Break 48 into 40 and 8. 40 x 3 = 120. 8 x 3 = 24. Add: 120 + 24 = 144. So 48 x 3 = 144. You can draw it as a rectangle with sides 3 and 48, split into a 40 part and an 8 part. The two areas add up to the answer.\nYour Turn — 1. On graph paper, draw the rectangle for 26 x 4: split 26 into 20 and 6. Find 20 x 4 and 6 x 4, then add. 2. Do the workbook Mystery Message on p. 28 using the same break-apart method. Write each step in the margin or on scratch paper. Each answer gives a letter for the riddle, and an answer that matches nothing means a mistake somewhere, so check it. 3. Solve the riddle.\nCheck Yourself — Did you multiply the tens first and then the ones? Did you add at the end?\nShow What You Know — Explain to Mom how you solved one problem by breaking the number apart.",
+    quiz:[
+      {q:"What is 38 x 6? Break 38 into 30 and 8.", choices:["218","228","248","188"], answerIndex:1, explain:"30 x 6 = 180 and 8 x 6 = 48, and 180 + 48 = 228."},
+      {q:"What is 25 x 4?", choices:["80","90","100","120"], answerIndex:2, explain:"20 x 4 = 80 and 5 x 4 = 20, and 80 + 20 = 100."}
+    ]},
+  {d:4, subject:"Math", stage:"teach", xp:15, standard:"MGSE3.OA.4",
+    title:"Math Workbook p. 29 — Mystery Number: Find the Missing Number",
+    passage:"Gather first — about 24 small objects like coins, buttons, or Lego pieces, and a pencil.\nHere's the Idea — Multiplication and division are opposites, like putting on and taking off a sock. If 3 x ? = 24, you can find ? by dividing: 24 / 3. If ? / 8 = 6, you can find ? by multiplying: 6 x 8. Knowing one fact gives you the other three in its fact family.\nSee It Done — Problem: 4 x ? = 28. Make 28 objects, then deal them into 4 equal rows. Each row has 7. So ? = 7, and 28 / 4 = 7 gives the same answer. Check: 4 x 7 = 28.\nYour Turn — 1. Use your objects to act out two of your own missing-number problems, such as 5 x ? = 35. 2. Now do the workbook Mystery Number on p. 29. For each problem, decide whether to multiply or divide to find the mystery number, and write the check. 3. Fill in any answer you are unsure about last.\nCheck Yourself — For each problem, how did you decide whether to multiply or divide? Did your check work?\nShow What You Know — Explain one problem to Mom and show how you checked it.",
+    quiz:[
+      {q:"? x 7 = 42. What is the missing number?", choices:["6","5","7","49"], answerIndex:0, explain:"Divide 42 by 7 to get 6. Check: 6 x 7 = 42."},
+      {q:"? / 4 = 9. What is the missing number?", choices:["5","13","36","32"], answerIndex:2, explain:"Division is undone by multiplication: 9 x 4 = 36, and 36 / 4 = 9."}
+    ]},
+  {d:6, subject:"Math", stage:"apply", xp:15, standard:"4.NR.2.3",
+    title:"Math Workbook p. 30 — Snow Golem Challenge: Place Value Meets Multiplication",
+    passage:"Gather first — scratch paper and a pencil.\nHere's the Idea — A number like 248 means 2 hundreds, 4 tens, and 8 ones. When you multiply or divide, you can check your answer by writing it in hundreds, tens, and ones, which is what this page asks you to do.\nSee It Done — Example: 62 x 4. Break it up: 60 x 4 = 240 and 2 x 4 = 8, so 240 + 8 = 248. That is 2 hundreds, 4 tens, 8 ones. For a division problem, work backward: to check 248 / 4 = 62, multiply 62 x 4 and see if you get 248.\nYour Turn — 1. Do the workbook Snow Golem's Number Challenge on p. 30. For each golem, work out its problem on scratch paper first, then match it with the hundreds, tens, and ones description. 2. Write the answer number next to each match. 3. For any division problem, check it by multiplying back.\nCheck Yourself — Did the answer you worked out have the same hundreds, tens, and ones as the description? How did you check the division?\nShow What You Know — Explain one match to Mom: the problem, the answer, and the hundreds, tens, and ones.",
+    quiz:[
+      {q:"2 hundreds, 4 tens, and 6 ones is which number?", choices:["264","246","426","2046"], answerIndex:1, explain:"2 hundreds = 200, 4 tens = 40, 6 ones = 6, and 200 + 40 + 6 = 246."},
+      {q:"What is 62 x 4?", choices:["228","248","268","208"], answerIndex:1, explain:"60 x 4 = 240 and 2 x 4 = 8, and 240 + 8 = 248."}
+    ]},
+  {d:8, subject:"Math", stage:"teach", xp:20, standard:"4.PAR.3",
+    title:"Math Workbook pp. 32–33 — Creating Potions: Make a Bigger Batch of a Recipe",
+    passage:"Gather first — a small measuring cup, a spoon, and snack ingredients for a real recipe, such as 2 spoons of cereal and 3 spoons of raisins per bag, with enough for 4 bags.\nHere's the Idea — A recipe is a rule: for each batch you need the same amounts. To make more batches, multiply every ingredient by the number of batches. A table with the batches in one row and the amounts in another shows the pattern.\nSee It Done — Recipe: 1 batch = 2 spoons of cereal + 3 spoons of raisins. For 4 batches, multiply both amounts by 4: 2 x 4 = 8 spoons of cereal, and 3 x 4 = 12 spoons of raisins. Table: batches 1, 2, 3, 4. Cereal 2, 4, 6, 8. Raisins 3, 6, 9, 12. Each row counts up by the same amount.\nYour Turn — 1. Make the real recipe for 4 bags using your table. 2. Now do the workbook Creating Potions on pp. 32–33. For each recipe, multiply BOTH ingredients by the number of potions. 3. Fill in the Invisibility Potion table and check that each row counts up by the same amount.\nCheck Yourself — Did you multiply both ingredients? Does each row in your table count up by the same amount?\nShow What You Know — Show Mom your real snack bags and your table, and explain how you scaled the recipe.",
+    quiz:[
+      {q:"1 potion = 2 mushrooms + 5 sugars. How many sugars do you need for 3 potions?", choices:["8","10","15","6"], answerIndex:2, explain:"5 sugars x 3 potions = 15 sugars. You multiply every ingredient by the number of potions."},
+      {q:"In the same recipe, how many mushrooms do you need for 3 potions?", choices:["5","6","8","2"], answerIndex:1, explain:"2 mushrooms x 3 potions = 6 mushrooms."}
+    ]}
+];
 var RYAN_MC_LABS = [
   {flag:"al_mc_lab3_added", items:RYAN_MC_LAB3, offset:0},
   {flag:"al_mc_lab4_added", items:RYAN_MC_LAB4, offset:3},
   {flag:"al_mc_lab5_added", items:RYAN_MC_LAB5, offset:6},
   {flag:"al_mc_lab6_added", items:RYAN_MC_LAB6, offset:9},
   {flag:"al_mc_lab7_added", items:RYAN_MC_LAB7, offset:11},
-  {flag:"al_mc_lab8_added", items:RYAN_MC_LAB8, offset:13}
+  {flag:"al_mc_lab8_added", items:RYAN_MC_LAB8, offset:13},
+  {flag:"al_mc_math1_added", items:RYAN_MC_MATH, offset:0}
 ];
 function autoAddRyanMcLab3(){
   if(!db) return;
