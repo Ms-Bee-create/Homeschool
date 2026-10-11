@@ -8256,6 +8256,45 @@ function autoAddAnnaBraceletExtra(){
   try{ localStorage.setItem(flag, "1"); }catch(e){}
   console.log("autoAddAnnaBraceletExtra: added for "+isoDate(d));
 }
+/* Ryan's Minecraft Lab Book, Lab 3 "Setting a Trap" (the book's family activity + in-game build). Written in our own
+   words around the book's steps. Added once, starting the next school day; later labs get added the same way. */
+var RYAN_MC_LAB3 = [
+  {d:0, subject:"Science", stage:"teach", xp:15, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 3 — How a Trap Works, and Build a Paper Finger Trap",
+    materials:"https://minecraft.wiki/w/Pressure_Plate",
+    passage:"Gather first — scissors, construction paper in 2 colors, tape or glue, a thick marker or stick, and a ruler. Lab book p. 33 shows each step with pictures.\nHere's the Idea — Every trap has three parts: a TRIGGER (something that sets it off), a LINK (how the signal travels), and a RESULT (what happens). In Minecraft a pressure plate is a trigger: it sends out a redstone signal while something stands on it. A trapdoor can be the result: when it gets the signal, it swings open. Open the link above to see what a pressure plate does.\nSee It Done — A doorbell is a trap you already know. Trigger: you press the button. Link: the wire. Result: the bell rings. Now the Chinese finger trap: Trigger: you push a finger in and pull. Link: the woven strips tighten. Result: your finger is stuck, and pushing in loosens it.\nYour Turn — Do the family activity with a grown-up: follow lab book p. 33 to make a Chinese finger trap. 1. Cut 4 paper strips about 12 inches long and 1 inch wide, 2 of each color. 2. Tape or glue each pair of colors together at a slight angle. 3. Tape the pairs on opposite sides of the marker. 4. Braid the colors over and under around the marker until you reach the end. 5. Trim, tape the ends, and slide the marker out. 6. Put a finger in each end and pull. Then write the trigger, link, and result of your paper trap in your notebook.\nCheck Yourself — What made the trap tighter when you pulled? What did you do to get free?\nShow What You Know — Photo of your finished finger trap and your three-part notebook note.",
+    quiz:[
+      {q:"In a Minecraft trap, which part is the TRIGGER?", choices:["The lava pit","The pressure plate","The corridor walls","The bait"], answerIndex:1, explain:"The trigger is the part that starts everything. The pressure plate sends the signal when something steps on it."},
+      {q:"A trapdoor opens when the pressure plate gets stepped on. What is the trapdoor's job?", choices:["Trigger","Link","Result","Bait"], answerIndex:2, explain:"The trapdoor opening is what happens because of the signal, so it is the result."}
+    ]},
+  {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
+    title:"Minecraft Lab 3 — Build a Lava-Pit Trap (Lab Book pp. 34–35)",
+    materials:"https://minecraft.wiki/w/Tutorial:Traps",
+    passage:"Gather first — Minecraft on the PC in Creative mode (Survival only with a grown-up nearby), a shovel, a lava bucket, a stone pressure plate, a trapdoor, bedrock, and dirt or grass blocks. Lab book pp. 34–35 show every figure.\nHere's the Idea — Yesterday you named the three parts: trigger, link, result. Today you build them. Plan first: draw your trap on paper and label TRIGGER, LINK, and RESULT before you place a single block.\nSee It Done — The book's design: dig a pit 3 blocks by 3 blocks, put bedrock on the bottom so the lava stays, pour lava in the center, cover the pit with dirt or grass, put the trapdoor in the center, and place a stone pressure plate in front of it. The pit is the result, the pressure plate is the trigger.\nYour Turn — 1. Dig the 3x3 pit and place bedrock on the bottom. 2. Pour lava in the center of the pit. 3. Cover the pit with dirt or grass and put the trapdoor in the center, hinge side away from where the monster will come from. 4. Place the stone pressure plate in front of the trapdoor. 5. Build a solid corridor with a dead end past the trap. 6. Test it with a bait mob: step on the plate yourself, then jump past. Does the trap work? 7. If it does not, change one thing and test again.\nCheck Yourself — Which block is the trigger? Which is the result? Where does your trap fail?\nShow What You Know — A screenshot of your trap and your labeled paper plan. Safety: lava is dangerous even in a game, so keep the pit covered.",
+    quiz:[
+      {q:"Your trap did not work. What is the best next step?", choices:["Delete the world","Change one thing and test again","Give up","Change everything at once"], answerIndex:1, explain:"Changing one thing at a time shows you which change fixed it."}
+    ]},
+  {d:2, subject:"Related Arts", stage:"apply", xp:15, standard:"ELAGSE4SL4",
+    title:"Teach-Back: Explain Your Trap to Mom",
+    passage:"Show Mom or a grown-up both traps, the paper finger trap and your Minecraft trap, and explain them in your own words.\nSay these three things: 1. What is the trigger, link, and result in each trap? 2. How are the two traps the same, and how are they different? 3. Why do you think the finger trap gets tighter when you pull, but loosens when you push?\nShow What You Know — Mom checks off that you explained all three parts, or you record a short video of your explanation. Optional: add the sticker to your lab book page."}
+];
+function autoAddRyanMcLab3(){
+  if(!db) return;
+  var has = Object.keys(state.assignments).some(function(id){ var a = state.assignments[id]; return a.kidId==="kid2" && a.skillId==="ryan-mc-lab-book"; });
+  var flag = "al_mc_lab3_added";
+  try{ if(has || localStorage.getItem(flag)) return; }catch(e){ if(has) return; }
+  var start = new Date(todayISO()+"T00:00:00");
+  while(start.getDay()===0 || start.getDay()===6) start.setDate(start.getDate()+1);
+  RYAN_MC_LAB3.forEach(function(it){
+    db.collection("assignments").add({
+      kidId:"kid2", date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz||null,
+      skillId:"ryan-mc-lab-book", createdAt:new Date().toISOString()
+    });
+  });
+  try{ localStorage.setItem(flag, "1"); }catch(e){}
+  console.log("autoAddRyanMcLab3: added "+RYAN_MC_LAB3.length+" lesson(s)");
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -8270,6 +8309,7 @@ function runAutoMigrations(){
     patchRyanJohnnyOS();
     autoAddRyanJohnnyBuild();
     autoAddAnnaBraceletExtra();
+    autoAddRyanMcLab3();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
