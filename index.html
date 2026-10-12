@@ -4922,6 +4922,12 @@ function renderArena(){
   hero.innerHTML = '<h2>Study Arena</h2><p>Quick-fire quizzes. Beat the clock, earn bonus XP, level up faster.</p>';
   els.view.appendChild(hero);
 
+  var gk = document.createElement("a");
+  gk.href = GIMKIT_URL; gk.target = "_blank"; gk.rel = "noopener"; gk.className = "card";
+  gk.style.cssText = "display:flex;align-items:center;gap:12px;margin-bottom:12px;padding:14px 16px;text-decoration:none;color:inherit;border:2px solid var(--gold);border-radius:16px";
+  gk.innerHTML = '<span style="font-size:32px">🎮</span><span style="flex:1"><b style="font-size:16px">Play Gimkit</b><br><span class="muted" style="font-size:13px">Play, or build your own game with questions from what you have learned.</span></span><span style="font-size:20px">▶</span>';
+  els.view.appendChild(gk);
+
   var gameTitle = document.createElement("div");
   gameTitle.className = "section-title";
   gameTitle.textContent = "Arcade";
@@ -6542,6 +6548,7 @@ function renderLeaderArea(){
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(gimkitExportCard());
   els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
@@ -18234,6 +18241,75 @@ function skipSwapCard(){
   return wrap;
 }
 
+/* ---------- Gimkit: question sets built from what the kids actually studied ---------- */
+/* Gimkit (free Basic plan) can build a kit from an uploaded CSV. These helpers turn the quiz questions already inside the lessons
+   into a CSV: Question, Correct Answer, Incorrect Answer 1-3. Only multiple-choice questions go in (matching and sorting do not fit). */
+var GIMKIT_URL = "https://www.gimkit.com/";
+function gimkitRows(kidId, doneOnly, subject){
+  var seen = {}, rows = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId || !Array.isArray(a.quiz)) return;
+    if(doneOnly && !a.done) return;
+    if(subject && a.subject!==subject) return;
+    a.quiz.forEach(function(q){
+      if(!q || !Array.isArray(q.choices) || q.choices.length<2 || typeof q.answerIndex!=="number" || !q.choices[q.answerIndex]) return;
+      var key = String(q.q).toLowerCase();
+      if(seen[key]) return; seen[key] = true;
+      var wrong = q.choices.filter(function(c,i){ return i!==q.answerIndex; }).slice(0,3);
+      rows.push([q.q, q.choices[q.answerIndex]].concat(wrong));
+    });
+  });
+  return rows;
+}
+function gimkitCsv(rows){
+  function esc(v){ v = String(v==null ? "" : v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+  var out = [["Question","Correct Answer","Incorrect Answer 1","Incorrect Answer 2","Incorrect Answer 3"]].concat(rows);
+  return out.map(function(r){ return r.map(esc).join(","); }).join("\r\n");
+}
+function gimkitExportCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"gimkit");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🎮 Gimkit question sets — made from their lessons";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.innerHTML = 'Downloads the quiz questions from lessons as a spreadsheet file (.csv). In Gimkit: <b>New Kit</b>, then <b>Import from Spreadsheet</b>, pick Gimkit\'s template, and upload the file. If Gimkit complains, copy the columns into its template in the same order (question, correct answer, then up to 3 wrong answers). Only multiple-choice questions are included.';
+  det.appendChild(note);
+  var row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px";
+  function sel(opts){ var e = document.createElement("select"); e.style.cssText = "font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card,#fff);color:var(--ink)"; opts.forEach(function(o){ var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; e.appendChild(op); }); return e; }
+  var kidSel = sel(KIDS.map(function(k){ return [k.id, kidData(k.id).name || k.defaultName]; }));
+  var scopeSel = sel([["done","Lessons they have finished"],["all","All lessons, even upcoming"]]);
+  var subjSel = sel([["","All subjects"]]);
+  function fillSubjects(){
+    var subs = {}; Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId===kidSel.value && Array.isArray(a.quiz) && a.subject) subs[a.subject] = true; });
+    subjSel.innerHTML = ""; [["","All subjects"]].concat(Object.keys(subs).sort().map(function(x){ return [x,x]; })).forEach(function(o){ var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; subjSel.appendChild(op); });
+  }
+  fillSubjects();
+  var count = document.createElement("div"); count.className = "muted"; count.style.cssText = "font-size:12.5px;margin-bottom:8px";
+  function upd(){ count.textContent = gimkitRows(kidSel.value, scopeSel.value==="done", subjSel.value).length + " questions ready"; }
+  kidSel.onchange = function(){ fillSubjects(); upd(); }; scopeSel.onchange = upd; subjSel.onchange = upd; upd();
+  [kidSel, scopeSel, subjSel].forEach(function(e){ row.appendChild(e); });
+  det.appendChild(row); det.appendChild(count);
+  var btn = document.createElement("button"); btn.type = "button"; btn.className = "primary-btn"; btn.textContent = "⬇️ Download question set";
+  btn.onclick = function(){
+    var rows = gimkitRows(kidSel.value, scopeSel.value==="done", subjSel.value);
+    if(!rows.length){ toast("No multiple-choice questions match that yet"); return; }
+    var blob = new Blob(["﻿"+gimkitCsv(rows)], {type:"text/csv;charset=utf-8"});
+    var a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "gimkit-"+kidSel.value+"-"+(subjSel.value||"all").toLowerCase().replace(/[^a-z0-9]+/g,"-")+"-"+todayISO()+".csv";
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    toast("Downloaded "+rows.length+" questions ✓");
+  };
+  det.appendChild(btn);
+  var link = document.createElement("a"); link.href = GIMKIT_URL; link.target = "_blank"; link.rel = "noopener"; link.style.cssText = "margin-left:10px;font-size:13px"; link.textContent = "Open Gimkit";
+  det.appendChild(link);
+  wrap.appendChild(det);
+  return wrap;
+}
 /* ---------- Leader: Content Packs (replaces the add... console commands) ---------- */
 /* Start day for the next pack added. Null = today. Weekly packs step in whole school weeks, so
    starting on a Wednesday puts every weekly lesson on a Wednesday. A weekend start rolls to Monday. */
