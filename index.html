@@ -10508,6 +10508,7 @@ var BOOK_CROSS_BY_TITLE = {
   "Science Book, Unit 3: Sunrise and Sunset — Fall and Winter":["Math"],
   "Science Book, Unit 4: Land and Water — Draw a Map With Landforms":["Social Studies"],
   "Math Book, Unit 5: Prime and Composite Numbers (the Sieve)":["Computer Science"],
+  "__HW__":["ELA"],
   "Social Studies Book, Reading Skills: Five Ways to Think About What You Read":["ELA"],
   "Math Book, Unit 5 Mixed Review: Input/Output Rules and Patterns Quest":["Computer Science"],
   "Math Book, Unit 6: The Standard Algorithm (Long Division Steps)":["Computer Science"]
@@ -10519,6 +10520,7 @@ var BOOK_CROSS_BY_STORY = {
 function bookCross(title){
   title = String(title||"");
   if(BOOK_CROSS_BY_TITLE[title]) return BOOK_CROSS_BY_TITLE[title];
+  if(title.indexOf("Handwriting p. ")===0) return ["ELA"];
   if(title.indexOf("Storytime: ")===0){
     var story = title.slice(11).split(" — ")[0];
     if(BOOK_CROSS_BY_STORY[story]) return BOOK_CROSS_BY_STORY[story];
@@ -15509,6 +15511,341 @@ var ANNA_SS_CH1 = [
   ]
  }
 ];
+var ANNA_HANDWRITING = [
+ {
+  "d": 0,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 3: Aa and Mm + Heart Words (can, and, the, said)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 3 of your handwriting practice, \"Write the Letters Aa and Mm.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 129: cut out the cards (can, and, the, said). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 1,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 4: Nn and Ee + Heart Words (miss, will, your, want)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 4 of your handwriting practice, \"Write the Letters Nn and Ee.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 131: cut out the cards (miss, will, your, want). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 2,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 5: Ff and Ss + Heart Words (back, much, they, were)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 5 of your handwriting practice, \"Write the Letters Ff and Ss.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 133: cut out the cards (back, much, they, were). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 3,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 6: Oo and Uu + Heart Words (which, thank, was, what)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 6 of your handwriting practice, \"Write the Letters Oo and Uu.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 135: cut out the cards (which, thank, was, what). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 4,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 7: Cc and Hh + Heart Words (like, gave, one, once)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 7 of your handwriting practice, \"Write the Letters Cc and Hh.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 137: cut out the cards (like, gave, one, once). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 5,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 8: Ss and Tt + Heart Words (place, page, walk, where)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 8 of your handwriting practice, \"Write the Letters Ss and Tt.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 139: cut out the cards (place, page, walk, where). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 6,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 9: Pp and Gg + Heart Words (thing, use, would, here)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 9 of your handwriting practice, \"Write the Letters Pp and Gg.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 141: cut out the cards (thing, use, would, here). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 7,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 10: Kk and Ww + Heart Words (being, change, friend, into)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 10 of your handwriting practice, \"Write the Letters Kk and Ww.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 143: cut out the cards (being, change, friend, into). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 8,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 11: Bb and Ii + Heart Words (second, even, some, from)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 11 of your handwriting practice, \"Write the Letters Bb and Ii.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 145: cut out the cards (second, even, some, from). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 9,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 12: Jj and Dd + Heart Words (family, funny, people, because)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 12 of your handwriting practice, \"Write the Letters Jj and Dd.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 147: cut out the cards (family, funny, people, because). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 10,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 13: Xx and Vv + Heart Words (little, before, many, pretty)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 13 of your handwriting practice, \"Write the Letters Xx and Vv.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 149: cut out the cards (little, before, many, pretty). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 11,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 14: Qq and Zz + Heart Words (sentence, sister, brother, their)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 14 of your handwriting practice, \"Write the Letters Qq and Zz.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 151: cut out the cards (sentence, sister, brother, their). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 12,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 15: Rr and Yy + Heart Words (between, below, today, fourth)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 15 of your handwriting practice, \"Write the Letters Rr and Yy.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 153: cut out the cards (between, below, today, fourth). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 13,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 16: es and ed + Heart Words (highlight, yellow, against, nothing)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 16 of your handwriting practice, \"Write the Letters es and ed.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 155: cut out the cards (highlight, yellow, against, nothing). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 14,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 17: ch and sh + Heart Words (soon, too, floor, two)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 17 of your handwriting practice, \"Write the Letters ch and sh.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 157: cut out the cards (soon, too, floor, two). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 15,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 18: ck and th + Heart Words (always, almost, month, minute)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 18 of your handwriting practice, \"Write the Letters ck and th.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 159: cut out the cards (always, almost, month, minute). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 16,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 19: ng and nk + Heart Words (around, without, Monday, Wednesday)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 19 of your handwriting practice, \"Write the Letters ng and nk.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 161: cut out the cards (around, without, Monday, Wednesday). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 17,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 20: tch and dge + Heart Words (know, write, answer, honest)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 20 of your handwriting practice, \"Write the Letters tch and dge.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 163: cut out the cards (know, write, answer, honest). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 18,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 21: idle, old, and ost + Heart Words (point, down, sure, truly)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 21 of your handwriting practice, \"Write the Letters idle, old, and ost.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 165: cut out the cards (point, down, sure, truly). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 19,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 22: y + Heart Words (spell, example, there, great)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 22 of your handwriting practice, \"Write the Letters y.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 167: cut out the cards (spell, example, there, great). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 20,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 23: ble, ple, and dle + Heart Words (letter, under, laugh, busy)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 23 of your handwriting practice, \"Write the Letters ble, ple, and dle.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 169: cut out the cards (letter, under, laugh, busy). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 21,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 24: ar, or, and ore + Heart Words (dollar, doctor, whose, toward)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 24 of your handwriting practice, \"Write the Letters ar, or, and ore.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 171: cut out the cards (dollar, doctor, whose, toward). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 22,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 25: er, ir, and ur + Heart Words (hearing, nearby, build, though)",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot, plus scissors (the heart word cards are cut out).\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.\nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. Heart word example: the word said sounds like 'sed.' Tap the sounds: s, e, d. The tricky part is the letters ai, because they say 'e' here. Circle the ai, say the letters, cover the word, and write it from memory.\nYour Turn — 1. Do page 25 of your handwriting practice, \"Write the Letters er, ir, and ur.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines. 4. Heart words, page 173: cut out the cards (hearing, nearby, build, though). For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix. 5. Say each word in a sentence out loud. (Optional: use your cut-out Letter Cards to spell two of the words.)\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing? Can you write each heart word without looking?\nShow What You Know — Show Mom your best line of writing and read her your heart words, one at a time."
+ },
+ {
+  "d": 23,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 26: wor and er",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 26 of your handwriting practice, \"Write the Letters wor and er.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 24,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 27: ar and or",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 27 of your handwriting practice, \"Write the Letters ar and or.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 25,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 28: ay and ai",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 28 of your handwriting practice, \"Write the Letters ay and ai.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 26,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 29: ee, ea, and ey",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 29 of your handwriting practice, \"Write the Letters ee, ea, and ey.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 27,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 30: oe, oa, and ow",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 30 of your handwriting practice, \"Write the Letters oe, oa, and ow.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 28,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 31: ie and igh",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 31 of your handwriting practice, \"Write the Letters ie and igh.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 29,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 32: oo and u",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 32 of your handwriting practice, \"Write the Letters oo and u.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 30,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 33: oo",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 33 of your handwriting practice, \"Write the Letters oo.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 31,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 34: ew, ui, and ue",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 34 of your handwriting practice, \"Write the Letters ew, ui, and ue.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 32,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 35: au and aw",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 35 of your handwriting practice, \"Write the Letters au and aw.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 33,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 36: augh and al",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 36 of your handwriting practice, \"Write the Letters augh and al.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 34,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 37: ea",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 37 of your handwriting practice, \"Write the Letters ea.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 35,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 38: oi and oy",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 38 of your handwriting practice, \"Write the Letters oi and oy.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ },
+ {
+  "d": 36,
+  "subject": "Related Arts",
+  "stage": "practice",
+  "xp": 5,
+  "standard": "ELAGSE2RF3",
+  "title": "Handwriting p. 39: ou and ow",
+  "passage": "Gather first — your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and a cozy spot.\nHere's the Idea — Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. Slow and neat is better than fast. \nSee It Done — Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. \nYour Turn — 1. Do page 39 of your handwriting practice, \"Write the Letters ou and ow.\" Trace first, then write on your own. 2. Look at your best letter or word and put a star by it. 3. If one is messy, write it again more slowly on the practice lines.\nCheck Yourself — Do your letters sit on the line and start at the top? Could someone else read your writing?\nShow What You Know — Show Mom your best line of writing."
+ }
+];
 var RYAN_MC_LABS = [
   {flag:"al_mc_lab3_added", items:RYAN_MC_LAB3, offset:0},
   {flag:"al_mc_lab4_added", items:RYAN_MC_LAB4, offset:3},
@@ -15523,6 +15860,7 @@ var RYAN_MC_LABS = [
   {flag:"al_ixl4_u4_added", items:RYAN_IXL4_U4, offset:11, dows:[2,4]},
   {flag:"al_anna_math1_added", items:ANNA_IXL2_MATH1, offset:0, dows:[2,4], kid:"kid1", skill:"anna-book-lessons"},
   {flag:"al_anna_sci1_added", items:ANNA_IXL2_SCI1, offset:0, dows:[1,3], kid:"kid1", skill:"anna-book-lessons"},
+  {flag:"al_anna_hw_added", items:ANNA_HANDWRITING, offset:0, dows:[1,2,3,4], kid:"kid1", skill:"anna-book-lessons"},
   {flag:"al_anna_sci2_added", items:ANNA_IXL2_SCI2, offset:4, dows:[1,3], kid:"kid1", skill:"anna-book-lessons"},
   {flag:"al_anna_sci3_added", items:ANNA_IXL2_SCI3, offset:8, dows:[1,3], kid:"kid1", skill:"anna-book-lessons"},
   {flag:"al_anna_sci4_added", items:ANNA_IXL2_SCI4, offset:13, dows:[1,3], kid:"kid1", skill:"anna-book-lessons"},
