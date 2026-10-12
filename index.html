@@ -3222,7 +3222,7 @@ function tasksUnitsComplete(tasks){
 function blockComplete(blockKey, kidId, iso, tasksByBlock){
   if(blockKey==="morning"){
     var j = journalEntryFor(kidId, iso);
-    return !!(j && j.launchMood && j.launchGoal);
+    return !!(j && j.launchMood && (j.launchGoal || (LAUNCH_KID[kidId] && LAUNCH_KID[kidId].noGoal)));
   }
   if(blockKey==="showTeach") return !!reflectionFor(kidId, iso);
   var tasks = tasksByBlock[blockKey] || [];
@@ -3468,14 +3468,15 @@ var LAUNCH_GOALS = ["Math first", "VM build", "Reading", "Project work", "Scienc
 var LAUNCH_KID = {
   kid1: {
     prompt: "How are you feeling this morning?",
-    goalPrompt: "What do you want to do first?",
     moods: [{key:"waking", icon:"😴", label:"Still sleepy"}, {key:"ready", icon:"🙂", label:"Ready"}, {key:"goLetsGo", icon:"🦄", label:"Super excited"}],
-    goals: ["Math", "Storytime", "Make something", "Science or Social Studies", "Handwriting"],
-    voiceLabel: "🎤 Tell me your plan",
+    noGoal: true,
+    voiceLabel: "🎤 Tell me your answer",
     streakLabel: "☀️ Sunny Start Streak",
     noNote: true,
     noPhoto: true,
-    wiggles: ["Do 5 jumping jacks.", "Stretch up high like a sunflower, then touch your toes.", "Do a silly dance for 10 seconds.", "Hop like a bunny 5 times.", "Take 3 big slow breaths, like smelling flowers and blowing out a candle.", "Spin around slowly 3 times, then freeze like a statue."]
+    wiggles: ["Do 5 jumping jacks.", "Stretch up high like a sunflower, then touch your toes.", "Do a silly dance for 10 seconds.", "Hop like a bunny 5 times.", "Take 3 big slow breaths, like smelling flowers and blowing out a candle.", "Spin around slowly 3 times, then freeze like a statue."],
+    questions: ["If your pet could talk for one day, what would it say first?", "If you could invent a brand new color, what would it look like and what would you name it?", "What would you do if your shoes could walk by themselves?", "If clouds were made of cotton candy, how would you collect them?", "Would you rather have a pet dragon the size of a cat, or a cat the size of a dragon? Why?", "If you could be any animal for one day, which one, and what would you do?", "What is the silliest thing you could wear to the grocery store?", "If you built a house out of one kind of food, what food would it be, and where would the door go?", "If you could name a star, what would you call it?", "If the moon could talk, what do you think it would say?", "If you had a superpower that was only a little bit useful, like talking to ants, what would it be?", "If you were the teacher at a school for animals, what would the first lesson be?", "What could you invent to make mornings more fun?", "If your toys had a secret party at night, what would they do?", "What do you think a dinosaur would say about pizza?", "If rain were a different color, which color, and what would the puddles look like?", "What is one thing you would teach a robot about being kind?", "If you could visit any made-up place from a story, where would you go?", "If you shrank to the size of an ant, what would you explore first?", "What do you think a bird would say about the view from the top of a tree?"],
+    ideas: ["Build a blanket fort and read a book inside it.", "Make a friendship bracelet for someone you love.", "Draw a map of an imaginary island with a treasure on it.", "Go on a nature hunt outside: find 3 round things and 3 smooth things.", "Make a snack with a grown-up and name it something silly.", "Put on a puppet show for your family.", "Make up a song about your day.", "Make a paper airplane and see how far it flies. Can you make it fly farther?", "Have a three-song dance party.", "Give your house plants silly names and water them.", "Start a leaf or rock collection and sort it by color.", "Draw a card for someone far away and mail it with a grown-up.", "Make chalk art on the driveway.", "Build a tiny town out of blocks and give it a mayor.", "Have a stuffed-animal tea party.", "Make a treasure hunt with 5 clues for someone in your family."]
   }
 };
 
@@ -3501,7 +3502,7 @@ function saveLaunchField(kidId, iso, existing, fieldUpdates){
    already uses for the main streak, so "did they do it today, was yesterday the last day" logic
    stays consistent across the app instead of drifting into a second implementation. */
 function maybeAdvanceSelfStartStreak(kidId, entry){
-  if(!entry || !entry.launchMood || !entry.launchGoal) return null;
+  if(!entry || !entry.launchMood || (!entry.launchGoal && !(LAUNCH_KID[kidId] && LAUNCH_KID[kidId].noGoal))) return null;
   var kd = kidData(kidId);
   var todayStr = new Date().toDateString();
   if(kd.lastSelfStartDate === todayStr) return null; // already counted today
@@ -3517,7 +3518,7 @@ function renderMorningLaunch(kidId, iso){
   var wrap = document.createElement("div");
   var existing = journalEntryFor(kidId, iso);
   var cfg = LAUNCH_KID[kidId] || null;
-  var moods = cfg ? cfg.moods : LAUNCH_MOODS, goals = cfg ? cfg.goals : LAUNCH_GOALS;
+  var moods = cfg ? cfg.moods : LAUNCH_MOODS, goals = cfg && cfg.goals ? cfg.goals : LAUNCH_GOALS;
   if(cfg){
     var feel = document.createElement("div"); feel.style.cssText = "font-size:14px;font-weight:700;margin-bottom:8px"; feel.textContent = cfg.prompt; wrap.appendChild(feel);
   }
@@ -3544,6 +3545,7 @@ function renderMorningLaunch(kidId, iso){
   wrap.appendChild(moodRow);
 
   /* --- B. Goal selector (single-select chips) --- */
+  if(!(cfg && cfg.noGoal)){
   var goalLabel = document.createElement("div");
   goalLabel.style.cssText = "font-size:12.5px;font-weight:600;margin-bottom:6px";
   goalLabel.textContent = cfg ? cfg.goalPrompt : "What's the plan?";
@@ -3565,6 +3567,7 @@ function renderMorningLaunch(kidId, iso){
     goalRow.appendChild(chip);
   });
   wrap.appendChild(goalRow);
+  }
 
   /* --- C & D. Optional voice note + photo snapshot. Reuses the same file-input-as-upload-button
      pattern as Show & Teach's uploads below — tapping it opens the phone's own camera/voice
@@ -3656,6 +3659,15 @@ function renderMorningLaunch(kidId, iso){
   var kd = kidData(kidId);
   var streakRow = document.createElement("div");
   streakRow.className = "launch-streak-row";
+  if(cfg && cfg.questions){
+    var dn = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
+    var qb = document.createElement("div"); qb.style.cssText = "font-size:14.5px;margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:var(--teal-soft)";
+    qb.innerHTML = '<div style="font-weight:700;margin-bottom:2px">🤔 Silly question of the day</div>'+escapeHtml(cfg.questions[dn % cfg.questions.length])+'<div class="muted" style="font-size:12.5px;margin-top:4px">Tell Mom your answer, or tap 🎤 to say it.</div>';
+    wrap.appendChild(qb);
+    var ib = document.createElement("div"); ib.style.cssText = "font-size:14px;margin:6px 0 4px;padding:10px 12px;border-radius:12px;background:var(--rose-soft, var(--gold-soft))";
+    ib.innerHTML = '<div style="font-weight:700;margin-bottom:2px">🎈 Fun thing to do after school</div>'+escapeHtml(cfg.ideas[(dn*3+1) % cfg.ideas.length]);
+    wrap.appendChild(ib);
+  }
   if(cfg && cfg.wiggles){
     var wg = document.createElement("div"); wg.className = "muted"; wg.style.cssText = "font-size:13.5px;margin:10px 0 4px;padding:8px 10px;border-radius:10px;background:var(--gold-soft)";
     var di = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000) % cfg.wiggles.length;
@@ -4371,7 +4383,7 @@ function exportProgressCSV(kidId){
      tagged assignments, so without this they'd never show up in subject hours at all. Credited to
      ELA — Morning Launch now runs on the mood+goal tracker rather than free writing, but choosing
      both is still the same kind of daily reflection habit the credit was meant to recognize. */
-  (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.launchMood && j.launchGoal; }).forEach(function(){
+  (state.journalEntries||[]).filter(function(j){ return j.kidId===kidId && j.launchMood && (j.launchGoal || (LAUNCH_KID[kidId] && LAUNCH_KID[kidId].noGoal)); }).forEach(function(){
     totalMins += JOURNAL_EST_MINUTES;
     bySubjHours["ELA"] = (bySubjHours["ELA"]||0) + JOURNAL_EST_MINUTES;
   });
