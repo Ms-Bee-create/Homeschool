@@ -193,3 +193,8 @@ Approved videos, with what they are for (video id after `watch?v=`):
 - Anna math/ELA songs, not yet attached to a lesson (use when a matching lesson exists): Zt78cFS5isQ The Place Value Song (already on
   place value teach lessons and review games); TD_x3AFDjG8 Count by 2's and Move; nC1qgxHcV8k All Mixed Up, Multiply by Music (multiply by 2);
   c3yJhw7R3fI Eight Parts of Speech Review; RVpcZ5obmsM Money Song, Show Me the Money; K9_O0L96L-g Skip Counting by 25 to 200.
+- Anna time, shapes, measuring, estimating (not yet on a lesson unless noted): w9QK_4vrnJ0 The Telling Time Song (Scratch Garden);
+  Xwazo-_ePoA Hip-Hop Around the Clock, :15 :30 :45 (Jack Hartmann); Ux_kLd7qAcY Shapes! Mini Math Movies (Scratch Garden);
+  ZnZYK83utu0 3D Shapes Song (spheres, cylinders, pyramids, cones, cubes); zPZegz690Mg 3D Shapes Song (Jack Hartmann);
+  xnUkIsdvfGY Estimating! Mini Math Movies (Scratch Garden); https://scratchgarden.com/videos/measuring/ Measuring (Scratch Garden;
+  already on the Design Studio "Measure the Room" lesson).

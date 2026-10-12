@@ -17960,6 +17960,18 @@ function patchAnnaPlaceValueVideo(){
     a.video = url; db.doc("assignments/"+id).update({video:url});
   });
 }
+/* Scratch Garden's "Measuring" video (Mom approved it) goes on the Design Studio lessons that start with measuring the room. */
+function patchAnnaMeasuringVideo(){
+  if(!db) return;
+  var url = "https://scratchgarden.com/videos/measuring/";
+  var note = "Watch first — the Measuring video from Scratch Garden (above) shows how to line up a ruler or tape from end to end with no gaps. ";
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.done || a.video || String(a.title).indexOf("Design Studio: Nursery Floor Plan, Day 1")!==0) return;
+    var upd = {video:url, passage:note+(a.passage||"")};
+    Object.assign(a, upd); db.doc("assignments/"+id).update(upd);
+  });
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -17986,6 +17998,7 @@ function runAutoMigrations(){
     patchRyanVirtualPhones();
     patchReviewLessons();
     patchAnnaPlaceValueVideo();
+    patchAnnaMeasuringVideo();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
