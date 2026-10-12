@@ -159,3 +159,19 @@ Library tab's `familyLibrarySectionCard()` for the pattern) rather than inventin
 build a stable key, check it before setting `.open`, and write to it on the `toggle` event. Don't
 ship a new collapsible section without wiring this in — a section that silently forgets it was
 opened is confusing regardless of what the UI element actually is.
+
+## 18. Lesson titles must tell the kid what they will do, and make them want to click
+
+Never ship a title that is only a skill code, a subject name, or "Review: <something>" (the old
+"🔁 Review: anna-math-place-value" is the example of what not to do). A title names the real topic and
+promises something fun or concrete: "Place Value Boss Battle 🏆", "Can You Beat Mom at Story Elements? 🎮",
+"Build a Faster Virtual Phone". Keep it kid-readable, keep it short, and still obey rule 16.
+
+## 19. Every lesson has real instructions. A review day is a game day.
+
+No lesson may be just a title (or a title and one quiz question). Each one needs a `passage` with what to
+gather, the idea, and numbered steps. A review or practice-only day must give the kid a real game to play
+(a card or dice game, a hands-on challenge, or a verified online game with an exact link under rule 1),
+with the quiz as the check at the end. Missed-question reviews are made by `queueSkillReview`, which
+builds the title, the game, and the instructions; never create an assignment that skips them. Group all of
+a lesson's missed questions into ONE review lesson, not one lesson per question.
