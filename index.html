@@ -3463,6 +3463,21 @@ var LAUNCH_MOODS = [
   {key:"goLetsGo", icon:"🚀", label:"Let's go"}
 ];
 var LAUNCH_GOALS = ["Math first", "VM build", "Reading", "Project work", "Science block"];
+/* Anna's Sunshine Start: her own feelings, her own subjects, no typing. (The saved mood keys stay the same as Ryan's, so
+   old entries and the self-start streak keep working; only the words and pictures differ.) */
+var LAUNCH_KID = {
+  kid1: {
+    prompt: "How are you feeling this morning?",
+    goalPrompt: "What do you want to do first?",
+    moods: [{key:"waking", icon:"😴", label:"Still sleepy"}, {key:"ready", icon:"🙂", label:"Ready"}, {key:"goLetsGo", icon:"🦄", label:"Super excited"}],
+    goals: ["Math", "Storytime", "Make something", "Science or Social Studies", "Handwriting"],
+    voiceLabel: "🎤 Tell me your plan",
+    streakLabel: "☀️ Sunny Start Streak",
+    noNote: true,
+    noPhoto: true,
+    wiggles: ["Do 5 jumping jacks.", "Stretch up high like a sunflower, then touch your toes.", "Do a silly dance for 10 seconds.", "Hop like a bunny 5 times.", "Take 3 big slow breaths, like smelling flowers and blowing out a candle.", "Spin around slowly 3 times, then freeze like a statue."]
+  }
+};
 
 /* Saves one field of today's journal/launch entry, creating the row if it doesn't exist yet —
    every tap (mood, goal, voice, photo) calls this so nothing waits on a separate Save button. */
@@ -3501,11 +3516,16 @@ function maybeAdvanceSelfStartStreak(kidId, entry){
 function renderMorningLaunch(kidId, iso){
   var wrap = document.createElement("div");
   var existing = journalEntryFor(kidId, iso);
+  var cfg = LAUNCH_KID[kidId] || null;
+  var moods = cfg ? cfg.moods : LAUNCH_MOODS, goals = cfg ? cfg.goals : LAUNCH_GOALS;
+  if(cfg){
+    var feel = document.createElement("div"); feel.style.cssText = "font-size:14px;font-weight:700;margin-bottom:8px"; feel.textContent = cfg.prompt; wrap.appendChild(feel);
+  }
 
   /* --- A. Mood selector --- */
   var moodRow = document.createElement("div");
   moodRow.className = "launch-mood-row";
-  LAUNCH_MOODS.forEach(function(m){
+  moods.forEach(function(m){
     var btn = document.createElement("div");
     btn.className = "launch-mood-btn" + (existing && existing.launchMood===m.key ? " selected" : "");
     btn.innerHTML =
@@ -3526,12 +3546,12 @@ function renderMorningLaunch(kidId, iso){
   /* --- B. Goal selector (single-select chips) --- */
   var goalLabel = document.createElement("div");
   goalLabel.style.cssText = "font-size:12.5px;font-weight:600;margin-bottom:6px";
-  goalLabel.textContent = "What's the plan?";
+  goalLabel.textContent = cfg ? cfg.goalPrompt : "What's the plan?";
   wrap.appendChild(goalLabel);
 
   var goalRow = document.createElement("div");
   goalRow.className = "launch-goal-row";
-  LAUNCH_GOALS.forEach(function(g){
+  goals.forEach(function(g){
     var chip = document.createElement("div");
     chip.className = "launch-goal-chip" + (existing && existing.launchGoal===g ? " selected" : "");
     chip.textContent = g;
@@ -3593,14 +3613,15 @@ function renderMorningLaunch(kidId, iso){
     lbl.appendChild(input);
     return lbl;
   }
-  mediaRow.appendChild(makeMediaBtn("🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
-  mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
+  mediaRow.appendChild(makeMediaBtn(cfg ? cfg.voiceLabel : "🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
+  if(!(cfg && cfg.noPhoto)) mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
   wrap.appendChild(mediaRow);
   wrap.appendChild(mediaPreview);
 
   /* --- Optional short note, own-words only. Guarded the same way as Show & Teach's text box:
      no pasting/dragging in text, and anything URL-like, wall-of-text, or suspiciously long gets
      rejected at save time rather than silently stored. --- */
+  if(!(cfg && cfg.noNote)){
   var noteLabel = document.createElement("div");
   noteLabel.style.cssText = "font-size:12.5px;font-weight:600;margin:2px 0 4px";
   noteLabel.textContent = "Anything else? (optional)";
@@ -3629,12 +3650,19 @@ function renderMorningLaunch(kidId, iso){
     existing = saveLaunchField(kidId, iso, existing, {launchNote: val, attemptedPaste: noteEl.dataset.pasteAttempted==="1"});
   });
 
+  }
+
   /* --- E. Self-Start Streak display --- */
   var kd = kidData(kidId);
   var streakRow = document.createElement("div");
   streakRow.className = "launch-streak-row";
+  if(cfg && cfg.wiggles){
+    var wg = document.createElement("div"); wg.className = "muted"; wg.style.cssText = "font-size:13.5px;margin:10px 0 4px;padding:8px 10px;border-radius:10px;background:var(--gold-soft)";
+    var di = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000) % cfg.wiggles.length;
+    wg.textContent = "💃 Sunny wiggle: "+cfg.wiggles[di]; wrap.appendChild(wg);
+  }
   streakRow.id = "selfStartStreakRow";
-  streakRow.innerHTML = "🔥 Self-Start Streak: " + (kd.selfStartStreak||0) + " day" + ((kd.selfStartStreak||0)===1 ? "" : "s");
+  streakRow.innerHTML = (cfg ? cfg.streakLabel : "🔥 Self-Start Streak") + ": " + (kd.selfStartStreak||0) + " day" + ((kd.selfStartStreak||0)===1 ? "" : "s");
   wrap.appendChild(streakRow);
 
   return wrap;
