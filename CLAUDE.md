@@ -198,3 +198,6 @@ Approved videos, with what they are for (video id after `watch?v=`):
   ZnZYK83utu0 3D Shapes Song (spheres, cylinders, pyramids, cones, cubes); zPZegz690Mg 3D Shapes Song (Jack Hartmann);
   xnUkIsdvfGY Estimating! Mini Math Movies (Scratch Garden); https://scratchgarden.com/videos/measuring/ Measuring (Scratch Garden;
   already on the Design Studio "Measure the Room" lesson).
+- Ryan computer videos: hI83ip_NejY How Do Computers Work? Computer Science for Kids Part 2 (aimed at K-2, a bit young for Ryan, not on a lesson);
+  x9MEIEDDDSs What's Inside a Computer? (on Tablet Autopsy 4); 8Bsxnt81rEY How Computers Work: Hardware, Software & You (on Virtual Phones Lab 2);
+  N9NWJ0426mo What is a CPU? (on Virtual Phones Lab 1); ODixEnhxYQs The First Operating System and Its Evolution (on the JohnnyOS "What is an operating system?" lesson).
