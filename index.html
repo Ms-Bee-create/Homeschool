@@ -618,6 +618,32 @@ body.ryan-skin .idea{border-radius:0}
 .launch-media-preview audio{width:100%;margin-top:6px}
 
 .launch-streak-row{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--coral)}
+
+/* Anna's Sunshine Start: softer, bigger, more playful (only applies inside .ml-pretty) */
+.ml-pretty{padding:6px 14px 14px}
+.ml-pretty .ml-prompt{font-size:19px;font-weight:800;text-align:center;margin:4px 0 14px;color:var(--ink);letter-spacing:.2px}
+.ml-pretty .launch-mood-row{gap:12px;margin-bottom:16px}
+.ml-pretty .launch-mood-btn{padding:18px 8px 12px;border-radius:22px;border:3px solid transparent;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.ml-pretty .launch-mood-btn:nth-child(1){background:linear-gradient(160deg,#e8e0ff,#cfe3ff)}
+.ml-pretty .launch-mood-btn:nth-child(2){background:linear-gradient(160deg,#fff4c2,#ffe2b8)}
+.ml-pretty .launch-mood-btn:nth-child(3){background:linear-gradient(160deg,#ffd6ec,#e6d3ff)}
+.ml-pretty .launch-mood-btn .launch-mood-icon{font-size:52px;margin-bottom:6px}
+.ml-pretty .launch-mood-btn .launch-mood-label{font-size:15px;font-weight:800;color:#5a3d6b}
+.ml-pretty .launch-mood-btn:hover{transform:translateY(-3px) scale(1.03)}
+.ml-pretty .launch-mood-btn.selected{border-color:#ff7ab8;box-shadow:0 0 0 4px rgba(255,122,184,.28),0 8px 18px rgba(255,122,184,.35);transform:scale(1.04)}
+.ml-pretty .launch-mood-btn.selected .launch-mood-check{color:#ff4f9d;font-size:15px}
+.ml-pretty .ml-card{border-radius:20px;padding:14px 16px;margin:12px 0;box-shadow:0 3px 10px rgba(0,0,0,.07)}
+.ml-pretty .ml-q{background:linear-gradient(135deg,#d9f7ee,#d6ecff)}
+.ml-pretty .ml-idea{background:linear-gradient(135deg,#fff1c9,#ffdcec)}
+.ml-pretty .ml-card-title{font-weight:800;font-size:15px;color:#4a3560;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ml-pretty .ml-card-emoji{font-size:24px;line-height:1}
+.ml-pretty .ml-card-body{font-size:17px;line-height:1.45;color:#2f2440}
+.ml-pretty .ml-card-hint{font-size:13px;margin:8px 0 6px;color:#5f5575}
+.ml-pretty .ml-q .launch-media-row{margin:6px 0 0}
+.ml-pretty .ml-q .launch-media-btn{border:none;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ml-pretty .ml-wiggle{display:flex;align-items:center;gap:10px;font-size:15px;margin:12px 0;padding:12px 16px;border-radius:999px;background:linear-gradient(90deg,#ffe9f3,#fff3d6);color:#5a3d6b}
+.ml-pretty .ml-streak{display:inline-flex;margin-top:4px;padding:8px 16px;border-radius:999px;background:linear-gradient(90deg,#ffb36b,#ff7ab8);color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(255,122,184,.4)}
+@media (max-width:520px){.ml-pretty .launch-mood-btn .launch-mood-icon{font-size:42px}.ml-pretty .launch-mood-btn .launch-mood-label{font-size:13px}}
 .launch-streak-row.pulse{animation:launchStreakGlow 1s ease-in-out 3}
 @keyframes launchStreakGlow{0%,100%{text-shadow:none}50%{text-shadow:0 0 10px var(--coral),0 0 18px var(--coral)}}
 
@@ -3629,9 +3655,11 @@ function renderMorningLaunch(kidId, iso){
   var wrap = document.createElement("div");
   var existing = journalEntryFor(kidId, iso);
   var cfg = LAUNCH_KID[kidId] || null;
+  var pretty = !!(cfg && cfg.questions);
+  if(pretty) wrap.className = "ml-pretty";
   var moods = cfg ? cfg.moods : LAUNCH_MOODS, goals = cfg && cfg.goals ? cfg.goals : LAUNCH_GOALS;
   if(cfg){
-    var feel = document.createElement("div"); feel.style.cssText = "font-size:14px;font-weight:700;margin-bottom:8px"; feel.textContent = cfg.prompt; wrap.appendChild(feel);
+    var feel = document.createElement("div"); if(pretty) feel.className = "ml-prompt"; else feel.style.cssText = "font-size:14px;font-weight:700;margin-bottom:8px"; feel.textContent = cfg.prompt; wrap.appendChild(feel);
   }
 
   /* --- A. Mood selector --- */
@@ -3729,8 +3757,7 @@ function renderMorningLaunch(kidId, iso){
   }
   mediaRow.appendChild(makeMediaBtn(cfg ? cfg.voiceLabel : "🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
   if(!(cfg && cfg.noPhoto)) mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
-  wrap.appendChild(mediaRow);
-  wrap.appendChild(mediaPreview);
+  if(!pretty){ wrap.appendChild(mediaRow); wrap.appendChild(mediaPreview); }
 
   /* --- Optional short note, own-words only. Guarded the same way as Show & Teach's text box:
      no pasting/dragging in text, and anything URL-like, wall-of-text, or suspiciously long gets
@@ -3769,20 +3796,21 @@ function renderMorningLaunch(kidId, iso){
   /* --- E. Self-Start Streak display --- */
   var kd = kidData(kidId);
   var streakRow = document.createElement("div");
-  streakRow.className = "launch-streak-row";
+  streakRow.className = "launch-streak-row" + (pretty ? " ml-streak" : "");
   if(cfg && cfg.questions){
     var dn = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
-    var qb = document.createElement("div"); qb.style.cssText = "font-size:14.5px;margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:var(--teal-soft)";
-    qb.innerHTML = '<div style="font-weight:700;margin-bottom:2px">🤔 Silly question of the day</div>'+escapeHtml(cfg.questions[dn % cfg.questions.length])+'<div class="muted" style="font-size:12.5px;margin-top:4px">Tell Mom your answer, or tap 🎤 to say it.</div>';
+    var qb = document.createElement("div"); qb.className = "ml-card ml-q";
+    qb.innerHTML = '<div class="ml-card-title"><span class="ml-card-emoji">🤔</span>Silly question of the day</div><div class="ml-card-body">'+escapeHtml(cfg.questions[dn % cfg.questions.length])+'</div><div class="ml-card-hint">Tell Mom your answer, or tap the microphone to say it.</div>';
+    qb.appendChild(mediaRow); qb.appendChild(mediaPreview);
     wrap.appendChild(qb);
-    var ib = document.createElement("div"); ib.style.cssText = "font-size:14px;margin:6px 0 4px;padding:10px 12px;border-radius:12px;background:var(--rose-soft, var(--gold-soft))";
-    ib.innerHTML = '<div style="font-weight:700;margin-bottom:2px">🎈 Fun thing to do after school</div>'+escapeHtml(cfg.ideas[(dn*3+1) % cfg.ideas.length]);
+    var ib = document.createElement("div"); ib.className = "ml-card ml-idea";
+    ib.innerHTML = '<div class="ml-card-title"><span class="ml-card-emoji">🎈</span>Fun thing to do after school</div><div class="ml-card-body">'+escapeHtml(cfg.ideas[(dn*3+1) % cfg.ideas.length])+'</div>';
     wrap.appendChild(ib);
   }
   if(cfg && cfg.wiggles){
-    var wg = document.createElement("div"); wg.className = "muted"; wg.style.cssText = "font-size:13.5px;margin:10px 0 4px;padding:8px 10px;border-radius:10px;background:var(--gold-soft)";
+    var wg = document.createElement("div"); wg.className = "ml-wiggle";
     var di = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000) % cfg.wiggles.length;
-    wg.textContent = "💃 Sunny wiggle: "+cfg.wiggles[di]; wrap.appendChild(wg);
+    wg.innerHTML = '<span class="ml-card-emoji">💃</span><span><b>Sunny wiggle:</b> '+escapeHtml(cfg.wiggles[di].replace(/^Sunny wiggle:\s*/i,""))+'</span>'; wrap.appendChild(wg);
   }
   streakRow.id = "selfStartStreakRow";
   streakRow.innerHTML = (cfg ? cfg.streakLabel : "🔥 Self-Start Streak") + ": " + (kd.selfStartStreak||0) + " day" + ((kd.selfStartStreak||0)===1 ? "" : "s");
