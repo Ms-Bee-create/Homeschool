@@ -1752,9 +1752,9 @@ function petPick(list){ return list[Math.floor(Math.random()*list.length)]; }
 var ANNA_EMOJI_WORDS = [
   [/unicorn/i,"🦄"],[/rainbow/i,"🌈"],[/pond|frog|lily/i,"🐸"],[/fish|ocean|whale|\bsea\b|red sea/i,"🐠"],
   [/butterfl/i,"🦋"],[/bug|insect|bee\b|hotel/i,"🐞"],[/bird|nest/i,"🐦"],[/plant|seed|garden|grow/i,"🌱"],[/flower|bloom/i,"🌸"],
-  [/animal|habitat|pet\b/i,"🐾"],[/weather|rain|cloud|storm/i,"🌦️"],[/rock|soil|earth|dirt/i,"🪨"],[/sun\b|sunshine|light|shadow/i,"☀️"],[/moon|star|space|planet/i,"🌙"],
+  [/animal|habitat|pet\b/i,"🐾"],[/weather|rain|cloud|storm/i,"🌦️"],[/rock|soil|earth|dirt/i,"⛰️"],[/sun\b|sunshine|light|shadow/i,"☀️"],[/moon|star|space|planet/i,"🌙"],
   [/place value|tens|hundreds|ones\b|button/i,"🔘"],[/add|plus|sum\b|total/i,"➕"],[/subtract|minus|take away/i,"➖"],[/shape|triangle|circle|square|rectangle/i,"🔷"],
-  [/money|coin|dollar|cent\b/i,"🪙"],[/clock|time\b|hour|minute/i,"🕐"],[/measure|ruler|tape|length|inch/i,"📏"],[/count|skip|number|digit/i,"🔢"],
+  [/money|coin|dollar|cent\b/i,"💰"],[/clock|time\b|hour|minute/i,"🕐"],[/measure|ruler|tape|length|inch/i,"📏"],[/count|skip|number|digit/i,"🔢"],
   [/map|state|georgia|geograph/i,"🗺️"],[/cherokee|creek|native|tribe/i,"🏹"],[/communit|neighbor|family|helper/i,"🏘️"],
   [/burning bush|bush|fire/i,"🔥"],[/moses|basket|baby/i,"🧺"],[/creation|day \d|noah|ark|abraham|david|joseph|exodus|bible|god/i,"📖"],
   [/story|read|book|chapter|character/i,"📚"],[/write|sentence|letter|spell|word|vowel|rhyme|journal/i,"✏️"],[/draw|paint|color|craft|design|poster|make a/i,"🖍️"],
@@ -2369,7 +2369,7 @@ var LORE_LIBRARY = [
      blurb:"A creator's video about how the End Poem came to be.",
      think:"What surprised you about how the poem was made?"}
   ]},
-  {group:"Windows history", icon:"🪟", items:[
+  {group:"Windows history", icon:"🖥️", items:[
     {title:"Microsoft Windows version history", kind:"read", link:"https://en.wikipedia.org/wiki/Microsoft_Windows_version_history",
      blurb:"Every version of Windows in order, with release dates.",
      think:"Pick the version you know best. What came right before it, and what changed?"},
@@ -4506,7 +4506,7 @@ var LGR_LIBRARY_LINKS = [
   {subject:"LGR Channel", icon:"📼", desc:"Clint Basinger's full retro computing channel", url:"https://www.youtube.com/@LGR"},
   {subject:"Windows 98", icon:"🖥️", desc:"Building & exploring a Windows 98 PC", url:"https://www.youtube.com/watch?v=K5_JFrEHmTk"},
   {subject:"Windows XP", icon:"💾", desc:"Building his dream Windows XP PC", url:"https://www.youtube.com/watch?v=-XTnL4Mang0"},
-  {subject:"Windows 7", icon:"🪟", desc:"Windows 7, 15 years later retrospective", url:"https://www.youtube.com/watch?v=M6tmK-NQ-EI"},
+  {subject:"Windows 7", icon:"🖥️", desc:"Windows 7, 15 years later retrospective", url:"https://www.youtube.com/watch?v=M6tmK-NQ-EI"},
   {subject:"More LGR Videos", icon:"🔍", desc:"Search LGR's channel for more retro OS & tech videos", url:"https://www.youtube.com/@LGR/search?query=windows"}
 ];
 function lgrLibraryCard(){
@@ -7533,7 +7533,7 @@ function spaceLoop(ctx, canvas){
       mg.boosting = false;
       mg.ship.y = canvas.height-30;
       var dx = Math.abs(mg.ship.x-mg.padX);
-      if(dx<30){ mg.score++; grantMiniGameXP(state.activeKid, 8); toast("🪐 Landed! +8 XP"); }
+      if(dx<30){ mg.score++; grantMiniGameXP(state.activeKid, 8); toast("🚀 Landed! +8 XP"); }
       else toast("Missed the pad — try again!");
       mg.padX = 40+Math.random()*(canvas.width-80);
     }
@@ -18471,7 +18471,7 @@ function familyGoalLeaderCard(){
   fresh.textContent = "We went! Start a new goal today";
   fresh.onclick = function(){
     if(!window.confirm("Reset the bar to 0 and start counting from today?")) return;
-    saveFamilyGoal(Object.assign({}, g, {start:todayISO()})).then(function(){ toast("New goal started 🧋"); renderLeaderArea(); });
+    saveFamilyGoal(Object.assign({}, g, {start:todayISO()})).then(function(){ toast("New goal started 🎉"); renderLeaderArea(); });
   };
   row.appendChild(save); row.appendChild(fresh); det.appendChild(row);
   wrap.appendChild(det);
