@@ -175,3 +175,11 @@ gather, the idea, and numbered steps. A review or practice-only day must give th
 with the quiz as the check at the end. Missed-question reviews are made by `queueSkillReview`, which
 builds the title, the game, and the instructions; never create an assignment that skips them. Group all of
 a lesson's missed questions into ONE review lesson, not one lesson per question.
+
+## 20. Parent-approved video sources
+
+Mom has said everything on this YouTube channel is safe for Anna and should be used in her lessons whenever it
+fits: https://www.youtube.com/channel/UCVcQH8A634mauPrGbWs7QlQ . Still link the exact video (rule 1), never the channel
+page. Videos Mom has named for Anna's morning movement: https://www.youtube.com/watch?v=XJg2kdBJC5w,
+https://www.youtube.com/watch?v=CuI_p7a9VGs (a family favorite, Anna did it daily in kindergarten), and
+https://www.youtube.com/watch?v=cRYQ1EyGBOQ (the family wake-up song).
