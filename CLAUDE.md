@@ -201,3 +201,10 @@ Approved videos, with what they are for (video id after `watch?v=`):
 - Ryan computer videos: hI83ip_NejY How Do Computers Work? Computer Science for Kids Part 2 (aimed at K-2, a bit young for Ryan, not on a lesson);
   x9MEIEDDDSs What's Inside a Computer? (on Tablet Autopsy 4); 8Bsxnt81rEY How Computers Work: Hardware, Software & You (on Virtual Phones Lab 2);
   N9NWJ0426mo What is a CPU? (on Virtual Phones Lab 1); ODixEnhxYQs The First Operating System and Its Evolution (on the JohnnyOS "What is an operating system?" lesson).
+- Anna, more approved videos (id after `watch?v=`). Time: t7B5FTxXwN0 Let's Learn About the Clock (Jack Hartmann); 65_c1CpfTjU Hip-Hop Around the Clock, quarter-after/half-past/quarter-till (Jack Hartmann).
+  Fractions: 362JVVvgYPE Fractions! Mini Math Movies (Scratch Garden). Addition: 8hz0fAQV0ac Addition with Regrouping Song (Numberock); AMLRFww0qJg Fact Families Song (Numberock; on the Math Book Unit 1 fact families lesson).
+  Reading/phonics/grammar: NpWHZJZQDSE Plot Mountain, the plot diagram song (Scratch Garden; on the ELA Story Elements teaching lesson); 6TkCqtBMHR8 Vowel Teams Song, diphthongs (Scratch Garden);
+  LdCOswMeXFQ Punctuation Explained (Scratch Garden); NK8_Tvu6bJk Digraphs (Jack Hartmann); aPeMKdEzGDs Noun Rap (Jack Hartmann). (The Scratch Garden Nouns Song link is dead, do not use.)
+  Geography/social studies: _pOKoIAnybg The Geography Song, Globe vs Map (Scratch Garden; on SS Chapter 3 Our Earth); 6Due3L2QeQM The Directions Song (Scratch Garden; on SS Chapter 3 All About Maps);
+  Jd4kD9TicbA Goods and Services for Kids (Homeschool Pop; on SS Chapter 2 Producing and Consuming Goods).
+  Science: tzN299RpJHA Living Things (Jack Hartmann; on Science Book Unit 6 What Animals Need); dPHX_5l0gLE Awesome Insects & Amazing Bugs, a 21-minute Scratch Garden compilation (not on a lesson).
