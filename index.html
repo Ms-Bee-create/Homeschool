@@ -18228,29 +18228,40 @@ var RYAN_VIRTUAL_PHONES = [
   "standard": "3-5.F",
   "stage": "teach",
   "materials": "https://developer.android.com/studio/run/emulator-acceleration",
-  "passage": "Gather first — your PC with your virtual phone program, paper, a pencil, and a grown-up nearby (do not change any computer settings without them).\nHere's the Idea — A virtual phone is a pretend phone that runs as a program on your real computer. Here is a way to picture why it can be slow. Say you speak English and your friend only speaks Spanish. If a translator has to repeat every single sentence, a chat takes forever. If you both speak the same language, you just talk. A phone and a PC can 'speak' different computer languages. When they do not match, your computer has to translate every instruction for the pretend phone, and that is slow. When they match, and a setting called virtualization is turned on, the pretend phone talks straight to your computer's brain (the CPU), and that is much faster. Google's guide says the same thing in grown-up words: without this help, the emulator has to translate the code one chunk at a time.\nSee It Done — Here are example notes from a pretend kid detective. 'My phone takes 6 minutes to start. Opening one app takes 10 seconds. Task Manager says Virtualization: Disabled. My guess: that setting is off, so my computer is doing lots of translating, and that makes it slow.' Notice the notes start with numbers (what I measured) and end with a guess.\nYour Turn — 1. Write down the name of your virtual phone program. 2. Start your virtual phone and time it with a clock: how long to reach the home screen, and how long to open one app. 3. While it runs, press Ctrl+Shift+Esc to open Task Manager, click Performance, then CPU. Look for the word Virtualization near the bottom. Write down Enabled or Disabled. 4. Click Memory and write down the total GB and how much is in use. 5. Open the Google page (the link above) and find the word 'translate'. Read that sentence with a grown-up. 6. If Virtualization says Disabled, do NOT go into the BIOS yourself. Write it on your notes and show a grown-up. Turning it on is a grown-up job.\nCheck Yourself — Do your notes have numbers (times, GB) and not only feelings? Did you write down a guess about the cause?\nShow What You Know — Tell Mom in two sentences why a pretend phone can be slow, using the translator idea.",
+  "passage": "Gather first — your PC with your virtual phone program, paper, a pencil, and a grown-up nearby (do not change any computer settings without them).\nHere's the Idea — A virtual phone is a pretend phone that runs as a program inside your real computer. Tech words to own, one at a time. HOST: the real computer, called that because it hosts the pretend phone like a party host. GUEST: the pretend phone running inside it. EMULATOR: the program that builds the guest. CPU: the computer's brain. ARCHITECTURE: the computer language a CPU speaks. Most PCs speak one called x86_64, and most real phones speak one called ARM. Now the key picture: if you speak English and your friend only speaks Spanish, a translator has to repeat every sentence, and the chat takes forever. If you both speak the same language, you just talk. When the guest's architecture does not match the host's, the host has to translate every instruction, one chunk at a time, and that is slow. A HYPERVISOR is a helper that lets the guest talk straight to the host's CPU with no translating. Turning that helper on is called VIRTUALIZATION. Google's guide says the same thing: without a hypervisor, the emulator must translate the machine code block by block.\nSee It Done — Example detective notes, with the tech words in them. 'Emulator: (the program's name). The guest takes 6 minutes to start, and opening one app takes 10 seconds. On the host, Task Manager says Virtualization: Disabled. My guess: with no hypervisor helping, the host has to translate every instruction for the guest, and that is why it is slow.' Read it once more and point at each tech word: guest, host, virtualization, hypervisor. Notice the notes start with numbers (what was measured) and end with a guess.\nYour Turn — 1. Write down the name of your virtual phone program. 2. Start your virtual phone and time it with a clock: how long to reach the home screen, and how long to open one app. 3. While it runs, press Ctrl+Shift+Esc to open Task Manager, click Performance, then CPU. Look for the word Virtualization near the bottom. Write down Enabled or Disabled. 4. Click Memory and write down the total GB and how much is in use. 5. Open the Google page (the link above) and find the word 'translate'. Read that sentence with a grown-up. 6. If Virtualization says Disabled, do NOT go into the BIOS yourself. Write it on your notes and show a grown-up. Turning it on is a grown-up job.\nCheck Yourself — Do your notes have numbers (times, GB) and not only feelings? Did you write down a guess about the cause?\nShow What You Know — Tell Mom in two sentences why a pretend phone can be slow, using the words host, guest, and translator.",
   "quiz": [
    {
-    "q": "Which one is the pretend one?",
+    "q": "In a virtual phone setup, which one is the host?",
     "choices": [
-     "The real computer",
-     "The virtual phone",
-     "The mouse",
-     "The keyboard"
+     "The pretend phone",
+     "The real computer running it",
+     "The charger",
+     "The app you open"
     ],
     "answerIndex": 1,
-    "explain": "The virtual phone is the pretend one. It is a program running inside your real computer."
+    "explain": "The host is the real computer. The guest is the pretend phone running inside it."
    },
    {
-    "q": "Why can a virtual phone be slow when it does not match your PC?",
+    "q": "Why can a virtual phone be slow when its architecture does not match the PC's?",
     "choices": [
      "The screen is too small",
-     "The computer has to translate every instruction first",
+     "The host has to translate every instruction first",
      "Phones cannot use the internet",
      "The mouse is too slow"
     ],
     "answerIndex": 1,
-    "explain": "Like a translator repeating every sentence, translating every instruction takes extra time."
+    "explain": "Like a translator repeating every sentence, translating each instruction takes extra time."
+   },
+   {
+    "q": "What does a hypervisor do?",
+    "choices": [
+     "Lets the guest talk straight to the host's CPU",
+     "Makes the screen brighter",
+     "Deletes old apps",
+     "Connects to Wi-Fi"
+    ],
+    "answerIndex": 0,
+    "explain": "A hypervisor lets the guest run directly on the CPU, so nothing has to be translated."
    },
    {
     "q": "Task Manager says Virtualization: Disabled. What should you do?",
@@ -18273,29 +18284,29 @@ var RYAN_VIRTUAL_PHONES = [
   "standard": "3-5.F",
   "stage": "practice",
   "materials": "https://developer.android.com/tools/devices",
-  "passage": "Gather first — your PC, a grown-up (for downloads and installs), Wi-Fi, paper, and your notes from Lab 1. If Android Studio is not installed yet, a grown-up gets it from Google's Android Developers site (developer.android.com/studio). Big downloads: use Wi-Fi.\nHere's the Idea — Android Studio is Google's free program for making Android apps. It has a tool called Device Manager that builds pretend phones. Each pretend phone you save is called an AVD, which just means a saved pretend phone. When you build one, the wizard asks two things: what kind of phone (its size and shape), and what software goes inside it (called a system image). Remember the translator idea from Lab 1? Pick the system image that speaks the same computer language as your PC, so nothing has to be translated.\nSee It Done — Example: on a Windows PC, Settings > System > About says 'System type: 64-bit operating system, x64-based processor'. That means the PC speaks 'x64'. So in the wizard you pick a system image that says x86_64, because that is the same language. (If the About page said ARM, you would pick an ARM image instead.) Then name your phone, like 'Ryan-Fast-1'.\nYour Turn — 1. Check Settings > System > About and write down your System type. 2. Open Android Studio, then View > Tool Windows > Device Manager, click the + and choose Create Virtual Device (the guide above shows these steps). 3. Pick a phone hardware profile. 4. Pick a system image that matches your computer. Write down which one the wizard recommends. 5. Name your virtual phone, click Finish, and press play. 6. Time it again with a clock, like in Lab 1: home screen and one app. 7. Write a before and after table: old phone vs new phone, boot time and app time.\nCheck Yourself — Did your system image match your System type? Is the new time faster? If not, write down what you will check next (for example, Lab 1's Virtualization setting).\nShow What You Know — Show Mom your before and after table and say which number changed most.",
+  "passage": "Gather first — your PC, a grown-up (for downloads and installs), Wi-Fi, paper, and your notes from Lab 1. If Android Studio is not installed yet, a grown-up gets it from Google's Android Developers site (developer.android.com/studio). Big downloads: use Wi-Fi.\nHere's the Idea — Android Studio is Google's free program for making Android apps. It has a tool called Device Manager that builds guests (virtual phones). A saved virtual phone is called an AVD, which stands for Android Virtual Device. When you build one, the wizard asks two things. First, a hardware profile: what kind of phone, meaning its size and shape. Second, a SYSTEM IMAGE: the file that holds the phone's software (its operating system, the guest's 'brain software'). Remember the translator picture from Lab 1? The system image's architecture should match the host's architecture, so nothing needs translating and the hypervisor can do its job.\nSee It Done — Example: on a Windows PC, Settings > System > About says 'System type: 64-bit operating system, x64-based processor'. x64 and x86_64 are the same architecture, so this host speaks x86_64. In the wizard you pick a system image labeled x86_64, because it matches. (If the About page said ARM, you would pick an ARM image instead.) Then name your AVD, like 'Ryan-Fast-1'. Word check: AVD = saved virtual phone, system image = the phone's software file, architecture = the CPU's language.\nYour Turn — 1. Check Settings > System > About and write down your System type. 2. Open Android Studio, then View > Tool Windows > Device Manager, click the + and choose Create Virtual Device (the guide above shows these steps). 3. Pick a phone hardware profile. 4. Pick a system image that matches your computer. Write down which one the wizard recommends. 5. Name your virtual phone, click Finish, and press play. 6. Time it again with a clock, like in Lab 1: home screen and one app. 7. Write a before and after table: old phone vs new phone, boot time and app time.\nCheck Yourself — Did your system image match your System type? Is the new time faster? If not, write down what you will check next (for example, Lab 1's Virtualization setting).\nShow What You Know — Show Mom your before and after table and say which number changed most.",
   "quiz": [
    {
     "q": "What is an AVD?",
     "choices": [
      "A kind of charger",
-     "A saved pretend phone",
+     "A saved virtual phone",
      "A video game",
      "A type of Wi-Fi"
     ],
     "answerIndex": 1,
-    "explain": "AVD means Android Virtual Device. It is the saved settings for one pretend phone."
+    "explain": "AVD means Android Virtual Device. It is the saved settings for one virtual phone."
    },
    {
     "q": "Which system image should you pick?",
     "choices": [
      "Any, it never matters",
-     "One that speaks the same computer language as your PC",
+     "One whose architecture matches your host",
      "The biggest download",
      "The oldest one"
     ],
     "answerIndex": 1,
-    "explain": "A matching system image needs no translating, so the pretend phone runs faster."
+    "explain": "A matching architecture needs no translating, so the hypervisor can run the guest directly and fast."
    },
    {
     "q": "Where do you find your PC's System type on Windows?",
@@ -18306,7 +18317,7 @@ var RYAN_VIRTUAL_PHONES = [
      "The volume mixer"
     ],
     "answerIndex": 0,
-    "explain": "The About page tells you what language your PC speaks, so you can match it."
+    "explain": "The About page lists the system type, which tells you the architecture to match."
    }
   ]
  },
@@ -18362,7 +18373,7 @@ var RYAN_VIRTUAL_PHONES = [
   "xp": 15,
   "standard": "4.NR.1/4.NR.2",
   "stage": "apply",
-  "passage": "Gather first — paper, a pencil, graph paper, and the settings screen of your virtual phone (or the hardware profile list in Device Manager).\nHere's the Idea — A phone screen is a grid of tiny dots called pixels. The number of pixels is width times height. Break the big numbers into friendly pieces. Example: a screen 1,080 wide and 2,400 tall. 1,080 x 24 = 25,920 (1,000 x 24 = 24,000 and 80 x 24 = 1,920). Then x 100 gives 2,592,000 pixels. Compare it to a small screen 720 x 1,280: 700 x 1,280 = 896,000 and 20 x 1,280 = 25,600, so 921,600 pixels. 2,592,000 is about 3 times as many pixels as 921,600. Storage works in the opposite direction. To keep it simple, use 1 GB = 1,000 MB. If an app takes 250 MB, then 8 GB = 8,000 MB holds 8,000 / 250 = 32 apps.\nSee It Done — Draw a tiny 6 by 4 grid on graph paper. It has 6 x 4 = 24 squares, just like a screen is width x height pixels, only much smaller.\nYour Turn — 1. Find the screen size in pixels of two phone profiles in Device Manager (write width and height). 2. Multiply each to find total pixels, showing the broken-apart steps. 3. Say how many times as many pixels the bigger one has, with a rounded estimate. 4. Your virtual phone has a storage size. Pick an app size (like 250 MB or 400 MB) and find how many apps would fit. 5. Draw the 6 by 4 grid and shade 10 squares. What fraction of the screen is shaded?\nCheck Yourself — Does your estimate match the exact answer when you round?\nShow What You Know — Explain to Mom why a screen with more pixels needs more work from your computer.",
+  "passage": "Gather first — paper, a pencil, graph paper, and the settings screen of your virtual phone (or the hardware profile list in Device Manager).\nHere's the Idea — A phone screen is a grid of tiny dots called pixels. The number of pixels is width times height. Break the big numbers into friendly pieces. Example: a screen 1,080 wide and 2,400 tall. 1,080 x 24 = 25,920 (1,000 x 24 = 24,000 and 80 x 24 = 1,920). Then x 100 gives 2,592,000 pixels. Compare it to a small screen 720 x 1,280: 700 x 1,280 = 896,000 and 20 x 1,280 = 25,600, so 921,600 pixels. 2,592,000 is about 3 times as many pixels as 921,600. Storage works in the opposite direction. To keep it simple, use 1 GB = 1,000 MB. If an app takes 250 MB, then 8 GB = 8,000 MB holds 8,000 / 250 = 32 apps.\nSee It Done — Draw a tiny 6 by 4 grid on graph paper. It has 6 x 4 = 24 squares, just like a screen is width x height pixels, only much smaller.\nYour Turn — 1. Find the screen size in pixels of two phone profiles in Device Manager (write width and height). 2. Multiply each to find total pixels, showing the broken-apart steps. 3. Say how many times as many pixels the bigger one has, with a rounded estimate. 4. Your virtual phone has a storage size. Pick an app size (like 250 MB or 400 MB) and find how many apps would fit. 5. Draw the 6 by 4 grid and shade 10 squares. What fraction of the screen is shaded?\nCheck Yourself — Does your estimate match the exact answer when you round?\nShow What You Know — Explain to Mom why a screen with more pixels needs more work from the host.",
   "quiz": [
    {
     "q": "A screen is 500 pixels wide and 1,000 tall. How many pixels does it have?",
@@ -18406,7 +18417,7 @@ var RYAN_VIRTUAL_PHONES = [
   "xp": 25,
   "standard": "ELAGSE4SL4",
   "stage": "apply",
-  "passage": "Gather first — paper, a pencil, a ruler, and your lab notes and tables from Labs 1 to 4.\nHere's the Idea — App designers draw their screens on paper first. This plan is called a wireframe. Each screen is a phone-shaped rectangle with boxes for buttons and text. Arrows show which button goes to which screen. Drawing first catches mistakes before you spend hours building.\nSee It Done — Example: a 'Daily Quest' app. Screen 1 has a title and a Start button. An arrow from Start goes to Screen 2, which shows today's quest and a Done button. An arrow from Done goes to Screen 3, which shows 'Great job!' and a Home button that points back to Screen 1.\nYour Turn — 1. Pick an app idea that you would really use (a game helper, a Minecraft tracker, a chore app). 2. Draw 3 phone screens with a ruler. 3. Label every button and draw arrows to show where each button goes. 4. Test it with a pretend finger: have Mom tap a button and tell you which screen she thinks comes next. If she is confused, fix the screen. 5. Teach-Back: explain to Mom or a grown-up what the translator idea means, why your first virtual phone was slow, and what you changed to speed it up. Use your before and after table from Lab 2.\nCheck Yourself — Does every button have an arrow? Did you use the translator idea to explain why it was slow?\nShow What You Know — Take a photo of your wireframe and keep it for your portfolio.",
+  "passage": "Gather first — paper, a pencil, a ruler, and your lab notes and tables from Labs 1 to 4.\nHere's the Idea — App designers draw their screens on paper first. This plan is called a wireframe. Each screen is a phone-shaped rectangle with boxes for buttons and text. Arrows show which button goes to which screen. Drawing first catches mistakes before you spend hours building.\nSee It Done — Example: a 'Daily Quest' app. Screen 1 has a title and a Start button. An arrow from Start goes to Screen 2, which shows today's quest and a Done button. An arrow from Done goes to Screen 3, which shows 'Great job!' and a Home button that points back to Screen 1.\nYour Turn — 1. Pick an app idea that you would really use (a game helper, a Minecraft tracker, a chore app). 2. Draw 3 phone screens with a ruler. 3. Label every button and draw arrows to show where each button goes. 4. Test it with a pretend finger: have Mom tap a button and tell you which screen she thinks comes next. If she is confused, fix the screen. 5. Teach-Back: explain to Mom or a grown-up what a host and a guest are, why your first virtual phone was slow, and what you changed to speed it up. Use your before and after table from Lab 2.\nCheck Yourself — Does every button have an arrow? Did you use the words host, guest, architecture, and hypervisor correctly?\nShow What You Know — Take a photo of your wireframe and keep it for your portfolio.",
   "quiz": [
    {
     "q": "What does an arrow in a wireframe show?",
@@ -18433,13 +18444,13 @@ var RYAN_VIRTUAL_PHONES = [
    {
     "q": "Which change usually makes a virtual phone faster?",
     "choices": [
-     "Matching the system image to your PC and having virtualization on",
+     "Matching the system image to the host's architecture and turning virtualization on",
      "Making the screen brighter",
      "Using a bigger mouse",
      "Closing the window"
     ],
     "answerIndex": 0,
-    "explain": "A matching phone needs no translating, and virtualization lets it talk straight to the CPU."
+    "explain": "A matching guest needs no translating, and virtualization lets the hypervisor run it directly on the CPU."
    }
   ]
  }
