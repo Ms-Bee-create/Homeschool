@@ -979,21 +979,132 @@ function addSchoolDays(d, n){
    and then disappear forever — it resurfaces a few school days later as its own tiny review
    assignment, so the skill actually comes back until it's solid. Dedups against anything already
    queued for the same source question so re-missing it in the same session doesn't spam the day. */
+/* Review lessons: a missed quiz question comes back as ONE game-day lesson per source lesson, with a kid-friendly title,
+   real instructions, a game to play, and the missed question(s) as the check at the end (CLAUDE.md rules 18 and 19). */
+var REVIEW_TOPICS = {"anna-math-place-value":"Place Value", "anna-sci-life-cycles":"Life Cycles", "anna-ela-story-elements":"Story Elements", "anna-ss-creek-cherokee":"Creek and Cherokee", "anna-design-studio":"Design Studio"};
+var REVIEW_TITLES = [
+  function(t){ return t+" Game Day 🎲"; },
+  function(t){ return "Can You Beat Mom at "+t+"? 🎮"; },
+  function(t){ return t+" Boss Battle 🏆"; },
+  function(t){ return "Play to Win: "+t+" ⭐"; }
+];
+var REVIEW_GAMES = {
+  "place":[
+    {name:"Place Value War", gather:"a deck of cards (take out the face cards; an Ace is 1) or a die, paper, and a pencil", how:"Each player turns over 3 cards in a row and builds the biggest 3-digit number they can (the first card is hundreds, the second is tens, the third is ones). Say your number out loud as hundreds, tens, and ones, like 'four hundred twenty-six'. The bigger number wins that round. Play 5 rounds, then try making the smallest number instead."},
+    {name:"Roll and Build", gather:"a die, paper, and a pencil", how:"Draw three boxes labeled hundreds, tens, and ones. Roll the die and write the number in any box. Roll 3 times to fill all the boxes. Read your number out loud and write it in expanded form, like 300 + 40 + 5. Do 5 builds, and try to get as close to 500 as you can."}],
+  "math":[
+    {name:"Math War", gather:"a deck of cards (face cards removed) and a grown-up to play against", how:"Each player turns over two cards and adds them. The bigger total wins both piles. Play 10 rounds. For a bigger challenge, subtract the smaller card from the bigger one instead."},
+    {name:"Roll and Solve", gather:"two dice, paper, and a pencil", how:"Roll both dice and make a number sentence with the two numbers, like 4 + 6 or 6 - 4. Solve it, then draw a quick picture or number line that shows it. Do 8 rolls."}],
+  "ela":[
+    {name:"Story Toy Theater", gather:"two or three toys or stuffed animals", how:"Use the toys to act out the story or a story you know, in order: who is in it, what the problem is, and how it ends. Then switch: a grown-up acts it out wrong on purpose and you shout 'STOP!' and fix it."},
+    {name:"Story Cards", gather:"3 index cards or scraps of paper and a pencil", how:"Make one card for Character, one for Problem, and one for Ending. Fill them in for a story you know. Shuffle them, hand them to a grown-up, and see if they can put the story back in order."}],
+  "science":[
+    {name:"Order the Cards Race", gather:"index cards or paper scraps, a pencil", how:"Draw one stage or step on each card and label it. Shuffle the cards, then race to put them in the right order and say what happens at each one. Do it 3 times and see if you can do it more smoothly each time."},
+    {name:"Science Charades", gather:"a grown-up or Ryan to guess", how:"Act out one thing from the topic without talking while they guess. Then switch. Do 6 rounds each."}],
+  "social":[
+    {name:"Two Truths and a Fib", gather:"a grown-up to play with", how:"Say three things about the topic: two true and one that is made up. Your grown-up guesses which is the fib, then you switch. After each round, give the real fact that fixes the fib."},
+    {name:"Museum Guide", gather:"paper, a pencil, and a grown-up", how:"Draw three 'exhibits' about the topic, one picture each. Then give your grown-up a tour and say one fact about each exhibit."}],
+  "other":[
+    {name:"Teach the Stuffie", gather:"a stuffed animal or toy and paper", how:"Teach your stuffed animal the topic like you are the teacher. Draw one picture on paper to help explain it, and ask the stuffie three questions it needs to answer."}]
+};
+var REVIEW_ONLINE = {
+  "place":{name:"Pop Penguin and the Place Value Race on Math Playground", url:"https://mathplayground.com/pop_penguin/index.html"}
+};
+function reviewFamily(src){
+  var id = String((src && (src.skillId||"")) + " " + (src && src.title||"")).toLowerCase();
+  if(/place[- ]?value/.test(id)) return "place";
+  var sub = String(src && src.subject||"").toLowerCase();
+  if(sub==="math") return "math";
+  if(sub==="ela"||sub==="reading") return "ela";
+  if(sub==="science") return "science";
+  if(sub==="social studies") return "social";
+  return "other";
+}
+function reviewTopic(src){
+  if(!src) return "This Lesson";
+  if(src.skillId && REVIEW_TOPICS[src.skillId]) return REVIEW_TOPICS[src.skillId];
+  var t = String(src.title||"").replace(/^[A-Za-z &]{2,20}:\s*/, "").split(/\s+[—–-]\s+/);
+  t = (t.length>1 && /^(teach|practice|apply|mixed|review|challenge|show what you know|your turn|here's the idea)/i.test(t[0])) ? t[t.length-1] : t[0];
+  t = t.replace(/\s+/g," ").trim();
+  return t || "This Lesson";
+}
+function reviewHash(str){ var h = 0; for(var i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0; return h; }
+function reviewTitleFor(src){
+  var topic = reviewTopic(src), h = reviewHash(String(src && src.id || topic));
+  return REVIEW_TITLES[h % REVIEW_TITLES.length](topic);
+}
+function reviewIdea(src){
+  var m = /Here's the Idea — ([^\n]*)/.exec(String(src && src.passage || ""));
+  if(!m) return "";
+  var sentences = m[1].match(/[^.!?]+[.!?]+(\s|$)/g) || [m[1]];
+  return sentences.slice(0,3).join("").trim();
+}
+function reviewPassageFor(src){
+  var fam = reviewFamily(src), topic = reviewTopic(src);
+  var games = REVIEW_GAMES[fam] || REVIEW_GAMES.other;
+  var g = games[reviewHash(String(src && src.id || topic)) % games.length];
+  var online = REVIEW_ONLINE[fam];
+  var idea = reviewIdea(src);
+  var out = "Gather first — "+g.gather+".\n";
+  out += "Here's the Idea — Today is a game day for "+topic+". Playing a game with an idea a few days later is how your brain keeps it for good."+(idea ? " Quick reminder: "+idea : "")+"\n";
+  out += "Your Turn — 1. Play "+g.name+": "+g.how+" ";
+  out += (online ? "2. Want more? Play "+online.name+" with the link below. 3. " : "2. ");
+  out += "Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\n";
+  out += "Show What You Know — Tell a grown-up one thing about "+topic+" that you remembered during the game.";
+  return {passage:out, materials: online ? online.url : null};
+}
 function queueSkillReview(kidId, sourceAssignment, item){
   if(!db || !sourceAssignment) return;
-  var already = Object.keys(state.assignments).some(function(id){
-    var x = state.assignments[id];
-    return x.kidId===kidId && x.reviewOf===sourceAssignment.id && x.quiz && x.quiz[0] && x.quiz[0].q===item.q;
-  });
-  if(already) return;
+  var src = (sourceAssignment.stage==="review" && sourceAssignment.reviewOf && state.assignments[sourceAssignment.reviewOf]) ? state.assignments[sourceAssignment.reviewOf] : sourceAssignment;
+  var srcId = src.id || sourceAssignment.reviewOf || sourceAssignment.id;
+  var open = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
+    .filter(function(x){ return x.a.kidId===kidId && x.a.stage==="review" && x.a.reviewOf===srcId && !x.a.done; })[0];
+  if(open){
+    var qs = open.a.quiz || [];
+    if(qs.some(function(q){ return q.q===item.q; })) return;
+    qs = qs.concat([JSON.parse(JSON.stringify(item))]);
+    open.a.quiz = qs;
+    db.doc("assignments/"+open.id).update({quiz:qs});
+    return;
+  }
   var due = addSchoolDays(new Date(), 3);
+  var rp = reviewPassageFor(Object.assign({id:srcId}, src));
   db.collection("assignments").add({
-    kidId: kidId, date: isoDate(due), subject: sourceAssignment.subject,
-    title: "🔁 Review: " + (sourceAssignment.skillId || sourceAssignment.title),
+    kidId: kidId, date: isoDate(due), subject: src.subject,
+    title: reviewTitleFor(Object.assign({id:srcId}, src)),
     xp: 5, done: false, doneAt: null, stage: "review",
-    skillId: sourceAssignment.skillId || null, reviewOf: sourceAssignment.id || null,
+    standard: src.standard || null, passage: rp.passage, materials: rp.materials,
+    skillId: src.skillId || null, reviewOf: srcId || null,
     quiz: [JSON.parse(JSON.stringify(item))],
     createdAt: new Date().toISOString()
+  });
+}
+/* Review lessons already created the old way (bare "🔁 Review: skill" title, no instructions, one per missed question):
+   give them a real title and a game, and fold same-lesson reviews into one. Finished or started ones are left alone. */
+function patchReviewLessons(){
+  if(!db) return;
+  var groups = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.stage!=="review" || a.done || hasWork(a) || !a.reviewOf) return;
+    (groups[a.kidId+"|"+a.reviewOf] = groups[a.kidId+"|"+a.reviewOf] || []).push({id:id, a:a});
+  });
+  Object.keys(groups).forEach(function(k){
+    var g = groups[k], keep = g[0];
+    for(var i=1;i<g.length;i++){
+      var qs = keep.a.quiz || [];
+      (g[i].a.quiz||[]).forEach(function(q){ if(!qs.some(function(x){ return x.q===q.q; })) qs = qs.concat([q]); });
+      keep.a.quiz = qs;
+      db.doc("assignments/"+keep.id).update({quiz:qs});
+      db.doc("assignments/"+g[i].id).delete();
+      delete state.assignments[g[i].id];
+    }
+    if(String(keep.a.title).indexOf("🔁 Review: ")!==0 && keep.a.passage) return;
+    var src = state.assignments[keep.a.reviewOf] || {skillId:keep.a.skillId, subject:keep.a.subject, title:String(keep.a.title).replace("🔁 Review: ","")};
+    var srcX = Object.assign({}, src, {id:keep.a.reviewOf});
+    var rp = reviewPassageFor(srcX);
+    var upd = {title:reviewTitleFor(srcX), passage:rp.passage, materials:rp.materials};
+    Object.assign(keep.a, upd); db.doc("assignments/"+keep.id).update(upd);
   });
 }
 function fmtDate(iso){
@@ -17606,6 +17717,7 @@ function runAutoMigrations(){
     autoAddRyanMcLab3();
     autoAddRyanVirtualPhones();
     patchRyanVirtualPhones();
+    patchReviewLessons();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
