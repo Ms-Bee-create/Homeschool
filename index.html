@@ -3674,7 +3674,11 @@ var LAUNCH_EXTRAS = {
    "Try one problem you are not sure about. A guess is a great start!",
    "Give someone a compliment today."
   ],
-  "wiggleVideos": []
+  "wiggleVideos": [
+   {"title": "Start the Day Song (Jack Hartmann)", "url": "https://www.youtube.com/watch?v=XJg2kdBJC5w"},
+   {"title": "Our Family Favorite 💛", "url": "https://www.youtube.com/watch?v=CuI_p7a9VGs"},
+   {"title": "Grandpa's Wake-Up Song 🌅", "url": "https://www.youtube.com/watch?v=cRYQ1EyGBOQ"}
+  ]
  },
  "kid2": {
   "affirmations": [
@@ -3972,9 +3976,11 @@ function renderMorningLaunch(kidId, iso){
     var wc = mlCard("ml-wiggle", "💃", kidId==="kid1" ? "Sunny wiggle" : "Brain break", wl[dn % wl.length]);
     var wvs = (ex && ex.wiggleVideos) || [];
     if(wvs.length){
-      var wv = wvs[dn % wvs.length], wa = document.createElement("a");
-      wa.href = wv.url; wa.target = "_blank"; wa.rel = "noopener"; wa.className = "ml-link"; wa.textContent = "▶ Dance along: "+wv.title;
-      wc.appendChild(wa);
+      wvs.forEach(function(wv){
+        var wa = document.createElement("a");
+        wa.href = wv.url; wa.target = "_blank"; wa.rel = "noopener"; wa.className = "ml-link"; wa.textContent = "▶ "+wv.title;
+        wc.appendChild(wa);
+      });
     }
     if(kidId==="kid1"){
       var wr = document.createElement("div"); wr.className = "launch-media-row"; wr.style.marginTop = "8px";
