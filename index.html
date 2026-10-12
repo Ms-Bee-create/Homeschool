@@ -1055,6 +1055,9 @@ var REVIEW_GAMES = {
   "other":[
     {name:"Teach the Stuffie", gather:"a stuffed animal or toy and paper", how:"Teach your stuffed animal the topic like you are the teacher. Draw one picture on paper to help explain it, and ask the stuffie three questions it needs to answer."}]
 };
+var REVIEW_VIDEO = {
+  "place":{name:"The Place Value Song by Jack Hartmann", url:"https://www.youtube.com/watch?v=Zt78cFS5isQ"}
+};
 var REVIEW_ONLINE = {
   "place":{name:"Pop Penguin and the Place Value Race on Math Playground", url:"https://mathplayground.com/pop_penguin/index.html"}
 };
@@ -1093,13 +1096,17 @@ function reviewPassageFor(src){
   var g = games[reviewHash(String(src && src.id || topic)) % games.length];
   var online = REVIEW_ONLINE[fam];
   var idea = reviewIdea(src);
+  var vid = REVIEW_VIDEO[fam];
   var out = "Gather first — "+g.gather+".\n";
   out += "Here's the Idea — Today is a game day for "+topic+". Playing a game with an idea a few days later is how your brain keeps it for good."+(idea ? " Quick reminder: "+idea : "")+"\n";
-  out += "Your Turn — 1. Play "+g.name+": "+g.how+" ";
-  out += (online ? "2. Want more? Play "+online.name+" with the link below. 3. " : "2. ");
-  out += "Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\n";
+  var steps = [];
+  if(vid) steps.push("Watch "+vid.name+" (the video is above) and sing or move along.");
+  steps.push("Play "+g.name+": "+g.how);
+  if(online) steps.push("Want more? Play "+online.name+" with the link below.");
+  steps.push("Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.");
+  out += "Your Turn — "+steps.map(function(t,i){ return (i+1)+". "+t; }).join(" ")+"\n";
   out += "Show What You Know — Tell a grown-up one thing about "+topic+" that you remembered during the game.";
-  return {passage:out, materials: online ? online.url : null};
+  return {passage:out, materials: online ? online.url : null, video: vid ? vid.url : null};
 }
 function queueSkillReview(kidId, sourceAssignment, item){
   if(!db || !sourceAssignment) return;
@@ -1121,7 +1128,7 @@ function queueSkillReview(kidId, sourceAssignment, item){
     kidId: kidId, date: isoDate(due), subject: src.subject,
     title: reviewTitleFor(Object.assign({id:srcId}, src)),
     xp: 5, done: false, doneAt: null, stage: "review",
-    standard: src.standard || null, passage: rp.passage, materials: rp.materials,
+    standard: src.standard || null, passage: rp.passage, materials: rp.materials, video: rp.video,
     skillId: src.skillId || null, reviewOf: srcId || null,
     quiz: [JSON.parse(JSON.stringify(item))],
     createdAt: new Date().toISOString()
@@ -1147,11 +1154,12 @@ function patchReviewLessons(){
       db.doc("assignments/"+g[i].id).delete();
       delete state.assignments[g[i].id];
     }
-    if(String(keep.a.title).indexOf("🔁 Review: ")!==0 && keep.a.passage) return;
     var src = state.assignments[keep.a.reviewOf] || {skillId:keep.a.skillId, subject:keep.a.subject, title:String(keep.a.title).replace("🔁 Review: ","")};
     var srcX = Object.assign({}, src, {id:keep.a.reviewOf});
     var rp = reviewPassageFor(srcX);
-    var upd = {title:reviewTitleFor(srcX), passage:rp.passage, materials:rp.materials};
+    var bare = String(keep.a.title).indexOf("🔁 Review: ")===0 || !keep.a.passage;
+    if(!bare && (keep.a.video || !rp.video)) return;
+    var upd = bare ? {title:reviewTitleFor(srcX), passage:rp.passage, materials:rp.materials, video:rp.video} : {passage:rp.passage, materials:rp.materials, video:rp.video};
     Object.assign(keep.a, upd); db.doc("assignments/"+keep.id).update(upd);
   });
 }
@@ -3677,7 +3685,9 @@ var LAUNCH_EXTRAS = {
   "wiggleVideos": [
    {"title": "Start the Day Song (Jack Hartmann)", "url": "https://www.youtube.com/watch?v=XJg2kdBJC5w"},
    {"title": "Our Family Favorite 💛", "url": "https://www.youtube.com/watch?v=CuI_p7a9VGs"},
-   {"title": "Grandpa's Wake-Up Song 🌅", "url": "https://www.youtube.com/watch?v=cRYQ1EyGBOQ"}
+   {"title": "Grandpa's Wake-Up Song 🌅", "url": "https://www.youtube.com/watch?v=cRYQ1EyGBOQ"},
+   {"title": "Have a Good Morning Song (Jack Hartmann)", "url": "https://www.youtube.com/watch?v=Xb29Js0wehg"},
+   {"title": "Good Morning Song | Spread a Little Sunshine (Jack Hartmann)", "url": "https://www.youtube.com/watch?v=QdRA3nQnc_4"}
   ]
  },
  "kid2": {
@@ -3753,7 +3763,12 @@ var LAUNCH_EXTRAS = {
    "Spin the 'loading circle': turn slowly in a circle 3 times, then freeze like a paused video.",
    "Do a robot dance for 15 seconds, stiff and jerky like a computer program with a bug."
   ],
-  "wiggleVideos": []
+  "wiggleVideos": [
+   {"title": "Minecraft Brain Break Party (Coach Corey Martin)", "url": "https://www.youtube.com/watch?v=TP8r4mbqNWg"},
+   {"title": "Mario Turbo Run! (Coach Corey Martin)", "url": "https://www.youtube.com/watch?v=juIAfUHTxfY"},
+   {"title": "9-Minute Morning Workout (Little Sports)", "url": "https://www.youtube.com/watch?v=EPuLgbXDmkw"},
+   {"title": "Fantastic 4 Multiverse Race (Teacher Mister Alonso)", "url": "https://www.youtube.com/watch?v=9u-QDciRueQ"}
+  ]
  }
 };
 /* Saves one field of today's journal/launch entry, creating the row if it doesn't exist yet —
@@ -17910,6 +17925,16 @@ function patchAnnaHandwritingWarmup(){
     Object.assign(a, upd); db.doc("assignments/"+id).update(upd);
   });
 }
+/* Jack Hartmann's Place Value Song (a channel Mom approved) goes on Anna's place value teaching lessons that do not have a video yet. */
+function patchAnnaPlaceValueVideo(){
+  if(!db) return;
+  var url = REVIEW_VIDEO.place.url;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.skillId!=="anna-math-place-value" || a.stage!=="teach" || a.video) return;
+    a.video = url; db.doc("assignments/"+id).update({video:url});
+  });
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -17934,6 +17959,7 @@ function runAutoMigrations(){
     autoAddRyanVirtualPhones();
     patchRyanVirtualPhones();
     patchReviewLessons();
+    patchAnnaPlaceValueVideo();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
