@@ -2295,6 +2295,7 @@ function renderHome(){
     '<div class="hm-hello"><div class="hm-who">'+avatarHtml(kid, "hm-av")+'<h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2></div><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
+  els.view.appendChild(familyGoalCard());
   weekendFeaturedFor(kid, iso).forEach(function(f){
     var wb = document.createElement("button");
     wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
@@ -3531,7 +3532,7 @@ function renderToday(){
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
-  els.view.appendChild(familyGoalCard());
+  if(state.tab==="home") els.view.appendChild(familyGoalCard()); // focus mode shows Today in place of Home
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
