@@ -3531,6 +3531,7 @@ function renderToday(){
   els.view.appendChild(title);
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
+  els.view.appendChild(familyGoalCard());
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
@@ -6593,6 +6594,7 @@ function renderLeaderArea(){
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(gimkitExportCard());
+  els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
@@ -18296,6 +18298,89 @@ function skipSwapCard(){
   return wrap;
 }
 
+/* ---------- Family goal: "Boba Tea Run" ---------- */
+/* One shared goal for both kids. A great day is a school day where every kid who has lessons finishes all of them. Reaching the target
+   earns the family treat. Nobody is ranked against anybody (CLAUDE.md rule 11). Settings sync through al_settings.family_goal (see
+   supabase/family_goal.sql); until that column exists they are kept on this device. */
+var FAMILY_GOAL_DEFAULT = {name:"Boba Tea Run", emoji:"🧋", target:10, start:"2026-10-13"};
+function familyGoal(){
+  var local = null; try{ local = JSON.parse(localStorage.getItem("al_family_goal")||"null"); }catch(e){}
+  return Object.assign({}, FAMILY_GOAL_DEFAULT, local||{}, state.familyGoal||{});
+}
+function saveFamilyGoal(g){
+  state.familyGoal = g;
+  try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
+  if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
+  return sb.from("al_settings").upsert({household_id:HOUSEHOLD_ID, family_goal:g}, {onConflict:"household_id"}).then(function(r){
+    if(r.error){ toast("Saved on this device only. Run supabase/family_goal.sql to share it with the other devices."); return false; }
+    return true;
+  });
+}
+function familyGoalProgress(g){
+  var count = 0, d = new Date(g.start+"T00:00:00"), end = todayISO(), guard = 0;
+  while(isoDate(d)<=end && guard++<400){
+    var iso = isoDate(d);
+    if(!isWeekendIso(iso)){
+      var per = KIDS.map(function(k){ return assignmentsFor(k.id, iso); }).filter(function(l){ return l.length; });
+      if(per.length && per.every(function(l){ return l.every(function(a){ return a.done; }); })) count++;
+    }
+    d.setDate(d.getDate()+1);
+  }
+  var today = KIDS.map(function(k){ var l = assignmentsFor(k.id, todayISO()); return {name:kidData(k.id).name||k.defaultName, done:l.filter(function(a){ return a.done; }).length, total:l.length}; });
+  return {count:count, today:today};
+}
+function familyGoalCard(){
+  var g = familyGoal(), pr = familyGoalProgress(g), got = Math.min(pr.count, g.target), reached = pr.count>=g.target;
+  var card = document.createElement("div");
+  card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#fff1d6,#ffe0f0);box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a4a";
+  var cups = "";
+  for(var i=0;i<g.target;i++) cups += '<span style="font-size:22px;'+(i<got ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
+  var todayTxt = pr.today.map(function(t){ return escapeHtml(t.name)+": "+(t.total ? (t.done===t.total ? "all done ✓" : t.done+" of "+t.total) : "no lessons today"); }).join(" &nbsp;·&nbsp; ");
+  card.innerHTML =
+    '<div style="font-weight:800;font-size:15px;margin-bottom:4px">'+escapeHtml(g.emoji)+' Family '+escapeHtml(g.name)+': '+got+' of '+g.target+' great days</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px">'+cups+'</div>'+
+    (reached
+      ? '<div style="font-weight:800;font-size:15px">🎉 You earned it together! Tell Mom: it is time for the '+escapeHtml(g.name)+'!</div>'
+      : '<div style="font-size:12.5px">A great day is when Anna and Ryan both finish all their lessons. Every great day fills a cup. We are doing this together!</div>')+
+    '<div style="font-size:12.5px;margin-top:4px;opacity:.85">Today: '+todayTxt+'</div>';
+  return card;
+}
+function familyGoalLeaderCard(){
+  var g = familyGoal(), pr = familyGoalProgress(g);
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"familygoal");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = g.emoji+" Family goal — "+Math.min(pr.count,g.target)+" of "+g.target+" great days";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "A great day is a school day where every kid who has lessons finishes all of them. Counting starts on the start date. Both kids see the same bar on their Today page.";
+  det.appendChild(note);
+  function field(label, type, val, w){
+    var l = document.createElement("label"); l.style.cssText = "display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px";
+    l.appendChild(document.createTextNode(label));
+    var i = document.createElement("input"); i.type = type; i.value = val; i.style.cssText = "font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;width:"+w+"px;background:var(--card,#fff);color:var(--ink)";
+    l.appendChild(i); det.appendChild(l); return i;
+  }
+  var nameI = field("Goal name", "text", g.name, 180), emojiI = field("Emoji", "text", g.emoji, 60), targetI = field("Great days needed", "number", g.target, 70), startI = field("Counting starts", "date", g.start, 150);
+  var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:6px";
+  var save = document.createElement("button"); save.type = "button"; save.className = "primary-btn"; save.textContent = "Save";
+  save.onclick = function(){
+    var t = Math.max(1, Math.min(30, parseInt(targetI.value,10)||10));
+    saveFamilyGoal({name:(nameI.value||"Boba Tea Run").trim().slice(0,40), emoji:(emojiI.value||"🧋").trim().slice(0,4), target:t, start:startI.value||todayISO()}).then(function(ok){ if(ok) toast("Family goal saved ✓"); renderLeaderArea(); });
+  };
+  var fresh = document.createElement("button"); fresh.type = "button"; fresh.className = "reward-skip"; fresh.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;font-weight:600;color:var(--ink)";
+  fresh.textContent = "We went! Start a new goal today";
+  fresh.onclick = function(){
+    if(!window.confirm("Reset the bar to 0 and start counting from today?")) return;
+    saveFamilyGoal(Object.assign({}, g, {start:todayISO()})).then(function(){ toast("New goal started 🧋"); renderLeaderArea(); });
+  };
+  row.appendChild(save); row.appendChild(fresh); det.appendChild(row);
+  wrap.appendChild(det);
+  return wrap;
+}
 /* ---------- Gimkit: question sets built from what the kids actually studied ---------- */
 /* Gimkit (free Basic plan) can build a kit from an uploaded CSV. These helpers turn the quiz questions already inside the lessons
    into a CSV: Question, Correct Answer, Incorrect Answer 1-3. Only multiple-choice questions go in (matching and sorting do not fit). */
@@ -18393,6 +18478,7 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
+    {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
   ];
@@ -18939,6 +19025,51 @@ function addRyanVirtualPhones(kidId){
       crossSubjects:["Computer Science"], skillId:"ryan-virtual-phones", createdAt:new Date().toISOString()});
   });
 }
+/* Anna's Grandpa's Wake-Up Song series: listen like a detective, interview Grandpa, then compare his version with the video. Leader content pack. */
+var ANNA_GRANDPA_SONG = [
+ {
+  "d": 0,
+  "subject": "Related Arts",
+  "title": "Grandpa's Wake-Up Song: Be a Music Detective 🔎",
+  "xp": 10,
+  "standard": "ELAGSE2SL2",
+  "stage": "teach",
+  "passage": "Gather first — paper, a pencil, and the video above (the family wake-up song).\nHere's the Idea — A detective listens closely and writes down clues. Music has clues too: how fast it goes (the tempo), how loud it is, and the words. A detective also asks, 'How does this song make me feel?' Example clues for a lullaby: 'slow, quiet, makes me sleepy, has the word moon.'\nSee It Done — Pretend detective notes: 'Song: Twinkle Twinkle. Speed: slow. Loud or quiet: quiet. I felt: calm. Favorite word: star.'\nYour Turn — 1. Watch and listen to the video above once just for fun. 2. Watch it again with your pencil. Write 3 clues: the speed, loud or quiet, and your favorite word. 3. Draw how the song makes you feel. 4. Tell Mom how this song wakes you up.\nCheck Yourself — Do you have 3 clues? Did you say how the song feels?\nShow What You Know — Sing or hum your favorite part for Mom.",
+  "cross": "ELA",
+  "video": "https://www.youtube.com/watch?v=cRYQ1EyGBOQ"
+ },
+ {
+  "d": 2,
+  "subject": "Social Studies",
+  "title": "Interview Grandpa: Where Did the Wake-Up Song Come From? 🎤",
+  "xp": 15,
+  "standard": "ELAGSE2SL3",
+  "stage": "teach",
+  "passage": "Gather first — paper, a pencil, a phone or tablet to record, and Grandpa (in person or on a call with a grown-up helping).\nHere's the Idea — An interview is when you ask someone questions to learn their story. Families pass songs down like treasure. A good question starts with who, what, when, where, or why, so the answer is more than yes or no. Example interview with a pretend grandma about a lullaby: Question: 'Who sang it to you when you were little?' Answer: 'My mother.' Question: 'Where were you?' Answer: 'In my bedroom, with the window open.'\nYour Turn — 1. Write 3 questions for Grandpa. Try: Who sang this song to you? When did you first hear it? Why do you sing it to us? 2. Ask them and listen. Do not interrupt. 3. Use the Audio or Video button in this lesson to save his answers and, if he is willing, him singing his version. 4. Draw a picture of one thing he told you. 5. Write or say one new thing you learned about your family.\nCheck Yourself — Did you ask 3 questions that start with who, what, when, where, or why? Did you listen to the whole answer?\nShow What You Know — Tell Mom the most surprising thing Grandpa said.",
+  "cross": "ELA"
+ },
+ {
+  "d": 4,
+  "subject": "Related Arts",
+  "title": "Same Song, Two Versions: Spot the Difference 🎵",
+  "xp": 15,
+  "standard": "ELAGSE2SL2",
+  "stage": "apply",
+  "passage": "Gather first — paper, a pencil, the video of the wake-up song (above), and the recording of Grandpa singing his version from the interview.\nHere's the Idea — Two versions of the same song can be a little different, like when two people tell the same story. Comparing means finding what is the same and what is different. Example: two people sing Happy Birthday. Same: the tune and the words 'Happy birthday to you.' Different: one sings louder, one adds a funny line.\nYour Turn — 1. Listen to the video, then to Grandpa's version. 2. Make a chart with two columns: Same and Different. Fill in at least 3 things in each. 3. Pick your favorite part from either version and tell why. 4. Make up one new silly line of your own. 5. Teach-Back: sing your new line to Grandpa, or record yourself and send it to him, and tell him what you liked about his version.\nCheck Yourself — Do you have at least 3 same and 3 different? Did you say why you picked your favorite part?\nShow What You Know — Teach Mom your new line.",
+  "cross": "ELA",
+  "video": "https://www.youtube.com/watch?v=cRYQ1EyGBOQ"
+ }
+];
+function addAnnaGrandpaSong(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var start = packStart();
+  var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  ANNA_GRANDPA_SONG.forEach(function(it){
+    if(have.indexOf(it.title)!==-1) return;
+    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:it.stage, passage:it.passage, video:it.video||null, crossSubjects:it.cross, skillId:"anna-grandpa-song", createdAt:new Date().toISOString()});
+  });
+}
 var RYAN_THOUGHT_EXPERIMENTS = [
   {d:0, title:"Thought Experiment: Minecraft Beat Itself (No Player Required)",
     materials:"https://www.pcgamer.com/games/survival-crafting/minecraft-beat-minecraft-after-2-billion-years/",
@@ -19084,7 +19215,7 @@ function syncAll(force){
     var changedSlow = false;
     if(slow){
       syncState.lastSlow = Date.now();
-      var sigSlow = JSON.stringify([schedRows, qRows, journalRows, reflectionRows, settingsRow ? settingsRow.leader_pin_hash : null]);
+      var sigSlow = JSON.stringify([schedRows, qRows, journalRows, reflectionRows, settingsRow ? settingsRow.leader_pin_hash : null, settingsRow ? settingsRow.family_goal : null]);
       changedSlow = sigSlow!==syncState.sigSlow;
       syncState.sigSlow = sigSlow;
     }
@@ -19098,6 +19229,7 @@ function syncAll(force){
     }
     if(changedSlow){
       state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
+      state.familyGoal = settingsRow && settingsRow.family_goal ? settingsRow.family_goal : null;
       state.schedules = {};
       schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
       state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });
