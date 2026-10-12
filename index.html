@@ -18411,15 +18411,29 @@ function familyGoalProgress(g){
   var today = KIDS.map(function(k){ var l = assignmentsFor(k.id, todayISO()); return {name:kidData(k.id).name||k.defaultName, done:l.filter(function(a){ return a.done; }).length, total:l.length}; });
   return {count:count, today:today};
 }
+/* The default goal icon is drawn as a picture (not the 🧋 emoji) because older Windows fonts do not have that emoji and show nothing. */
+function goalCupSvg(full, size){
+  var tea = full ? "#d9a86c" : "#ececec", pearl = full ? "#4a2c1a" : "#c9c9c9", line = full ? "#8a5a2b" : "#bdbdbd", straw = full ? "#e85d9a" : "#cfcfcf";
+  return '<svg viewBox="0 0 24 30" width="'+Math.round(size*0.8)+'" height="'+size+'" aria-hidden="true" style="display:inline-block;vertical-align:middle">'+
+    '<line x1="14.5" y1="1.5" x2="12.5" y2="9" stroke="'+straw+'" stroke-width="2" stroke-linecap="round"/>'+
+    '<rect x="3.5" y="8" width="17" height="3.4" rx="1.4" fill="#fff" stroke="'+line+'" stroke-width="1.2"/>'+
+    '<path d="M5 11.4 L7 27.5 Q7.2 28.8 8.6 28.8 L15.4 28.8 Q16.8 28.8 17 27.5 L19 11.4 Z" fill="'+tea+'" stroke="'+line+'" stroke-width="1.2" stroke-linejoin="round"/>'+
+    '<circle cx="9.3" cy="25.4" r="1.5" fill="'+pearl+'"/><circle cx="12.3" cy="26" r="1.5" fill="'+pearl+'"/><circle cx="15" cy="25.2" r="1.5" fill="'+pearl+'"/>'+
+    '<circle cx="10.8" cy="22.6" r="1.5" fill="'+pearl+'"/><circle cx="13.8" cy="22.8" r="1.5" fill="'+pearl+'"/></svg>';
+}
+function goalIconHtml(g, full, size){
+  if(g.emoji==="🧋") return goalCupSvg(full, size);
+  return '<span style="font-size:'+size+'px;'+(full ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
+}
 function familyGoalCard(){
   var g = familyGoal(), pr = familyGoalProgress(g), got = Math.min(pr.count, g.target), reached = pr.count>=g.target;
   var card = document.createElement("div");
   card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#fff1d6,#ffe0f0);box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a4a";
   var cups = "";
-  for(var i=0;i<g.target;i++) cups += '<span style="font-size:22px;'+(i<got ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
+  for(var i=0;i<g.target;i++) cups += '<span style="margin-right:2px">'+goalIconHtml(g, i<got, 34)+'</span>';
   var todayTxt = pr.today.map(function(t){ return escapeHtml(t.name)+": "+(t.total ? (t.done===t.total ? "all done ✓" : t.done+" of "+t.total) : "no lessons today"); }).join(" &nbsp;·&nbsp; ");
   card.innerHTML =
-    '<div style="font-weight:800;font-size:15px;margin-bottom:4px">'+escapeHtml(g.emoji)+' Family '+escapeHtml(g.name)+': '+got+' of '+g.target+' great days</div>'+
+    '<div style="font-weight:800;font-size:15px;margin-bottom:4px">'+goalIconHtml(g, true, 20)+' Family '+escapeHtml(g.name)+': '+got+' of '+g.target+' great days</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px">'+cups+'</div>'+
     (reached
       ? '<div style="font-weight:800;font-size:15px">🎉 You earned it together! Tell Mom: it is time for the '+escapeHtml(g.name)+'!</div>'
