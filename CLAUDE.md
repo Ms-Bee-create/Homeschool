@@ -178,8 +178,18 @@ a lesson's missed questions into ONE review lesson, not one lesson per question.
 
 ## 20. Parent-approved video sources
 
-Mom has said everything on this YouTube channel is safe for Anna and should be used in her lessons whenever it
-fits: https://www.youtube.com/channel/UCVcQH8A634mauPrGbWs7QlQ . Still link the exact video (rule 1), never the channel
-page. Videos Mom has named for Anna's morning movement: https://www.youtube.com/watch?v=XJg2kdBJC5w,
-https://www.youtube.com/watch?v=CuI_p7a9VGs (a family favorite, Anna did it daily in kindergarten), and
-https://www.youtube.com/watch?v=cRYQ1EyGBOQ (the family wake-up song).
+Mom checks the videos herself. Any link she pastes, including lists she copies from Gemini, is approved for use as given
+(she has watched them); still use the exact video (rule 1) and make sure it fits the lesson. Never use a link nobody has
+approved, and never fill in a link from memory.
+
+Approved channel for Anna, use it in her lessons whenever it fits: Jack Hartmann Kids Music Channel,
+https://www.youtube.com/channel/UCVcQH8A634mauPrGbWs7QlQ (link the exact video, never the channel page).
+
+Approved videos, with what they are for (video id after `watch?v=`):
+- Wiggles/wake-up, Anna: XJg2kdBJC5w Start the Day Song; CuI_p7a9VGs family favorite (Anna did it daily in kindergarten);
+  cRYQ1EyGBOQ Grandpa's wake-up song; Xb29Js0wehg Have a Good Morning Song; QdRA3nQnc_4 Good Morning Song | Spread a Little Sunshine.
+- Brain breaks, Ryan: TP8r4mbqNWg Minecraft Brain Break Party (Coach Corey Martin); juIAfUHTxfY Mario Turbo Run (Coach Corey Martin);
+  EPuLgbXDmkw 9-Minute Morning Workout (Little Sports); 9u-QDciRueQ Fantastic 4 Multiverse Race (Teacher Mister Alonso).
+- Anna math/ELA songs, not yet attached to a lesson (use when a matching lesson exists): Zt78cFS5isQ The Place Value Song (already on
+  place value teach lessons and review games); TD_x3AFDjG8 Count by 2's and Move; nC1qgxHcV8k All Mixed Up, Multiply by Music (multiply by 2);
+  c3yJhw7R3fI Eight Parts of Speech Review; RVpcZ5obmsM Money Song, Show Me the Money; K9_O0L96L-g Skip Counting by 25 to 200.
