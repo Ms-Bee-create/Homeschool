@@ -665,6 +665,29 @@ body.ryan-skin .idea{border-radius:0}
 .ml-pretty .ml-q .launch-media-row{margin:6px 0 0}
 .ml-pretty .ml-q .launch-media-btn{border:none;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .ml-pretty .ml-streak{display:inline-flex;margin-top:4px;padding:8px 16px;border-radius:999px;background:linear-gradient(90deg,#ffb36b,#ff7ab8);color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(255,122,184,.4)}
+/* Compact pass: smaller tiles, tighter cards, two columns on wide screens */
+.ml-pretty{padding:2px 12px 10px}
+.ml-pretty .ml-prompt{font-size:16px;margin:2px 0 8px}
+.ml-pretty .launch-mood-row{gap:8px;margin-bottom:10px}
+.ml-pretty .launch-mood-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 6px;border-radius:16px;border-width:2px}
+.ml-pretty .launch-mood-btn .launch-mood-icon{font-size:30px;margin:0}
+.ml-pretty .launch-mood-btn .launch-mood-label{font-size:14px}
+.ml-pretty .launch-mood-btn .launch-mood-check{margin:0}
+.ml-pretty .ml-card{padding:10px 12px;margin:8px 0;border-radius:16px}
+.ml-pretty .ml-card-title{font-size:13.5px;margin-bottom:4px}
+.ml-pretty .ml-card-emoji{font-size:20px}
+.ml-pretty .ml-card-body{font-size:15px;line-height:1.4}
+.ml-pretty .ml-aff .ml-card-body{font-size:17px}
+.ml-pretty .ml-card-hint{font-size:12px;margin:4px 0 4px}
+.ml-pretty .ml-brave{margin:6px 0 2px;padding:7px 10px;font-size:13.5px}
+.ml-pretty .ml-tick{margin-top:6px;padding:8px 16px;font-size:13.5px}
+.ml-pretty .ml-q .launch-media-btn,.ml-pretty .ml-wiggle .launch-media-btn{padding:7px 14px;font-size:13px}
+.ml-pretty .ml-link{padding:7px 12px;font-size:13px;margin-top:6px}
+.ml-pretty .ml-streak{padding:6px 14px;font-size:13px;justify-self:start}
+@media (min-width:900px){
+  .ml-pretty{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;align-items:start}
+  .ml-pretty > *:not(.ml-card){grid-column:1 / -1}
+}
 @media (max-width:520px){.ml-pretty .launch-mood-btn .launch-mood-icon{font-size:42px}.ml-pretty .launch-mood-btn .launch-mood-label{font-size:13px}}
 .launch-streak-row.pulse{animation:launchStreakGlow 1s ease-in-out 3}
 @keyframes launchStreakGlow{0%,100%{text-shadow:none}50%{text-shadow:0 0 10px var(--coral),0 0 18px var(--coral)}}
