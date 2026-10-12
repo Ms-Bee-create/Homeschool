@@ -638,10 +638,32 @@ body.ryan-skin .idea{border-radius:0}
 .ml-pretty .ml-card-title{font-weight:800;font-size:15px;color:#4a3560;margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .ml-pretty .ml-card-emoji{font-size:24px;line-height:1}
 .ml-pretty .ml-card-body{font-size:17px;line-height:1.45;color:#2f2440}
+.ml-pretty .ml-card{color:#2f2440}
+.ml-pretty .ml-aff{background:linear-gradient(135deg,#ffe0f0,#e8dcff);border:2px solid #ffb3d9}
+.ml-pretty .ml-aff .ml-card-body{font-size:21px;font-weight:800;color:#6b2d6e}
+.ml-pretty .ml-brave{margin:10px 0 4px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.65);font-size:15px;line-height:1.4;color:#4a3560}
+.ml-pretty .ml-tick{display:block;margin-top:10px;padding:11px 20px;border:none;border-radius:999px;font:inherit;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(90deg,#ff7ab8,#ffa66b);box-shadow:0 3px 10px rgba(255,122,184,.4);cursor:pointer}
+.ml-pretty .ml-tick.done{background:linear-gradient(90deg,#5fcf9a,#4db6e8);box-shadow:0 3px 10px rgba(77,182,232,.4)}
+.ml-pretty .ml-link{display:inline-block;margin-top:8px;margin-right:8px;padding:9px 16px;border-radius:999px;background:#fff;color:#7a2f8f;font-weight:800;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ml-pretty .ml-fact{background:linear-gradient(135deg,#d6f1ff,#d9ffee);border-left:6px solid #2ab7d9}
+.ml-pretty .ml-think{background:linear-gradient(135deg,#fff0c9,#ffe0d0);border-left:6px solid #ff9a3c}
+.ml-pretty .ml-wiggle{display:block;border-radius:20px;padding:14px 16px;background:linear-gradient(135deg,#ffe9f3,#fff3d6);box-shadow:0 3px 10px rgba(0,0,0,.07)}
+.ml-pretty .ml-wiggle .ml-card-body{color:#2f2440}
+.ml-pretty .ml-wiggle .launch-media-btn{border:none;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.ml-ryan .launch-mood-btn:nth-child(1){background:linear-gradient(160deg,#dbe6ff,#c7d7f5)}
+.ml-ryan .launch-mood-btn:nth-child(2){background:linear-gradient(160deg,#d3f5ee,#c8e8f7)}
+.ml-ryan .launch-mood-btn:nth-child(3){background:linear-gradient(160deg,#e3d9ff,#ffe0c7)}
+.ml-ryan .launch-mood-btn.selected{border-color:#2ab7d9;box-shadow:0 0 0 4px rgba(42,183,217,.28),0 8px 18px rgba(42,183,217,.35)}
+.ml-ryan .launch-mood-btn.selected .launch-mood-check{color:#1b8fb0}
+.ml-ryan .launch-goal-chip{padding:9px 16px;font-size:14px}
+.ml-ryan .ml-aff{background:linear-gradient(135deg,#e0e8ff,#f1deff);border-color:#b9a8f5}
+.ml-ryan .ml-aff .ml-card-body{color:#3b2f7a}
+.ml-ryan .ml-tick{background:linear-gradient(90deg,#6a7bff,#2ab7d9);box-shadow:0 3px 10px rgba(42,183,217,.4)}
+.ml-ryan .ml-wiggle{background:linear-gradient(135deg,#e2f7ec,#e0ecff)}
+.ml-ryan .ml-streak{background:linear-gradient(90deg,#2ab7d9,#6a7bff);box-shadow:0 3px 10px rgba(42,183,217,.4)}
 .ml-pretty .ml-card-hint{font-size:13px;margin:8px 0 6px;color:#5f5575}
 .ml-pretty .ml-q .launch-media-row{margin:6px 0 0}
 .ml-pretty .ml-q .launch-media-btn{border:none;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.ml-pretty .ml-wiggle{display:flex;align-items:center;gap:10px;font-size:15px;margin:12px 0;padding:12px 16px;border-radius:999px;background:linear-gradient(90deg,#ffe9f3,#fff3d6);color:#5a3d6b}
 .ml-pretty .ml-streak{display:inline-flex;margin-top:4px;padding:8px 16px;border-radius:999px;background:linear-gradient(90deg,#ffb36b,#ff7ab8);color:#fff;font-size:14px;box-shadow:0 3px 10px rgba(255,122,184,.4)}
 @media (max-width:520px){.ml-pretty .launch-mood-btn .launch-mood-icon{font-size:42px}.ml-pretty .launch-mood-btn .launch-mood-label{font-size:13px}}
 .launch-streak-row.pulse{animation:launchStreakGlow 1s ease-in-out 3}
@@ -3617,6 +3639,119 @@ var LAUNCH_KID = {
   }
 };
 
+/* Morning Launch extras (affirmation, brave try, wiggle, and Ryan's tech fact and thinking prompt). Tech facts were checked against sources.
+   wiggleVideos: add {title:"...", url:"exact YouTube link"} here once a specific video is chosen (never a channel page, per CLAUDE.md rule 1). */
+var LAUNCH_EXTRAS = {
+ "kid1": {
+  "affirmations": [
+   "I am brave. I can try new things.",
+   "Mistakes help my brain grow.",
+   "I am kind, and I am loved.",
+   "I can do hard things, one step at a time.",
+   "My ideas are special.",
+   "It is okay to ask for help. Smart people do it every day.",
+   "I am a great friend.",
+   "I like who I am.",
+   "I am getting better every single day.",
+   "I am strong and I am safe.",
+   "My voice matters. I can say what I think.",
+   "I am creative and I make beautiful things.",
+   "I can try again. Trying again is brave.",
+   "I am proud of myself for trying.",
+   "I am enough, just the way I am.",
+   "My body is amazing. It runs and jumps and dances.",
+   "I can be silly and I can be serious, and both are me.",
+   "I am a good learner."
+  ],
+  "brave": [
+   "Say hi to someone new today.",
+   "Take one tiny bite of a food you have not tried, or one you do not like yet.",
+   "Ask a grown-up one question you have been wondering about.",
+   "Draw something and show it to someone, even if it is not perfect.",
+   "Do your wiggle in your loudest, silliest way.",
+   "Before your hardest lesson, say out loud: I can do hard things.",
+   "Tell someone one thing you are proud of.",
+   "Try one problem you are not sure about. A guess is a great start!",
+   "Give someone a compliment today."
+  ],
+  "wiggleVideos": []
+ },
+ "kid2": {
+  "affirmations": [
+   "I am smart, and I get smarter every time I try something hard.",
+   "My brain grows when things are tough.",
+   "Not knowing something yet is the start of learning it.",
+   "I am a builder and a problem solver.",
+   "My ideas matter, even the weird ones.",
+   "A bug in my code is not a failure. It is a clue.",
+   "I can try even when I am not sure I will get it right.",
+   "I am proud of how hard I work.",
+   "I am allowed to be different. That is my superpower.",
+   "I am a good friend and a good family member.",
+   "I can handle big feelings. They pass.",
+   "I like who I am.",
+   "I am brave enough to ask questions.",
+   "Every expert was once a beginner.",
+   "I am enough, just the way I am.",
+   "My effort matters more than being perfect."
+  ],
+  "brave": [
+   "Ask a question out loud, even if you think it might sound silly. There are no silly questions.",
+   "Show someone something you made, even if it is not finished.",
+   "Start with the hardest problem first today.",
+   "Teach someone one thing you know.",
+   "Say 'I do not know it yet' instead of 'I cannot'.",
+   "Share one idea out loud, even if you are not sure about it.",
+   "Try something new on the computer without looking up the answer first. Then check.",
+   "Tell someone one thing you are proud of."
+  ],
+  "facts": [
+   "The very first webcam watched a coffee pot! In 1991, people at the University of Cambridge pointed a camera at the coffee pot in their computer lab so they could check if there was coffee before walking all the way upstairs. It updated about 3 times a minute, and in 1993 it went on the internet for the whole world to see.",
+   "In 1947, the team working on the Harvard Mark II computer found a real moth stuck in a relay. They taped it into the logbook and wrote 'First actual case of bug being found.' Engineers already called glitches 'bugs', so the joke was that this one was an ACTUAL bug.",
+   "The first .com web address name ever registered was symbolics.com, on March 15, 1985. Before that, there were no .com names at all!",
+   "The first computer 'worm' was called Creeper, made by Bob Thomas in 1971. It hopped from computer to computer on ARPANET (the early internet), copying itself and deleting itself from the last one, and it showed the message 'I'm the creeper, catch me if you can.' It was harmless, and a program called Reaper was made to chase it down.",
+   "The first computer mouse had a wooden shell and two metal wheels inside. Douglas Engelbart had the idea, and a prototype was built around 1964 by Bill English. The patent came in 1970, and the world first saw it in a famous demo in 1968.",
+   "The first email between two computers was sent in 1971 over ARPANET. Ray Tomlinson picked the @ symbol to separate the person's name from the computer's name, because @ was not used in computer names. He could not remember what the message said!",
+   "Nintendo says it started in 1889 in Kyoto, Japan, making hanafuda playing cards by hand. That is about 90 years before the first Nintendo game consoles!",
+   "Linux started in 1991 when Linus Torvalds, a 21-year-old student in Finland, wrote the first Linux kernel. The Linux penguin mascot, Tux, was drawn later by Larry Ewing in 1996.",
+   "A byte is 8 bits (eight 1s and 0s). Half a byte, 4 bits, is called a nibble. A nibble can make 16 different numbers, from 0 to 15.",
+   "One byte (8 bits) can make 256 different numbers, 0 through 255. That is why computer colors use numbers up to 255: red, green, and blue each get one byte. In the color code #FF0000, FF is 255 in hex, so it means full red and no green or blue.",
+   "Some phone screens are 1,080 pixels wide and 2,400 tall. That is 1,080 x 2,400 = 2,592,000 pixels, more than 2.5 million tiny dots of light!",
+   "'The cloud' is not a real cloud. It is other people's computers, in big buildings called data centers, connected to the internet.",
+   "Every device on the internet gets a number address called an IP address, a bit like a street address, so data knows where to go.",
+   "Windows 95 was the first version of Windows with a Start button and a taskbar.",
+   "A transistor is a tiny switch that is either on (1) or off (0). A modern computer chip has billions of them working together.",
+   "An emulator is a program that pretends to be a different computer, like the virtual phone that runs inside your PC."
+  ],
+  "thoughts": [
+   "If a robot writes a story, who is the author: the robot, the person who built it, or the person who asked it to?",
+   "A computer follows rules perfectly. Is following rules the same as understanding?",
+   "Should something you post online ever be impossible to erase? Why or why not?",
+   "If you spent 100 hours building something in a video game, is it real? What does 'real' mean?",
+   "A mistake in code is called a bug. Could a mistake ever lead you to discover something new?",
+   "If you could add one rule to the internet, what would it be and what would it change?",
+   "Would you trust a program you did not write? What would make you trust it?",
+   "If every phone and computer were exactly the same, would anyone be creative?",
+   "Hard things feel boring if you give up and exciting if you figure them out. What changes in between?",
+   "Is it brave to try something when you know you might fail?",
+   "If a machine could do your favorite hobby better than you, would you still do it? Why?",
+   "Is a copy of a file the same file? What if you change one tiny thing?",
+   "Which is smarter: knowing a lot of facts, or knowing how to find out anything?",
+   "If you could teach a computer one human feeling, which one would you pick and why?"
+  ],
+  "wiggles": [
+   "Do 10 pushups, or 10 wall pushups.",
+   "Wall sit for 20 seconds, like you are sitting in an invisible chair.",
+   "Do 15 jumping jacks, then shake out your hands.",
+   "Stand up and stretch like a cat: reach up high, then fold down and touch your toes.",
+   "Do 10 squats like you are lifting a heavy block in Minecraft.",
+   "Run in place as fast as you can for 20 seconds, then take 3 slow breaths.",
+   "Spin the 'loading circle': turn slowly in a circle 3 times, then freeze like a paused video.",
+   "Do a robot dance for 15 seconds, stiff and jerky like a computer program with a bug."
+  ],
+  "wiggleVideos": []
+ }
+};
 /* Saves one field of today's journal/launch entry, creating the row if it doesn't exist yet —
    every tap (mood, goal, voice, photo) calls this so nothing waits on a separate Save button. */
 function saveLaunchField(kidId, iso, existing, fieldUpdates){
@@ -3655,9 +3790,11 @@ function renderMorningLaunch(kidId, iso){
   var wrap = document.createElement("div");
   var existing = journalEntryFor(kidId, iso);
   var cfg = LAUNCH_KID[kidId] || null;
-  var pretty = !!(cfg && cfg.questions);
-  if(pretty) wrap.className = "ml-pretty";
+  var pretty = !!(cfg && cfg.questions) || kidId==="kid2";
+  var ex = LAUNCH_EXTRAS[kidId] || null;
+  if(pretty) wrap.className = "ml-pretty" + (kidId==="kid2" ? " ml-ryan" : "");
   var moods = cfg ? cfg.moods : LAUNCH_MOODS, goals = cfg && cfg.goals ? cfg.goals : LAUNCH_GOALS;
+  if(!cfg && pretty){ var feel2 = document.createElement("div"); feel2.className = "ml-prompt"; feel2.textContent = "How is your brain this morning?"; wrap.appendChild(feel2); }
   if(cfg){
     var feel = document.createElement("div"); if(pretty) feel.className = "ml-prompt"; else feel.style.cssText = "font-size:14px;font-weight:700;margin-bottom:8px"; feel.textContent = cfg.prompt; wrap.appendChild(feel);
   }
@@ -3717,13 +3854,17 @@ function renderMorningLaunch(kidId, iso){
   mediaRow.className = "launch-media-row";
   var mediaPreview = document.createElement("div");
   mediaPreview.className = "launch-media-preview";
+  var wigglePreview = document.createElement("div");
 
   function renderMediaPreview(){
     var html = "";
     if(existing && existing.launchVoiceUrl){
       html += '<div>🎤 Voice note saved <audio controls src="'+escapeHtml(existing.launchVoiceUrl)+'"></audio></div>';
     }
-    if(existing && existing.launchSnapshotUrl){
+    wigglePreview.innerHTML = "";
+    if(existing && existing.launchSnapshotUrl && /\.(mp4|mov|webm|m4v|3gp)(\?|$)/i.test(existing.launchSnapshotUrl)){
+      wigglePreview.innerHTML = '<div style="margin-top:8px">💃 Wiggle saved!<video controls playsinline style="width:100%;max-width:320px;border-radius:14px;display:block;margin-top:6px" src="'+escapeHtml(existing.launchSnapshotUrl)+'"></video></div>';
+    } else if(existing && existing.launchSnapshotUrl){
       html += '<div>📸 Snapshot saved<br><a href="'+escapeHtml(existing.launchSnapshotUrl)+'" target="_blank" rel="noopener"><img src="'+escapeHtml(existing.launchSnapshotUrl)+'"></a></div>';
     }
     mediaPreview.innerHTML = html;
@@ -3757,7 +3898,7 @@ function renderMorningLaunch(kidId, iso){
   }
   mediaRow.appendChild(makeMediaBtn(cfg ? cfg.voiceLabel : "🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
   if(!(cfg && cfg.noPhoto)) mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
-  if(!pretty){ wrap.appendChild(mediaRow); wrap.appendChild(mediaPreview); }
+  if(!(cfg && cfg.questions)){ wrap.appendChild(mediaRow); wrap.appendChild(mediaPreview); }
 
   /* --- Optional short note, own-words only. Guarded the same way as Show & Teach's text box:
      no pasting/dragging in text, and anything URL-like, wall-of-text, or suspiciously long gets
@@ -3797,20 +3938,54 @@ function renderMorningLaunch(kidId, iso){
   var kd = kidData(kidId);
   var streakRow = document.createElement("div");
   streakRow.className = "launch-streak-row" + (pretty ? " ml-streak" : "");
+  var dn = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
+  function mlCard(cls, emoji, title, body, hint){
+    var c = document.createElement("div"); c.className = "ml-card "+cls;
+    c.innerHTML = '<div class="ml-card-title"><span class="ml-card-emoji">'+emoji+'</span>'+title+'</div><div class="ml-card-body">'+escapeHtml(body)+'</div>'+(hint ? '<div class="ml-card-hint">'+escapeHtml(hint)+'</div>' : '');
+    return c;
+  }
+  function mlTick(card, key, label, doneLabel, toastMsg){
+    var on = false; try{ on = localStorage.getItem(key)==="1"; }catch(e){}
+    var b = document.createElement("button"); b.type = "button"; b.className = "ml-tick"+(on ? " done" : "");
+    b.textContent = on ? doneLabel : label;
+    b.onclick = function(){ try{ localStorage.setItem(key, "1"); }catch(e){} b.className = "ml-tick done"; b.textContent = doneLabel; toast(toastMsg); };
+    card.appendChild(b);
+  }
+  if(pretty && ex){
+    var aff = mlCard("ml-aff", "💖", "Say it loud and proud", ex.affirmations[(dn*5+2) % ex.affirmations.length], "Say it out loud 3 times. Look in a mirror if you can!");
+    var brv = document.createElement("div"); brv.className = "ml-brave"; brv.innerHTML = '<b>🦸 Brave try today:</b> '+escapeHtml(ex.brave[(dn*3+1) % ex.brave.length]);
+    aff.appendChild(brv);
+    mlTick(aff, "al_ml_aff_"+kidId+"_"+iso, "I said it! 💪", "✓ You said it. Nice!", "💖 Love that. You've got this!");
+    wrap.appendChild(aff);
+  }
   if(cfg && cfg.questions){
-    var dn = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000);
-    var qb = document.createElement("div"); qb.className = "ml-card ml-q";
-    qb.innerHTML = '<div class="ml-card-title"><span class="ml-card-emoji">🤔</span>Silly question of the day</div><div class="ml-card-body">'+escapeHtml(cfg.questions[dn % cfg.questions.length])+'</div><div class="ml-card-hint">Tell Mom your answer, or tap the microphone to say it.</div>';
+    var qb = mlCard("ml-q", "🤔", "Silly question of the day", cfg.questions[dn % cfg.questions.length], "Tell Mom your answer, or tap the microphone to say it.");
     qb.appendChild(mediaRow); qb.appendChild(mediaPreview);
     wrap.appendChild(qb);
-    var ib = document.createElement("div"); ib.className = "ml-card ml-idea";
-    ib.innerHTML = '<div class="ml-card-title"><span class="ml-card-emoji">🎈</span>Fun thing to do after school</div><div class="ml-card-body">'+escapeHtml(cfg.ideas[(dn*3+1) % cfg.ideas.length])+'</div>';
-    wrap.appendChild(ib);
   }
-  if(cfg && cfg.wiggles){
-    var wg = document.createElement("div"); wg.className = "ml-wiggle";
-    var di = Math.floor(new Date(iso+"T00:00:00").getTime()/86400000) % cfg.wiggles.length;
-    wg.innerHTML = '<span class="ml-card-emoji">💃</span><span><b>Sunny wiggle:</b> '+escapeHtml(cfg.wiggles[di].replace(/^Sunny wiggle:\s*/i,""))+'</span>'; wrap.appendChild(wg);
+  if(kidId==="kid2" && ex){
+    wrap.appendChild(mlCard("ml-fact", "💡", "Tech fact of the day", ex.facts[dn % ex.facts.length]));
+    wrap.appendChild(mlCard("ml-think", "🧠", "Think about this", ex.thoughts[(dn*3+1) % ex.thoughts.length], "No right answer. Tell Mom what you think, and why."));
+  }
+  var wl = (cfg && cfg.wiggles) || (ex && ex.wiggles);
+  if(wl){
+    var wc = mlCard("ml-wiggle", "💃", kidId==="kid1" ? "Sunny wiggle" : "Brain break", wl[dn % wl.length]);
+    var wvs = (ex && ex.wiggleVideos) || [];
+    if(wvs.length){
+      var wv = wvs[dn % wvs.length], wa = document.createElement("a");
+      wa.href = wv.url; wa.target = "_blank"; wa.rel = "noopener"; wa.className = "ml-link"; wa.textContent = "▶ Dance along: "+wv.title;
+      wc.appendChild(wa);
+    }
+    if(kidId==="kid1"){
+      var wr = document.createElement("div"); wr.className = "launch-media-row"; wr.style.marginTop = "8px";
+      wr.appendChild(makeMediaBtn("🎥 Record my wiggle", "video/*", "user", "launchSnapshotUrl"));
+      wc.appendChild(wr); wc.appendChild(wigglePreview);
+    }
+    mlTick(wc, "al_ml_wig_"+kidId+"_"+iso, "I wiggled! 🎉", "✓ Wiggled!", "🎉 Brain and body are awake!");
+    wrap.appendChild(wc);
+  }
+  if(cfg && cfg.ideas){
+    wrap.appendChild(mlCard("ml-idea", "🎈", "Fun thing to do after school", cfg.ideas[(dn*3+1) % cfg.ideas.length]));
   }
   streakRow.id = "selfStartStreakRow";
   streakRow.innerHTML = (cfg ? cfg.streakLabel : "🔥 Self-Start Streak") + ": " + (kd.selfStartStreak||0) + " day" + ((kd.selfStartStreak||0)===1 ? "" : "s");
