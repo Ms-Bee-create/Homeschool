@@ -19075,14 +19075,15 @@ function addAnnaGrandpaSong(kidId){
 var RYAN_TABLET_AUTOPSY = [
  {
   "subject": "Independent",
-  "title": "Tablet Autopsy 1: What Still Works? Detective Notes 🔎",
-  "xp": 20,
+  "title": "Tablet Autopsy: What Broke, and Why Does the Mouse Still Work? 🔎",
+  "xp": 30,
   "standard": "3-5.F",
   "stage": "teach",
   "cross": [
    "Computer Science"
   ],
-  "passage": "Gather first — the broken tablet, the Bluetooth mouse, paper, a pencil, and a grown-up. Put clear packing tape over the cracked glass first so nobody gets cut, and do not press hard on the glass.\nHere's the Idea — An autopsy figures out what happened by testing one thing at a time. Tech words to own: an INPUT is how you tell a device what to do (touch, mouse, keyboard, buttons). An OUTPUT is how the device answers you (the display shows pictures, the speaker makes sound). Your tablet has broken one input (touch) but the display output still works. Good detectives record everything in a chart, not just in their head.\nSee It Done — Example chart for a pretend broken phone. Test: Display shows pictures. Result: works. Test: Finger touch. Result: partly (tiny responses). Test: Mouse moves the pointer. Result: works. Test: Sound. Result: works. Notice each row says what was tested and what happened.\nYour Turn — 1. Ask a grown-up to back up your files now, while the mouse still lets you use the tablet. 2. Make a chart with 3 columns: Test, Result, Guess. 3. Test each one and write works, partly, or broken: display, finger touch, mouse, sound, charging, power and volume buttons. 4. For touch, try tapping a few spots gently and write where it reacts and where it does not. 5. Write one guess: which part broke, and which parts are fine?\nCheck Yourself — Does every row have a result? Did you sort each test into input or output?\nShow What You Know — Tell Mom your best guess about what broke and what evidence you have.",
+  "materials": "https://engineering.mit.edu/ask-an-engineer/how-do-touch-sensitive-screens-work",
+  "passage": "Gather first — the broken tablet, the Bluetooth mouse, graph paper, plain paper, a pencil, colored pencils, a grown-up, and the MIT page linked below (How do touch-sensitive screens work?, from MIT Engineering). Put clear packing tape over the cracked glass first so nobody gets cut, and do not press hard on the glass. This is one big detective case, so take a break halfway.\nHere's the Idea — An autopsy figures out what happened by testing one thing at a time. Tech words to own. INPUT: how you tell a device what to do (touch, mouse, keyboard, buttons). OUTPUT: how the device answers you (the display shows pictures, the speaker makes sound). Most tablet screens are CAPACITIVE touchscreens: under the glass is a grid of tiny electrical sensors, and your finger carries a little electricity, so where you touch, the electricity changes and the tablet reads which spot changed. A crack in the glass might cut some lines in that grid. That is a HYPOTHESIS, a guess we can test, not a fact yet. The mouse is a different path: it talks to the tablet over BLUETOOTH, short-range wireless radio. Pairing is like an introduction, so the tablet and mouse agree to listen to each other. Touch and mouse are two separate paths into the tablet's brain, so one can break while the other works. This is just like your virtual phone lab, where the guest only gets the inputs the host sends it.\nSee It Done — Example detective chart for a pretend broken phone. Test: display shows pictures, result: works (output). Test: finger touch, result: partly (input). Test: mouse moves pointer, result: works (input). Example grid model: draw a 6 by 6 grid with columns 1 to 6 and rows A to F. A tap on C4 changes row C and column 4, so the tablet finds C4. A crack is a thick line across some squares. Example path diagram: boxes Finger, Mouse, and Keyboard on the left, an arrow from each into a box called Brain, and an arrow from Brain to Screen. An X on the Finger arrow shows that path is damaged.\nYour Turn — 1. Ask a grown-up to back up your files now, while the mouse still lets you use the tablet. 2. Make a chart with columns Test, Result, and Input or Output. Test and write works, partly, or broken for: display, finger touch (gently), mouse, sound, charging, power and volume buttons. 3. Draw a 6 by 6 grid labeled A to F and 1 to 6. Have a grown-up secretly pick a square, and say where to find it by naming a row and column. 4. Read the MIT page with a grown-up and find what your finger changes. 5. Draw your tablet's crack as a colored line across your grid, color the squares it touches red, and predict where the dead zones are. Compare that to where the real tablet reacts and write one sentence: does the evidence support your hypothesis? 6. Take a break. Then draw a path diagram for your tablet with these boxes: Finger, Touch layer, Bluetooth mouse, Brain, Display, Speaker. Label every arrow input or output and put an X on the damaged path. 7. Turn the tablet's Bluetooth off and then on and watch what the mouse does. Write what happened and why.\nCheck Yourself — Does your chart sort every test into input or output? Does your red area match where touch fails? Does your diagram show two different paths into the brain?\nShow What You Know — Teach Mom what broke, how the touchscreen knows where your finger is, and why the mouse still works, using your chart, grid, and diagram.",
   "quiz": [
    {
     "q": "Which of these is an INPUT?",
@@ -19096,42 +19097,6 @@ var RYAN_TABLET_AUTOPSY = [
     "explain": "An input is how you tell the device what to do. A mouse sends your movements in."
    },
    {
-    "q": "The screen still shows pictures but ignores most touches. Which statement fits?",
-    "choices": [
-     "The output works but the touch input is damaged",
-     "Everything inside is broken",
-     "The battery is the only problem",
-     "The tablet is turned off"
-    ],
-    "answerIndex": 0,
-    "explain": "Showing pictures is output and touching is input, so one can break while the other works."
-   },
-   {
-    "q": "Why back up the files first?",
-    "choices": [
-     "The tablet could stop working completely",
-     "Files take up too much space",
-     "It makes the tablet faster",
-     "It fixes the screen"
-    ],
-    "answerIndex": 0,
-    "explain": "A damaged tablet can fail without warning, so saving your files first protects them."
-   }
-  ]
- },
- {
-  "subject": "Science",
-  "title": "Tablet Autopsy 2: How Does a Touchscreen Feel Your Finger? ⚡",
-  "xp": 20,
-  "standard": "3-5.F",
-  "stage": "teach",
-  "cross": [
-   "Computer Science"
-  ],
-  "materials": "https://engineering.mit.edu/ask-an-engineer/how-do-touch-sensitive-screens-work",
-  "passage": "Gather first — graph paper, a pencil, a ruler, colored pencils, and the MIT page linked below (How do touch-sensitive screens work?, from MIT Engineering).\nHere's the Idea — Most tablet screens are capacitive touchscreens. Under the glass is a grid of tiny electrical sensors. Your finger carries a little electricity, so when it touches, it changes the electricity at that spot. The tablet reads which spot changed and knows where you touched. That is why a bare finger or a special stylus works, but a plain pencil does not. A crack in the glass might cut some of the lines in the grid. That is a guess (a hypothesis) we can test, not something we know yet.\nSee It Done — Example grid model: draw a 6 by 6 grid. Label the columns 1 to 6 and the rows A to F. If a friend taps square C4, the tablet 'senses' row C and column 4 changed, so it finds C4. A crack is like a thick line drawn across some squares.\nYour Turn — 1. Draw a 6 by 6 grid labeled A to F and 1 to 6. 2. Have a grown-up secretly pick a square. Say where you would find it by naming a row and column. 3. Read the MIT page (a grown-up can read it with you) and find the part about what your finger changes. 4. Draw your tablet's crack as a colored line across your grid. Color the squares the crack touches red. 5. Predict: which squares might be dead zones? Compare your prediction to where your real tablet reacts, from Lab 1. 6. Write one sentence: does the evidence support your hypothesis?\nCheck Yourself — Does your red area match where the tablet does not react? If not, what else could be wrong?\nShow What You Know — Explain to Mom how a touchscreen knows where your finger is, in your own words.",
-  "quiz": [
-   {
     "q": "What does a capacitive touchscreen sense?",
     "choices": [
      "The change in electricity where your finger touches",
@@ -19142,41 +19107,6 @@ var RYAN_TABLET_AUTOPSY = [
     "answerIndex": 0,
     "explain": "A finger changes the electrical field at the touch spot, and the screen reads where that change happened."
    },
-   {
-    "q": "Why might a plain pencil not work on the screen?",
-    "choices": [
-     "It does not carry the electricity the sensor needs",
-     "It is too light",
-     "It is the wrong color",
-     "It scratches the glass"
-    ],
-    "answerIndex": 0,
-    "explain": "The sensor reacts to a conductive touch like a finger or a special stylus, not to ordinary wood and graphite."
-   },
-   {
-    "q": "A hypothesis is...",
-    "choices": [
-     "A guess you can test",
-     "A fact you already proved",
-     "A kind of battery",
-     "A part of the screen"
-    ],
-    "answerIndex": 0,
-    "explain": "A hypothesis is an idea you test with evidence, like checking where the tablet really reacts."
-   }
-  ]
- },
- {
-  "subject": "Independent",
-  "title": "Tablet Autopsy 3: Why Does the Mouse Still Work? 🖱️",
-  "xp": 20,
-  "standard": "3-5.F",
-  "stage": "practice",
-  "cross": [
-   "Computer Science"
-  ],
-  "passage": "Gather first — paper, a pencil, and the tablet with the Bluetooth mouse.\nHere's the Idea — The touch layer and the mouse are two separate paths into the tablet's brain. The touch layer is built into the screen. The mouse talks to the tablet over Bluetooth, which is wireless short-range radio. Pairing is like an introduction: the tablet and mouse agree to listen to each other and remember each other. After that, the mouse sends its movements as little messages, and the tablet treats them like any other input. That is why one path can be broken while the other works. It is just like your virtual phone lab: the guest only sees the inputs the host sends it.\nSee It Done — Example diagram: three boxes on the left (Finger, Mouse, Keyboard), an arrow from each into a big box called Brain (the processor), and an arrow from Brain to a box called Screen. Next to the Finger arrow, draw a small X to show that path is damaged.\nYour Turn — 1. Draw the same kind of diagram for your tablet with these boxes: Finger, Touch layer, Bluetooth mouse, Brain, Display, Speaker. 2. Label every arrow as input or output. 3. Put an X on the damaged path. 4. Turn the tablet's Bluetooth off, then on, and watch what the mouse does. Write what happened and why. 5. Predict: if the brain were broken, would the mouse still work? Why not?\nCheck Yourself — Does your diagram show two different paths into the brain? Is your X in the right place?\nShow What You Know — Teach Mom why the mouse works when the touch layer does not, using your diagram.",
-  "quiz": [
    {
     "q": "What does pairing a Bluetooth mouse do?",
     "choices": [
@@ -19189,6 +19119,17 @@ var RYAN_TABLET_AUTOPSY = [
     "explain": "Pairing is like an introduction so the two devices can talk and remember each other."
    },
    {
+    "q": "A hypothesis is...",
+    "choices": [
+     "A guess you can test",
+     "A fact you already proved",
+     "A kind of battery",
+     "A part of the screen"
+    ],
+    "answerIndex": 0,
+    "explain": "A hypothesis is an idea you test with evidence, like checking where the tablet really reacts."
+   },
+   {
     "q": "Why can the mouse work when touch is damaged?",
     "choices": [
      "They are separate paths into the tablet's brain",
@@ -19198,19 +19139,9 @@ var RYAN_TABLET_AUTOPSY = [
     ],
     "answerIndex": 0,
     "explain": "Touch is a layer in the screen and the mouse is wireless, so one can fail without the other."
-   },
-   {
-    "q": "If the tablet's brain stopped working, what would happen to the mouse?",
-    "choices": [
-     "It would not control anything",
-     "It would work better",
-     "It would charge the tablet",
-     "It would turn into a touchscreen"
-    ],
-    "answerIndex": 0,
-    "explain": "Every input path goes to the brain, so with a broken brain no input could be used."
    }
-  ]
+  ],
+  "d": 0
  },
  {
   "subject": "Independent",
@@ -19256,7 +19187,8 @@ var RYAN_TABLET_AUTOPSY = [
     "answerIndex": 0,
     "explain": "A bulging battery is a sign to stop and get expert help, not to pry or press on it."
    }
-  ]
+  ],
+  "d": 1
  },
  {
   "subject": "Math",
@@ -19302,18 +19234,34 @@ var RYAN_TABLET_AUTOPSY = [
     "answerIndex": 0,
     "explain": "Batteries and metals can be harmful in the trash, so electronics go to proper recycling."
    }
-  ]
+  ],
+  "d": 1
  }
 ];
+var RYAN_TABLET_OLD_TITLES = ["Tablet Autopsy 1: What Still Works? Detective Notes 🔎", "Tablet Autopsy 2: How Does a Touchscreen Feel Your Finger? ⚡", "Tablet Autopsy 3: Why Does the Mouse Still Work? 🖱️"];
 function autoAddRyanTabletAutopsy(){
   if(!db) return;
-  var flag = "al_ryan_tablet_v1", done = false;
+  var flag = "al_ryan_tablet_v2", done = false;
   try{ done = !!localStorage.getItem(flag); }catch(e){}
   if(done) return;
-  var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId==="kid2"; }).map(function(a){ return a.title; });
+  var mine = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; }).filter(function(x){ return x.a.kidId==="kid2"; });
+  var tomorrow = isoDate(addSchoolDays(new Date(), 1));
+  /* The first version had lessons 1 to 3 as separate lessons. Unstarted ones are removed (the merged lesson replaces them);
+     if any were started or finished, they are left alone and the merged lesson is not added. */
+  var keptOld = false;
+  mine.forEach(function(x){
+    if(RYAN_TABLET_OLD_TITLES.indexOf(x.a.title)===-1) return;
+    if(!x.a.done && !hasWork(x.a)){ db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; } else keptOld = true;
+  });
   RYAN_TABLET_AUTOPSY.forEach(function(it){
-    if(have.indexOf(it.title)!==-1) return;
-    db.collection("assignments").add({kidId:"kid2", date:todayISO(), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    var ex = mine.filter(function(x){ return x.a.title===it.title; })[0];
+    var date = it.d===0 ? todayISO() : tomorrow;
+    if(ex){
+      if(it.d===1 && !ex.a.done && !hasWork(ex.a) && ex.a.date!==date){ ex.a.date = date; db.doc("assignments/"+ex.id).update({date:date}); }
+      return;
+    }
+    if(it.d===0 && keptOld) return;
+    db.collection("assignments").add({kidId:"kid2", date:date, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz, crossSubjects:it.cross, skillId:"ryan-tablet-autopsy", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
