@@ -19487,20 +19487,26 @@ function syncAll(force){
     var journalRows = results[4].data || [], reflectionRows = results[5].data || [];
     var settingsRow = (results[6].data || [])[0];
 
-    var needWork = [];
+    var needWork = [], needHeavy = [];
     if(needFull){
       syncState.lastFull = Date.now();
-      if(assignRows.length) syncState.lightCols = Object.keys(assignRows[0]).filter(function(k){ return k!=="work_blocks"; }).join(",");
+      /* Routine polls leave out the two other big columns, the lesson text and the quiz: they are the bulk of every row and
+         almost never change from another device. The copy already loaded is reused, new lessons are fetched once, and a full
+         load every 15 minutes refreshes everything. */
+      if(assignRows.length) syncState.lightCols = Object.keys(assignRows[0]).filter(function(k){ return k!=="work_blocks" && k!=="passage" && k!=="quiz"; }).join(",");
     } else {
       assignRows.forEach(function(r){
         var prev = state.assignments[r.id];
         if(prev && prev.workBlocks!==undefined && (r.submitted_at||null)===(prev.submittedAt||null)) r.work_blocks = prev.workBlocks;
         else if(r.submitted_at) needWork.push(r.id);
+        if(prev && prev.passage!==undefined && prev.quiz!==undefined){ r.passage = prev.passage; r.quiz = prev.quiz; }
+        else needHeavy.push(r.id);
       });
     }
 
+    function sortedKeys(o){ var c = {}; Object.keys(o).sort().forEach(function(k){ c[k] = o[k]; }); return c; }
     var sigFast = JSON.stringify([kidsRows,
-      assignRows.map(function(r){ var c = Object.assign({}, r); delete c.work_blocks; return c; })]);
+      assignRows.map(function(r){ var c = Object.assign({}, r); delete c.work_blocks; return sortedKeys(c); })]);
     var changedFast = sigFast!==syncState.sig;
     syncState.sig = sigFast;
     var changedSlow = false;
@@ -19541,6 +19547,17 @@ function syncAll(force){
        — see the window "focus" listener below for why. */
     if(!state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField() && !state.fileInputActive) renderView();
 
+    if(needHeavy.length){
+      var chunks = []; for(var hi=0; hi<needHeavy.length; hi+=40) chunks.push(needHeavy.slice(hi, hi+40));
+      Promise.all(chunks.map(function(ids){ return sb.from("al_assignments").select("id,passage,quiz").in("id", ids); })).then(function(all){
+        var got = false;
+        all.forEach(function(res){
+          if(res.error || !res.data) return;
+          res.data.forEach(function(r){ if(state.assignments[r.id]){ state.assignments[r.id].passage = r.passage; state.assignments[r.id].quiz = r.quiz; got = true; } });
+        });
+        if(got && !state.quiz && !state.miniGame && state.lessonDetailId==null && !isTypingInFormField() && !state.fileInputActive) renderView();
+      });
+    }
     if(needWork.length){
       sb.from("al_assignments").select("id,work_blocks").in("id", needWork).then(function(res){
         if(res.error || !res.data) return;
@@ -19666,9 +19683,9 @@ function showApp(){
   showWhoGate();
   syncAll();
   /* Background sync is the biggest thing talking to Supabase (7 tables per device per tick), so it
-     runs every 30 seconds instead of 8, and pauses entirely while nobody has touched this screen
+     runs every 60 seconds instead of 8, and pauses entirely while nobody has touched this screen
      for 3 minutes (a tablet left open overnight), catching up the moment someone does. */
-  setInterval(function(){ if(!document.hidden && Date.now()-lastTouchAt < 180000) syncAll(); }, 30000);
+  setInterval(function(){ if(!document.hidden && Date.now()-lastTouchAt < 180000) syncAll(); }, 60000);
   ["pointerdown","keydown","touchstart"].forEach(function(evt){
     document.addEventListener(evt, function(){
       var wasIdle = Date.now()-lastTouchAt >= 180000;
