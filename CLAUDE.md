@@ -208,3 +208,8 @@ Approved videos, with what they are for (video id after `watch?v=`):
   Geography/social studies: _pOKoIAnybg The Geography Song, Globe vs Map (Scratch Garden; on SS Chapter 3 Our Earth); 6Due3L2QeQM The Directions Song (Scratch Garden; on SS Chapter 3 All About Maps);
   Jd4kD9TicbA Goods and Services for Kids (Homeschool Pop; on SS Chapter 2 Producing and Consuming Goods).
   Science: tzN299RpJHA Living Things (Jack Hartmann; on Science Book Unit 6 What Animals Need); dPHX_5l0gLE Awesome Insects & Amazing Bugs, a 21-minute Scratch Garden compilation (not on a lesson).
+
+## 21. Operations notes
+
+Supabase usage, the Nov 2026 plan email, what was already done to cut egress and logs, and the to-do list for 2027 are in `OPS_NOTES.md`.
+Read it before changing how often either app talks to Supabase, and update it when the numbers change.
