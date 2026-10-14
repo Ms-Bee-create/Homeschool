@@ -229,3 +229,9 @@ Every `standard` tag must be confirmed twice before it ships: (1) the code exist
 Use WebSearch to confirm, then add the code to `STANDARD_STATUS` in index.html as "verified". If it cannot be confirmed, do not guess: use a code already marked verified that truly fits, or ask Mom to check her alignment table.
 Never reuse a tag just because an older lesson used it. The Leader "Standards check" card lists tags still unverified. See OPS_NOTES.md "Standards verification".
 
+## 25. Images and video need a clear right to use
+
+Crediting a source is not permission. Do not copy pictures from other websites into lessons, videos, or this repo (it is public), even with a credit line.
+Only use: public-domain images (for example Library of Congress items whose Rights line says no known restrictions, or Wikimedia Commons items marked public domain), images under a Creative Commons license whose terms we follow (credit and any conditions), pictures Mom or the kids made or took, or drawings and diagrams made here (SVG).
+Linking out to a page is fine. When a lesson needs a picture from a page, link to the page or recreate the idea as a drawing. For AI video (HeyGen), give it only images that meet this rule. Mom's HeyGen credits are shared with her business: ask first and stay inside the monthly budget she sets (150 credits for school in Oct 2026).
+
