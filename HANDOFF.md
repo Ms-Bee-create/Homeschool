@@ -56,17 +56,33 @@ Egress was 7.28 GB of 5 GB for 15 Sep-15 Oct (cause: every device downloading al
 Log ingestion 1.85 GB of 1 GB, not billed until the start of 2027. Supabase says a forced upgrade on 4 Nov 2026 if still over.
 
 ## Rules to never break
-CLAUDE.md rules 1-22. Especially: exact verified links only (Mom-approved list in rule 20), never guess standard codes (see below), worked example before practice, hands-on for math/science,
-explain on every quiz question, no failing state, titles that make kids want to click, every lesson has real instructions, no heat/knives/weapons (rule 22), use older emoji for Anna.
+CLAUDE.md rules 1-25. Especially: exact verified links only (Mom-approved list in rule 20), never guess standard codes (rule 24), worked example before practice, hands-on for math/science,
+explain on every quiz question, no failing state, titles that make kids want to click, every lesson has real instructions, use older emoji for Anna.
+Rule 22 was RELAXED by Mom on 14 Oct: baking, warm water, kid-safe scissors and in-game Minecraft items are fine; use good judgment. Rule 25: no images copied from other sites, only public domain / CC / our own drawings.
+
+## Done on 14 Oct 2026 (all merged, PRs #217-#225)
+- Standards: guessed tags replaced (STANDARD_TAG_FIXES + patchStandardTags), STANDARD_STATUS map, Leader "Standards check" card. Mom decided NOT to verify further against the 126-page GaDOE CASE site (case.georgiastandards.org); the sources found by search are accepted. Still unverified: "3-5.F" (Ryan computer lessons), 4.PAR.3, ELAGSE4SL4, old S2E*/S2P3 tags.
+- AI helper on every lesson: "Ask your fairy" (Anna) / "Ask Clippy" (Ryan), text + voice, via the troubleshoot Edge Function (mode "lesson"). Chats saved to al_ai_chats, shown in Leader "Helper chats".
+- Leader work pre-check: troubleshoot function mode "review" reads a kid's submission (text, images) and suggests approve / revise / unsure with a kid note. Leader review cards show it with one-tap accept. AUTOMATIC: autoCheckSweep() runs hourly, weekdays 8am-4pm on any open device, saves result in assignments.ai_check (SQL ran, Mom confirmed success). It never approves by itself (Mom may later allow auto-approve of clear "looks good").
+- Edge function redeploy: Mom pastes supabase/functions/troubleshoot/index.ts (raw from GitHub) into Supabase dashboard > Edge Functions > troubleshoot > Deploy updates. ANTHROPIC_API_KEY secret already set. I do not know whether Mom redeployed after the last two changes; if the helpers or pre-check misbehave, ask her to redeploy.
+- Drawn pictures in "See It Done": seeItPictureSvg() draws place value, skip counting, small add/subtract, fold-in-half fractions, o'clock when the text clearly says what to draw (about 40 of 330 See It Done sections match). More generators wanted: coins/money, bar graphs, fraction circles, arrays, ruler. A Figma file with the six pictures exists (https://www.figma.com/design/c2OJr3uGFhoEbnTjCcKXbz), only for Mom to look at.
+- Intro videos: videos/anna-fairy-intro.mp4 and videos/ryan-clippy-intro.mp4 (made in HeyGen, uploaded by Mom to the repo). fairyIntroCard(kidId) shows a dismissible "Meet your helper" card on each kid's Home (also in focus-mode Home) until "Got it". Lessons can play local video via a.video = "videos/name.mp4".
+- GitHub Pages deploy takes about 1-2 minutes after a merge; kids need a hard refresh (Ctrl+Shift+R). Mom's computer app window is a web-app shortcut and can hold an old copy.
+
+## HeyGen (Mom's account, shared with her AC Medical Billing business)
+- Creator plan. Balance was 494 credits on 14 Oct (resets 13 Nov 2026). Mom has 200 tied up training her AI twin for AC and said I may use about 150 credits for school this month; I had already used about 16 (two characters and two 20-second clips, about 0.4 credits per second of talking video).
+- ALWAYS ask before making any video and tell her the expected credit cost. Check balance before and after (get_current_user).
+- Characters in her HeyGen: "Anna's Fairy Helper" (look id 0abb832c0389db02c4c90ccf9c5438c4), "Ryan's Clippy Helper" (look id d70f6e48cbd251fde07c9904a720d5fe), Clippy voice Ewan 5f9c155f4108437f970c308c95b06e11, fairy voice Felicity 6ab7f456be114a109f8c8006567f638c.
+- PENDING: Video Agent session 6d8564e9b7954620a5affabad8e4630d ("Reconstruction Explainer", about 79 s, Clippy, exact approved script, text-and-icon graphics only) was building and had not charged anything yet when we compacted. When done: get_video for the URL, report the real credit cost, give Mom the HeyGen page link to preview and download, she uploads it to https://github.com/Ms-Bee-create/Homeschool/upload/main/videos (she must be signed in; type only the file name, e.g. ryan-reconstruction.mp4), then attach it to Ryan's "US History reading (next era) - Reconstruction" lesson (Ducksters page https://www.ducksters.com/history/civil_war/reconstruction.php) via a.video="videos/ryan-reconstruction.mp4". An earlier agent session 42640e83... was stopped before rendering.
+- I cannot download from HeyGen or fetch most websites from the sandbox; Mom downloads and uploads files herself.
+- Idea Mom liked: turn long text pages (like the old MIT page, Wikipedia "Microsoft Windows version history") into short Clippy explainers. A Windows 95 script (from the section she pasted) was drafted but NOT approved or made; Ryan already skipped those Windows readings because they were too long. Free alternative: in-app drawn slides plus a browser "listen" button (not built yet; offered for Reconstruction).
 
 ## Open work (Mom has said yes to all)
-1. Verify the standards tags (below) and fix any I could not verify.
-2. Extend the AI helper to every lesson (paperclip for Ryan, fairy for Anna, text and voice), give Mom redeploy steps.
-3. Drawn pictures in "See It Done" for every lesson (SVG library), Anna's math first, then Ryan's.
-4. Rewrite the roughly 40 hardest Anna lessons (reading level) and check Ryan's tech-word lessons.
-5. Candy Shop Math pack for Anna (real candy, make it fair, pretend shop with coins).
-6. Ask Mom: Minecraft TNT cannon / lava trap labs, scissors in crafts.
-7. Retire/bring back old unfinished lessons is Mom's to do in Leader > Old unfinished lessons.
+1. Rewrite the roughly 40 hardest Anna lessons (reading level) and check Ryan's tech-word lessons.
+2. Candy Shop Math pack for Anna (real candy, make it fair, pretend shop with coins), standards must be verified codes.
+3. More See It Done picture generators (above), then Ryan's lessons.
+4. Optional: free in-app "slides + listen" version of long readings; Clippy explainer videos within the credit budget.
+5. Mom's own to-dos: confirm she redeployed the troubleshoot function; run supabase/screen_hours.sql (optional, Momma Money); reload kids' devices; send Egress screenshot Oct 16-17; remove old lessons via Leader catch-up card; Momma Money SQL (pin_server, home_gate, realtime) if not done.
 
 ## Standards tags: current status
 Mom's rule: never guess, always verify. Several tags I added in October 2026 came from secondary sources or were guessed (for example S2P1 on the Obstacle Course lesson).
