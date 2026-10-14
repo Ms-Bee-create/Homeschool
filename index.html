@@ -2296,7 +2296,7 @@ function renderHome(){
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
   els.view.appendChild(familyGoalCard());
-  if(kid && kid.id==="kid1"){ var fi = fairyIntroCard(); if(fi) els.view.appendChild(fi); }
+  if(anna){ var fi = fairyIntroCard(); if(fi) els.view.appendChild(fi); }
   weekendFeaturedFor(kid, iso).forEach(function(f){
     var wb = document.createElement("button");
     wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
@@ -3534,6 +3534,7 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
   if(state.tab==="home") els.view.appendChild(familyGoalCard()); // focus mode shows Today in place of Home
+  if(state.tab==="home" && kidId==="kid1"){ var fi2 = fairyIntroCard(); if(fi2) els.view.appendChild(fi2); }
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
