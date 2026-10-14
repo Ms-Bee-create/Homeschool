@@ -6596,6 +6596,7 @@ function renderLeaderArea(){
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(catchUpCard());
+  els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(helperChatsCard());
@@ -11154,13 +11155,12 @@ var RYAN_MC_LAB6 = [
 ];
 var RYAN_MC_LAB7 = [
   {d:0, subject:"Science", stage:"teach", xp:15, standard:"ELAGSE4SL4",
-    title:"Minecraft Lab 7 — Snack Science: Texture and Change (No-Bake)",
-    passage:"Gather first — a no-bake energy bite recipe (rolled oats, a spread like peanut butter or sunflower seed butter, honey, and mini chocolate chips), a bowl, a spoon, and measuring cups. Check allergies first. No stove, no oven, and no knives: you only measure, stir, and roll. Lab book p. 51 shows the cookie version of this experiment and its photos.\nHere's the Idea — Food is science. When you mix ingredients, they change texture: powdery oats turn sticky and thick. That is a physical change, a change in how something looks or feels, and the oats and spread are still oats and spread. A chemical change makes something new, like dough turning into a cookie in an oven. We will not bake today, but you will predict what baking would do.\nSee It Done — Example: oats are dry and powdery. Stir in spread and honey, and they turn into a sticky dough. That is a change in texture, and you could still pick out the oats. Now predict: if a grown-up baked it, the dough would brown and set, and that could not be turned back into dough.\nYour Turn — 1. Read the recipe. Notice the pattern: dry ingredients together, wet ingredients together, then mix. 2. Measure and mix the ingredients with a spoon. 3. After each step, write one word for how it feels: powdery, gooey, sticky, lumpy, etc. 4. Roll the dough into 8 bites and press a fork pattern on top of a few. 5. Write your prediction: what would baking change? 6. Eat and share them.\nCheck Yourself — Which step changed the texture most? Which kind of change was mixing: physical or chemical?\nShow What You Know — A list of 4 steps with a texture word for each, plus your baking prediction.",
-    quiz:[{q:"Mixing oats with a spread makes a sticky dough, but you can still find the oats. What kind of change is that?", choices:["A physical change","A chemical change","No change","Magic"], answerIndex:0, explain:"The oats and spread are still the same things, only mixed, so it is a physical change."},
-      {q:"Baking dough in an oven makes something new that you cannot turn back into dough. What kind of change is that?", choices:["A chemical change","A physical change","No change","A smaller change"], answerIndex:0, explain:"A chemical change makes something new that is hard to turn back, like dough becoming a cookie."}]},
+    title:"Minecraft Lab 7 — Cookie Science: Texture and Change (Family Baking)",
+    passage:"Gather first — a cookie recipe (chocolate chip or peanut butter), the ingredients, and a grown-up for the oven. Check allergies first. Lab book p. 51 shows the steps and photos.\nHere's the Idea — Baking is science. When you mix ingredients, they change texture. When they bake, they change again: butter and sugar melt, and the cookie turns lumpy and firm. A physical change is a change in how something looks or feels. A chemical change turns it into something new, like dough turning into a cookie.\nSee It Done — Example: butter and sugar start as a hard block and a pile of grains. Mix them and they become smooth cream. That is a change in texture. Bake it and the dough rises, browns, and sets into a lumpy cookie. That cannot be turned back into dough.\nYour Turn — 1. Read the recipe. Notice the pattern: dry ingredients together, wet ingredients together, then mix. 2. Bake the cookies with a grown-up. 3. After each step, write one word for how it feels: powdery, gooey, smooth, lumpy, etc. 4. Try the peanut butter version and press a fork on top. The fork leaves a pattern. 5. Eat and share them.\nCheck Yourself — Which step changed the texture most? Could you turn the baked cookie back into dough?\nShow What You Know — A list of 4 steps with a texture word for each.",
+    quiz:[{q:"You cannot turn a baked cookie back into dough. What does that tell you?", choices:["It was a chemical change","It was a small physical change","Nothing happened","The oven is broken"], answerIndex:0, explain:"A chemical change makes something new that cannot easily be reversed, like baking dough."}]},
   {d:1, subject:"Related Arts", stage:"apply", xp:20, standard:"ELAGSE4SL4",
     title:"Minecraft Lab 7 — Craft Cookies and Build an Oversized Cookie (Lab Book pp. 52–53)",
-    passage:"Gather first — Minecraft on the PC in Survival mode, with wheat and cocoa beans (cocoa beans hang on trees in a Jungle biome). If finding a Jungle is hard, a grown-up can help you search online for a jungle seed.\nHere's the Idea — Minecraft cookies are crafted from wheat and cocoa beans. Today you also make a BIG cookie from blocks. Last lab's idea carries over: texture and pattern. Your cookie needs a lumpy top and a pattern.\nSee It Done — The book builds an oversized cookie from wood planks, using a mix of oak and spruce for the lumpy top and dark blocks for chocolate chips. Another one uses birch planks with a creeper face on top, like a fork pattern on a peanut butter cookie.\nYour Turn — 1. Gather wheat and cocoa beans and craft cookies. 2. Look at your snack from yesterday. 3. Plan a cookie on graph paper: its shape and your pattern. 4. Build it with blocks in two colors for the lumpy top. 5. Add chips or a pattern.\nCheck Yourself — How did you show texture with blocks? What pattern did you use?\nShow What You Know — Screenshot of your oversized cookie and your plan. Optional: add the sticker to your lab book page."}
+    passage:"Gather first — Minecraft on the PC in Survival mode, with wheat and cocoa beans (cocoa beans hang on trees in a Jungle biome). If finding a Jungle is hard, a grown-up can help you search online for a jungle seed.\nHere's the Idea — Minecraft cookies are crafted from wheat and cocoa beans. Today you also make a BIG cookie from blocks. Last lab's idea carries over: texture and pattern. Your cookie needs a lumpy top and a pattern.\nSee It Done — The book builds an oversized cookie from wood planks, using a mix of oak and spruce for the lumpy top and dark blocks for chocolate chips. Another one uses birch planks with a creeper face on top, like a fork pattern on a peanut butter cookie.\nYour Turn — 1. Gather wheat and cocoa beans and craft cookies. 2. Look at your real cookies from yesterday. 3. Plan a cookie on graph paper: its shape and your pattern. 4. Build it with blocks in two colors for the lumpy top. 5. Add chips or a pattern.\nCheck Yourself — How did you show texture with blocks? What pattern did you use?\nShow What You Know — Screenshot of your oversized cookie and your plan. Optional: add the sticker to your lab book page."}
 ];
 var RYAN_MC_LAB8 = [
   {d:0, subject:"Science", stage:"teach", xp:15, standard:"S4L1",
@@ -12562,7 +12562,7 @@ var ANNA_IXL2_SCI1 = [
   "xp": 15,
   "standard": "S2P1",
   "title": "Science Book, Unit 1: Solids, Liquids, Gases, and Changes",
-  "passage": "Gather first — a cup of water, an ice cube, a spoon, some sugar, a piece of paper, a balloon, and a plate.\nHere's the Idea — Matter comes as a solid, liquid or gas. A solid keeps its shape. A liquid takes the shape of its container and can pour. A gas has no shape and spreads out to fill whatever holds it, like the air in a balloon. Matter can change: it can tear, melt, dissolve or squeeze.\nSee It Done — Ice is a solid. When it melts, it turns into a liquid, but it is still water. Sugar dissolves in water, which means it mixes in so well that you cannot see it, but you can still taste that it is sweet.\nYour Turn — 1. Sort these into solid, liquid or gas: the spoon, the water, the air in the balloon. 2. Put the ice cube on a plate and watch it melt for a few minutes. Draw it at the start and at the end. 3. Stir a spoonful of sugar into a cup of cool water for one full minute. Does it disappear? 4. Tear a piece of paper in half. Did it stay paper?\nCheck Yourself — Which changes could you undo (like melting and freezing again), and which could you not (like tearing)?\nShow What You Know — Show Mom the melted ice and tell her which state of matter it was before and after.",
+  "passage": "Gather first — a cup of water, an ice cube, a spoon, some sugar, a piece of paper, a balloon, and a plate.\nHere's the Idea — Matter comes as a solid, liquid or gas. A solid keeps its shape. A liquid takes the shape of its container and can pour. A gas has no shape and spreads out to fill whatever holds it, like the air in a balloon. Matter can change: it can tear, melt, dissolve or squeeze.\nSee It Done — Ice is a solid. When it melts, it turns into a liquid, but it is still water. Sugar dissolves in warm water, which means it mixes in so well that you cannot see it, but you can still taste that it is sweet.\nYour Turn — 1. Sort these into solid, liquid or gas: the spoon, the water, the air in the balloon. 2. Put the ice cube on a plate and watch it melt for a few minutes. Draw it at the start and at the end. 3. Stir a spoonful of sugar into a cup of warm water (a grown-up checks the water is not too hot). Does it disappear? 4. Tear a piece of paper in half. Did it stay paper?\nCheck Yourself — Which changes could you undo (like melting and freezing again), and which could you not (like tearing)?\nShow What You Know — Show Mom the melted ice and tell her which state of matter it was before and after.",
   "quiz": [
    {
     "q": "Water in a cup is a...",
@@ -13351,7 +13351,7 @@ var ANNA_IXL2_SCI3 = [
   "xp": 15,
   "standard": "S2E2",
   "title": "Science Book, Unit 3: Observe the Moon and Its Phases",
-  "passage": "Gather first — a calendar, paper, a pencil, and a window to see the Moon. For the cookie model: 8 sandwich cookies with cream (a grown-up checks allergies), and a spoon or craft stick to scrape the cream.\nHere's the Idea — The Moon does not make its own light. We see it because it reflects the Sun's light. The Moon's shape seems to change over about a month. The shapes are called phases: new, crescent, first quarter, gibbous, and full, and then back again. The pattern repeats.\nSee It Done — With the cookie model, scrape the cream off one side of each cookie to make the shapes: full (all cream), then a gibbous, quarter, crescent, and new (no cream). Put them in order to see how the Moon seems to change.\nYour Turn — 1. For two weeks, look at the Moon each evening and draw its shape on your calendar page. 2. Make the cookie phases and put them in order. 3. Tell what pattern you notice. 4. Tell why the Moon looks different on different nights. 5. Eat your model!\nCheck Yourself — Which phase did you see on your first night? Does the shape follow a pattern?\nShow What You Know — Show Mom your Moon calendar and tell her the names of two phases.",
+  "passage": "Gather first — a calendar, paper, a pencil, and a window to see the Moon. For the cookie model: 8 sandwich cookies with cream (a grown-up checks allergies), and a plastic knife.\nHere's the Idea — The Moon does not make its own light. We see it because it reflects the Sun's light. The Moon's shape seems to change over about a month. The shapes are called phases: new, crescent, first quarter, gibbous, and full, and then back again. The pattern repeats.\nSee It Done — With the cookie model, scrape the cream off one side of each cookie to make the shapes: full (all cream), then a gibbous, quarter, crescent, and new (no cream). Put them in order to see how the Moon seems to change.\nYour Turn — 1. For two weeks, look at the Moon each evening and draw its shape on your calendar page. 2. Make the cookie phases and put them in order. 3. Tell what pattern you notice. 4. Tell why the Moon looks different on different nights. 5. Eat your model!\nCheck Yourself — Which phase did you see on your first night? Does the shape follow a pattern?\nShow What You Know — Show Mom your Moon calendar and tell her the names of two phases.",
   "quiz": [
    {
     "q": "The Moon shines because...",
@@ -18041,31 +18041,91 @@ function patchAnnaApprovedVideos(){
     Object.assign(a, upd); db.doc("assignments/"+id).update(upd);
   });
 }
-/* Safety rule (CLAUDE.md rule 22): no heat, no knives, no weapons in any lesson. Lessons already on the schedule that are not done yet get the safer text. */
-var SAFETY_TEXT_FIXES = [
-  ["8 sandwich cookies with cream (a grown-up checks allergies), and a plastic knife.", "8 sandwich cookies with cream (a grown-up checks allergies), and a spoon or craft stick to scrape the cream."],
-  ["Stir a spoonful of sugar into a cup of warm water (a grown-up checks the water is not too hot). Does it disappear?", "Stir a spoonful of sugar into a cup of cool water for one full minute. Does it disappear?"],
-  ["Sugar dissolves in warm water, which means", "Sugar dissolves in water, which means"],
-  ["Look at your real cookies from yesterday.", "Look at your snack from yesterday."],
-  ["A grown-up does anything with heat or knives.", "No heat and no knives: pick a no-bake snack that needs no cutting."],
-  ["and a grown-up for anything hot or sharp.", "a no-bake recipe that needs no cutting, and a grown-up nearby. No stove, no oven, no microwave, and no knives."]
+/* Mom relaxed the safety rule (CLAUDE.md rule 22): undo the earlier no-heat/no-knife text swaps on lessons that are not done yet. */
+var SAFETY_UNDO = [
+  ["and a spoon or craft stick to scrape the cream.", "and a plastic knife."],
+  ["into a cup of cool water for one full minute. Does it disappear?", "into a cup of warm water (a grown-up checks the water is not too hot). Does it disappear?"],
+  ["Sugar dissolves in water, which means", "Sugar dissolves in warm water, which means"],
+  ["No heat and no knives: pick a no-bake snack that needs no cutting.", "A grown-up does anything with heat or knives."],
+  ["a no-bake recipe that needs no cutting, and a grown-up nearby. No stove, no oven, no microwave, and no knives.", "and a grown-up for anything hot or sharp."]
 ];
-function patchSafetyText(){
+function patchSafetyUndo(){
   if(!db) return;
-  var lab7 = RYAN_MC_LAB7[0];
   Object.keys(state.assignments).forEach(function(id){
-    var a = state.assignments[id];
-    if(a.done) return;
-    var upd = {};
-    if(a.kidId==="kid2" && String(a.title).indexOf("Cookie Science: Texture and Change")>=0 && !hasWork(a)){
-      upd = {title:lab7.title, passage:lab7.passage, quiz:lab7.quiz};
-    } else if(a.passage){
-      var t = a.passage;
-      SAFETY_TEXT_FIXES.forEach(function(f){ if(t.indexOf(f[0])>=0) t = t.split(f[0]).join(f[1]); });
-      if(t!==a.passage) upd.passage = t;
-    }
-    if(Object.keys(upd).length){ Object.assign(a, upd); db.doc("assignments/"+id).update(upd); }
+    var a = state.assignments[id], t = a.passage;
+    if(a.done || !t) return;
+    SAFETY_UNDO.forEach(function(f){ if(t.indexOf(f[0])>=0) t = t.split(f[0]).join(f[1]); });
+    if(t!==a.passage){ a.passage = t; db.doc("assignments/"+id).update({passage:t}); }
   });
+}
+/* Standard tags (CLAUDE.md rules 4, 6, 24): never guess. VERIFIED means the code exists in Georgia's standards AND its meaning matches how we use it,
+   checked against Georgia-aligned sources on 14 Oct 2026 (the official PDFs could not be opened from the build environment). EXISTS means the code is real
+   but its exact wording or fit is not confirmed. Anything else in the Leader "Standards check" card is unverified and needs Mom's alignment table. */
+var STANDARD_STATUS = {
+  "ELAGSE2RL2":"verified", "ELAGSE2RF3":"verified", "ELAGSE2RI1":"verified", "S2L1":"exists", "S2P1":"verified", "VA2.CR.2":"verified",
+  "2.NR.1":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
+  "S4P3":"verified", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
+  "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
+  "ELAGSE4RI1":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
+};
+var STANDARD_TAG_FIXES = {
+ "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "ELAGSE2RL2",
+ "Candy Math Friday: Make It Fair! 🍬": "2.NR.2.3",
+ "Obstacle Course Friday: Beat Your Own Time 🏃": "2.NR.2.3",
+ "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪": "2.NR.2.1",
+ "Shop Friday: Open Your Own Store 🛒": "2.MDR.6.2",
+ "Teacher Anna Opens Stuffie School 🧸": "ELAGSE2RL2",
+ "Teacher Anna: Math Class with Candy 🍬": "2.NR.2.3",
+ "Teacher Anna: Sharing Circle and Writing Class ✏️": "ELAGSE2SL1",
+ "Teacher Anna: Graduation Day at Stuffie School 🎓": "ELAGSE2SL1",
+ "Wobbly Pizza Pay: Count by 20s 🍕": "2.NR.2.3",
+ "Wobbly Job Chart: Which Job Pays More? 🍔": "2.MDR.5.4",
+ "Save for Something Big: Make a Saving Plan 🛍️": "2.MDR.6.2",
+ "Yard Mapper: Draw a Grid Map of the Backyard 🧭": "4.GSR.8.3",
+ "Tree Detective: Measure, Estimate, and Graph 🌳": "4.MDR.6.2",
+ "Kitchen Fractions: Double the Recipe 🍳": "4.NR.4.6",
+ "Stopwatch Stats: Obstacle Course Times on a Line Plot ⏱️": "4.MDR.6.3"
+};
+function patchStandardTags(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], want = STANDARD_TAG_FIXES[a.title];
+    if(want && a.standard!==want){ a.standard = want; db.doc("assignments/"+id).update({standard:want}); }
+  });
+}
+function standardsCheckCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"standardscheck");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  var tally = {}, unver = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], c = String(a.standard||"").trim() || "(no tag)";
+    c.split(/[\/,;]\s*/).forEach(function(code){
+      code = code.trim(); if(!code) return;
+      var st = STANDARD_STATUS[code] || "unverified";
+      tally[st] = (tally[st]||0)+1;
+      if(st==="unverified"){ var k = a.kidId+"|"+code; unver[k] = (unver[k]||0)+1; }
+    });
+  });
+  sum.textContent = "📋 Standards check — "+(tally.unverified||0)+" lesson tags unverified";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Verified = the code exists and matches the lesson (checked against Georgia-aligned sources). Exists = real code, exact fit not confirmed. Unverified = not checked yet; compare these with your alignment table.";
+  det.appendChild(note);
+  var line = document.createElement("div"); line.style.cssText = "font-size:13px;margin:6px 0";
+  line.textContent = "Verified: "+(tally.verified||0)+"   Exists: "+(tally.exists||0)+"   Unverified: "+(tally.unverified||0);
+  det.appendChild(line);
+  Object.keys(unver).sort(function(x,y){ return unver[y]-unver[x]; }).slice(0,30).forEach(function(k){
+    var kid = k.split("|")[0], code = k.split("|")[1], row = document.createElement("div");
+    row.style.cssText = "font-size:12.5px;padding:3px 0;border-top:1px solid var(--border)";
+    row.textContent = (kidData(kid).name||kid)+": "+code+" ("+unver[k]+" lesson"+(unver[k]===1?"":"s")+")";
+    det.appendChild(row);
+  });
+  wrap.appendChild(det);
+  return wrap;
 }
 function runAutoMigrations(){
   if(!db) return;
@@ -18096,7 +18156,8 @@ function runAutoMigrations(){
     patchAnnaMeasuringVideo();
     patchRyanComputerVideos();
     patchAnnaApprovedVideos();
-    patchSafetyText();
+    patchStandardTags();
+    patchSafetyUndo();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     balanceFutureLoad();
@@ -19580,7 +19641,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 0,
   "title": "Fort Friday: Build It, Read in It, Tell the Story 🏕️",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2RL2",
   "cross": [
    "ELA",
    "Math"
@@ -19592,7 +19653,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 1,
   "title": "Candy Math Friday: Make It Fair! 🍬",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19614,7 +19675,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 3,
   "title": "Obstacle Course Friday: Beat Your Own Time 🏃",
-  "standard": "S2P1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Science",
    "Math"
@@ -19638,12 +19699,12 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 5,
   "title": "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪",
-  "standard": "2.NR.1",
+  "standard": "2.NR.2.1",
   "cross": [
    "ELA",
    "Math"
   ],
-  "passage": "Gather first — a simple no-bake snack recipe your grown-up picks, measuring cups and spoons, a bowl, and Mom or Dad. No heat and no knives: pick a no-bake snack that needs no cutting.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A recipe is a list of steps in order. First you gather, next you measure, and last you mix. Order matters. If you skip a step, it may not turn out right.\nSee It Done — A recipe says: First, put 2 cups of cereal in a bowl. Next, add 1 cup of raisins. Last, stir. The cook counts: 2 cups of cereal, 1 cup of raisins. That is 3 cups in all.\nYour Turn — 1. Read the recipe out loud with your grown-up. Point to each step. 2. Gather everything you need. Count how many things you gathered. 3. Measure each part with the cups or spoons. 4. Stir or mix it all together. 5. Write how many cups or spoons you used in all. Add them up. 6. Eat your snack as your Friday treat. Clean up your space.\nCheck Yourself — Did you follow the steps in order? Can you say the first, next, and last step?\nShow What You Know — Tell Mom or Dad the steps without looking at the recipe.",
+  "passage": "Gather first — a simple no-bake snack recipe your grown-up picks, measuring cups and spoons, a bowl, and Mom or Dad. A grown-up does anything with heat or knives.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A recipe is a list of steps in order. First you gather, next you measure, and last you mix. Order matters. If you skip a step, it may not turn out right.\nSee It Done — A recipe says: First, put 2 cups of cereal in a bowl. Next, add 1 cup of raisins. Last, stir. The cook counts: 2 cups of cereal, 1 cup of raisins. That is 3 cups in all.\nYour Turn — 1. Read the recipe out loud with your grown-up. Point to each step. 2. Gather everything you need. Count how many things you gathered. 3. Measure each part with the cups or spoons. 4. Stir or mix it all together. 5. Write how many cups or spoons you used in all. Add them up. 6. Eat your snack as your Friday treat. Clean up your space.\nCheck Yourself — Did you follow the steps in order? Can you say the first, next, and last step?\nShow What You Know — Tell Mom or Dad the steps without looking at the recipe.",
   "xp": 25
  },
  {
@@ -19661,7 +19722,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 7,
   "title": "Shop Friday: Open Your Own Store 🛒",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.6.2",
   "cross": [
    "Math"
   ],
@@ -19684,7 +19745,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 1,
   "title": "Yard Mapper: Draw a Grid Map of the Backyard 🧭",
-  "standard": "4.GSR.8",
+  "standard": "4.GSR.8.3",
   "cross": [
    "Math",
    "Social Studies"
@@ -19719,7 +19780,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 4,
   "title": "Tree Detective: Measure, Estimate, and Graph 🌳",
-  "standard": "4.MDR.6.1",
+  "standard": "4.MDR.6.2",
   "cross": [
    "Math",
    "Science"
@@ -19731,11 +19792,11 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 5,
   "title": "Kitchen Fractions: Double the Recipe 🍳",
-  "standard": "4.NR.4",
+  "standard": "4.NR.4.6",
   "cross": [
    "Math"
   ],
-  "passage": "Gather first — a simple no-bake recipe that a grown-up picks (one that needs no cutting), measuring cups and spoons, a pencil, paper, and a grown-up nearby. No stove, no oven, no microwave, and no knives.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Cooks change recipes by multiplying. To double a recipe, multiply every amount by 2. Fractions multiply too: 2 x 1/2 cup = 1 whole cup, and 2 x 3/4 cup = 6/4 or 1 1/2 cups.\nSee It Done — A recipe uses 3/4 cup of oats. Doubled: 2 x 3/4 = 6/4 = 1 2/4 = 1 1/2 cups of oats.\nYour Turn — 1. Read the recipe. Write each ingredient and amount in a table. 2. Make a second column called 'Doubled'. Multiply each amount by 2 and simplify. 3. Check your math with a grown-up. 4. Make the doubled recipe. Measure each ingredient. 5. Use your measuring cups to prove one of your answers. For example, fill 3/4 cup twice and pour it into a 1 cup and a 1/2 cup. 6. Eat your Friday snack and share it.\nCheck Yourself — Did you change every ingredient? Did you simplify improper fractions?\nShow What You Know — Explain to someone how you doubled a fraction, with a drawing.",
+  "passage": "Gather first — a simple recipe that a grown-up picks, measuring cups and spoons, a pencil, paper, and a grown-up for anything hot or sharp.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Cooks change recipes by multiplying. To double a recipe, multiply every amount by 2. Fractions multiply too: 2 x 1/2 cup = 1 whole cup, and 2 x 3/4 cup = 6/4 or 1 1/2 cups.\nSee It Done — A recipe uses 3/4 cup of oats. Doubled: 2 x 3/4 = 6/4 = 1 2/4 = 1 1/2 cups of oats.\nYour Turn — 1. Read the recipe. Write each ingredient and amount in a table. 2. Make a second column called 'Doubled'. Multiply each amount by 2 and simplify. 3. Check your math with a grown-up. 4. Make the doubled recipe. Measure each ingredient. 5. Use your measuring cups to prove one of your answers. For example, fill 3/4 cup twice and pour it into a 1 cup and a 1/2 cup. 6. Eat your Friday snack and share it.\nCheck Yourself — Did you change every ingredient? Did you simplify improper fractions?\nShow What You Know — Explain to someone how you doubled a fraction, with a drawing.",
   "xp": 25
  },
  {
@@ -19754,7 +19815,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 7,
   "title": "Stopwatch Stats: Obstacle Course Times on a Line Plot ⏱️",
-  "standard": "4.MDR.6.2",
+  "standard": "4.MDR.6.3",
   "cross": [
    "Math",
    "Science"
@@ -19789,7 +19850,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 0,
   "title": "Teacher Anna Opens Stuffie School 🧸",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2RL2",
   "cross": [
    "ELA"
   ],
@@ -19799,7 +19860,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 1,
   "title": "Teacher Anna: Math Class with Candy 🍬",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19819,7 +19880,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 3,
   "title": "Teacher Anna: Sharing Circle and Writing Class ✏️",
-  "standard": "ELAGSE2SL3",
+  "standard": "ELAGSE2SL1",
   "cross": [
    "ELA"
   ],
@@ -19839,7 +19900,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 5,
   "title": "Teacher Anna: Graduation Day at Stuffie School 🎓",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2SL1",
   "cross": [
    "ELA"
   ],
@@ -19873,7 +19934,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 0,
   "title": "Wobbly Pizza Pay: Count by 20s 🍕",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19883,7 +19944,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 2,
   "title": "Wobbly Job Chart: Which Job Pays More? 🍔",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.5.4",
   "cross": [
    "Math"
   ],
@@ -19893,7 +19954,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 4,
   "title": "Save for Something Big: Make a Saving Plan 🛍️",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.6.2",
   "cross": [
    "Math"
   ],

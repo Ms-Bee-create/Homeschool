@@ -214,13 +214,18 @@ Approved videos, with what they are for (video id after `watch?v=`):
 Supabase usage, the Nov 2026 plan email, what was already done to cut egress and logs, and the to-do list for 2027 are in `OPS_NOTES.md`.
 Read it before changing how often either app talks to Supabase, and update it when the numbers change.
 
-## 22. No heat, no knives, no weapons
+## 22. Safety: use good judgment
 
-Never write a lesson, game, craft, or activity that has a kid use heat (no stove, oven, microwave, kettle, hot water, candles, matches, lighters, glue guns, or anything that burns or gets hot), a knife or any blade, or a real or toy weapon (including a build whose purpose is to hurt, like a launcher aimed at someone).
-Food projects must be no-bake and need no cutting. Use craft sticks, spoons, or hands instead of knives. Kid-safe scissors for paper crafts are fine. A grown-up being present does not make it okay: the rule is that the kid never does these things in a lesson.
-Stories and history that mention fire, tools, or weapons are fine to read; the rule is about what the kid does. Mom decides about in-game items (Minecraft) case by case.
+Keep every activity safe for a 7- and a 10-year-old. Family baking, warm (not hot) water, kid-safe scissors, and in-game Minecraft items are all fine (Mom confirmed). Use judgment on anything else: no real weapons or toy weapons used against people, no unsupervised stove or oven work, no sharp knives for the kids, and a grown-up nearby for anything hot. Stories and history that mention fire or tools are fine to read.
 
 ## 23. Handoff
 
 `HANDOFF.md` has the full state of the project (who the kids are, how Mom works, repos and live URLs, code map, workflow, open work). Read it at the start of every session and update it
 whenever something important changes, so nothing is lost when a conversation is compacted.
+
+## 24. Standard tags are verified, never guessed
+
+Every `standard` tag must be confirmed twice before it ships: (1) the code exists in Georgia's standards, and (2) its meaning matches what the lesson actually teaches (for example S2P1 is matter, so it does not fit a lesson about motion).
+Use WebSearch to confirm, then add the code to `STANDARD_STATUS` in index.html as "verified". If it cannot be confirmed, do not guess: use a code already marked verified that truly fits, or ask Mom to check her alignment table.
+Never reuse a tag just because an older lesson used it. The Leader "Standards check" card lists tags still unverified. See OPS_NOTES.md "Standards verification".
+
