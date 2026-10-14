@@ -23,9 +23,52 @@ Deno.serve(async (req) => {
     const householdId = userData?.user?.id;
     if (!householdId) return json({ error: "not signed in" }, 401);
 
-    const { kidId, assignmentTitle, helpTitle, steps, messages, mode, passage, subject } = await req.json();
-    if (!["kid1", "kid2"].includes(kidId) || !Array.isArray(messages) || !messages.length) {
+    const reqBodyCache = req.json();
+    const { kidId, assignmentTitle, helpTitle, steps, messages, mode, passage, subject } = await reqBodyCache;
+    if (!["kid1", "kid2"].includes(kidId) || (mode !== "review" && (!Array.isArray(messages) || !messages.length))) {
       return json({ error: "bad request" }, 400);
+    }
+
+    /* Work pre-check for the leader (mode "review"): reads what the kid turned in and suggests approve / revise. Does not touch al_ai_chats. */
+    if (mode === "review") {
+      const body = await reqBodyCache;
+      const content: any[] = [];
+      for (const b of (Array.isArray(body.work) ? body.work : []).slice(0, 6)) {
+        if (b?.type === "text" && b.text) content.push({ type: "text", text: "Kid wrote: " + String(b.text).slice(0, 2000) });
+        else if (b?.type === "image" && typeof b.url === "string") {
+          const m = b.url.match(/^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/);
+          if (m && m[2].length < 4_000_000) content.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
+          else if (/^https:\/\//.test(b.url)) content.push({ type: "image", source: { type: "url", url: b.url } });
+          else content.push({ type: "text", text: "(An image was turned in but it was too large to read.)" });
+        } else if (b?.type === "audio") content.push({ type: "text", text: "(The kid also recorded audio, which you cannot hear.)" });
+      }
+      if (!content.length) content.push({ type: "text", text: "(Nothing was turned in besides a quiz result.)" });
+      content.push({ type: "text", text: "Now give your verdict as JSON." });
+      const kidName = kidId === "kid1" ? "Anna, age 7, 2nd grade" : "Ryan, age 9-10, 4th grade";
+      const rsystem = `You help a homeschool parent check her child's finished work so she is not the bottleneck. The child is ${kidName}.
+Lesson: "${String(assignmentTitle ?? "").slice(0, 200)}" (${String(subject ?? "").slice(0, 60)}).
+Lesson text:
+${String(passage ?? "").slice(0, 3000)}
+Quick check result: ${String(body.quiz ?? "none")}
+
+Decide whether the work shows the child did the lesson's "Your Turn" steps and understands the idea. Be kind and generous: this is low-stakes and never a grade. Young kids' spelling and neatness do not matter.
+Verdict "looks_good" = clear honest effort that matches the lesson. "needs_work" = missing a key step, off-topic, blank, or shows a misunderstanding. "unsure" = you cannot tell (for example a photo you cannot read, audio, or a hands-on task with no evidence); the parent should look.
+Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_good|needs_work|unsure","kidNote":"1-2 warm sentences written TO the child in simple words: praise one specific thing; if needs_work, name the one thing to fix","momNote":"one short sentence for the parent saying what you saw and why you chose this"}`;
+      const rresp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+        body: JSON.stringify({ model: MODEL, max_tokens: 400, system: rsystem, messages: [{ role: "user", content }] }),
+      });
+      if (!rresp.ok) return json({ error: "ai unavailable" }, 502);
+      const rout = await rresp.json();
+      const raw = String(rout.content?.[0]?.text ?? "");
+      try {
+        const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
+        const verdict = ["looks_good", "needs_work", "unsure"].includes(parsed.verdict) ? parsed.verdict : "unsure";
+        return json({ verdict, kidNote: String(parsed.kidNote ?? "").slice(0, 400), momNote: String(parsed.momNote ?? "").slice(0, 300) });
+      } catch (_e) {
+        return json({ verdict: "unsure", kidNote: "", momNote: "The helper could not read this one. Please look yourself." });
+      }
     }
 
     const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
