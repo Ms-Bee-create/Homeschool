@@ -2296,7 +2296,7 @@ function renderHome(){
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
   els.view.appendChild(familyGoalCard());
-  if(anna){ var fi = fairyIntroCard(); if(fi) els.view.appendChild(fi); }
+  var fi = fairyIntroCard(kid); if(fi) els.view.appendChild(fi);
   weekendFeaturedFor(kid, iso).forEach(function(f){
     var wb = document.createElement("button");
     wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
@@ -3534,7 +3534,7 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
   if(state.tab==="home") els.view.appendChild(familyGoalCard()); // focus mode shows Today in place of Home
-  if(state.tab==="home" && kidId==="kid1"){ var fi2 = fairyIntroCard(); if(fi2) els.view.appendChild(fi2); }
+  if(state.tab==="home"){ var fi2 = fairyIntroCard(kidId); if(fi2) els.view.appendChild(fi2); }
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
@@ -18834,16 +18834,18 @@ function goalIconHtml(g, full, size){
   if(g.emoji==="🧋") return goalCupSvg(full, size);
   return '<span style="font-size:'+size+'px;'+(full ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
 }
-/* Anna's "Meet your fairy" video (made in HeyGen, approved by Mom, hosted in this repo under videos/). Shows on her Home until she taps "Got it". */
-function fairyIntroCard(){
-  try{ if(localStorage.getItem("al_fairy_intro_seen")==="1") return null; }catch(e){}
+/* "Meet your helper" intro videos (made in HeyGen, approved by Mom, hosted in this repo under videos/). Shows on each kid's Home until they tap "Got it". */
+function fairyIntroCard(kidId){
+  var isAnna = kidId!=="kid2";
+  var key = isAnna ? "al_fairy_intro_seen" : "al_clippy_intro_seen";
+  try{ if(localStorage.getItem(key)==="1") return null; }catch(e){}
   var card = document.createElement("div");
-  card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#f3e8ff,#ffe8f3);box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a45";
-  card.innerHTML = '<div style="font-weight:800;font-size:15px;margin-bottom:6px">🧚 Meet your fairy helper!</div>'+
-    '<video controls playsinline preload="metadata" src="videos/anna-fairy-intro.mp4" style="width:100%;border-radius:12px;background:#000"></video>';
+  card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a45;background:"+(isAnna ? "linear-gradient(135deg,#f3e8ff,#ffe8f3)" : "linear-gradient(135deg,#dff1ff,#e6e9ff)");
+  card.innerHTML = '<div style="font-weight:800;font-size:15px;margin-bottom:6px">'+(isAnna ? "🧚 Meet your fairy helper!" : "📎 Meet Clippy, your tech helper!")+'</div>'+
+    '<video controls playsinline preload="metadata" src="videos/'+(isAnna ? "anna-fairy-intro.mp4" : "ryan-clippy-intro.mp4")+'" style="width:100%;border-radius:12px;background:#000"></video>';
   var btn = document.createElement("button");
-  btn.type = "button"; btn.className = "primary-btn"; btn.style.cssText = "margin-top:8px;width:100%"; btn.textContent = "Got it! ✨";
-  btn.onclick = function(){ try{ localStorage.setItem("al_fairy_intro_seen","1"); }catch(e){} card.remove(); };
+  btn.type = "button"; btn.className = "primary-btn"; btn.style.cssText = "margin-top:8px;width:100%"; btn.textContent = isAnna ? "Got it! ✨" : "Got it!";
+  btn.onclick = function(){ try{ localStorage.setItem(key,"1"); }catch(e){} card.remove(); };
   card.appendChild(btn);
   return card;
 }
