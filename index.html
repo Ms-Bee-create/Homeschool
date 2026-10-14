@@ -6771,7 +6771,7 @@ function renderLeaderArea(){
       var aiBox = document.createElement("div");
       aiBox.style.cssText = "margin-top:8px";
       function renderAiCheck(){
-        var r = state.aiChecks && state.aiChecks[a.id];
+        var r = (state.aiChecks && state.aiChecks[a.id]) || (a.aiCheck && a.aiCheck.verdict ? a.aiCheck : null);
         aiBox.innerHTML = "";
         if(!r) return;
         var tone = r.pending ? ["var(--paper)","var(--text-dim)","⏳ Checking…"]
@@ -7957,7 +7957,7 @@ var TABLE = { kids:"al_kids", assignments:"al_assignments", schedule:"al_schedul
 var KEY_COL = { kids:"id", assignments:"id", schedule:"kid_id", questions:"id", rewards:"id", journal:"id", reflections:"id", breaks:"id" };
 var FIELD_MAP = {
   kids: { lastCompletedDate:"last_completed_date", mommaMoney:"momma_money", attendanceCount:"attendance_count", lastAttendanceDate:"last_attendance_date", blockOrder:"block_order", selfStartStreak:"self_start_streak", lastSelfStartDate:"last_self_start_date", avatarKey:"avatar_key", weekendExtrasOn:"weekend_extras_on", miniGameXpToday:"mini_game_xp_today", lastMiniGameXpDate:"last_mini_game_xp_date", lastMommaMoneyLevel:"last_momma_money_level", dayPlan:"day_plan" },
-  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group", skillId:"skill_id", reviewOf:"review_of" },
+  assignments: { kidId:"kid_id", doneAt:"done_at", createdAt:"created_at", submittedAt:"submitted_at", workBlocks:"work_blocks", reviewStatus:"review_status", reviewNote:"review_note", noteUnread:"note_unread", mathSkill:"math_skill", installHelp:"install_help", quizRetry:"quiz_retry", quizScore:"quiz_score", quizTotal:"quiz_total", quizRetryUsed:"quiz_retry_used", crossCurricular:"cross_curricular", crossSubjects:"cross_subjects", actualMinutes:"actual_minutes", choiceGroup:"choice_group", skillId:"skill_id", reviewOf:"review_of", aiCheck:"ai_check" },
   schedule: {},
   questions: { kidId:"kid_id", studyGuide:"study_guide", answerIndex:"answer_index" },
   rewards: { kidId:"kid_id" },
@@ -18342,6 +18342,38 @@ function runAiCheck(a){
     else state.aiChecks[a.id] = res.data;
   }).catch(function(){ state.aiChecks[a.id] = {verdict:"unsure", momNote:"The helper could not be reached. Please look yourself."}; });
 }
+/* Automatic work pre-check: while school is on (weekdays 8am-4pm on the device's clock), any open copy of the app checks new unreviewed work once an hour
+   and saves the suggestion on the assignment (ai_check column, supabase/ai_check.sql). Mom still taps to approve or send back. */
+var AUTO_CHECK_HOURS = [8, 16];
+function autoCheckSweep(){
+  if(!db || typeof sb==="undefined" || !sb || !sb.functions || state.autoCheckBusy) return;
+  var now = new Date(), day = now.getDay(), hr = now.getHours();
+  if(day<1 || day>5 || hr<AUTO_CHECK_HOURS[0] || hr>=AUTO_CHECK_HOURS[1]) return;
+  var hourStamp = Math.floor(now.getTime()/3600000);
+  try{ if(localStorage.getItem("al_autocheck_hour")===String(hourStamp)) return; }catch(e){}
+  var todo = Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); }).filter(function(a){
+    return a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null) && !(a.aiCheck && a.aiCheck.sub===a.submittedAt);
+  }).slice(0, 8);
+  try{ localStorage.setItem("al_autocheck_hour", String(hourStamp)); }catch(e){}
+  if(!todo.length) return;
+  state.autoCheckBusy = true;
+  var chain = Promise.resolve();
+  todo.forEach(function(a){
+    chain = chain.then(function(){
+      var live = state.assignments[a.id];
+      if(!live || (live.aiCheck && live.aiCheck.sub===live.submittedAt) || live.reviewStatus) return;
+      a.kidName = kidData(a.kidId).name;
+      return runAiCheck(a).then(function(){
+        var r = state.aiChecks[a.id];
+        if(!r || r.pending || !r.verdict) return;
+        var saved = {verdict:r.verdict, kidNote:r.kidNote||"", momNote:r.momNote||"", sub:a.submittedAt, at:new Date().toISOString()};
+        live.aiCheck = saved;
+        db.doc("assignments/"+a.id).update({aiCheck:saved});
+      });
+    });
+  });
+  chain.then(function(){ state.autoCheckBusy = false; }, function(){ state.autoCheckBusy = false; });
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -20512,6 +20544,8 @@ function showApp(){
      runs every 60 seconds instead of 8, and pauses entirely while nobody has touched this screen
      for 3 minutes (a tablet left open overnight), catching up the moment someone does. */
   setInterval(function(){ if(!document.hidden && Date.now()-lastTouchAt < 180000) syncAll(); }, 60000);
+  setInterval(function(){ if(!document.hidden) autoCheckSweep(); }, 300000);
+  setTimeout(function(){ if(!document.hidden) autoCheckSweep(); }, 30000);
   ["pointerdown","keydown","touchstart"].forEach(function(evt){
     document.addEventListener(evt, function(){
       var wasIdle = Date.now()-lastTouchAt >= 180000;
