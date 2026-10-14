@@ -5602,6 +5602,7 @@ function renderLessonDetail(){
         var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\b\d[.)]\s+/).filter(function(x){ return x.trim(); }) : null;
         if(steps && steps.length>1) steps.forEach(function(st){ out += row(st); });
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
+        if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
       } else {
         out += row(l);
       }
@@ -18197,6 +18198,74 @@ function standardsCheckCard(){
   });
   wrap.appendChild(det);
   return wrap;
+}
+/* Drawn pictures for "See It Done" (CLAUDE.md rule 10). Only draws when the See It Done text clearly says what to draw; otherwise returns "" (no guessing). */
+function seeItPictureSvg(text){
+  var t = String(text||"");
+  function wrap(w,h,inner,cap){
+    return '<div style="margin:6px 0 10px"><svg viewBox="0 0 '+w+' '+h+'" width="100%" style="max-width:'+w+'px;background:#fffdf5;border:1px solid #e6dcc0;border-radius:10px" role="img" aria-label="'+cap+'">'+inner+
+      '<text x="'+(w/2)+'" y="'+(h-6)+'" text-anchor="middle" font-size="12" fill="#5a4a2a" font-family="sans-serif">'+cap+'</text></svg></div>';
+  }
+  var m;
+  /* Place value: "N is H hundreds, T tens and O ones" or "Show N ... squares (hundreds), sticks (tens), dots (ones)" */
+  m = t.match(/(\d{3}) is (\d) hundreds?,? (\d) tens?,? and (\d) ones?/) || t.match(/Show (\d)(\d)(\d) on paper/);
+  if(m){
+    var H,T,O,n;
+    if(m.length===5){ n=m[1]; H=+m[2]; T=+m[3]; O=+m[4]; } else { H=+m[1]; T=+m[2]; O=+m[3]; n=""+H+T+O; }
+    if(H<=9 && T<=9 && O<=9){
+      var g="", x=10;
+      for(var i=0;i<H;i++){ g+='<rect x="'+(x+i*34)+'" y="16" width="30" height="30" fill="#bfe3f5" stroke="#2b6f94"/>'; }
+      var x2 = 10+H*34+16;
+      for(var j=0;j<T;j++){ g+='<rect x="'+(x2+j*14)+'" y="10" width="8" height="42" fill="#ffd9a0" stroke="#b36b00"/>'; }
+      var x3 = x2+T*14+16;
+      for(var k=0;k<O;k++){ g+='<circle cx="'+(x3+(k%5)*14+5)+'" cy="'+(24+Math.floor(k/5)*16)+'" r="5" fill="#ffb3c7" stroke="#b03060"/>'; }
+      var w = Math.max(300, x3+5*14+16);
+      return wrap(w,106,g+'<text x="10" y="76" font-size="12" fill="#2b6f94" font-family="sans-serif">'+H+' hundreds</text><text x="'+x2+'" y="76" font-size="12" fill="#b36b00" font-family="sans-serif">'+T+' tens</text><text x="'+x3+'" y="76" font-size="12" fill="#b03060" font-family="sans-serif">'+O+' ones</text>', n+' = '+H*100+' + '+T*10+' + '+O);
+    }
+  }
+  /* Skip counting: "Count by 3s: 3, 6, 9, 12, 15" */
+  m = t.match(/Count by (\d+)s?:? ((?:\d+, ){2,}\d+)/);
+  if(m){
+    var nums = m[2].split(", ").map(Number), step = +m[1], w2 = 40+nums.length*52, g2 = '<line x1="20" y1="60" x2="'+(w2-20)+'" y2="60" stroke="#5a4a2a" stroke-width="2"/>';
+    nums.forEach(function(v,i){
+      var cx = 40+i*52;
+      g2 += '<circle cx="'+cx+'" cy="60" r="4" fill="#5a4a2a"/><text x="'+cx+'" y="80" text-anchor="middle" font-size="13" fill="#5a4a2a" font-family="sans-serif">'+v+'</text>';
+      if(i>0) g2 += '<path d="M'+(cx-52)+' 56 Q'+(cx-26)+' 18 '+cx+' 56" fill="none" stroke="#d2691e" stroke-width="2"/><text x="'+(cx-26)+'" y="28" text-anchor="middle" font-size="12" fill="#d2691e" font-family="sans-serif">+'+step+'</text>';
+    });
+    return wrap(w2,110,g2,"Count by "+step+"s");
+  }
+  /* Small addition/subtraction: "a + b = c" with c up to 20 -> two groups of dots */
+  m = t.match(/\b(\d{1,2}) \+ (\d{1,2}) = (\d{1,2})\b/);
+  if(m && +m[1]+ +m[2]===+m[3] && +m[3]<=20 && +m[1]>0 && +m[2]>0){
+    var a1=+m[1], b1=+m[2], g3="";
+    for(var q=0;q<a1+b1;q++){
+      var row = Math.floor(q/10), col = q%10;
+      g3 += '<circle cx="'+(24+col*26)+'" cy="'+(24+row*28)+'" r="10" fill="'+(q<a1?'#bfe3f5':'#ffd9a0')+'" stroke="'+(q<a1?'#2b6f94':'#b36b00')+'"/>';
+    }
+    return wrap(290,(a1+b1>10?100:72),g3,a1+" + "+b1+" = "+m[3]);
+  }
+  m = t.match(/\b(\d{1,2}) [−-] (\d{1,2}) = (\d{1,2})\b/);
+  if(m && +m[1]-+m[2]===+m[3] && +m[1]<=20 && +m[2]>0){
+    var a2=+m[1], b2=+m[2], g4="";
+    for(var r=0;r<a2;r++){
+      var rw = Math.floor(r/10), cl = r%10, cx2 = 24+cl*26, cy2 = 24+rw*28, gone = r>=a2-b2;
+      g4 += '<circle cx="'+cx2+'" cy="'+cy2+'" r="10" fill="'+(gone?'#eeeeee':'#bfe3f5')+'" stroke="'+(gone?'#999':'#2b6f94')+'"/>'+(gone?'<path d="M'+(cx2-8)+' '+(cy2-8)+' L'+(cx2+8)+' '+(cy2+8)+' M'+(cx2+8)+' '+(cy2-8)+' L'+(cx2-8)+' '+(cy2+8)+'" stroke="#c0392b" stroke-width="2"/>':'');
+    }
+    return wrap(290,(a2>10?100:72),g4,a2+" take away "+b2+" leaves "+m[3]);
+  }
+  /* Fractions from folding: "fold it in half ... 2 equal parts. One part is 1/2" */
+  if(/fold/i.test(t) && /1\/2\b/.test(t) && /equal parts?/i.test(t)){
+    return wrap(260,100,'<rect x="20" y="14" width="220" height="50" fill="#fff" stroke="#5a4a2a" stroke-width="2"/><rect x="20" y="14" width="110" height="50" fill="#ffd9a0" stroke="#5a4a2a" stroke-width="2"/><text x="75" y="45" text-anchor="middle" font-size="18" fill="#5a4a2a" font-family="sans-serif">1/2</text><text x="185" y="45" text-anchor="middle" font-size="18" fill="#5a4a2a" font-family="sans-serif">1/2</text>',"Two equal parts");
+  }
+  /* Clock: only when the text says an o'clock time */
+  m = t.match(/\b(\d{1,2}) o'clock\b/);
+  if(m && +m[1]>=1 && +m[1]<=12){
+    var hr = +m[1], ang = (hr%12)*30*Math.PI/180, g5 = '<circle cx="80" cy="60" r="50" fill="#fff" stroke="#5a4a2a" stroke-width="3"/>';
+    for(var c=1;c<=12;c++){ var aa=c*30*Math.PI/180; g5 += '<text x="'+(80+Math.sin(aa)*40)+'" y="'+(65-Math.cos(aa)*40)+'" text-anchor="middle" font-size="12" fill="#5a4a2a" font-family="sans-serif">'+c+'</text>'; }
+    g5 += '<line x1="80" y1="60" x2="80" y2="30" stroke="#2b6f94" stroke-width="3"/><line x1="80" y1="60" x2="'+(80+Math.sin(ang)*28)+'" y2="'+(60-Math.cos(ang)*28)+'" stroke="#c0392b" stroke-width="4"/>';
+    return wrap(160,136,g5,hr+" o'clock");
+  }
+  return "";
 }
 function runAutoMigrations(){
   if(!db) return;
