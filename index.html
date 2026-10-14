@@ -5846,6 +5846,77 @@ function renderLessonDetail(){
     tsInput.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); runTroubleshoot(false); } });
   }
 
+  /* Lesson helper (every lesson without the VM fix list): Clippy-style paperclip for Ryan, a fairy for Anna. Text or voice. Goes through the
+     "troubleshoot" Edge Function in lesson mode; chats are saved for the leader. */
+  if(!vmHelp && (a.kidId==="kid1" || a.kidId==="kid2") && typeof sb!=="undefined" && sb && sb.functions){
+    var isAnna = a.kidId==="kid1";
+    var hDet = document.createElement("details");
+    hDet.style.cssText = "margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)";
+    var hKey = detailsOpenKey("lessonhelper", a.kidId, false, a.id);
+    if(isDetailsOpen(hKey)) hDet.open = true;
+    hDet.addEventListener("toggle", function(){ setDetailsOpen(hKey, hDet.open); });
+    var hSum = document.createElement("summary");
+    hSum.style.cssText = "cursor:pointer;font-weight:700";
+    hSum.textContent = isAnna ? "🧚 Need help? Ask your fairy" : "📎 Need help? Ask Clippy";
+    hDet.appendChild(hSum);
+    var hNote = document.createElement("div");
+    hNote.className = "muted"; hNote.style.cssText = "font-size:12.5px;margin:8px 0";
+    hNote.textContent = isAnna ? "Type or tap the mic and tell me what is tricky. I will give you a hint! Your leader can read this chat."
+                               : "Type or tap the mic and tell me where you are stuck. I will give hints, not answers. Your leader can read this chat.";
+    hDet.appendChild(hNote);
+    var hLog = document.createElement("div");
+    hLog.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
+    var hRow = document.createElement("div"); hRow.style.cssText = "display:flex;gap:8px";
+    var hIn = document.createElement("input");
+    hIn.type = "text"; hIn.maxLength = 500; hIn.placeholder = "What is tricky?";
+    hIn.style.cssText = "flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px";
+    var btnCss = "padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px;cursor:pointer;font-weight:600";
+    var hMic = document.createElement("button"); hMic.type = "button"; hMic.textContent = "🎤"; hMic.style.cssText = btnCss; hMic.setAttribute("aria-label","Talk");
+    var hSend = document.createElement("button"); hSend.type = "button"; hSend.textContent = "Send"; hSend.style.cssText = btnCss;
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(SR) hRow.appendChild(hMic);
+    hRow.insertBefore(hIn, hRow.firstChild); hRow.appendChild(hSend);
+    hDet.appendChild(hLog); hDet.appendChild(hRow);
+    var hHist = [];
+    function hBubble(role, text){
+      var b = document.createElement("div");
+      b.style.cssText = "padding:8px 10px;border-radius:10px;font-size:14px;line-height:1.45;max-width:92%;white-space:pre-wrap;"+
+        (role==="user" ? "align-self:flex-end;background:var(--gold-soft)" : "align-self:flex-start;background:var(--success-soft);border:1px solid var(--success)");
+      b.textContent = text; hLog.appendChild(b); return b;
+    }
+    function hSpeak(t){
+      try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); } }catch(e){}
+    }
+    function hAsk(){
+      var q = hIn.value.trim();
+      if(!q || hSend.disabled) return;
+      hIn.value = ""; hBubble("user", q); hHist.push({role:"user", content:q});
+      hSend.disabled = true;
+      var pend = hBubble("assistant", "Thinking…");
+      function fail(){ hSend.disabled = false; pend.textContent = "I can't reach the helper right now. Ask your leader for help."; hHist.pop(); }
+      sb.functions.invoke("troubleshoot", {body:{
+        mode:"lesson", kidId:a.kidId, assignmentTitle:a.title, subject:a.subject||"",
+        passage:String(a.passage||"").slice(0,3000), messages:hHist.slice(-12)
+      }}).then(function(res){
+        if(res.error || !res.data || !res.data.reply) return fail();
+        hSend.disabled = false; pend.textContent = res.data.reply;
+        hHist.push({role:"assistant", content:res.data.reply}); hSpeak(res.data.reply);
+      }).catch(fail);
+    }
+    hSend.onclick = hAsk;
+    hIn.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); hAsk(); } });
+    hMic.onclick = function(){
+      try{
+        var r = new SR(); r.lang = "en-US"; r.interimResults = false;
+        hMic.textContent = "👂";
+        r.onresult = function(ev){ hIn.value = ev.results[0][0].transcript; hAsk(); };
+        r.onend = r.onerror = function(){ hMic.textContent = "🎤"; };
+        r.start();
+      }catch(e){ hMic.textContent = "🎤"; }
+    };
+    card.appendChild(hDet);
+  }
+
   if(Array.isArray(a.quiz) && a.quiz.length){
     var quizWrap = document.createElement("div");
     quizWrap.className = "quiz-wrap";
