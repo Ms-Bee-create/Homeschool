@@ -87,3 +87,7 @@ Rule 22 was RELAXED by Mom on 14 Oct: baking, warm water, kid-safe scissors and 
 ## Standards tags: current status
 Mom's rule: never guess, always verify. Several tags I added in October 2026 came from secondary sources or were guessed (for example S2P1 on the Obstacle Course lesson).
 See the "Standards verification" section of OPS_NOTES.md for what was checked and what is still unverified.
+
+## Picture cards for long readings (14 Oct 2026)
+`EXPLAINER_CARDS` in index.html (above `speakerBtnHtml`): each entry has `match` (start of the lesson title) and `cards` ({say, html}). The lesson detail shows a collapsed "Too many words? See it in N quick cards" with Back/Next/Listen. Text only from approved scripts, simple shapes only (rule 25). First entry: Ryan's Reconstruction reading. No credits, no uploads, no SQL. To convert another long reading: add an entry.
+The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits, balance 447) is done; Mom uploads it as videos/ryan-reconstruction.mp4, then set a.video on that lesson.
