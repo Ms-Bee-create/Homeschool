@@ -6767,6 +6767,55 @@ function renderLeaderArea(){
       btnRow.appendChild(approveBtn);
     }
 
+    if(!isCompleted){
+      var aiBox = document.createElement("div");
+      aiBox.style.cssText = "margin-top:8px";
+      function renderAiCheck(){
+        var r = state.aiChecks && state.aiChecks[a.id];
+        aiBox.innerHTML = "";
+        if(!r) return;
+        var tone = r.pending ? ["var(--paper)","var(--text-dim)","⏳ Checking…"]
+          : r.verdict==="looks_good" ? ["var(--success-soft)","var(--success)","🤖 Looks good"]
+          : r.verdict==="needs_work" ? ["var(--coral-soft)","var(--coral)","🤖 Suggests another try"]
+          : ["var(--gold-soft)","var(--gold)","🤖 Not sure, please look"];
+        var box = document.createElement("div");
+        box.style.cssText = "padding:10px 12px;border-radius:10px;background:"+tone[0]+";font-size:13px;line-height:1.45";
+        box.innerHTML = '<div style="font-weight:700;color:'+tone[1]+'">'+tone[2]+'</div>'+
+          (r.momNote ? '<div style="margin-top:4px">'+escapeHtml(r.momNote)+'</div>' : "")+
+          (r.kidNote ? '<div class="muted" style="margin-top:4px">Note for '+escapeHtml(a.kidName)+': '+escapeHtml(r.kidNote)+'</div>' : "");
+        if(!r.pending && r.verdict){
+          var row2 = document.createElement("div"); row2.style.cssText = "display:flex;gap:8px;margin-top:8px;flex-wrap:wrap";
+          function act(label, flagIt){
+            var bt = document.createElement("button"); bt.type = "button"; bt.className = "reward-skip";
+            bt.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)"; bt.textContent = label;
+            bt.onclick = function(){
+              if(!db) return;
+              var upd = flagIt ? {reviewStatus:"flagged", reviewNote:r.kidNote||"Please take another look at this one.", noteUnread:true, done:false, doneAt:null}
+                               : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
+              if(!flagIt && !a.done) toggleAssignment(a);
+              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], upd);
+              db.doc("assignments/"+a.id).update(upd);
+              renderLeaderArea();
+            };
+            row2.appendChild(bt);
+          }
+          if(r.verdict==="looks_good") act("✅ Approve with this note", false);
+          if(r.verdict==="needs_work") act("🚩 Send back with this note", true);
+          box.appendChild(row2);
+        }
+        aiBox.appendChild(box);
+      }
+      a._renderAiCheck = renderAiCheck;
+      var aiBtn = document.createElement("button");
+      aiBtn.type = "button"; aiBtn.className = "reward-skip";
+      aiBtn.style.cssText = "width:100%;opacity:1;font-weight:700;border:1px solid var(--border)";
+      aiBtn.textContent = "🤖 Pre-check this";
+      aiBtn.onclick = function(){ runAiCheck(a).then(renderAiCheck); renderAiCheck(); };
+      card.appendChild(aiBox);
+      card.appendChild(aiBtn);
+      renderAiCheck();
+    }
+
     var noteBtn = document.createElement("button");
     noteBtn.className = "reward-skip";
     noteBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
@@ -6807,6 +6856,19 @@ function renderLeaderArea(){
     empty.style.cssText = "text-align:center;padding:30px 0";
     empty.textContent = "Nothing waiting on you right now.";
     els.view.appendChild(empty);
+  }
+  if(pending.length>1 && typeof sb!=="undefined" && sb && sb.functions){
+    var allBtn = document.createElement("button");
+    allBtn.type = "button"; allBtn.className = "primary-btn"; allBtn.style.cssText = "width:100%;margin-bottom:12px";
+    allBtn.textContent = "🤖 Pre-check everything waiting ("+pending.length+")";
+    allBtn.onclick = function(){
+      allBtn.disabled = true; allBtn.textContent = "Checking…";
+      var todo = pending.filter(function(a){ return !(state.aiChecks && state.aiChecks[a.id] && !state.aiChecks[a.id].pending); });
+      var chain = Promise.resolve();
+      todo.forEach(function(a){ chain = chain.then(function(){ return runAiCheck(a); }); });
+      chain.then(function(){ renderLeaderArea(); });
+    };
+    els.view.appendChild(allBtn);
   }
   pending.forEach(function(a){ els.view.appendChild(buildReviewCard(a, false)); });
 
@@ -18266,6 +18328,19 @@ function seeItPictureSvg(text){
     return wrap(160,136,g5,hr+" o'clock");
   }
   return "";
+}
+/* Leader work pre-check: asks the "troubleshoot" Edge Function (mode "review") what it thinks. Suggestions only; the leader taps to accept. */
+function runAiCheck(a){
+  state.aiChecks = state.aiChecks || {};
+  state.aiChecks[a.id] = {pending:true};
+  var quiz = a.quizScore!=null ? (a.quizScore+" of "+a.quizTotal+" right"+(a.quizRetryUsed?" (on retry)":"")) : "none";
+  return sb.functions.invoke("troubleshoot", {body:{
+    mode:"review", kidId:a.kidId, assignmentTitle:a.title, subject:a.subject||"", passage:String(a.passage||"").slice(0,3000), quiz:quiz,
+    work: normalizeBlocks(a).filter(function(b){ return (b.type==="text" && b.text) || b.url; })
+  }}).then(function(res){
+    if(res.error || !res.data || !res.data.verdict){ state.aiChecks[a.id] = {verdict:"unsure", momNote:"The helper could not be reached. Please look yourself."}; }
+    else state.aiChecks[a.id] = res.data;
+  }).catch(function(){ state.aiChecks[a.id] = {verdict:"unsure", momNote:"The helper could not be reached. Please look yourself."}; });
 }
 function runAutoMigrations(){
   if(!db) return;
