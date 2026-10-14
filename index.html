@@ -6594,6 +6594,7 @@ function renderLeaderArea(){
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(weekReportCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(helperChatsCard());
@@ -18474,6 +18475,58 @@ function familyGoalLeaderCard(){
     saveFamilyGoal(Object.assign({}, g, {start:todayISO()})).then(function(){ toast("New goal started 🎉"); renderLeaderArea(); });
   };
   row.appendChild(save); row.appendChild(fresh); det.appendChild(row);
+  wrap.appendChild(det);
+  return wrap;
+}
+/* ---------- Leader: what each kid actually did (last two weeks) ---------- */
+function weekReportData(kidId, days){
+  var today = todayISO(), dates = [], d = new Date(today+"T00:00:00");
+  while(dates.length<days){
+    if(d.getDay()!==0 && d.getDay()!==6) dates.push(isoDate(d));
+    d.setDate(d.getDate()-1);
+  }
+  var bySubject = {}, perDay = dates.map(function(iso){
+    var list = assignmentsFor(kidId, iso);
+    list.forEach(function(a){
+      var sj = a.subject || "Other"; bySubject[sj] = bySubject[sj] || {done:0,total:0};
+      bySubject[sj].total++; if(a.done) bySubject[sj].done++;
+    });
+    return {iso:iso, total:list.length, done:list.filter(function(a){ return a.done; }).length, open:list.filter(function(a){ return !a.done; })};
+  });
+  return {perDay:perDay, bySubject:bySubject};
+}
+function weekReportCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"weekreport");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "📊 What they actually did — last 2 weeks";
+  det.appendChild(sum);
+  var html = "";
+  KIDS.forEach(function(k){
+    var r = weekReportData(k.id, 10), name = kidData(k.id).name || k.defaultName;
+    var tot = r.perDay.reduce(function(n,x){ return n+x.total; }, 0), dn = r.perDay.reduce(function(n,x){ return n+x.done; }, 0);
+    html += '<div style="margin:14px 0 4px;font-weight:800;font-size:15px">'+escapeHtml(name)+' <span class="muted" style="font-weight:600;font-size:12.5px">'+dn+' of '+tot+' lessons done ('+(tot ? Math.round(dn/tot*100) : 0)+'%)</span></div>';
+    var subs = Object.keys(r.bySubject).map(function(sj){ var x = r.bySubject[sj]; return {sj:sj, done:x.done, total:x.total, pct:x.total ? x.done/x.total : 1}; })
+      .filter(function(x){ return x.total>=2; }).sort(function(a,b){ return a.pct-b.pct; });
+    if(subs.length){
+      html += '<div style="font-size:12.5px;margin-bottom:6px"><b>Skipped most:</b> '+subs.slice(0,3).filter(function(x){ return x.pct<1; }).map(function(x){ return escapeHtml(x.sj)+' ('+x.done+'/'+x.total+')'; }).join(", ")+
+        (subs[0].pct>=1 ? "nothing, everything was done" : "")+'</div>';
+    }
+    r.perDay.forEach(function(x){
+      var dt = new Date(x.iso+"T00:00:00"), lbl = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()]+" "+(dt.getMonth()+1)+"/"+dt.getDate();
+      var pct = x.total ? Math.round(x.done/x.total*100) : 0, col = !x.total ? "var(--border)" : pct===100 ? "var(--success)" : pct>=50 ? "var(--gold)" : "var(--coral)";
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin:3px 0"><span style="width:62px">'+lbl+'</span>'+
+        '<span style="flex:1;height:8px;border-radius:6px;background:var(--paper);border:1px solid var(--border);overflow:hidden"><span style="display:block;height:100%;width:'+(x.total ? pct : 0)+'%;background:'+col+'"></span></span>'+
+        '<span style="width:70px;text-align:right">'+(x.total ? x.done+" of "+x.total : "none")+'</span></div>';
+      if(x.open.length && x.iso<todayISO()){
+        html += '<div class="muted" style="font-size:12px;margin:0 0 4px 70px">Not done: '+x.open.slice(0,4).map(function(a){ return escapeHtml(String(a.title).slice(0,48)); }).join("; ")+(x.open.length>4 ? " and "+(x.open.length-4)+" more" : "")+'</div>';
+      }
+    });
+  });
+  var box = document.createElement("div"); box.innerHTML = html; det.appendChild(box);
   wrap.appendChild(det);
   return wrap;
 }
