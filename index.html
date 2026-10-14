@@ -18097,6 +18097,7 @@ function runAutoMigrations(){
     patchRyanComputerVideos();
     patchAnnaApprovedVideos();
     patchSafetyText();
+    autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     balanceFutureLoad();
   }catch(e){ console.error("auto-migration error", e); }
@@ -18785,6 +18786,7 @@ function contentPacks(){
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
+    {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
   ];
@@ -19781,6 +19783,133 @@ function autoAddOffScreenFridays(){
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"offscreen-friday", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
+}
+/* Anna's Stuffie School: one lesson a week on Wednesdays where she is the teacher and her stuffies are the class. Added once. Standard tags are unverified (secondary sources). */
+var ANNA_STUFFIE_SCHOOL = [
+ {
+  "week": 0,
+  "title": "Teacher Anna Opens Stuffie School 🧸",
+  "standard": "ELAGSE2SL2",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — all your stuffies (as many as you can find), paper, a pencil, a picture book, and chairs or pillows for a classroom.\nHere's the Idea — You are the teacher today! Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Teachers also set up their classroom and say hello to every student.\nSee It Done — Teacher Anna sits her stuffies in a row. She makes name tags: 'Bunny', 'Bear', 'Pup'. She says, 'Good morning, class!' She says the plan: 'Today we will read a story.' She shows the cover. She asks, 'Who do you think the story is about?'\nYour Turn — 1. Make a classroom. Line your stuffies up like students. Give each one a name tag. 2. Take attendance. Say each stuffie's name and write a check next to it. 3. Say the plan for today: read a story together. 4. Show the cover and read the picture book to your class. Use your best teacher voice. 5. Ask your class 3 questions: Who is in the story? What was the problem? How did it end? 6. Say 'Great listening, class!' and give each student a star or a sticker.\nCheck Yourself — Did you say the plan first? Did you ask the class 3 questions?\nShow What You Know — Tell Mom or Dad what your class learned and which student was your best listener.",
+  "xp": 15
+ },
+ {
+  "week": 1,
+  "title": "Teacher Anna: Math Class with Candy 🍬",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — your stuffie class, a small pile of candy or counters, 2 paper plates, paper, a pencil, and a whiteboard or paper for the board.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Today you teach 'make it fair'. Fair means everyone gets the same.\nSee It Done — SAY IT: 'Class, fair means the same. If Bunny has 6 and Bear has 2, we put them together: 8. Then we share: 4 and 4.' SHOW IT: slide the candy onto two plates, one at a time. ASK: 'Who can tell me how many each?'\nYour Turn — 1. Write 'Fair Share' on your board. 2. Say it: tell your class what fair means. 3. Show it: use candy and two plates to share a pile fairly. Say each number out loud. 4. Ask your class a question: 'If Bear has 10 and Pup has 4, how many to make it fair?' (Hint: 10 + 4 = 14, then 7 and 7.) 5. Let your class 'answer' by pointing. Check by counting. 6. Give out stickers to students who got it right. Everyone gets one!\nCheck Yourself — Did you say it, show it, and ask a question? Does each plate have the same number?\nShow What You Know — Teach Mom or Dad 'make it fair' the same way you taught your class.",
+  "xp": 15
+ },
+ {
+  "week": 2,
+  "title": "Teacher Anna: Science Class, Plants Need Stuff 🌱",
+  "standard": "S2L1",
+  "cross": [
+   "Science"
+  ],
+  "passage": "Gather first — your stuffie class, paper, crayons, a plant or flower (or a picture of one), and a pencil.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Plants are living things. They need sunlight, water, air, and space to grow. Teachers draw big pictures to help their class understand.\nSee It Done — SAY IT: 'Class, plants need 4 things: sun, water, air, and space.' SHOW IT: draw a plant with a big sun, a rain cloud, and arrows. ASK: 'What would happen if a plant had no water?'\nYour Turn — 1. Draw a big poster with a plant in the middle. Draw the sun, water, air, and space around it. 2. Say it: tell the class the 4 things plants need. 3. Show it: point to each thing on your poster as you say it. 4. Ask the class: 'What would happen if a plant had no water?' Let a stuffie 'answer' and then you explain. 5. Water a real plant (a little!) and tell the class what you did. 6. Hang your poster up in your classroom.\nCheck Yourself — Did you name all 4 things? Did you ask a question?\nShow What You Know — Tell Mom or Dad one thing your class learned about plants.",
+  "xp": 15
+ },
+ {
+  "week": 3,
+  "title": "Teacher Anna: Sharing Circle and Writing Class ✏️",
+  "standard": "ELAGSE2SL3",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — your stuffie class, paper, a pencil, and a talking stick (a spoon or a pencil works).\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. In a sharing circle, only the student holding the talking stick speaks. Everyone else listens. Teachers help students say complete sentences.\nSee It Done — Teacher Anna passes the stick to Bear. Bear (Anna's voice) says: 'My favorite food is pizza.' Teacher Anna writes the sentence on the board: 'Bear likes pizza.' Then she asks the class, 'Who else likes pizza?'\nYour Turn — 1. Sit your class in a circle. Pick a talking stick. 2. Pass the stick to one student at a time. Make up one sentence for each, like 'My favorite color is blue.' 3. Write each sentence on paper. Start with a capital letter and end with a period. 4. Read all the sentences back to the class. 5. Ask the class: 'Which sentence did you like best?' 6. Give each student a 'speaker' sticker.\nCheck Yourself — Does every sentence start with a capital and end with a period?\nShow What You Know — Read your favorite sentence to Mom or Dad.",
+  "xp": 15
+ },
+ {
+  "week": 4,
+  "title": "Teacher Anna: Spelling and Heart Words Class 📖",
+  "standard": "ELAGSE2RF3",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — your stuffie class, paper for the board, a pencil, your heart word list from handwriting, and a grown-up to check.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Heart words are words we learn by heart, like 'the', 'said', and 'you'. Teachers give a spelling check and cheer for every try.\nSee It Done — SAY IT: 'Class, this word is said. Say it with me: said.' SHOW IT: write 'said' on the board and tap each letter. ASK: 'Who can spell it?' Teacher Anna checks the spelling and says, 'Nice try!' even when a student misses.\nYour Turn — 1. Pick 5 heart words from your list. Write each on your board. 2. Say it: say each word and have the class 'say it back'. 3. Show it: tap each letter as you spell the word out loud. 4. Ask: 'Who can spell it?' Take turns being the class and the teacher. 5. Give a spelling check. Say the word, and the class writes it (you can write it for them). 6. Cheer for every try. Give a certificate to your best student.\nCheck Yourself — Did you spell each word with your class? Did you cheer for every try?\nShow What You Know — Be the teacher for Mom or Dad. Say 3 heart words and ask them to spell them.",
+  "xp": 15
+ },
+ {
+  "week": 5,
+  "title": "Teacher Anna: Graduation Day at Stuffie School 🎓",
+  "standard": "ELAGSE2SL2",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — your stuffie class, paper, crayons, a ribbon or a paper graduation cap, and a grown-up to be the guest.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Graduation is when students celebrate what they learned. A good teacher gives a short speech and thanks the class.\nSee It Done — Teacher Anna stands up and says: 'Class, this month we learned about stories, sharing fair, plants, and words. I am so proud of you.' Then she gives each student a certificate.\nYour Turn — 1. Make a graduation certificate for each student. Write their name and one thing they learned. 2. Set up your classroom for the ceremony. Invite a grown-up as the guest. 3. Give your speech. Say 3 things your class learned. 4. Hand out the certificates, and give each student a big clap. 5. Ask your guest one question about what they learned from your class. 6. Take a photo or draw a picture of graduation day.\nCheck Yourself — Did you say 3 things your class learned? Does every certificate have a name?\nShow What You Know — Teach your guest your favorite thing from Stuffie School.",
+  "xp": 15
+ }
+];
+function nextWeekdayISO(fromISO, dow){
+  var d = new Date(fromISO+"T00:00:00");
+  while(d.getDay()!==dow) d.setDate(d.getDate()+1);
+  return isoDate(d);
+}
+function autoAddAnnaStuffieSchool(){
+  if(!db) return;
+  var flag = "al_stuffie_school_v1", done = false;
+  try{ done = !!localStorage.getItem(flag); }catch(e){}
+  if(done) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId==="kid1") have[a.title] = true; });
+  var first = new Date(nextWeekdayISO(isoDate(addSchoolDays(new Date(todayISO()+"T00:00:00"), 1)), 3)+"T00:00:00");
+  ANNA_STUFFIE_SCHOOL.forEach(function(it){
+    if(have[it.title]) return;
+    var d = new Date(first); d.setDate(d.getDate()+7*it.week);
+    db.collection("assignments").add({kidId:"kid1", date:isoDate(d), subject:"Live Lesson", title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"anna-stuffie-school", createdAt:new Date().toISOString()});
+  });
+  try{ localStorage.setItem(flag, "1"); }catch(e){}
+}
+/* Wobbly Life money math for Anna (a Leader content pack). Pay amounts come from fan guides and may not match the current game; the lessons say to check. */
+var ANNA_WOBBLY_MATH = [
+ {
+  "d": 0,
+  "title": "Wobbly Pizza Pay: Count by 20s 🍕",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — paper, crayons, a pencil, and your game (if you want to check the numbers). Some guides say the pizza job in Wobbly Life pays about $20 for each pizza. Your game might be different, so check it!\nHere's the Idea — Skip counting is counting by the same number each time. Counting by 20s: 20, 40, 60, 80, 100. It is a fast way to add the same amount again and again.\nSee It Done — Draw 3 pizzas in a row. Under the first, write $20. Under the second, write $40. Under the third, write $60. So 3 pizzas pay $60.\nYour Turn — 1. Draw a row of 5 pizzas. Under each one, write the total money: $20, $40, and so on. 2. Skip count out loud by 20s up to 10 pizzas. 3. How many pizzas would you need to deliver to earn $100? Draw them to check. 4. Make up your own story: 'I delivered ___ pizzas and earned $___.' 5. Make a money row with play money or drawn bills to show $100.\nCheck Yourself — Did you count by 20s each time? Did you find that 5 pizzas make $100?\nShow What You Know — Teach your stuffie class how to skip count by 20s.",
+  "xp": 15
+ },
+ {
+  "d": 2,
+  "title": "Wobbly Job Chart: Which Job Pays More? 🍔",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — graph paper, a pencil, crayons, and a ruler. These pay amounts come from game guides and may be different in your game: Burger job $60, Trash job $60, Hospital job $60, Newspaper job $50, Toxic waste job $50.\nHere's the Idea — A bar graph uses bars to show amounts. Each square on graph paper can stand for $10. A taller bar means more money. Comparing means finding which is more and how much more.\nSee It Done — Newspaper pays $50, so color 5 squares. Burger pays $60, so color 6 squares. The burger bar is 1 square taller. That is $10 more.\nYour Turn — 1. Draw 5 columns on graph paper, one for each job. Label them. 2. Color one square for every $10 each job pays. 3. Which job pays the most? Which pays the least? 4. Find how many dollars more the burger job pays than the newspaper job. 5. Pick your favorite job. Tell why you like it, in one sentence. 6. Make up one question about your graph and ask a grown-up.\nCheck Yourself — Do your bars match the pay? Is the most-pay bar the tallest?\nShow What You Know — Teach a grown-up how to read your bar graph.",
+  "xp": 15
+ },
+ {
+  "d": 4,
+  "title": "Save for Something Big: Make a Saving Plan 🛍️",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — paper, a pencil, play money or drawn coins, and Mom or Dad to help you pick a real goal. You are saving for breakfast in bed, or something else you want!\nHere's the Idea — A saving plan tells your goal, the price, and how much you save each time. If a goal costs $20 and you save $5 each week, count up by 5s: 5, 10, 15, 20. That takes 4 weeks.\nSee It Done — Goal: a new stuffie for $15. I earn $3 each time I do a job. Count by 3s: 3, 6, 9, 12, 15. I need 5 jobs.\nYour Turn — 1. Pick a real goal. Ask Mom or Dad how much it costs and write it. 2. Write how much you earn each time you do a job. 3. Skip count to find how many jobs it will take. 4. Draw a path with a step for each job. Draw your goal at the end. 5. Color in a step every time you do a job this week. 6. Tell Mom or Dad your plan.\nCheck Yourself — Does your plan say the goal, the price, and how many jobs?\nShow What You Know — Teach your stuffie class how to make a saving plan.",
+  "xp": 15
+ }
+];
+function addAnnaWobblyMath(kidId){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var start = packStart();
+  var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  ANNA_WOBBLY_MATH.forEach(function(it){
+    if(have.indexOf(it.title)!==-1) return;
+    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:"Math", title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"anna-wobbly-math", createdAt:new Date().toISOString()});
+  });
 }
 var RYAN_THOUGHT_EXPERIMENTS = [
   {d:0, title:"Thought Experiment: Minecraft Beat Itself (No Player Required)",
