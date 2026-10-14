@@ -6595,6 +6595,7 @@ function renderLeaderArea(){
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(weekReportCard());
+  els.view.appendChild(catchUpCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(helperChatsCard());
@@ -18068,30 +18069,87 @@ function runAutoMigrations(){
     patchAnnaMeasuringVideo();
     patchRyanComputerVideos();
     patchAnnaApprovedVideos();
+    autoAddOffScreenFridays();
+    balanceFutureLoad();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
    Saturday or Sunday moves to the next Monday (this is how a Design Studio lesson ended up on a
    Sunday). Past dates are left alone so nothing looks like it vanished. */
-/* A day with more than this many lessons is where they stop finishing (Anna finished all of her 6-lesson days, and only 3 of 10 on a stacked Monday). */
+/* A day with more than this many lessons is where they stop finishing (Anna finished all of her 6-lesson days, and only 3 of 10 on a stacked Monday).
+   Fridays are off-screen days: the off-screen quests are the main work, plus a couple of book-based lessons. */
 var DAILY_LESSON_CAP = {kid1:6, kid2:10};
-function moveWeekendLessonsToMonday(){
-  if(!db) return;
-  var today = todayISO(), moved = 0, counts = {};
+var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
+function dayCapFor(kidId, iso){
+  var dow = new Date(iso+"T00:00:00").getDay();
+  return dow===5 ? (FRIDAY_LESSON_CAP[kidId]||3) : (DAILY_LESSON_CAP[kidId]||99);
+}
+/* How many lessons each kid has on each date (off-screen Friday quests do not count toward the cap). */
+function loadCounts(){
+  var c = {};
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(a.kidId && a.date){ var k = a.kidId+"|"+a.date; counts[k] = (counts[k]||0)+1; }
+    if(a.kidId && a.date && a.skillId!=="offscreen-friday"){ var k = a.kidId+"|"+a.date; c[k] = (c[k]||0)+1; }
   });
+  return c;
+}
+/* First school day after fromISO that has room for one more lesson. */
+function nextRoomDate(kidId, fromISO, counts){
+  var d = addSchoolDays(new Date(fromISO+"T00:00:00"), 1), iso = isoDate(d), t = 0;
+  while((counts[kidId+"|"+iso]||0) >= dayCapFor(kidId, iso) && t++<80){ d = addSchoolDays(d, 1); iso = isoDate(d); }
+  return iso;
+}
+function moveWeekendLessonsToMonday(){
+  if(!db) return;
+  var today = todayISO(), moved = 0, counts = loadCounts();
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if((a.kidId!=="kid1" && a.kidId!=="kid2") || a.done || !a.date || a.date<today || !isWeekendIso(a.date) || hasWork(a)) return;
-    var cap = DAILY_LESSON_CAP[a.kidId] || 99, d = addSchoolDays(new Date(a.date+"T00:00:00"), 1), dest = isoDate(d), tries = 0;
-    /* Move to the next school day that has room, instead of stacking everything on Monday. */
-    while((counts[a.kidId+"|"+dest]||0) >= cap && tries++ < 15){ d = addSchoolDays(d, 1); dest = isoDate(d); }
-    counts[a.kidId+"|"+a.date]--; counts[a.kidId+"|"+dest] = (counts[a.kidId+"|"+dest]||0)+1;
+    var dest = nextRoomDate(a.kidId, a.date, counts);
+    counts[a.kidId+"|"+a.date] = (counts[a.kidId+"|"+a.date]||1)-1; counts[a.kidId+"|"+dest] = (counts[a.kidId+"|"+dest]||0)+1;
     a.date = dest; db.doc("assignments/"+id).update({date:dest}); moved++;
   });
   if(moved) console.log("moveWeekendLessonsToMonday: moved "+moved+" lesson(s)");
+}
+/* Keeps every future day within its limit. Lessons not started yet on an overfull day move to the next school day, earliest-scheduled
+   lessons stay, and anything pushed along keeps its place in line, so a series stays in order. On Fridays, book and project lessons stay first. */
+function balanceFutureLoad(){
+  if(!db) return;
+  var tomorrow = isoDate(addSchoolDays(new Date(todayISO()+"T00:00:00"), 1)), moved = 0;
+  ["kid1","kid2"].forEach(function(kid){
+    var fixed = {}, byDate = {}, maxDate = tomorrow;
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || isWeekendIso(a.date)) return;
+      if(a.date>maxDate) maxDate = a.date;
+      if(a.done || hasWork(a)){ fixed[a.date] = (fixed[a.date]||0)+1; return; }
+      (byDate[a.date] = byDate[a.date]||[]).push({id:id, a:a, o:a.date, date:a.date});
+    });
+    var d = new Date(tomorrow+"T00:00:00"), guard = 0;
+    while(isoDate(d)<=maxDate && guard++<900){
+      var iso = isoDate(d), list = byDate[iso]||[], room = dayCapFor(kid, iso)-(fixed[iso]||0);
+      if(room<0) room = 0;
+      if(list.length>room){
+        var fri = d.getDay()===5;
+        list.sort(function(x,y){
+          if(fri){ var px = (x.a.skillId==="anna-book-lessons"||x.a.subject==="Social Studies"||x.a.subject==="Related Arts") ? 0 : 1, py = (y.a.skillId==="anna-book-lessons"||y.a.subject==="Social Studies"||y.a.subject==="Related Arts") ? 0 : 1; if(px!==py) return px-py; }
+          return (x.o||"").localeCompare(y.o||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||""));
+        });
+        var keep = list.slice(0, room), push = list.slice(room);
+        byDate[iso] = keep;
+        var nd = addSchoolDays(new Date(iso+"T00:00:00"), 1), nIso = isoDate(nd);
+        push.forEach(function(it){ it.date = nIso; (byDate[nIso] = byDate[nIso]||[]).push(it); });
+        if(nIso>maxDate) maxDate = nIso;
+      }
+      d.setDate(d.getDate()+1);
+    }
+    Object.keys(byDate).forEach(function(k){
+      byDate[k].forEach(function(it){
+        if(it.a.date!==it.date){ it.a.date = it.date; db.doc("assignments/"+it.id).update({date:it.date}); moved++; }
+      });
+    });
+  });
+  if(moved) console.log("balanceFutureLoad: moved "+moved+" lesson(s) to keep each day within its limit");
 }
 
 /* ---------- Leader: Helper chats (what Ryan asked the AI troubleshooter) ---------- */
@@ -18484,6 +18542,68 @@ function familyGoalLeaderCard(){
     saveFamilyGoal(Object.assign({}, g, {start:todayISO()})).then(function(){ toast("New goal started 🎉"); renderLeaderArea(); });
   };
   row.appendChild(save); row.appendChild(fresh); det.appendChild(row);
+  wrap.appendChild(det);
+  return wrap;
+}
+/* ---------- Leader: old unfinished lessons (catch-up list) ---------- */
+function catchUpCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"catchup");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  var today = todayISO(), total = 0, perKid = {};
+  KIDS.forEach(function(k){
+    perKid[k.id] = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
+      .filter(function(x){ return x.a.kidId===k.id && !x.a.done && x.a.date && x.a.date<today && !hasWork(x.a); })
+      .sort(function(x,y){ return x.a.date.localeCompare(y.a.date); });
+    total += perKid[k.id].length;
+  });
+  sum.textContent = "🧹 Old unfinished lessons — "+total+" waiting";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Lessons dated before today that were never done. For each one you can bring it back (it lands on the next day with room under the daily limit) or retire it for good. Nothing changes until you tap.";
+  det.appendChild(note);
+  KIDS.forEach(function(k){
+    var list = perKid[k.id], name = kidData(k.id).name || k.defaultName;
+    var head = document.createElement("div"); head.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 4px";
+    head.innerHTML = '<b style="font-size:14.5px">'+escapeHtml(name)+'</b><span class="muted" style="font-size:12.5px">'+list.length+' old lesson'+(list.length===1?"":"s")+'</span>';
+    if(list.length){
+      var spread = document.createElement("button"); spread.type = "button"; spread.className = "reward-skip"; spread.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--ink)";
+      spread.textContent = "Bring them all back, spread out";
+      spread.onclick = function(){
+        if(!window.confirm("Spread "+list.length+" old lessons over the coming school days for "+name+"?")) return;
+        var counts = loadCounts();
+        list.forEach(function(x){ var dest = nextRoomDate(k.id, today, counts); counts[k.id+"|"+dest] = (counts[k.id+"|"+dest]||0)+1; x.a.date = dest; db.doc("assignments/"+x.id).update({date:dest}); });
+        toast("Spread out ✓"); renderLeaderArea();
+      };
+      head.appendChild(spread);
+      var old = list.filter(function(x){ return x.a.date < isoDate(new Date(Date.now()-14*86400000)); });
+      if(old.length){
+        var retire = document.createElement("button"); retire.type = "button"; retire.className = "reward-skip"; retire.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--ink)";
+        retire.textContent = "Retire the "+old.length+" older than 2 weeks";
+        retire.onclick = function(){
+          if(!window.confirm("Permanently delete "+old.length+" lessons for "+name+" that are more than 2 weeks old and were never started? This can't be undone.")) return;
+          old.forEach(function(x){ db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; });
+          toast("Retired "+old.length); renderLeaderArea();
+        };
+        head.appendChild(retire);
+      }
+    }
+    det.appendChild(head);
+    list.slice(0,40).forEach(function(x){
+      var row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0;border-top:1px solid var(--border)";
+      var dt = new Date(x.a.date+"T00:00:00");
+      row.innerHTML = '<span style="width:52px;flex:none" class="muted">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span><span style="flex:1">'+escapeHtml(String(x.a.title).slice(0,70))+' <span class="muted">('+escapeHtml(x.a.subject||"")+')</span></span>';
+      var back = document.createElement("button"); back.type = "button"; back.className = "reward-skip"; back.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:4px 9px;color:var(--ink)"; back.textContent = "Bring back";
+      back.onclick = function(){ var dest = nextRoomDate(k.id, today, loadCounts()); x.a.date = dest; db.doc("assignments/"+x.id).update({date:dest}); toast("Moved to "+fmtDate(dest)); renderLeaderArea(); };
+      var del = document.createElement("button"); del.type = "button"; del.className = "reward-skip"; del.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:4px 9px;color:var(--coral)"; del.textContent = "Retire";
+      del.onclick = function(){ if(!window.confirm('Retire "'+x.a.title+'"? This deletes it.')) return; db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; renderLeaderArea(); };
+      row.appendChild(back); row.appendChild(del); det.appendChild(row);
+    });
+    if(list.length>40){ var more = document.createElement("div"); more.className = "muted"; more.style.cssText = "font-size:12px;margin:4px 0"; more.textContent = "and "+(list.length-40)+" more (use the buttons at the top to handle the rest together)"; det.appendChild(more); }
+  });
   wrap.appendChild(det);
   return wrap;
 }
@@ -19420,6 +19540,217 @@ function autoAddRyanTabletAutopsy(){
     if(it.d===0 && keptOld) return;
     db.collection("assignments").add({kidId:"kid2", date:date, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz, crossSubjects:it.cross, skillId:"ryan-tablet-autopsy", createdAt:new Date().toISOString()});
+  });
+  try{ localStorage.setItem(flag, "1"); }catch(e){}
+}
+/* Off-Screen Fridays: every Friday is screen-free school for both kids, a themed hands-on day that counts toward school hours (see crossSubjects).
+   Added once for the next 8 Fridays. The standard tags come from secondary sources and are unverified. */
+var OFFSCREEN_FRIDAYS = [
+ {
+  "kid": "kid1",
+  "week": 0,
+  "title": "Fort Friday: Build It, Read in It, Tell the Story 🏕️",
+  "standard": "ELAGSE2SL2",
+  "cross": [
+   "ELA",
+   "Math"
+  ],
+  "passage": "Gather first — blankets, chairs or pillows, a book you love, a ruler or a piece of string, paper, a pencil, and Mom or Dad.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Builders make a plan before they build. A plan is a drawing of what you will make. Then you measure to see how big things are.\nSee It Done — Draw your fort from above, like a bird sees it. Make a square for the fort and a little gap for the door. Write one number on it, like 'door: 4 hands tall'. A hand is how wide your hand is.\nYour Turn — 1. Draw your fort plan on paper. Show the door. 2. Build your fort with blankets and pillows. 3. Measure your door with the string or ruler. Count how many hands tall it is, and write the number. 4. Take your book inside and read for 10 minutes. 5. Come out and tell Mom or Dad the characters in your book, the problem, and what happened at the end. 6. Draw a picture of your fort when you are done.\nCheck Yourself — Does your drawing have a door? Did you write a number? Did you tell the problem and the ending?\nShow What You Know — Show Mom or Dad your fort. Give them a tour and say one thing about the story you read.",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 1,
+  "title": "Candy Math Friday: Make It Fair! 🍬",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — a small pile of candy or counters (small buttons work too), a paper plate, paper, a pencil, and a partner.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Fair means each person gets the same. To make it fair, put all the candy together, count it, and then share it out one by one.\nSee It Done — Ryan has 14 and you have 8. Put them together: 14 + 8 = 22. Share 22 between two plates, one for each: 11 and 11. So Ryan gives you 3. Check: 14 - 3 = 11 and 8 + 3 = 11. Now it is fair!\nYour Turn — 1. Make two piles of candy, one big and one small. Count each pile and write the numbers. 2. Put the piles together and count all of the candy. Write the total. 3. Share the total onto two plates, one at a time, until it is fair. 4. Write how many moved from one pile to the other. 5. Do it again with new numbers. Pick any two piles you like. 6. Sort your candy by color. Make a little chart. Which color has the most?\nCheck Yourself — Do both plates have the same number? Does your number sentence match what you did?\nShow What You Know — Make up a candy problem for Mom or Dad to solve. Then eat 3 pieces as your Friday treat!",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 2,
+  "title": "Backyard Explorer: Be a Nature Scientist 🔍",
+  "standard": "S2L1",
+  "cross": [
+   "Science"
+  ],
+  "passage": "Gather first — paper, a pencil, colored pencils, a bag or bucket for collecting, and a grown-up who knows where you will explore.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Scientists look closely. Living things grow, need food and water, and can have babies, like plants and bugs. Non-living things do not, like rocks and sticks.\nSee It Done — A scientist finds a leaf and writes: 'Leaf, green, has lines. It came from a plant, so it is living (or was living).' She draws it and writes one question: 'Why do leaves fall in the fall?'\nYour Turn — 1. Go outside with your bag and find 5 things. Look at plants, bugs, rocks, and sticks. Do not pick anything that is living and growing. 2. Sort your things into two piles: living and non-living. 3. Draw 3 of your things and label each one. 4. Write or tell one question you have about something you found. 5. Look for a place where an animal might live, like a hole or a nest. Do not touch it. Draw it. 6. Put your things back where you found them.\nCheck Yourself — Can you say why each thing is living or non-living? Did you write a question?\nShow What You Know — Be the teacher! Teach Mom or Dad about one thing you found.",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 3,
+  "title": "Obstacle Course Friday: Beat Your Own Time 🏃",
+  "standard": "S2P1",
+  "cross": [
+   "Science",
+   "Math"
+  ],
+  "passage": "Gather first — pillows, chairs, a blanket, a stopwatch or a grown-up's phone timer, paper, a pencil, and Mom or Dad to time you.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A course is a path with things to jump over, crawl under, and go around. Timing tells us how long something takes. You are not racing anyone. You are trying to beat your own best time!\nSee It Done — A girl runs her course in 30 seconds. She runs it again and gets 27. She writes: Try 1: 30, Try 2: 27. She made her time shorter by 3 seconds. 30 - 27 = 3!\nYour Turn — 1. Build an obstacle course with at least 4 parts, like jump, crawl, hop, and spin. 2. Draw a map of your course. Number each part 1 to 4. 3. Have a grown-up time you. Write your first time. 4. Run it 2 more times. Write each time on your paper. 5. Find your best time. Circle it. How many seconds faster was it than your first try? 6. Make one part of the course harder or silly, and run it one more time.\nCheck Yourself — Did you write all your times? Did you circle the shortest time?\nShow What You Know — Tell Mom or Dad how you made your time better. What did you do differently?",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 4,
+  "title": "Make-It Friday: Pick a Project, Make It Beautiful ✂️",
+  "standard": "VA2.CR.2",
+  "cross": [
+   "Science",
+   "ELA"
+  ],
+  "passage": "Gather first — craft supplies from home like yarn, paper, scissors (kid safe), glue, crayons, and a grown-up to help.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Artists make a plan, make something, and then tell how they made it. Telling the steps is called explaining a process. Use words like first, next, and last.\nSee It Done — Pick one: (1) a friendship bracelet, (2) paper flowers for a bouquet, or (3) a collage of your favorite things. An artist says: 'First I picked my colors. Next I made a pattern, red, blue, red, blue. Last I tied it off.'\nYour Turn — 1. Pick one project from the three. Draw a quick plan or choose your colors. 2. Make your pattern. Try a pattern like ABAB. 3. Make your project. Take your time and ask for help if you need it. 4. When you are done, say the steps out loud: first, next, last. 5. Give your project to someone, or hang it up for everyone to see.\nCheck Yourself — Did you use first, next, and last? Can you point to the pattern in your project?\nShow What You Know — Show your project to Mom or Dad and tell them the steps like a teacher.",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 5,
+  "title": "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪",
+  "standard": "2.NR.1",
+  "cross": [
+   "ELA",
+   "Math"
+  ],
+  "passage": "Gather first — a simple no-bake snack recipe your grown-up picks, measuring cups and spoons, a bowl, and Mom or Dad. A grown-up does anything with heat or knives.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A recipe is a list of steps in order. First you gather, next you measure, and last you mix. Order matters. If you skip a step, it may not turn out right.\nSee It Done — A recipe says: First, put 2 cups of cereal in a bowl. Next, add 1 cup of raisins. Last, stir. The cook counts: 2 cups of cereal, 1 cup of raisins. That is 3 cups in all.\nYour Turn — 1. Read the recipe out loud with your grown-up. Point to each step. 2. Gather everything you need. Count how many things you gathered. 3. Measure each part with the cups or spoons. 4. Stir or mix it all together. 5. Write how many cups or spoons you used in all. Add them up. 6. Eat your snack as your Friday treat. Clean up your space.\nCheck Yourself — Did you follow the steps in order? Can you say the first, next, and last step?\nShow What You Know — Tell Mom or Dad the steps without looking at the recipe.",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 6,
+  "title": "Storyteller Friday: Puppet Show Time 🎭",
+  "standard": "ELAGSE2RL2",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — paper, craft sticks or pencils, crayons or markers, tape, and an audience like a stuffed animal, Mom, or Dad.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Every story has characters, a problem, and an ending. The problem is what goes wrong. The ending is how it is fixed. A message is what the story teaches us.\nSee It Done — Characters: a bunny and a turtle. Problem: the bunny loses his carrot. Ending: the turtle helps him look, and they find it. Message: friends help each other.\nYour Turn — 1. Make 2 puppets. Draw each character on paper and tape it to a stick. 2. Plan your story. Say the characters, the problem, and the ending. 3. Practice your puppet show one time. 4. Perform your show for your audience. 5. Ask your audience: What was the problem? What was the message?\nCheck Yourself — Does your story have characters, a problem, and an ending?\nShow What You Know — Tell your audience the message of your story in one sentence.",
+  "xp": 25
+ },
+ {
+  "kid": "kid1",
+  "week": 7,
+  "title": "Shop Friday: Open Your Own Store 🛒",
+  "standard": "2.NR.2.1",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — things from around the house to sell, paper for price tags, a pencil, real coins or play money, and Mom or Dad as your customer.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Shop owners put a price on every item. A price tells how many cents or dollars something costs. When a customer pays, the owner gives back change. Change is the money left over.\nSee It Done — A sticker costs 20 cents. A customer pays with 50 cents. Change: count up from 20 to 50. 20 + 30 = 50. So the shop owner gives back 30 cents.\nYour Turn — 1. Pick 6 things to sell. Make a price tag for each one. Use prices like 10 cents, 25 cents, and 50 cents. 2. Set up your store on a table or a blanket. 3. Have your customer pick two things. Add up the price of both. 4. Ask your customer to pay with more money. Count back the change. 5. Do it for 3 customers. Write down each total. 6. Close the store and count all the money you made.\nCheck Yourself — Did you add the prices correctly? Did you count back the right change?\nShow What You Know — Teach your customer how you figured out the change.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 0,
+  "title": "Marble Run Engineer: Build It, Test It, Graph It 🛠️",
+  "standard": "S4P3",
+  "cross": [
+   "Science",
+   "Math"
+  ],
+  "passage": "Gather first — cardboard tubes or folded paper, tape, a marble or small ball, a stopwatch or phone timer, graph paper, a pencil, and a book to raise one end.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Engineers test, measure, change one thing, and test again. A ramp that is steeper makes the marble go faster. Changing only one thing at a time is called a fair test.\nSee It Done — An engineer builds a ramp with one book under it. She times 5 runs and writes 2.1, 2.0, 2.2, 2.1, 2.0 seconds. Then she adds a second book and times again. The marble finishes faster, so a steeper ramp is faster.\nYour Turn — 1. Build a marble run at least 1 meter long with tape and cardboard. 2. Raise one end with 1 book. Time 5 runs and write each time. 3. Add a second book and time 5 more runs. 4. Make a bar graph or table that compares the average of each setup. Add the 5 times, then divide by 5. 5. Write a conclusion: what happened, and why do you think it happened? 6. Change one more thing, like the tube length, and predict what will happen before you test.\nCheck Yourself — Did you change only one thing at a time? Do your numbers support your conclusion?\nShow What You Know — Explain your test to Mom or Dad like an engineer giving a report.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 1,
+  "title": "Yard Mapper: Draw a Grid Map of the Backyard 🧭",
+  "standard": "4.GSR.8",
+  "cross": [
+   "Math",
+   "Social Studies"
+  ],
+  "passage": "Gather first — graph paper, a pencil, a ruler, a long piece of string or a measuring tape, a compass app or a grown-up who knows north, and your yard or a park.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A map shows where things are. A grid map uses squares so you can name a place by its row and column. A scale tells how big one square is in real life, like 1 square = 1 big step.\nSee It Done — Place the swing set on a grid. It is in column C, row 4. The scale is 1 square = 2 steps. If the sandbox is 6 squares away, it is 12 steps away in real life.\nYour Turn — 1. Draw a grid on graph paper. Label columns with letters and rows with numbers. 2. Walk your yard and decide your scale, like 1 square = 2 steps. 3. Mark at least 5 places on your map, like a tree, a fence, and a door. Write each place's row and column. 4. Draw an N arrow for north. 5. Pick two places and figure out how many steps apart they are. Check by walking. 6. Find the perimeter of a rectangle you marked, like a garden bed or sandbox. Add all the sides.\nCheck Yourself — Can another person find each place from your row and column? Does your arithmetic make sense?\nShow What You Know — Give Mom or Dad directions to a hidden object using only your map.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 2,
+  "title": "Cardboard Arcade: Build a Game with Scoring Math 🕹️",
+  "standard": "4.NR.2.3",
+  "cross": [
+   "Math",
+   "Computer Science"
+  ],
+  "passage": "Gather first — a cardboard box, paper cups or bowls, small balls or crumpled paper, tape, markers, a pencil, and a family member to play.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Game designers plan the rules and how points work. Scoring uses multiplication and addition. If hitting the far cup is worth 25 points and you hit it 3 times, that is 3 x 25 = 75.\nSee It Done — A game has 3 cups. Close cup = 10 points, middle cup = 20, far cup = 50. A player gets 2 close, 1 middle, 1 far. Score: 2 x 10 + 20 + 50 = 90.\nYour Turn — 1. Plan your game on paper: the goal, the cups or targets, and what each is worth. 2. Build your game from cardboard and cups. Decorate it. 3. Write the rules in 3 sentences. 4. Play a round with a family member. Each person throws 5 times. Write each score with a number sentence. 5. Find the total points each player earned. Who won? By how many points? 6. Make one rule change to make the game fairer or harder and play again.\nCheck Yourself — Do your number sentences add up? Are the rules easy for someone new to understand?\nShow What You Know — Teach someone how to play and score your game without help.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 3,
+  "title": "Fort and Facts: Read, Take Notes, Make Fact Cards 📚",
+  "standard": "ELAGSE4RI1",
+  "cross": [
+   "ELA"
+  ],
+  "passage": "Gather first — blankets and a fort spot, a nonfiction book you pick (about animals, space, or computers), index cards, a pencil, and a timer.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Good readers go back to the text to prove their ideas. A fact card has one fact and where you found it. Details from the text are proof.\nSee It Done — Card: 'Octopus have three hearts. (page 12).' The reader writes the fact in short words and the page number, so she can find it again.\nYour Turn — 1. Build a reading fort. Get comfortable. 2. Read for 20 minutes without stopping. 3. Write 5 fact cards. Put one fact and a page number on each card. 4. Shuffle the cards, then put them in order of what you think is most interesting. 5. Write one question the book did not answer. 6. Quiz a family member using your cards.\nCheck Yourself — Is each fact something the book said? Does each card have a page number?\nShow What You Know — Teach someone one new thing you learned, using your fact card as proof.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 4,
+  "title": "Tree Detective: Measure, Estimate, and Graph 🌳",
+  "standard": "4.MDR.6.1",
+  "cross": [
+   "Math",
+   "Science"
+  ],
+  "passage": "Gather first — a measuring tape or string and a ruler, graph paper, a pencil, and 5 or more trees, bushes, or plants outside.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Scientists measure and compare. To measure around a tree, wrap string around it and then lay the string next to a ruler. Estimating means making a smart guess before you measure.\nSee It Done — A student guesses a tree is 40 inches around. She measures and finds 52 inches. The difference is 52 - 40 = 12 inches. She writes her measurements in a table to compare trees.\nYour Turn — 1. Pick 5 trees or plants. Estimate how big around each one is and write your guess. 2. Measure each with string and a ruler. Write the real measure. 3. Find the difference between each guess and the real measure. 4. Make a bar graph of your measurements. 5. Convert the biggest measurement from inches to feet. Divide by 12. 6. Write 2 sentences about what your graph shows.\nCheck Yourself — Are your measurements in a table and a graph? Did you do the conversion correctly?\nShow What You Know — Tell Mom or Dad which tree was biggest and how you know.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 5,
+  "title": "Kitchen Fractions: Double the Recipe 🍳",
+  "standard": "4.NR.4",
+  "cross": [
+   "Math"
+  ],
+  "passage": "Gather first — a simple recipe that a grown-up picks, measuring cups and spoons, a pencil, paper, and a grown-up for anything hot or sharp.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Cooks change recipes by multiplying. To double a recipe, multiply every amount by 2. Fractions multiply too: 2 x 1/2 cup = 1 whole cup, and 2 x 3/4 cup = 6/4 or 1 1/2 cups.\nSee It Done — A recipe uses 3/4 cup of oats. Doubled: 2 x 3/4 = 6/4 = 1 2/4 = 1 1/2 cups of oats.\nYour Turn — 1. Read the recipe. Write each ingredient and amount in a table. 2. Make a second column called 'Doubled'. Multiply each amount by 2 and simplify. 3. Check your math with a grown-up. 4. Make the doubled recipe. Measure each ingredient. 5. Use your measuring cups to prove one of your answers. For example, fill 3/4 cup twice and pour it into a 1 cup and a 1/2 cup. 6. Eat your Friday snack and share it.\nCheck Yourself — Did you change every ingredient? Did you simplify improper fractions?\nShow What You Know — Explain to someone how you doubled a fraction, with a drawing.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 6,
+  "title": "Base Blueprint: Design Your Dream Base on Graph Paper 📐",
+  "standard": "4.GSR.8.3",
+  "cross": [
+   "Math",
+   "Related Arts"
+  ],
+  "passage": "Gather first — graph paper, a ruler, a pencil, colored pencils, scissors, cardboard or paper, and tape.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Architects draw blueprints before they build. Perimeter is the distance around a shape. Area is the number of squares inside. For a rectangle, perimeter = 2 x length + 2 x width and area = length x width.\nSee It Done — A room is 6 squares long and 4 squares wide. Perimeter = 2 x 6 + 2 x 4 = 20 squares. Area = 6 x 4 = 24 squares.\nYour Turn — 1. Design a base with at least 4 rooms on graph paper. Each square is 1 block. 2. Label each room with its length and width. 3. Find the perimeter and area of every room. Put it in a table. 4. Find the total area of your whole base. 5. Build a small model with cardboard or paper. 6. Check one room by counting squares. Does it match your area?\nCheck Yourself — Do your numbers match what you drew? Is every room labeled?\nShow What You Know — Give Mom or Dad a tour of your base and tell the area of your favorite room.",
+  "xp": 25
+ },
+ {
+  "kid": "kid2",
+  "week": 7,
+  "title": "Stopwatch Stats: Obstacle Course Times on a Line Plot ⏱️",
+  "standard": "4.MDR.6.2",
+  "cross": [
+   "Math",
+   "Science"
+  ],
+  "passage": "Gather first — space for an obstacle course, a stopwatch or phone timer, paper, a pencil, a ruler, and a family member to time you.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! A line plot is a number line with an X above each measurement. It shows how data is spread out. The most common time is the mode. The difference between the biggest and smallest is the range.\nSee It Done — Times in seconds: 31, 29, 30, 29, 28. On a number line from 27 to 32, make an X for each time. Two Xs sit above 29, so 29 is the mode. The range is 31 - 28 = 3 seconds.\nYour Turn — 1. Build a course with at least 5 parts. 2. Time yourself 8 times. Write down each time to the nearest second. 3. Draw a number line. Make an X for each time. 4. Find the mode and the range. 5. Try one strategy to be faster. Run 3 more times and add Xs in a different color. 6. Write whether your strategy worked. Use your data to prove it.\nCheck Yourself — Does your plot show every time? Did you find the mode and range?\nShow What You Know — Explain your line plot to a family member like a coach reading a report.",
+  "xp": 25
+ }
+];
+function nextFridayISO(fromISO){
+  var d = new Date(fromISO+"T00:00:00");
+  while(d.getDay()!==5) d.setDate(d.getDate()+1);
+  return isoDate(d);
+}
+function autoAddOffScreenFridays(){
+  if(!db) return;
+  var flag = "al_offscreen_fri_v1", done = false;
+  try{ done = !!localStorage.getItem(flag); }catch(e){}
+  if(done) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; have[a.kidId+"|"+a.title] = true; });
+  var first = new Date(nextFridayISO(todayISO())+"T00:00:00");
+  OFFSCREEN_FRIDAYS.forEach(function(it){
+    if(have[it.kid+"|"+it.title]) return;
+    var d = new Date(first); d.setDate(d.getDate()+7*it.week);
+    db.collection("assignments").add({kidId:it.kid, date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"offscreen-friday", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
 }
