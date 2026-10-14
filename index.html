@@ -18475,6 +18475,7 @@ function runAutoMigrations(){
     patchSafetyUndo();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
+    autoAddScooterTrack();
     balanceFutureLoad();
   }catch(e){ console.error("auto-migration error", e); }
 }
@@ -20154,6 +20155,70 @@ var OFFSCREEN_FRIDAYS = [
   "xp": 25
  }
 ];
+/* Scooter Track: four Fridays for Ryan (built from Mom's idea after a dog scare on the road). Project = apply stage; each Friday teaches the skill first (CLAUDE.md rule 14).
+   Standards: 4.MDR.6.1 and 4.MDR.6.2 and S4P3 are marked verified in STANDARD_STATUS (web check 14 Oct 2026: 4.MDR.6.1 = four operations with measurements, 4.MDR.6.2 = answer questions from data and graphs, S4P3 = forces and motion). */
+var SCOOTER_TRACK = [
+ {
+  "week": 0,
+  "title": "Scooter Track Friday 1: Plan Your Track in the Woods 🛴",
+  "standard": "4.MDR.6.1",
+  "cross": [
+   "Math",
+   "Social Studies"
+  ],
+  "xp": 25,
+  "passage": "Gather first — a measuring tape or a long piece of string, 6 stakes or sticks, a ball of string or flour to mark a line, graph paper, a pencil, a helmet, and a grown-up to walk the woods with you.\nHere's the Idea — Track builders plan before they dig. A plan shows where the track goes, how long it is, and how wide. Measuring lets you check that your plan really fits between the trees. A scale turns big real distances into small squares, like 1 square = 2 big steps.\nSee It Done — Say the track is 30 big steps long and 3 steps wide. With 1 square = 2 steps, that is 15 squares long and about 2 squares wide. If one big step is about 2 feet, the track is about 30 x 2 = 60 feet long.\nYour Turn — 1. Walk the woods with a grown-up and pick a route with the fewest trees, big roots, and steep spots. 2. Mark the start and end with stakes. 3. Pull the string between them and measure how long the route is. Write it down. 4. Measure how wide the path can be, at least 2 or 3 feet. 5. On graph paper, draw your route with a scale. Mark the trees, roots, and slopes you must go around. 6. Mark where the curves will go. Make them wide and gentle, because scooters do not turn sharply.\nCheck Yourself — Is your route clear of big roots and steep slopes? Does your drawing match the real length you measured?\nShow What You Know — Walk Mom or Dad along your route using only your drawing and tell them why you chose it."
+ },
+ {
+  "week": 1,
+  "title": "Scooter Track Friday 2: Clear the Path 🌲",
+  "standard": "4.MDR.6.1",
+  "cross": [
+   "Math",
+   "Science"
+  ],
+  "xp": 25,
+  "passage": "Gather first — a rake, work gloves, a bucket or wheelbarrow for leaves and sticks, a measuring tape, your plan from last Friday, a camera or phone for photos, long pants, closed shoes, a helmet, and a grown-up with you the whole time.\nHere's the Idea — Clearing a path is real work, and you can measure it. Counting how many pieces of path you clear and how long each takes lets you estimate how much is left. A grown-up cuts anything thicker than a pencil, so you rake, pull, and carry.\nSee It Done — If your track is 60 feet long and 3 feet wide, the cleared ground is 60 x 3 = 180 square feet. If you clear 20 feet in 30 minutes, the other 40 feet will take about 60 minutes.\nYour Turn — 1. Take a photo of the start of your route before you touch anything. 2. Check for poison ivy, ticks, and wasp nests with your grown-up before you start. 3. Rake the leaves off the route into a pile. 4. Pull out vines and small plants. A grown-up cuts anything thicker than a pencil. 5. Look for roots across the path. Big surface roots stay. Mark them and bend your route around them if you need to. 6. Time yourself clearing 10 feet. Use that to estimate how long the whole route will take. 7. Take an after photo.\nCheck Yourself — Did your estimate match how long the next 10 feet really took? Did you move your route around any roots?\nShow What You Know — Show Mom or Dad your before and after photos and say what surprised you."
+ },
+ {
+  "week": 2,
+  "title": "Scooter Track Friday 3: Pack It and Test It 🔬",
+  "standard": "S4P3",
+  "cross": [
+   "Science",
+   "Math"
+  ],
+  "xp": 25,
+  "passage": "Gather first — a 10-foot test strip from your cleared path, a hand tamper, a garden roller, or a heavy board to stamp with, a watering can, your scooter, a helmet, gloves, a stopwatch or phone timer, paper, a pencil, and a grown-up nearby.\nHere's the Idea — A scooter rolls easily when the ground pushes back evenly and the wheels do not sink or catch. Soft ground slows a scooter because the wheels push into it. Packing the dirt makes it firmer, so the scooter keeps more speed. Scientists test one change at a time. Here you will change only how hard you pack the ground, and keep everything else the same.\nSee It Done — Test 1, loose dirt: the scooter rolls 4 feet and stops. Test 2, packed by foot: it rolls 9 feet. Test 3, packed with a tamper and a little water: it rolls 15 feet. The more you pack it, the farther it rolls, so the ground pushes back more evenly.\nYour Turn — 1. Mark a 10-foot strip. Make a table with three columns: How I packed it, How far it rolled, What I noticed. 2. Test 1: roll the scooter down the loose strip from the same starting push each time. Measure how far it rolls. 3. Test 2: stamp the strip down with your feet. Test again. 4. Test 3: use the tamper, roller, or board. Sprinkle only a little water first. Test again. 5. Try each test three times and use the middle result. 6. Write which way worked best and why you think it did.\nCheck Yourself — Did you change only one thing between tests? Does your table show what really happened?\nShow What You Know — Explain to Mom or Dad why packed dirt rolls farther than loose dirt, using your table."
+ },
+ {
+  "week": 3,
+  "title": "Scooter Track Friday 4: Build the Rest and Ride 🛴",
+  "standard": "4.MDR.6.2",
+  "cross": [
+   "Math",
+   "Science"
+  ],
+  "xp": 25,
+  "passage": "Gather first — your tools from last Friday, your test strip results, your plan, a stopwatch or phone timer, graph paper, a pencil, your scooter, a helmet, gloves, and a grown-up nearby.\nHere's the Idea — Builders use what they learned from tests to finish the job. A graph helps you see which ride was fastest, and the data answers a question: did packing the track make it better? You ask a question, gather data, and let the numbers answer it.\nSee It Done — Three rides took 12, 9, and 8 seconds. A bar graph shows the biggest drop after the first ride. The question, did packing help?, is answered by the data: yes, the ride got 4 seconds faster.\nYour Turn — 1. Use the packing method that worked best to pack the rest of your route. 2. Do not rush. Pack in sections and check for lumps and sticks. 3. Walk the track first and pick up stones and sticks. 4. Time three rides from start to end and write each time down. 5. Make a bar graph of your ride times on graph paper. 6. Write one question the graph can answer. Then write the answer. 7. Ride your track with your helmet on. A grown-up is outside the whole time. If it feels unsafe, stop and fix that spot first.\nCheck Yourself — Does your graph match your times? Does your answer come from the data?\nShow What You Know — Tell Mom or Dad two things you would change on the track and why. Take a photo of your finished track."
+ }
+];
+function autoAddScooterTrack(){
+  if(!db) return;
+  var flag = "al_scooter_track_v1", done = false;
+  try{ done = !!localStorage.getItem(flag); }catch(e){}
+  if(done) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; have[a.kidId+"|"+a.title] = true; });
+  var first = new Date(nextFridayISO(todayISO())+"T00:00:00");
+  SCOOTER_TRACK.forEach(function(it){
+    if(have["kid2|"+it.title]) return;
+    var d = new Date(first); d.setDate(d.getDate()+7*it.week);
+    db.collection("assignments").add({kidId:"kid2", date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"scooter-track", createdAt:new Date().toISOString()});
+  });
+  try{ localStorage.setItem(flag, "1"); }catch(e){}
+}
 function nextFridayISO(fromISO){
   var d = new Date(fromISO+"T00:00:00");
   while(d.getDay()!==5) d.setDate(d.getDate()+1);

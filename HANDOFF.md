@@ -91,3 +91,8 @@ See the "Standards verification" section of OPS_NOTES.md for what was checked an
 ## Picture cards for long readings (14 Oct 2026)
 `EXPLAINER_CARDS` in index.html (above `speakerBtnHtml`): each entry has `match` (start of the lesson title) and `cards` ({say, html}). The lesson detail shows a collapsed "Too many words? See it in N quick cards" with Back/Next/Listen. Text only from approved scripts, simple shapes only (rule 25). First entry: Ryan's Reconstruction reading. No credits, no uploads, no SQL. To convert another long reading: add an entry.
 The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits, balance 447) is done; Mom uploads it as videos/ryan-reconstruction.mp4, then set a.video on that lesson.
+
+## Scooter Track + skills (14 Oct 2026)
+- `SCOOTER_TRACK` / `autoAddScooterTrack()` in index.html: four Ryan Friday lessons on the next four Fridays (plan, clear, pack and test, build and ride). Standards 4.MDR.6.1, 4.MDR.6.1, S4P3, 4.MDR.6.2 (all verified in STANDARD_STATUS). Existing Friday lessons stay; Mom can remove extras with the Leader catch-up card.
+- Open: the web check could not confirm 4.GSR.8.3 (Yard Mapper) means mapping; one source puts area/perimeter at 4.GSR.7. Recheck against Mom's alignment table.
+- Repo skills in `.claude/skills/`: add-reading-cards, verify-standard, ship-academy-change.
