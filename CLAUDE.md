@@ -214,11 +214,9 @@ Approved videos, with what they are for (video id after `watch?v=`):
 Supabase usage, the Nov 2026 plan email, what was already done to cut egress and logs, and the to-do list for 2027 are in `OPS_NOTES.md`.
 Read it before changing how often either app talks to Supabase, and update it when the numbers change.
 
-## 22. No heat, no knives, no weapons
+## 22. Safety: use good judgment
 
-Never write a lesson, game, craft, or activity that has a kid use heat (no stove, oven, microwave, kettle, hot water, candles, matches, lighters, glue guns, or anything that burns or gets hot), a knife or any blade, or a real or toy weapon (including a build whose purpose is to hurt, like a launcher aimed at someone).
-Food projects must be no-bake and need no cutting. Use craft sticks, spoons, or hands instead of knives. Kid-safe scissors for paper crafts are fine. A grown-up being present does not make it okay: the rule is that the kid never does these things in a lesson.
-Stories and history that mention fire, tools, or weapons are fine to read; the rule is about what the kid does. Mom decides about in-game items (Minecraft) case by case.
+Keep every activity safe for a 7- and a 10-year-old. Family baking, warm (not hot) water, kid-safe scissors, and in-game Minecraft items are all fine (Mom confirmed). Use judgment on anything else: no real weapons or toy weapons used against people, no unsupervised stove or oven work, no sharp knives for the kids, and a grown-up nearby for anything hot. Stories and history that mention fire or tools are fine to read.
 
 ## 23. Handoff
 
