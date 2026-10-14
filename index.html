@@ -2296,6 +2296,7 @@ function renderHome(){
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
   els.view.appendChild(familyGoalCard());
+  if(kid && kid.id==="kid1"){ var fi = fairyIntroCard(); if(fi) els.view.appendChild(fi); }
   weekendFeaturedFor(kid, iso).forEach(function(f){
     var wb = document.createElement("button");
     wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
@@ -5563,7 +5564,9 @@ function renderLessonDetail(){
   var videoHtml = "";
   if(a.video){
     var embed = youtubeEmbedUrl(a.video);
-    videoHtml = embed
+    videoHtml = /^videos\/[\w.-]+\.mp4$/i.test(a.video.trim())
+      ? '<video controls playsinline preload="metadata" src="'+escapeHtml(a.video.trim())+'" style="width:100%;border-radius:12px;margin-bottom:14px;background:#000"></video>'
+      : embed
       ? '<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;margin-bottom:14px"><iframe src="'+embed+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen title="Lesson video"></iframe></div>'
       : '<div style="margin-bottom:14px">'+videoLinkHtml(a.video)+'</div>';
   }
@@ -18829,6 +18832,19 @@ function goalCupSvg(full, size){
 function goalIconHtml(g, full, size){
   if(g.emoji==="🧋") return goalCupSvg(full, size);
   return '<span style="font-size:'+size+'px;'+(full ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
+}
+/* Anna's "Meet your fairy" video (made in HeyGen, approved by Mom, hosted in this repo under videos/). Shows on her Home until she taps "Got it". */
+function fairyIntroCard(){
+  try{ if(localStorage.getItem("al_fairy_intro_seen")==="1") return null; }catch(e){}
+  var card = document.createElement("div");
+  card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#f3e8ff,#ffe8f3);box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a45";
+  card.innerHTML = '<div style="font-weight:800;font-size:15px;margin-bottom:6px">🧚 Meet your fairy helper!</div>'+
+    '<video controls playsinline preload="metadata" src="videos/anna-fairy-intro.mp4" style="width:100%;border-radius:12px;background:#000"></video>';
+  var btn = document.createElement("button");
+  btn.type = "button"; btn.className = "primary-btn"; btn.style.cssText = "margin-top:8px;width:100%"; btn.textContent = "Got it! ✨";
+  btn.onclick = function(){ try{ localStorage.setItem("al_fairy_intro_seen","1"); }catch(e){} card.remove(); };
+  card.appendChild(btn);
+  return card;
 }
 function familyGoalCard(){
   var g = familyGoal(), pr = familyGoalProgress(g), got = Math.min(pr.count, g.target), reached = pr.count>=g.target;
