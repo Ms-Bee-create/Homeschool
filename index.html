@@ -18073,14 +18073,23 @@ function runAutoMigrations(){
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
    Saturday or Sunday moves to the next Monday (this is how a Design Studio lesson ended up on a
    Sunday). Past dates are left alone so nothing looks like it vanished. */
+/* A day with more than this many lessons is where they stop finishing (Anna finished all of her 6-lesson days, and only 3 of 10 on a stacked Monday). */
+var DAILY_LESSON_CAP = {kid1:6, kid2:10};
 function moveWeekendLessonsToMonday(){
   if(!db) return;
-  var today = todayISO(), moved = 0;
+  var today = todayISO(), moved = 0, counts = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId && a.date){ var k = a.kidId+"|"+a.date; counts[k] = (counts[k]||0)+1; }
+  });
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if((a.kidId!=="kid1" && a.kidId!=="kid2") || a.done || !a.date || a.date<today || !isWeekendIso(a.date) || hasWork(a)) return;
-    var mon = isoDate(addSchoolDays(new Date(a.date+"T00:00:00"), 1));
-    a.date = mon; db.doc("assignments/"+id).update({date:mon}); moved++;
+    var cap = DAILY_LESSON_CAP[a.kidId] || 99, d = addSchoolDays(new Date(a.date+"T00:00:00"), 1), dest = isoDate(d), tries = 0;
+    /* Move to the next school day that has room, instead of stacking everything on Monday. */
+    while((counts[a.kidId+"|"+dest]||0) >= cap && tries++ < 15){ d = addSchoolDays(d, 1); dest = isoDate(d); }
+    counts[a.kidId+"|"+a.date]--; counts[a.kidId+"|"+dest] = (counts[a.kidId+"|"+dest]||0)+1;
+    a.date = dest; db.doc("assignments/"+id).update({date:dest}); moved++;
   });
   if(moved) console.log("moveWeekendLessonsToMonday: moved "+moved+" lesson(s)");
 }
