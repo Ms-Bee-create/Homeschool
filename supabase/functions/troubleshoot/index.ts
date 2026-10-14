@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const householdId = userData?.user?.id;
     if (!householdId) return json({ error: "not signed in" }, 401);
 
-    const { kidId, assignmentTitle, helpTitle, steps, messages } = await req.json();
+    const { kidId, assignmentTitle, helpTitle, steps, messages, mode, passage, subject } = await req.json();
     if (!["kid1", "kid2"].includes(kidId) || !Array.isArray(messages) || !messages.length) {
       return json({ error: "bad request" }, 400);
     }
@@ -41,7 +41,21 @@ Deno.serve(async (req) => {
     }));
     const lastUser = clean[clean.length - 1];
 
-    const system = `You are a friendly, patient tech helper for a 9-10 year old boy named Ryan who is building retro computer projects (virtual machines, old Windows versions, QBasic programs) for school.
+    const lessonSystem = kidId === "kid1"
+      ? `You are a kind, playful fairy helper for Anna, a 7-year-old in 2nd grade. Use short, simple words and 1-3 short sentences. Cheer her on. Be warm and encouraging.`
+      : `You are Clippy, a friendly paperclip helper for Ryan, a 9-10 year old in 4th grade who loves computers, Minecraft and tech facts. Use plain words, 2-4 short sentences, and a light, fun tone.`;
+    const lessonRules = `
+The lesson is: "${String(assignmentTitle ?? "").slice(0, 200)}" (${String(subject ?? "").slice(0, 60)}).
+Lesson text (your main source of truth):
+${String(passage ?? "").slice(0, 3000)}
+
+Rules:
+- Give a hint or the next small step, never the final answer to a quiz or problem. Ask a guiding question.
+- Use the lesson's own example and words. If you are unsure, say so honestly instead of making something up.
+- Stay on this lesson. If asked about anything else, kindly steer back.
+- Never ask for personal information. Keep every activity safe for a young child; if something could be hot, sharp or risky, tell the kid to ask a grown-up.
+- If the kid seems frustrated, say it is okay to take a break and ask Mom or Dad.`;
+    const system = mode === "lesson" ? lessonSystem + lessonRules : `You are a friendly, patient tech helper for a 9-10 year old boy named Ryan who is building retro computer projects (virtual machines, old Windows versions, QBasic programs) for school.
 He is working on the lesson: "${String(assignmentTitle ?? "").slice(0, 200)}".
 Known fixes for this lesson ("${String(helpTitle ?? "").slice(0, 100)}"), use them as your main source of truth:
 ${(Array.isArray(steps) ? steps : []).slice(0, 30).map((s: string, i: number) => `${i + 1}. ${String(s).slice(0, 700)}`).join("\n")}
