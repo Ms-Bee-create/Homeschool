@@ -219,3 +219,8 @@ Read it before changing how often either app talks to Supabase, and update it wh
 Never write a lesson, game, craft, or activity that has a kid use heat (no stove, oven, microwave, kettle, hot water, candles, matches, lighters, glue guns, or anything that burns or gets hot), a knife or any blade, or a real or toy weapon (including a build whose purpose is to hurt, like a launcher aimed at someone).
 Food projects must be no-bake and need no cutting. Use craft sticks, spoons, or hands instead of knives. Kid-safe scissors for paper crafts are fine. A grown-up being present does not make it okay: the rule is that the kid never does these things in a lesson.
 Stories and history that mention fire, tools, or weapons are fine to read; the rule is about what the kid does. Mom decides about in-game items (Minecraft) case by case.
+
+## 23. Handoff
+
+`HANDOFF.md` has the full state of the project (who the kids are, how Mom works, repos and live URLs, code map, workflow, open work). Read it at the start of every session and update it
+whenever something important changes, so nothing is lost when a conversation is compacted.
