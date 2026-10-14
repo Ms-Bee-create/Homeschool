@@ -28,3 +28,13 @@ log ingestion 1 GB, database 500 MB, storage 1 GB, 50,000 monthly active users.
 - "Make-It Friday" project picks for Anna are folded into the Off-Screen Friday lessons.
 - Open question for Mom: should Fridays also be screen-free for screen time, or only for school?
 
+## Standards verification (14 Oct 2026)
+Mom's rule: never guess a standard code. On 14 Oct I found that several tags I had added were guesses or mismatches and fixed them. The official GaDOE PDFs cannot be opened from the build
+environment (only WebSearch snippets work), so "verified" means the code exists in Georgia-aligned sources AND its meaning matches the lesson.
+- Fixed: Obstacle Course (S2P1 is matter, not motion) now 2.NR.2.3; Kitchen Helper (2.NR.1 is place value) now 2.NR.2.1; Shop Friday and Wobbly saving now 2.MDR.6.2 (coins/money); Wobbly Job Chart now 2.MDR.5.4 (bar graphs);
+  Candy Math and Stuffie Math now 2.NR.2.3 (2.NR.2.1 is only within 20); Ryan's Stopwatch Stats now 4.MDR.6.3 (dot plots); Tree Detective now 4.MDR.6.2; Yard Mapper 4.GSR.8.3; Kitchen Fractions 4.NR.4.6
+  (Georgia grade 4 has no multiply-a-fraction-by-a-whole-number standard in the 4.NR.4 list; 4.NR.4.6 adds like-denominator fractions); grade 2 speaking tags ELAGSE2SL2/SL3 replaced because their wording could not be confirmed.
+- Known unverified, needs Mom's alignment table: "3-5.F" (on about 25 of Ryan's computer lessons; it does not look like Georgia's computer science numbering, which the CodeHS mapping lists as CSS.EL.3-5.x and CSS.KC.3-5.x),
+  4.PAR.3 (group exists; sub-standard wording unconfirmed), ELAGSE4SL4, older SS2*, S2E*, S2P3 tags on Anna's earlier lessons, and anything the Leader "Standards check" card lists as unverified.
+- Process now (CLAUDE.md rule 24): before using a tag, confirm the code exists AND matches the skill via search; if not confirmed, ask Mom to check her alignment table; record it in STANDARD_STATUS in index.html.
+

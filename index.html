@@ -6596,6 +6596,7 @@ function renderLeaderArea(){
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(catchUpCard());
+  els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(helperChatsCard());
@@ -18067,6 +18068,75 @@ function patchSafetyText(){
     if(Object.keys(upd).length){ Object.assign(a, upd); db.doc("assignments/"+id).update(upd); }
   });
 }
+/* Standard tags (CLAUDE.md rules 4, 6, 24): never guess. VERIFIED means the code exists in Georgia's standards AND its meaning matches how we use it,
+   checked against Georgia-aligned sources on 14 Oct 2026 (the official PDFs could not be opened from the build environment). EXISTS means the code is real
+   but its exact wording or fit is not confirmed. Anything else in the Leader "Standards check" card is unverified and needs Mom's alignment table. */
+var STANDARD_STATUS = {
+  "ELAGSE2RL2":"verified", "ELAGSE2RF3":"verified", "ELAGSE2RI1":"verified", "S2L1":"exists", "S2P1":"verified", "VA2.CR.2":"verified",
+  "2.NR.1":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
+  "S4P3":"verified", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
+  "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
+  "ELAGSE4RI1":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
+};
+var STANDARD_TAG_FIXES = {
+ "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "ELAGSE2RL2",
+ "Candy Math Friday: Make It Fair! 🍬": "2.NR.2.3",
+ "Obstacle Course Friday: Beat Your Own Time 🏃": "2.NR.2.3",
+ "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪": "2.NR.2.1",
+ "Shop Friday: Open Your Own Store 🛒": "2.MDR.6.2",
+ "Teacher Anna Opens Stuffie School 🧸": "ELAGSE2RL2",
+ "Teacher Anna: Math Class with Candy 🍬": "2.NR.2.3",
+ "Teacher Anna: Sharing Circle and Writing Class ✏️": "ELAGSE2SL1",
+ "Teacher Anna: Graduation Day at Stuffie School 🎓": "ELAGSE2SL1",
+ "Wobbly Pizza Pay: Count by 20s 🍕": "2.NR.2.3",
+ "Wobbly Job Chart: Which Job Pays More? 🍔": "2.MDR.5.4",
+ "Save for Something Big: Make a Saving Plan 🛍️": "2.MDR.6.2",
+ "Yard Mapper: Draw a Grid Map of the Backyard 🧭": "4.GSR.8.3",
+ "Tree Detective: Measure, Estimate, and Graph 🌳": "4.MDR.6.2",
+ "Kitchen Fractions: Double the Recipe 🍳": "4.NR.4.6",
+ "Stopwatch Stats: Obstacle Course Times on a Line Plot ⏱️": "4.MDR.6.3"
+};
+function patchStandardTags(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], want = STANDARD_TAG_FIXES[a.title];
+    if(want && a.standard!==want){ a.standard = want; db.doc("assignments/"+id).update({standard:want}); }
+  });
+}
+function standardsCheckCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"standardscheck");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  var tally = {}, unver = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], c = String(a.standard||"").trim() || "(no tag)";
+    c.split(/[\/,;]\s*/).forEach(function(code){
+      code = code.trim(); if(!code) return;
+      var st = STANDARD_STATUS[code] || "unverified";
+      tally[st] = (tally[st]||0)+1;
+      if(st==="unverified"){ var k = a.kidId+"|"+code; unver[k] = (unver[k]||0)+1; }
+    });
+  });
+  sum.textContent = "📋 Standards check — "+(tally.unverified||0)+" lesson tags unverified";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Verified = the code exists and matches the lesson (checked against Georgia-aligned sources). Exists = real code, exact fit not confirmed. Unverified = not checked yet; compare these with your alignment table.";
+  det.appendChild(note);
+  var line = document.createElement("div"); line.style.cssText = "font-size:13px;margin:6px 0";
+  line.textContent = "Verified: "+(tally.verified||0)+"   Exists: "+(tally.exists||0)+"   Unverified: "+(tally.unverified||0);
+  det.appendChild(line);
+  Object.keys(unver).sort(function(x,y){ return unver[y]-unver[x]; }).slice(0,30).forEach(function(k){
+    var kid = k.split("|")[0], code = k.split("|")[1], row = document.createElement("div");
+    row.style.cssText = "font-size:12.5px;padding:3px 0;border-top:1px solid var(--border)";
+    row.textContent = (kidData(kid).name||kid)+": "+code+" ("+unver[k]+" lesson"+(unver[k]===1?"":"s")+")";
+    det.appendChild(row);
+  });
+  wrap.appendChild(det);
+  return wrap;
+}
 function runAutoMigrations(){
   if(!db) return;
   try{
@@ -18097,6 +18167,7 @@ function runAutoMigrations(){
     patchRyanComputerVideos();
     patchAnnaApprovedVideos();
     patchSafetyText();
+    patchStandardTags();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     balanceFutureLoad();
@@ -19580,7 +19651,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 0,
   "title": "Fort Friday: Build It, Read in It, Tell the Story 🏕️",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2RL2",
   "cross": [
    "ELA",
    "Math"
@@ -19592,7 +19663,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 1,
   "title": "Candy Math Friday: Make It Fair! 🍬",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19614,7 +19685,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 3,
   "title": "Obstacle Course Friday: Beat Your Own Time 🏃",
-  "standard": "S2P1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Science",
    "Math"
@@ -19638,7 +19709,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 5,
   "title": "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪",
-  "standard": "2.NR.1",
+  "standard": "2.NR.2.1",
   "cross": [
    "ELA",
    "Math"
@@ -19661,7 +19732,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid1",
   "week": 7,
   "title": "Shop Friday: Open Your Own Store 🛒",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.6.2",
   "cross": [
    "Math"
   ],
@@ -19684,7 +19755,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 1,
   "title": "Yard Mapper: Draw a Grid Map of the Backyard 🧭",
-  "standard": "4.GSR.8",
+  "standard": "4.GSR.8.3",
   "cross": [
    "Math",
    "Social Studies"
@@ -19719,7 +19790,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 4,
   "title": "Tree Detective: Measure, Estimate, and Graph 🌳",
-  "standard": "4.MDR.6.1",
+  "standard": "4.MDR.6.2",
   "cross": [
    "Math",
    "Science"
@@ -19731,7 +19802,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 5,
   "title": "Kitchen Fractions: Double the Recipe 🍳",
-  "standard": "4.NR.4",
+  "standard": "4.NR.4.6",
   "cross": [
    "Math"
   ],
@@ -19754,7 +19825,7 @@ var OFFSCREEN_FRIDAYS = [
   "kid": "kid2",
   "week": 7,
   "title": "Stopwatch Stats: Obstacle Course Times on a Line Plot ⏱️",
-  "standard": "4.MDR.6.2",
+  "standard": "4.MDR.6.3",
   "cross": [
    "Math",
    "Science"
@@ -19789,7 +19860,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 0,
   "title": "Teacher Anna Opens Stuffie School 🧸",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2RL2",
   "cross": [
    "ELA"
   ],
@@ -19799,7 +19870,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 1,
   "title": "Teacher Anna: Math Class with Candy 🍬",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19819,7 +19890,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 3,
   "title": "Teacher Anna: Sharing Circle and Writing Class ✏️",
-  "standard": "ELAGSE2SL3",
+  "standard": "ELAGSE2SL1",
   "cross": [
    "ELA"
   ],
@@ -19839,7 +19910,7 @@ var ANNA_STUFFIE_SCHOOL = [
  {
   "week": 5,
   "title": "Teacher Anna: Graduation Day at Stuffie School 🎓",
-  "standard": "ELAGSE2SL2",
+  "standard": "ELAGSE2SL1",
   "cross": [
    "ELA"
   ],
@@ -19873,7 +19944,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 0,
   "title": "Wobbly Pizza Pay: Count by 20s 🍕",
-  "standard": "2.NR.2.1",
+  "standard": "2.NR.2.3",
   "cross": [
    "Math"
   ],
@@ -19883,7 +19954,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 2,
   "title": "Wobbly Job Chart: Which Job Pays More? 🍔",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.5.4",
   "cross": [
    "Math"
   ],
@@ -19893,7 +19964,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 4,
   "title": "Save for Something Big: Make a Saving Plan 🛍️",
-  "standard": "2.NR.2.1",
+  "standard": "2.MDR.6.2",
   "cross": [
    "Math"
   ],

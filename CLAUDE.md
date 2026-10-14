@@ -224,3 +224,10 @@ Stories and history that mention fire, tools, or weapons are fine to read; the r
 
 `HANDOFF.md` has the full state of the project (who the kids are, how Mom works, repos and live URLs, code map, workflow, open work). Read it at the start of every session and update it
 whenever something important changes, so nothing is lost when a conversation is compacted.
+
+## 24. Standard tags are verified, never guessed
+
+Every `standard` tag must be confirmed twice before it ships: (1) the code exists in Georgia's standards, and (2) its meaning matches what the lesson actually teaches (for example S2P1 is matter, so it does not fit a lesson about motion).
+Use WebSearch to confirm, then add the code to `STANDARD_STATUS` in index.html as "verified". If it cannot be confirmed, do not guess: use a code already marked verified that truly fits, or ask Mom to check her alignment table.
+Never reuse a tag just because an older lesson used it. The Leader "Standards check" card lists tags still unverified. See OPS_NOTES.md "Standards verification".
+
