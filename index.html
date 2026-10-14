@@ -697,6 +697,15 @@ body.ryan-skin .idea{border-radius:0}
 .ac-warn{display:none;align-items:center;gap:6px;font-size:12.5px;color:var(--coral);background:var(--coral-soft);border-radius:8px;padding:6px 9px;margin:-4px 0 10px}
 .ac-warn.show{display:flex}
 .ac-warn-icon{font-size:14px}
+.xc-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;display:flex;flex-direction:column;gap:10px;min-height:220px}
+.xc-card h3{margin:0;font-size:18px}
+.xc-card p{margin:0;font-size:16px;line-height:1.45}
+.xc-row{display:flex;gap:10px;align-items:flex-start}
+.xc-row p{min-width:0}
+.xc-b{flex:none;min-width:44px;height:44px;padding:0 6px;box-sizing:border-box;border-radius:22px;background:var(--paper);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700}
+.xc-big{font-size:42px;font-weight:700;line-height:1}
+.xc-bar{display:flex;align-items:center;gap:8px;font-weight:700}
+.xc-bar i{flex:1;height:8px;border-radius:4px;background:currentColor;opacity:.5}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -2628,6 +2637,59 @@ function speak(text){
   var u = new SpeechSynthesisUtterance(text);
   u.rate = 0.95;
   window.speechSynthesis.speak(u);
+}
+/* Picture cards for long readings: a few big cards (one idea each) with a listen button. Cards use only words from the
+   approved script and simple shapes (rule 25). Add an entry per long reading; "match" is a piece of the lesson title. */
+var EXPLAINER_CARDS = [
+ {match:"US History reading (next era)", cards:[
+  {say:"Reconstruction. After the Civil War, much of the South was in ruins. Farms and plantations were burned, and Confederate money was worthless. Rebuilding the South was called Reconstruction, and it lasted from 1865 to 1877.",
+   html:'<h3>What was Reconstruction?</h3><p>After the Civil War, much of the South was in ruins.</p><div class="xc-row"><span class="xc-b">1</span><p>Farms and plantations were burned.</p></div><div class="xc-row"><span class="xc-b">2</span><p>Confederate money was worthless.</p></div><p><b>Rebuilding the South</b> was called <b>Reconstruction</b>.</p><div class="xc-bar"><span>1865</span><i></i><span>1877</span></div>'},
+  {say:"Fact one. Three new amendments were added to the Constitution. The 13th outlawed slavery. The 14th said Black people were citizens, and that everyone is protected equally by the law. The 15th gave all male citizens the right to vote, no matter their race.",
+   html:'<h3>Fact 1: Three new amendments</h3><div class="xc-row"><span class="xc-b">13th</span><p>Outlawed slavery.</p></div><div class="xc-row"><span class="xc-b">14th</span><p>Black people were citizens. Everyone is protected equally by the law.</p></div><div class="xc-row"><span class="xc-b">15th</span><p>All male citizens could vote, no matter their race.</p></div>'},
+  {say:"Fact two. Some southern states passed Black Codes. These were unfair laws that kept Black people from voting, going to school, owning land, and even getting jobs. To help, the government set up Freedman's Bureaus, and they set up schools that Black children could attend.",
+   html:'<h3>Fact 2: Unfair laws, and help</h3><div class="xc-row"><span class="xc-b">✗</span><p><b>Black Codes</b> were unfair laws. They kept Black people from voting, going to school, owning land, and getting jobs.</p></div><div class="xc-row"><span class="xc-b">✓</span><p><b>Freedman\'s Bureaus</b> were set up by the government to help. They set up schools Black children could attend.</p></div>'},
+  {say:"Fact three. Reconstruction ended in 1877, when President Hayes removed the federal troops from the South. Sadly, many of the changes to equal rights were quickly reversed.",
+   html:'<h3>Fact 3: It ended in 1877</h3><div class="xc-big">1877</div><p>President Hayes removed the federal troops from the South.</p><p>Sadly, many of the changes to equal rights were quickly reversed.</p>'},
+  {say:"One more fact, right from home. Georgia was the last state let back into the Union, in 1870!",
+   html:'<h3>Right from home</h3><div class="xc-big">1870</div><p>Georgia was the <b>last state</b> let back into the Union.</p>'}
+ ]}
+];
+function explainerCardsEl(a){
+  var def = null;
+  EXPLAINER_CARDS.forEach(function(d){ if(String(a.title||"").indexOf(d.match)===0) def = d; });
+  if(!def) return null;
+  var det = document.createElement("details");
+  det.style.cssText = "margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)";
+  var key = detailsOpenKey("explainer", a.kidId, false, a.id);
+  if(isDetailsOpen(key)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(key, det.open); if(!det.open && window.speechSynthesis) window.speechSynthesis.cancel(); });
+  var sum = document.createElement("summary");
+  sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🃏 Too many words? See it in "+def.cards.length+" quick cards";
+  det.appendChild(sum);
+  var i = 0;
+  var box = document.createElement("div");
+  box.className = "xc-card";
+  var ctl = document.createElement("div");
+  ctl.style.cssText = "display:flex;gap:8px;margin-top:10px";
+  var bcss = "padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer;min-height:44px";
+  function mk(t, f, grow){ var b = document.createElement("button"); b.type = "button"; b.textContent = t; b.style.cssText = bcss+(grow?";flex:1":""); b.onclick = f; return b; }
+  var back = mk("Back", function(){ if(i>0){ i--; draw(); } });
+  var next = mk("Next", function(){ if(i<def.cards.length-1){ i++; draw(); } });
+  var say = mk("🔊 Listen", function(){ speak(def.cards[i].say); }, true);
+  var dots = document.createElement("div");
+  dots.style.cssText = "text-align:center;margin-top:6px;color:var(--muted);font-size:13px";
+  ctl.appendChild(back); ctl.appendChild(say); ctl.appendChild(next);
+  function draw(){
+    box.innerHTML = def.cards[i].html;
+    back.disabled = i===0; next.disabled = i===def.cards.length-1;
+    back.style.opacity = back.disabled ? ".4" : "1"; next.style.opacity = next.disabled ? ".4" : "1";
+    dots.textContent = "Card "+(i+1)+" of "+def.cards.length;
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+  det.appendChild(box); det.appendChild(ctl); det.appendChild(dots);
+  draw();
+  return det;
 }
 function speakerBtnHtml(){
   return '<button class="speak-btn" title="Read aloud" aria-label="Read aloud" style="border:none;background:none;cursor:pointer;font-size:15px;padding:0 4px;line-height:1;vertical-align:middle">🔊</button>';
@@ -5662,7 +5724,9 @@ function renderLessonDetail(){
     ? '<div id="flagBanner" style="margin-bottom:14px;padding:10px 12px;border-radius:10px;background:var(--coral-soft);color:var(--coral);font-weight:600;font-size:13.5px">🚩 Your leader flagged this — please take another look'+(a.reviewNote?': '+escapeHtml(a.reviewNote):'.')+'</div>'
     : '<div id="flagBanner"></div>';
 
-  card.innerHTML = headHtml + passageHtml + videoHtml + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+  card.innerHTML = headHtml + passageHtml + videoHtml + '<div id="explainerSlot"></div>' + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
+  var xcEl = explainerCardsEl(a), xcSlot = document.getElementById("explainerSlot");
+  if(xcEl && xcSlot) xcSlot.appendChild(xcEl);
   /* Anna's progress header: the star trail, the coach bubble and the rainbow meter all read the
      same tick boxes she is already using, so every checklist lesson gets them for free. */
   function updateAnnaProgress(){
