@@ -20,3 +20,11 @@ log ingestion 1 GB, database 500 MB, storage 1 GB, 50,000 monthly active users.
 - Before 2027: log ingestion will still likely be over 1 GB a month (about 70 to 80 MB a day recently). Options: add quiet hours (no polling overnight), poll less
   often on kid devices, fewer requests per poll in Momma Money (it makes about 7 per tick), drop the realtime nudges if they cause extra reloads.
 - If a lesson ever shows without its text after a poll, check the light-poll merge in syncAll (index.html).
+
+## Promised to Mom, still to build (updated 14 Oct 2026)
+- Drawn pictures in every lesson's "See It Done" step (a library of simple SVGs: place value blocks, number lines, arrays, fraction strips, clocks, coins, grids), starting with Anna's math, then Ryan's. Mom said "please make sure this gets done."
+- Rewrite the roughly 40 hardest Anna lessons in simpler words (reading level check found about 40 at 6th grade or above; the worst are the Social Studies Book chapters and Story Elements practice). Then check Ryan's tech-word lessons.
+- Extend the existing AI helper (supabase/functions/troubleshoot) to every lesson for both kids: a paperclip for Ryan, a fairy for Anna, text and voice, answers in simple words using the lesson text, saved for Mom under Helper chats. Mom has confirmed Ryan's current helper works, so the key and function are set up.
+- "Make-It Friday" project picks for Anna are folded into the Off-Screen Friday lessons.
+- Open question for Mom: should Fridays also be screen-free for screen time, or only for school?
+
