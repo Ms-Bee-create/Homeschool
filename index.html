@@ -2652,7 +2652,47 @@ var EXPLAINER_CARDS = [
    html:'<h3>Fact 3: It ended in 1877</h3><div class="xc-big">1877</div><p>President Hayes removed the federal troops from the South.</p><p>Sadly, many of the changes to equal rights were quickly reversed.</p>'},
   {say:"One more fact, right from home. Georgia was the last state let back into the Union, in 1870!",
    html:'<h3>Right from home</h3><div class="xc-big">1870</div><p>Georgia was the <b>last state</b> let back into the Union.</p>'}
- ]}
+ ]} ,
+ {match:"Virtual Phones Lab 1:", cards:[
+ {
+  "say": "Words to own. Host: the real computer. Guest: the pretend phone running inside it. Emulator: the program that builds the guest.",
+  "html": "<h3>Words to own</h3><div class=\"xc-row\"><span class=\"xc-b\">HOST</span><p>The real computer. It hosts the pretend phone like a party host.</p></div><div class=\"xc-row\"><span class=\"xc-b\">GUEST</span><p>The pretend phone running inside it.</p></div><div class=\"xc-row\"><span class=\"xc-b\">EMULATOR</span><p>The program that builds the guest.</p></div>"
+ },
+ {
+  "say": "CPU: the computer's brain. Architecture: the computer language a CPU speaks. Most PCs speak one called x86 64, and most real phones speak one called ARM.",
+  "html": "<h3>CPU and architecture</h3><div class=\"xc-row\"><span class=\"xc-b\">CPU</span><p>The computer's brain.</p></div><div class=\"xc-row\"><span class=\"xc-b\">ARCH</span><p>The computer language a CPU speaks.</p></div><p>Most PCs speak <b>x86_64</b>. Most real phones speak <b>ARM</b>.</p>"
+ },
+ {
+  "say": "If you speak English and your friend only speaks Spanish, a translator has to repeat every sentence, and the chat takes forever. If you both speak the same language, you just talk. When the guest's architecture does not match the host's, the host has to translate every instruction, and that is slow.",
+  "html": "<h3>The translator picture</h3><p>You speak English. Your friend only speaks Spanish. A translator repeats every sentence, so the chat takes forever.</p><p>Same language? You just talk.</p><p>When the guest and host speak different languages, the host translates every instruction. That is slow.</p>"
+ },
+ {
+  "say": "A hypervisor is a helper that lets the guest talk straight to the host's CPU with no translating. Turning that helper on is called virtualization.",
+  "html": "<h3>The helper</h3><div class=\"xc-row\"><span class=\"xc-b\">HYP</span><p>A <b>hypervisor</b> lets the guest talk straight to the host's CPU. No translating.</p></div><div class=\"xc-row\"><span class=\"xc-b\">VIRT</span><p>Turning that helper on is called <b>virtualization</b>.</p></div>"
+ },
+ {
+  "say": "What to do. Write the name of your virtual phone program. Time how long it takes to reach the home screen and to open one app. Press Control Shift Escape, click Performance, then CPU, and write down whether Virtualization says Enabled or Disabled. If it says Disabled, do not go into the BIOS yourself. Show a grown-up. Turning it on is a grown-up job.",
+  "html": "<h3>What you will do</h3><p>Time your virtual phone. Press <b>Ctrl+Shift+Esc</b>, click <b>Performance</b>, then <b>CPU</b>. Write down if Virtualization says Enabled or Disabled.</p><p><b>If it says Disabled, do not go into the BIOS yourself.</b> Show a grown-up. That is a grown-up job.</p>"
+ }
+]} ,
+ {match:"Tablet Autopsy: What Broke", cards:[
+ {
+  "say": "Before you start, put clear packing tape over the cracked glass so nobody gets cut, and do not press hard on the glass. This is one big detective case, so take a break halfway. Ask a grown-up to back up your files while the mouse still works.",
+  "html": "<h3>Before you start</h3><p>Put <b>clear packing tape</b> over the cracked glass so nobody gets cut.</p><p>Do not press hard on the glass.</p><p>Ask a grown-up to back up your files while the mouse still works.</p><p>This is one big case. Take a break halfway.</p>"
+ },
+ {
+  "say": "Input is how you tell a device what to do, like touch, mouse, keyboard, and buttons. Output is how the device answers you, like the display showing pictures and the speaker making sound.",
+  "html": "<h3>Input and output</h3><div class=\"xc-row\"><span class=\"xc-b\">IN</span><p>How you tell a device what to do: touch, mouse, keyboard, buttons.</p></div><div class=\"xc-row\"><span class=\"xc-b\">OUT</span><p>How the device answers you: the display shows pictures, the speaker makes sound.</p></div>"
+ },
+ {
+  "say": "Most tablet screens are capacitive touchscreens. Under the glass is a grid of tiny electrical sensors. Your finger carries a little electricity, so where you touch, the electricity changes and the tablet reads which spot changed. A crack in the glass might cut some lines in that grid. That is a hypothesis, a guess we can test, not a fact yet.",
+  "html": "<h3>How the touchscreen knows</h3><p>Under the glass is a <b>grid of tiny electrical sensors</b>.</p><p>Your finger carries a little electricity. Where you touch, the electricity changes, and the tablet reads which spot changed.</p><p>A crack might cut some lines in the grid. That is a <b>hypothesis</b>: a guess we can test, not a fact yet.</p>"
+ },
+ {
+  "say": "The mouse is a different path. It talks to the tablet over Bluetooth, short-range wireless radio. Pairing is like an introduction, so the tablet and mouse agree to listen to each other. Touch and mouse are two separate paths into the tablet's brain, so one can break while the other works.",
+  "html": "<h3>Why the mouse still works</h3><p>The mouse talks to the tablet over <b>Bluetooth</b>, short-range wireless radio.</p><p>Pairing is like an introduction. They agree to listen to each other.</p><p>Touch and mouse are <b>two separate paths</b> into the tablet's brain. One can break while the other works.</p>"
+ }
+]}
 ];
 function explainerCardsEl(a){
   var def = null;
@@ -5725,7 +5765,7 @@ function renderLessonDetail(){
     : '<div id="flagBanner"></div>';
 
   card.innerHTML = headHtml + passageHtml + videoHtml + '<div id="explainerSlot"></div>' + guideHtml + practiceHtml + materialsHtml + installHelpHtml + flagHtml;
-  var xcEl = explainerCardsEl(a), xcSlot = document.getElementById("explainerSlot");
+  var xcEl = explainerCardsEl(a), xcSlot = card.querySelector("#explainerSlot");
   if(xcEl && xcSlot) xcSlot.appendChild(xcEl);
   /* Anna's progress header: the star trail, the coach bubble and the rainbow meter all read the
      same tick boxes she is already using, so every checklist lesson gets them for free. */
@@ -18251,6 +18291,127 @@ var SAFETY_UNDO = [
   ["No heat and no knives: pick a no-bake snack that needs no cutting.", "A grown-up does anything with heat or knives."],
   ["a no-bake recipe that needs no cutting, and a grown-up nearby. No stove, no oven, no microwave, and no knives.", "and a grown-up for anything hot or sharp."]
 ];
+/* Clearer wording for Ryan's lessons flagged by the lesson audit (tools/lesson-audit): missing worked examples / Gather / Check lines, and very long sentences.
+   Only lessons not yet done are touched. Each edit only applies if its old text is still there, so it is safe to run on every load. */
+var RYAN_TEXT_FIXES = [
+ {
+  "prefix": "Read: What is an operating system?",
+  "edits": [
+   [
+    "Your Turn — 1. Write the three parts of an OS in your own words.",
+    "See It Done — Picture your Chromebook as a layer cake. At the bottom is the kernel (Linux), which talks to the hardware. In the middle is the shell, where you type or click a command. On top are the apps you use. Example: you click an app, the shell passes your click along, and the kernel tells the hardware to show it on the screen.\nYour Turn — 1. Write the three parts of an OS in your own words."
+   ]
+  ]
+ },
+ {
+  "prefix": "Teach-Back: Explain Your Trap",
+  "edits": [
+   [
+    "Show Mom or a grown-up both traps,",
+    "Gather first — your paper finger trap, your Minecraft trap running on the PC, and Mom or a grown-up.\nHere's the Idea — Explaining something out loud shows you really understand it. Use the same three words for both traps: trigger, link, and result.\nSee It Done — A doorbell. Trigger: you press the button. Link: the wire. Result: the bell rings. Say yours the same way.\nYour Turn — Show Mom or a grown-up both traps,"
+   ],
+   [
+    "Show What You Know — Mom checks off",
+    "Check Yourself — Did you use the words trigger, link, and result for both traps?\nShow What You Know — Mom checks off"
+   ]
+  ]
+ },
+ {
+  "prefix": "Teach-Back: Catapult vs. Cannon",
+  "edits": [
+   [
+    "Show a grown-up your marshmallow catapult and your Minecraft cannon,",
+    "Gather first — your marshmallow catapult, your Minecraft cannon on the PC, and a grown-up.\nHere's the Idea — Energy is stored when something is pulled, bent, or lifted, and it is let go when the launcher fires.\nSee It Done — A bent ruler. Pressing one end down stores energy in the bend. Letting go releases it and flicks a small object. Say where your launcher stores its energy the same way.\nYour Turn — Show a grown-up your marshmallow catapult and your Minecraft cannon,"
+   ],
+   [
+    "Show What You Know — A grown-up checks that you explained all three parts",
+    "Check Yourself — Did you say what you changed in each test and what happened to the distance?\nShow What You Know — A grown-up checks that you explained all three parts"
+   ]
+  ]
+ },
+ {
+  "prefix": "Minecraft Lab 8 — Garden Check-In",
+  "edits": [
+   [
+    "Look at your pot and your growth table.\n",
+    "Gather first — your pot with the plant, your growth table, a ruler, and Mom or a grown-up.\nHere's the Idea — Comparing a real garden to a game garden shows what plants really need: seeds, water, light, and time.\nYour Turn — Look at your pot and your growth table.\n"
+   ],
+   [
+    "Show What You Know — A grown-up checks that you explained all three, and",
+    "Check Yourself — Does your table have at least 3 measurements, and did you compare the real pot to your Minecraft farm?\nShow What You Know — A grown-up checks that you explained all three, and"
+   ]
+  ]
+ },
+ {
+  "prefix": "Minecraft Lab 3 — Build a Lava-Pit Trap",
+  "edits": [
+   [
+    "See It Done — The book's design: dig a pit 3 blocks by 3 blocks, put bedrock on the bottom so the lava stays, pour lava in the center, cover the pit with dirt or grass, put the trapdoor in the center, and place a stone pressure plate in front of it. The pit is the result, the pressure plate is the trigger.",
+    "See It Done — The book's design has four parts. First, dig a pit 3 blocks by 3 blocks and put bedrock on the bottom so the lava stays. Second, pour lava in the center. Third, cover the pit with dirt or grass and put the trapdoor in the center. Fourth, place a stone pressure plate in front of it. The pit is the result. The pressure plate is the trigger."
+   ]
+  ]
+ },
+ {
+  "prefix": "Minecraft Lab 8 — Build a Farm",
+  "edits": [
+   [
+    "See It Done — The book's design: till the ground with a hoe, plant seeds in rows, put water in the middle so the soil stays wet, add bone meal to some rows and leave the others to grow naturally, and fence the garden with iron bars to keep mobs out.",
+    "See It Done — The book's design has five steps. Till the ground with a hoe. Plant seeds in rows. Put water in the middle so the soil stays wet. Add bone meal to some rows and leave the others to grow naturally. Fence the garden with iron bars to keep mobs out."
+   ]
+  ]
+ },
+ {
+  "prefix": "Math Book, Unit 1: Place Value Up to One Million",
+  "edits": [
+   [
+    "245,806: the 2 is in",
+    "Take 245,806. The 2 is in"
+   ],
+   [
+    "(200,000), the 4 is",
+    "(200,000). The 4 is"
+   ],
+   [
+    "(40,000), the 5 is",
+    "(40,000). The 5 is"
+   ],
+   [
+    "(5,000), the 8 is",
+    "(5,000). The 8 is"
+   ],
+   [
+    "(800), the 0 is",
+    "(800). The 0 is"
+   ],
+   [
+    "in the tens place, and the 6 is",
+    "in the tens place. The 6 is"
+   ]
+  ]
+ },
+ {
+  "prefix": "Math Book, Unit 5: Factors",
+  "edits": [
+   [
+    "Divisibility rules are shortcuts: a number is divisible by 2 if it is even, by 5 or 10 if it ends in 5 or 0 (10 needs a 0), and by 3 or 9 if the digits add up to a number divisible by 3 or 9.",
+    "Divisibility rules are shortcuts. A number is divisible by 2 if it is even. It is divisible by 5 if it ends in 5 or 0, and by 10 if it ends in 0. It is divisible by 3 or 9 if its digits add up to a number divisible by 3 or 9."
+   ]
+  ]
+ }
+];
+function patchRyanLessonText(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid2" || a.done || !a.passage) return;
+    RYAN_TEXT_FIXES.forEach(function(f){
+      if(String(a.title).indexOf(f.prefix)!==0) return;
+      var p = a.passage;
+      f.edits.forEach(function(e){ if(p.indexOf(e[0])>=0 && p.indexOf(e[1])<0) p = p.replace(e[0], e[1]); });
+      if(p!==a.passage){ a.passage = p; db.doc("assignments/"+id).update({passage:p}); }
+    });
+  });
+}
 function patchSafetyUndo(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -18473,6 +18634,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
+    patchRyanLessonText();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
