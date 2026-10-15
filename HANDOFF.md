@@ -95,4 +95,4 @@ The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits
 ## Scooter Track + skills (14 Oct 2026)
 - `SCOOTER_TRACK` / `autoAddScooterTrack()` in index.html: four Ryan Friday lessons on the next four Fridays (plan, clear, pack and test, build and ride). Standards 4.MDR.6.1, 4.MDR.6.1, S4P3, 4.MDR.6.2 (all verified in STANDARD_STATUS). Existing Friday lessons stay; Mom can remove extras with the Leader catch-up card.
 - Open: the web check could not confirm 4.GSR.8.3 (Yard Mapper) means mapping; one source puts area/perimeter at 4.GSR.7. Recheck against Mom's alignment table.
-- Repo skills in `.claude/skills/`: add-reading-cards, verify-standard, ship-academy-change.
+- Repo skills in `.claude/skills/`: add-reading-cards, verify-standard, ship-academy-change, redeploy-troubleshoot.
