@@ -2694,6 +2694,156 @@ var EXPLAINER_CARDS = [
  }
 ]}
 ];
+/* Anna's Social Studies Book readings as picture cards (Grade 2 words, facts from her book). Built with xcBuild so each card has text, a picture-style layout, and a Listen script. */
+function xcBuild(match, cards){
+  function fmt(s){ return escapeHtml(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"); }
+  function plain(s){ return s.replace(/\*\*/g, ""); }
+  return {match:match, cards:cards.map(function(c){
+    var html = "<h3>"+fmt(c[0])+"</h3>", say = plain(c[0])+". ";
+    c[1].forEach(function(it){
+      if(typeof it==="string"){ html += "<p>"+fmt(it)+"</p>"; say += plain(it)+" "; }
+      else { html += '<div class="xc-row"><span class="xc-b">'+escapeHtml(it[0])+'</span><p>'+fmt(it[1])+"</p></div>"; say += (/^\d$/.test(it[0])?"":it[0]+". ")+plain(it[1])+" "; }
+    });
+    return {say:say.trim(), html:html};
+  })};
+}
+var ANNA_SS_CARDS = [
+ xcBuild("Social Studies Book, Chapter 5: American Heroes", [
+  ["What is a hero?", ["A **hero** is a person who makes a difference in the lives of others.", "Some heroes speak up for our freedom.", "Some speak up for **civil rights**, which are the rights of people.", "Some are **innovators**. They have new ideas that make life better."]],
+  ["Speak-up heroes", [["John Adams","A Founding Father. He helped the colonists win freedom."],["Ben Franklin","A Founding Father and inventor. He started the first public library."],["Dolley Madison","She helped make the White House a symbol of America."]]],
+  ["More speak-up heroes", [["Sojourner Truth","Gave speeches for the rights of African Americans and women."],["Cesar Chavez","Said farm workers should be treated fairly."],["Harriet Beecher Stowe","Wrote a book that helped people see slavery was wrong."]]],
+  ["Innovators", [["Robert Fulton","Built a steamboat with an engine. It moved people and goods fast."],["Sequoyah","Made an alphabet for the Cherokee language."],["Henrietta King","Helped ranching. She gave money for towns and schools in Texas."]]],
+  ["Brave firsts", [["Amelia Earhart","First woman to fly alone across the Atlantic Ocean."],["Thurgood Marshall","First African American Supreme Court judge."],["John Herrington","A Native American astronaut. He took a Chickasaw flag to space."]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 5: A Growing Nation", [
+  ["13 colonies want to be free", ["There were 13 English colonies.", "England made laws and made colonists pay taxes.", "The colonists wanted to be **independent**. That means making their own laws."]],
+  ["Four names to know", [["Adams","John Adams said the colonies should declare freedom."],["Jefferson","Wrote the Declaration of Independence."],["Hancock","First to sign it."],["Washington","Led the army. He became our first president."]]],
+  ["Going West", ["The East was getting crowded.", "Lewis and Clark left St. Louis to explore and map the West. Sacagawea helped them.", "A **pioneer** is the first to settle a new place. Many families rode in covered wagons."]],
+  ["Freedom for everyone", ["African Americans were brought here as slaves. They were not free.", "Harriet Tubman escaped. Then she came back and led about 300 people to freedom.", "Abraham Lincoln was our 16th president. He worked to end slavery."]],
+  ["Immigrants", ["An **immigrant** moves from one country to another.", "Some came for freedom. Some came for jobs. Some came because there was no food.", "They sailed to Ellis Island and saw the Statue of Liberty, a symbol of freedom."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 5: Technology Then and Now", [
+  ["Food, water, and clothes", ["Long ago, people gathered plants and berries. They carried water in wooden buckets. They sewed clothes by hand.", "Today we have tractors, pipes for water, and sewing machines."]],
+  ["Faster travel", ["Long ago, horses were the fastest way to go.", "Then came **inventions**, things made for the first time:", ["Car","Karl Benz made one. Henry Ford found a way to make many fast."],["Train","George Stephenson"],["Airplane","The Wright brothers"]]],
+  ["Sending messages", ["A letter could take ten days to cross the country.", "Pony Express riders carried messages on horses.", "Samuel Morse improved the telegraph. In 1876, Alexander Graham Bell invented the telephone."]],
+  ["Light and music", ["In 1850, homes had no electricity. Light came from oil lamps and candles.", "In 1880, Thomas Edison made a light bulb that stayed lit a long time.", "Edison also made the record player."]],
+  ["Fact or opinion?", [["Fact","You can prove it is true."],["Opinion","What someone thinks or believes."],"Clue words for opinions: **believe**, **feel**, **think**."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4 Review and Chapter 5", [
+  ["Past, present, future", [["Past","yesterday, then"],["Present","today, now"],["Future","tomorrow"],"**History** is the story of the past."]],
+  ["Family history", ["Ask a grown-up what life was like when they were your age.", "A **generation** is a family member from a different age group.", "Long ago families grew food in gardens. Today most families buy food at the market."]],
+  ["How a community starts", ["Most communities start with a small group of people called **founders**.", "More people move in. The community grows. It builds homes, schools, stores, and roads."]],
+  ["Enterprise, Alabama", ["About 100 years ago, Enterprise grew a lot of cotton.", "A bug called the **boll weevil** destroyed most of the cotton.", "The farmers found that peanuts grew well. Today they still grow peanuts."]],
+  ["A monument", ["A **monument** is a statue that honors a person or event.", "Enterprise built one because solving the boll weevil problem was a big event in its history."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4: Two Cultures", [
+  ["Mexico City", ["It is the capital of Mexico.", "People sell tacos and tamales. At night there is music and dancing.", "The most popular sport is soccer."]],
+  ["Mexico's long history", ["The **Aztecs** lived in Mexico long ago. Visitors see Aztec ruins today.", "The flag has an eagle, a snake, and a cactus. The Aztecs used these symbols.", "Mexico once fought to become free, just like the United States."]],
+  ["Beijing", ["It is the capital of China. It has tall skyscrapers next to very old buildings.", "Many people ride bikes.", "In Tiananmen Square people fly kites and do **tai chi**, a slow exercise."]],
+  ["The Great Wall", ["It is more than 2,000 years old and thousands of miles long.", "It is a **landmark**, a structure that is important to a place.", "Astronauts can see it from space!"]],
+  ["Reading a chart", ["A chart puts information in rows and columns.", ["Columns","go up and down"],["Rows","go left and right"]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4: What We Celebrate", [
+  ["Independence Day", ["A **holiday** is a special day.", "Long ago, England ruled the 13 colonies. The colonists thought England's laws were not fair.", "They fought a war and won their freedom.", "Every year we celebrate with parades, picnics, and fireworks. It is our country's birthday."]],
+  ["Heroes who protect us", ["A **hero** is remembered for bravery or good deeds.", ["Memorial Day","We remember people who died in war. It is the last Monday in May."],["Veterans Day","We honor people who served in the armed forces. It is in November."]]],
+  ["Leaders", [["Thomas Jefferson","Our third president. He wrote the Declaration of Independence."],["F. D. Roosevelt","A leader in hard times. He was elected president four times."],"We remember presidents on Presidents' Day in February."]],
+  ["Dr. Martin Luther King, Jr.", ["Some laws were not fair to African Americans.", "Dr. King said all people should be treated equally. He spoke out and helped pass new laws.", "In 1963 he gave a famous speech about his dream. We honor him every January."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 5: The First Americans", [
+  ["The first Americans", ["The first people in America were American Indians, or Native Americans.", "Each group used what nature gave them in their region."]],
+  ["Plains and Pueblo", [["Plains","Hunted buffalo for food, clothes, and shelter. Lived in teepees."],["Pueblo","Grew corn and cotton. Hunted deer. Homes of clay bricks."]]],
+  ["Timucua", ["The Timucua (tee moo KWAH) hunted bear and deer.", "They grew corn, beans, and squash.", "Their homes were made from palm trees."]],
+  ["The Cherokee", ["They lived where Tennessee and Georgia are today. Their leader was called a chief.", "They farmed corn, squash, beans, and sunflowers, and caught fish.", "Their homes were made with branches and clay."]],
+  ["The Trail of Tears", ["Settlers from Europe fought the Cherokee for their land.", "The Cherokee were forced to move west to Oklahoma. They were sad to leave.", "The trail they traveled is the **Trail of Tears**."]],
+  ["Wilma Mankiller", ["She was the first woman chief of the Cherokee.", "She made Cherokee schools and healthcare better.", "In 1998 she got the Medal of Freedom."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4: Cultures in Our Country", [
+  ["Many cultures, one country", ["People from all over the world come to live here.", "They bring their cultures. Together they make American culture.", ["Festival","a celebration"],["Custom","a special way a group does something"]]],
+  ["Albuquerque, New Mexico", ["People celebrate **Cinco de Mayo**, May 5th.", "It remembers the bravery of the Mexican army in 1862.", "Mariachi bands play and dancers wear colorful costumes."]],
+  ["New Orleans, Louisiana", ["People came from Africa, France, Spain, Ireland, and Germany. They brought their music.", "African American songs mixed with other music and became **jazz**.", "Every spring people come for Mardi Gras. It starts with a parade."]],
+  ["San Francisco, California", ["Many Chinese Americans live in Chinatown. Street signs are in English and Chinese.", "Chinese New Year has a parade and a dragon carried by more than 100 people.", "Customs: clean your home for good luck, have a family dinner, give oranges."]],
+  ["Compare and contrast", [["Compare","find how two things are alike"],["Contrast","find how they are different"]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 5: Learning About the Past", [
+  ["Timelines", ["A **timeline** shows the order events happened.", "Read it left to right, like a sentence. The earliest event is on the left."]],
+  ["Florida timeline", [["1842","the old state capitol"],["1887","Hotel Ponce de León built in St. Augustine"],["1935","a hurricane hit the west coast"],["1981","Space Shuttle Columbia launched"]]],
+  ["Primary sources", ["Made by someone who saw it happen.", "Photographs, paintings, drawings, journals, letters, and maps.", "A **journal** is a daily record of a person's thoughts and events."]],
+  ["Secondary sources", ["Made by someone who did not see it happen.", "A biography, a textbook, an encyclopedia.", "A **biography** is a book about another person's life."]],
+  ["Finding out", ["**Historians** study and write about history.", "You can learn from people, books, and objects. Museums keep **artifacts**, like old coins and stamps.", "Search the Internet with a grown-up."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4: American Stories", [
+  ["Fact or fiction?", ["**Fiction** is make-believe. **Facts** are true.", ["Folk tale","A story from long ago about real people."],["Tall tale","Starts out sounding true but is mostly make-believe."]]],
+  ["Davy Crockett", ["Born in a cabin in Tennessee in 1786.", "He worked hard to buy a horse. He became a great bear hunter, a soldier, and a government leader."]],
+  ["Johnny Appleseed and Betsy Ross", [["Johnny","Real name John Chapman. He carried apple seeds and planted trees so people had food."],["Betsy","A sewer. In 1776 George Washington asked her to sew the first flag, with 13 stars and stripes."]]],
+  ["Tall tales", [["Paul Bunyan","Ate forty bowls of oatmeal a day. His footprints made 10,000 lakes."],["Pecos Bill","The best cowboy ever. He rode a tornado."],["John Henry","A railroad worker with a hammer. He chipped rock for a tunnel."]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: Moving Ideas", [
+  ["Technology", ["**Technology** is using skills and tools. It makes things easier every year."]],
+  ["Communication", ["**Communication** is sharing ideas and information.", "A computer or phone can send letters, play games, and share music and movies.", "A **GPS** tells you your exact location anywhere in the world."]],
+  ["Transportation", ["**Transportation** moves people and goods.", "We ride buses, taxis, subways, and cars. Road maps help us find the way.", "We build roads, tunnels, and bridges."]],
+  ["Moving goods", ["We cannot make or grow everything, so we trade with other countries.", ["Truck","goods go on roads"],["Train","goods go on railways"],["Ship","goods cross oceans"],["Plane","goods go through the air"]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: Weather, Climate", [
+  ["What is weather?", ["**Weather** is what it is like outside right now.", "**Temperature** tells how hot or cold it is.", "Wet days have rain or snow. Dry days are sunny and clear."]],
+  ["Weather and us", ["Cold and wet: we wear warm clothes.", "Hot and dry: we wear light clothes.", "Polar bears live where it is cold. Their thick fur keeps them warm. Frogs like wet rainforests."]],
+  ["Climate", ["**Climate** is the weather a place has over a long time.", "A **region** is an area that shares something alike. Some regions share a climate."]],
+  ["Dangerous weather", ["A lot of rain can cause a **flood**.", "Strong winds make a **storm**. Tornadoes and hurricanes are dangerous storms."]],
+  ["Cause and effect", [["Cause","the reason something happens"],["Effect","what happens"],"Rain is the cause. Carrying an umbrella is the effect."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 4: Culture Is Our Way", [
+  ["What is culture?", ["**Culture** is a way of life.", "It includes family, friends, and community; the food we eat, the clothes we wear, and the places we live.", "Language, music, and religion are part of culture too."]],
+  ["Hello in many languages", [["Bonjour","France"],["Aloha","Hawaii"],["Hola","Spanish"],["Ciao","Italian"],["Jambo","Swahili"],["Yiasou","Greek"],"All of these mean hello!"]],
+  ["Music", ["Every culture makes its own music with different instruments.", "Children learn from parents or grandparents. Then they teach their own children."]],
+  ["Tradition and artifact", [["Tradition","something passed down over time"],["Artifact","an object made long ago"]]],
+  ["Pueblo and Navajo", ["The Pueblo have made pottery for hundreds of years. They still use designs from the past.", "Weaving cloth is a Navajo tradition. Children learn it from parents and grandparents."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 1 Review", [
+  ["Symbols", ["A **symbol** stands for an idea.", "The **bald eagle** lives only in North America. It is on the Great Seal of the United States."]],
+  ["Our motto", ["A **motto** is a saying that stands for an important idea.", "Ours is **E pluribus unum**. It means 'Out of many, one.'", "We are one country made of different states and people. It is on our coins too."]],
+  ["Places that are symbols", [["Mount Rushmore","In South Dakota. Faces of four presidents are carved in the mountain."],["Liberty Bell","In Philadelphia. It celebrates the choice to fight for independence."]]],
+  ["Independence", ["**Independence** is freedom from being ruled by someone else."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: Our Earth", [
+  ["7 continents", ["Continents are Earth's large areas of land.", "North America, South America, Europe, Africa, Asia, Australia, Antarctica."]],
+  ["5 oceans", ["Oceans cover most of Earth.", "Atlantic, Pacific, Indian, Southern, Arctic."]],
+  ["Earth is round", ["Earth is shaped like a ball. A photo from space shows only one part.", "A **globe** is a model of Earth."]],
+  ["The equator", ["The **equator** is an imaginary line around the middle of Earth.", ["North","Northern Hemisphere. We live here."],["South","Southern Hemisphere"]]],
+  ["The prime meridian", ["The **prime meridian** is another imaginary line.", ["East","Eastern Hemisphere"],["West","Western Hemisphere"]]],
+  ["Lines on a globe", [["Latitude","lines that run east and west"],["Longitude","lines that run north and south"],"Where they cross is an **absolute location**."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 2: Saving, Borrowing", [
+  ["Saving", ["To **save** is to keep something to use later.", "**Savings** is money you do not spend right away.", "A **savings plan** sets a goal for how much to save."]],
+  ["Savings account", ["A **savings account** is money kept in a bank.", "It will not get lost or stolen."]],
+  ["Borrowing", ["**Borrow** means to use something now and give it back later.", "Money you borrow is a **loan**. You pay it back later.", "Using a credit card is the same as getting a loan."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: How People Change", [
+  ["Environment", ["The **environment** is the air, land, water, and life around us.", "People change it to get what they need."]],
+  ["Three places to live", [["City","Urban. Highways and tall buildings. Trees are removed."],["Suburb","Close to a city. Roads, houses, parks, shopping centers."],["Rural","Small towns and farms. Farmers clear land to plant crops."]]],
+  ["Changing the water", [["Dam","a wall across a river. It holds water and makes energy"],["Canal","a waterway joining two bodies of water"],["Irrigate","move water to dry land"]]],
+  ["Why we change it", ["We make life easier with roads, bridges, and tunnels that connect places.", "When we build, animals must find new homes."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: Landforms", [
+  ["Landforms", ["**Geography** is the study of Earth. A **geographer** studies land and water.", "Shapes of land are **landforms**."]],
+  ["Land shapes", [["Mountain","the highest land"],["Hill","raised land, not as high"],["Valley","low land between hills or mountains"],["Plain","a large area of flat land"],["Plateau","a high plain"]]],
+  ["Water", [["Ocean","salt water"],["River","fresh water that flows into other water"],["Lake","fresh water with land all around"]]],
+  ["Land and water meet", [["Island","water on all sides"],["Peninsula","water on all sides but one"],["Coast","where land meets the ocean"]]],
+  ["Two kinds of maps", [["Physical","shows land and water"],["Political","shows borders, the imaginary lines between towns, states, and countries"]]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: All About Maps", [
+  ["What maps show", ["A map shows information about a place.", "It can show land and water, and roads and buildings."]],
+  ["Parts of a map", [["Title","tells what place the map shows"],["Symbols","small pictures that stand for real things"],["Key","tells what each symbol means"]]],
+  ["Compass rose", ["It shows directions.", ["N S E W","the four main directions: north, south, east, west"],["NE SE SW NW","the in-between directions"]]],
+  ["Map scale", ["A map is smaller than the real place.", "The **scale** helps you find the distance between two places."]]
+ ]),
+ xcBuild("Social Studies Book, Chapter 3: Earth's Resources", [
+  ["Natural resources", ["We get what we need from nature: air to breathe, sunlight for energy, oil to make gas.", "These are **natural resources**."]],
+  ["Renewable", ["A **renewable** resource can be replaced.", "Water, wind, sunlight, and soil. We will never run out of wind or sun."]],
+  ["Nonrenewable", ["A **nonrenewable** resource cannot be replaced.", "Oil and coal. When we burn coal, it is gone forever."]],
+  ["Energy and the pie chart", ["**Energy** is power to do work. Wind turbines make energy from wind.", "In the United States, 92% of energy comes from nonrenewable resources. 8% is renewable."]],
+  ["Conserve", ["**Conserve** means protect.", "Turn off the faucet when you brush. Reuse plastic bags. Recycle paper, cans, plastic, and glass."]]
+ ])
+];
+EXPLAINER_CARDS = EXPLAINER_CARDS.concat(ANNA_SS_CARDS);
 function explainerCardsEl(a){
   var def = null;
   EXPLAINER_CARDS.forEach(function(d){ if(String(a.title||"").indexOf(d.match)===0) def = d; });
@@ -18412,6 +18562,42 @@ function patchRyanLessonText(){
     });
   });
 }
+/* Anna's long Social Studies Book readings: shorter sentences, same facts. Only lessons she has not finished. Idempotent. */
+var ANNA_TEXT_FIXES = [
+ ["is a symbol of our country, and there is a picture of the bald eagle", "is a symbol of our country. There is a picture of the bald eagle"],
+ ["Our country has two national holidays to honor special heroes who protect our country: On Memorial Day, we remember United States citizens who died in war, and it is celebrated on the last Monday in May.", "Our country has two national holidays to honor special heroes who protect our country. On Memorial Day, we remember United States citizens who died in war. It is celebrated on the last Monday in May."],
+ ["The book tells about three folk tale people: Davy Crockett was born in a cabin in Tennessee in 1786, worked hard as a boy to buy a horse, became a great bear hunter, and grew up to be a soldier and a government leader.", "The book tells about three folk tale people. Davy Crockett was born in a cabin in Tennessee in 1786. He worked hard as a boy to buy a horse. He became a great bear hunter. He grew up to be a soldier and a government leader."],
+ ["Betsy Ross made her living by sewing, and in 1776 General George Washington asked her to sew the first American flag, which had 13 stars and stripes, one for each American colony.", "Betsy Ross made her living by sewing. In 1776 General George Washington asked her to sew the first American flag. It had 13 stars and stripes, one for each American colony."],
+ ["The tall tales are about Paul Bunyan, who as a baby ate forty bowls of oatmeal each day, and whose huge footprints filled with rain and made 10,000 lakes, Pecos Bill, the best cowboy to ever live who rode a tornado, and John Henry, a railroad worker who some say was bigger and taller than any other man and who used his hammer to chip rock to build a tunnel.", "The tall tales are about three people. As a baby, Paul Bunyan ate forty bowls of oatmeal each day. His huge footprints filled with rain and made 10,000 lakes. Pecos Bill was the best cowboy to ever live, and he rode a tornado. John Henry was a railroad worker. Some say he was bigger and taller than any other man. He used his hammer to chip rock to build a tunnel."],
+ ["Using the Florida map scale (about 1 inch for 100 miles), follow the book's steps: mark the distance between Orlando and Miami on a strip of paper and use the scale to find that it is about 200 miles.", "Use the Florida map scale (about 1 inch for 100 miles) and follow the book's steps. Mark the distance between Orlando and Miami on a strip of paper. Use the scale to find that it is about 200 miles."],
+ ["The library in your school or community has many primary and secondary sources, and museums contain sources called artifacts, which are objects like a coin or a stamp that were made or used by people long ago.", "The library in your school or community has many primary and secondary sources. Museums contain sources called artifacts. These are objects, like a coin or a stamp, that were made or used by people long ago."],
+ ["the key uses different colors for the Lewis and Clark route, the Santa Fe Trail, the Oregon Trail, and the California Trail, and shows the mountains.", "the key uses different colors for four routes. They are the Lewis and Clark route, the Santa Fe Trail, the Oregon Trail, and the California Trail. It also shows the mountains."],
+ ["Do the Chapter 3 review: circle an absolute location (14 Main Street), draw a compass rose, label equator, prime meridian, latitude and longitude, draw and label two landforms, choose the clothes Amelia wears when it is cold and windy, write two ways people change their environment, list four items you can recycle, and write how two types of transportation help us.", "Do the Chapter 3 review. Circle an absolute location (14 Main Street). Draw a compass rose. Label equator, prime meridian, latitude and longitude. Draw and label two landforms. Choose the clothes Amelia wears when it is cold and windy. Write two ways people change their environment. List four items you can recycle. Write how two types of transportation help us."],
+ ["First do the Chapter 4 Review: circle the photograph that shows an artifact, compare and contrast two celebrations, match each holiday name with its photograph, draw a picture of your favorite folk tale and label it, fill in the bubble for a popular food in Mexico City (tamales), and write what the photographs tell you about culture in China and Mexico.", "First do the Chapter 4 Review. Circle the photograph that shows an artifact. Compare and contrast two celebrations. Match each holiday name with its photograph. Draw a picture of your favorite folk tale and label it. Fill in the bubble for a popular food in Mexico City (tamales). Write what the photographs tell you about culture in China and Mexico."],
+ ["Most communities begin with a small group of people called founders, and when more people move to the community, it begins to grow and builds more homes, schools, stores, or roads.", "Most communities begin with a small group of people called founders. When more people move to the community, it begins to grow. It builds more homes, schools, stores, or roads."],
+ ["(page 178–179, Thirteen Colonies, One Country) and Lesson 5,", "(page 178–179, Thirteen Colonies, One Country). Then open to Lesson 5,"]
+];
+function annaShortenLine(line){
+  var t = line.split(/([.!?]+\s+)/), parts = [];
+  for(var i=0;i<t.length;i+=2) parts.push(t[i]+(t[i+1]||""));
+  return parts.map(function(sen){
+    var n = sen.trim().split(/\s+/).length;
+    if(n<=30) return sen;
+    if(sen.indexOf("Gather first")===0) return sen.replace(", paper", ". Also get: paper");
+    if(sen.indexOf("; ")>=0) return sen.replace(/; ([a-z])/g, function(m, c){ return ". "+c.toUpperCase(); });
+    return sen;
+  }).join("");
+}
+function patchAnnaLessonText(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.done || !a.passage || String(a.title).indexOf("Social Studies Book,")!==0) return;
+    var p = a.passage.split("\n").map(annaShortenLine).join("\n");
+    ANNA_TEXT_FIXES.forEach(function(e){ if(p.indexOf(e[0])>=0 && p.indexOf(e[1])<0) p = p.replace(e[0], e[1]); });
+    if(p!==a.passage){ a.passage = p; db.doc("assignments/"+id).update({passage:p}); }
+  });
+}
 function patchSafetyUndo(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -18634,7 +18820,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText();
+    patchRyanLessonText(); patchAnnaLessonText();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
