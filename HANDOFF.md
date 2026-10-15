@@ -99,3 +99,6 @@ The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits
 
 ## Lesson audit (15 Oct 2026)
 `tools/lesson-audit/` (harness.js, audit.js) + skill `audit-lessons`: renders every lesson from a fake database and writes report.md. First run: 288 lessons, 2 hard problems, many warnings (long Anna passages, unverified standards, Ryan JohnnyOS build lessons with no Show What You Know). Fixes not yet made.
+
+## Ryan lesson clean-up (15 Oct 2026)
+`RYAN_TEXT_FIXES` / `patchRyanLessonText()` (index.html, runs on load, not-done lessons only) added missing Gather/Idea/See It Done/Check Yourself lines to the OS reading and three Teach-Back lessons and split very long sentences in Lab 3, Lab 8 farm, Math Book Units 1 and 5. Picture cards (EXPLAINER_CARDS) now also cover Virtual Phones Lab 1 and Tablet Autopsy. Bug fixed: the cards slot was looked up with document.getElementById before the lesson was on the page, so cards never showed (found by the lesson audit). Anna's turn is next (66 long lessons). The audit only counts Check Yourself or a quiz as the "check".

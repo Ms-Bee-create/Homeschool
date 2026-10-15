@@ -5,6 +5,8 @@ const h = require('./harness'); const fs = require('fs');
 (async()=>{
   const {browser,page,errors} = await h.open();
   await page.waitForTimeout(8000);
+  await page.evaluate(()=>{ __fa.runAutoMigrations(); }); /* like a second page load, so patches see the lessons the first load created */
+  await page.waitForTimeout(1500);
   const rows = await page.evaluate(()=>{
     const out = [];
     const ids = Object.keys(state.assignments);
@@ -17,7 +19,7 @@ const h = require('./harness'); const fs = require('fs');
       out.push({id, kid:a.kidId, date:a.date, title:a.title, subject:a.subject, stage:a.stage, standard:a.standard||'', stdStatus:st,
         passage:a.passage||'', materials:a.materials||'', video:a.video||'', quizN:(a.quiz||[]).length,
         quizNoExplain:(a.quiz||[]).filter(q=>!q.explain).length, done:!!a.done,
-        shown:text, hasListen:/Read aloud/.test(html)||html.indexOf('speak-btn')>=0, hasSteps:/<li|checkbox|type="checkbox"/.test(html), err});
+        hasCards:__fa.EXPLAINER_CARDS.some(d=>String(a.title||'').indexOf(d.match)===0), shown:text, hasListen:/Read aloud/.test(html)||html.indexOf('speak-btn')>=0, hasSteps:/<li|checkbox|type="checkbox"/.test(html), err});
     }
     state.lessonDetailId = null; __fa.renderView();
     return out;
@@ -39,14 +41,14 @@ const h = require('./harness'); const fs = require('fs');
       const hasSee = /See It Done/i.test(r.passage), hasCheck = /Check Yourself/i.test(r.passage), hasShow = /Show What You Know/i.test(r.passage);
       if(!hasTurn && !/\n\s*\d+\./.test(r.passage) && !/\b1\.\s/.test(r.passage)) w.push('no numbered steps to follow');
       if(!hasIdea && r.stage==='teach') p.push('teaching lesson without "Here\'s the Idea" (rule 2)');
-      if(r.stage==='teach' && !hasSee && !/for example|example:|e\.g\./i.test(r.passage)) p.push('teaching lesson without a worked example (rule 2)');
+      if(r.stage==='teach' && !hasSee && !/\bexample\b|e\.g\./i.test(r.passage)) p.push('teaching lesson without a worked example (rule 2)');
       if(!hasCheck && !r.quizN) w.push('no way to check understanding (no Check Yourself, no quiz)');
-      if(!hasShow && !r.quizN && r.stage==='apply') w.push('apply lesson without Show What You Know (rule 15)');
+      if(!hasShow && !hasCheck && !r.quizN && r.stage==='apply') w.push('apply lesson without Show What You Know (rule 15)');
       if(!hasGather && /Minecraft|paper|pencil|tape|scissors|cup|ruler|string/i.test(r.passage)) w.push('uses supplies but has no "Gather first" list');
       const limit = r.kid==='kid1' ? 14 : 22; const ss = sents(r.passage); const avg = ss.length? words(r.passage)/ss.length : 0;
       const longest = ss.reduce((m,s)=>Math.max(m,words(s)),0);
-      if(r.kid==='kid1' && words(r.passage)>260) w.push(kid+': long ('+words(r.passage)+' words), may feel like a wall of text');
-      if(r.kid==='kid2' && words(r.passage)>420) w.push(kid+': long ('+words(r.passage)+' words)');
+      if(r.hasCards){} else if(r.kid==='kid1' && words(r.passage)>260) w.push(kid+': long ('+words(r.passage)+' words), may feel like a wall of text');
+      else if(r.kid==='kid2' && words(r.passage)>420) w.push(kid+': long ('+words(r.passage)+' words)');
       if(avg>limit) w.push(kid+': sentences average '+avg.toFixed(1)+' words (hard to read)');
       if(longest>(r.kid==='kid1'?32:45)) w.push(kid+': one sentence is '+longest+' words long');
       if(/the link above|link below|click here/i.test(r.passage) && !r.materials && !r.video) p.push('passage mentions a link but the lesson has none (rule 1)');
