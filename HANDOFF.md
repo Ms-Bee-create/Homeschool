@@ -96,3 +96,6 @@ The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits
 - `SCOOTER_TRACK` / `autoAddScooterTrack()` in index.html: four Ryan Friday lessons on the next four Fridays (plan, clear, pack and test, build and ride). Standards 4.MDR.6.1, 4.MDR.6.1, S4P3, 4.MDR.6.2 (all verified in STANDARD_STATUS). Existing Friday lessons stay; Mom can remove extras with the Leader catch-up card.
 - Open: the web check could not confirm 4.GSR.8.3 (Yard Mapper) means mapping; one source puts area/perimeter at 4.GSR.7. Recheck against Mom's alignment table.
 - Repo skills in `.claude/skills/`: add-reading-cards, verify-standard, ship-academy-change, redeploy-troubleshoot.
+
+## Lesson audit (15 Oct 2026)
+`tools/lesson-audit/` (harness.js, audit.js) + skill `audit-lessons`: renders every lesson from a fake database and writes report.md. First run: 288 lessons, 2 hard problems, many warnings (long Anna passages, unverified standards, Ryan JohnnyOS build lessons with no Show What You Know). Fixes not yet made.
