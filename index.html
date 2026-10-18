@@ -19525,6 +19525,9 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
+    {label:"Ryan: Minecraft Python Missions (7 lessons, Learn to Program with Minecraft)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
+    {label:"Ryan: Minecraft STEM Lab (4 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
+    {label:"Anna: Minecraft STEM Lab (Egg Farm)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
@@ -20059,6 +20062,402 @@ function patchRyanVirtualPhones(){
     if(!it || a.passage===it.passage) return;
     var upd = {passage:it.passage, quiz:it.quiz};
     Object.assign(a, upd); db.doc("assignments/"+id).update(upd);
+  });
+}
+/* Minecraft book packs (Leader > Content Packs). Written in our own words around the books' lab and mission titles and page numbers. */
+var MC_PYTHON_MISSIONS = [
+ {
+  "d": 0,
+  "title": "Python Missions Setup: Get Minecraft and Python Ready 🐍 (Book pp. 2–10, 24)",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 20,
+  "standard": "3-5.F",
+  "passage": "Gather first — the book \"Learn to Program with Minecraft\" open to pages 2–10, the Windows PC, Minecraft Java Edition (you already have it), and a grown-up. A grown-up does every download and install.\nHere's the Idea — Today you set up a coding workshop. Python is the language you will write. Java is what Minecraft runs on. A small helper server called Spigot lets your Python programs talk to your Minecraft world. When every piece is ready, your code can move you, build blocks, and send chat messages.\nSee It Done — Think of building a workbench. First the table (Minecraft), then the tools (Python), then the power cord (the Spigot server that connects them). The book's pages 2–10 show each piece in order with pictures.\nYour Turn — 1. With a grown-up, follow the book's Windows steps one page at a time: Installing Python, Installing Java, Installing the Minecraft Python API and Spigot. 2. After each part, stop and tell the grown-up what you just installed. 3. Follow Running Spigot and Creating a Game (p. 7). 4. Do the Testing Your Minecraft Python Setup page (p. 24). 5. Write down any step that did not work and show the grown-up.\nCheck Yourself — Can you say what Python, Java, and Spigot each do, in one sentence each?\nShow What You Know — Tell Mom the three setup pieces and what each one is for.",
+  "quiz": [
+   {
+    "q": "What does Python do in your setup?",
+    "choices": [
+     "It is the language you write your programs in",
+     "It is the Minecraft world",
+     "It is the screen",
+     "It is the keyboard"
+    ],
+    "answerIndex": 0,
+    "explain": "Python is the programming language. You type your commands in it."
+   },
+   {
+    "q": "What does the Spigot server do?",
+    "choices": [
+     "It lets your Python programs talk to Minecraft",
+     "It draws the pictures",
+     "It plays the music",
+     "It saves your homework"
+    ],
+    "answerIndex": 0,
+    "explain": "Spigot is the helper in the middle that carries your code's messages into the Minecraft world."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 1,
+  "title": "Python Basics: What Is a Variable? 📦 (Book pp. 27–31)",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "3-5.F",
+  "passage": "Gather first — the book open to Chapter 2, pages 27–31, paper, and a pencil.\nHere's the Idea — A program is a list of instructions a computer follows in order. A variable is a labeled box that holds one thing so the program can use it later. The label is the name and what is inside is the value.\nSee It Done — In Python you write x = 5. That means: put the number 5 in a box named x. Then print(x) shows 5 on the screen. If you write x = 8 next, the box now holds 8 and the 5 is gone. Later, in Minecraft, you will keep your position in three boxes, x for left and right, y for up and down, and z for forward and back.\nYour Turn — 1. Read pages 27–31 with your pencil. 2. Draw three boxes on paper. Label them x, y, and z. 3. Write a number in each box. 4. Change the number in one box and cross out the old one. 5. Say out loud what a variable is.\nCheck Yourself — If x = 5 and then x = 8, what is in the box now?\nShow What You Know — Explain a variable to Mom using a real box or a cup with a label.",
+  "quiz": [
+   {
+    "q": "x = 5, then x = 8. What does x hold now?",
+    "choices": [
+     "8",
+     "5",
+     "13",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "The new value replaces the old one, like swapping what is in the box."
+   },
+   {
+    "q": "In a Minecraft program, what could the variables x, y, and z hold?",
+    "choices": [
+     "Your position",
+     "Your name only",
+     "The weather",
+     "A recipe"
+    ],
+    "answerIndex": 0,
+    "explain": "x, y, and z are the three numbers that say where something is in the world."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 2,
+  "title": "Mission #1: Teleport the Player ✨ (Book pp. 37–38)",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — the Windows PC with your Python setup working, the book open to Mission #1 (pp. 37–38), and a grown-up nearby.\nHere's the Idea — You already know a variable holds a number. In this mission your numbers become a place, and Python moves you there. This is your first real Minecraft program.\nSee It Done — The book shows the exact lines to type. Typing code exactly matters: one wrong letter or missing bracket makes an error, and an error is a clue, not a failure.\nYour Turn — 1. Start your Spigot server and join the game (book p. 7). 2. Type Mission #1 exactly as the book shows. 3. Run it and watch what happens to your player. 4. Change one number. Run it again and see what changes. 5. Write one sentence about what each number does.\nCheck Yourself — Did the player land where you expected? If not, which number would you change?\nShow What You Know — Show Mom your program and teleport yourself while she watches. Tell her what each variable does.",
+  "quiz": [
+   {
+    "q": "An error message in your code means…",
+    "choices": [
+     "Python found something to fix, so read it and try again",
+     "You broke the computer",
+     "You should quit",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "Error messages tell you what to fix. Programmers read them all the time."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 3,
+  "title": "Mission #2: Go Exactly Where You Want 🎯 (Book p. 40)",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, the book open to Mission #2 (p. 40), paper, and a pencil.\nHere's the Idea — Last time you copied a place. Now you choose the place. To choose it you must know what x, y, and z mean in the world, so a good coder sketches first.\nSee It Done — Say you want to land ten blocks east of where you stand. Only the x number changes, and y and z stay the same. Change one number at a time and test.\nYour Turn — 1. On paper, draw a top-down sketch of your world with a spot you want to visit. 2. Check the book for how to find your current position. 3. Write the numbers for your spot. 4. Type Mission #2 and use your numbers. 5. Run it. If you land in the wrong place, fix one number and run again.\nCheck Yourself — Did you test one change at a time?\nShow What You Know — Tell Mom how you worked out your x, y, and z.",
+  "quiz": [
+   {
+    "q": "Best way to fix a program that goes to the wrong spot?",
+    "choices": [
+     "Change one number and test again",
+     "Change every number",
+     "Delete everything",
+     "Restart the computer"
+    ],
+    "answerIndex": 0,
+    "explain": "One change at a time shows you exactly what fixed it."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 4,
+  "title": "Mission #3: Teleportation Tour 🚀 (Book p. 43)",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, the book open to Mission #3 (p. 43), and a grown-up nearby.\nHere's the Idea — A program runs one line after another, so it can teleport you to many places in a row. If it runs too fast you cannot see each stop. The book uses Python's time module to make it wait between stops. A module is a bundle of ready-made tools you can borrow.\nSee It Done — Think of a tour guide: go to the first stop, wait so people can look, go to the second stop, wait again. The program's order is the order of the tour.\nYour Turn — 1. Plan three stops on paper. 2. Type Mission #3 from the book. 3. Use your three stops. 4. Run it and watch the tour. 5. Change how long it waits and watch the difference.\nCheck Yourself — Why does the tour need a wait between stops?\nShow What You Know — Give Mom a tour of your world and tell her what each line does.",
+  "quiz": [
+   {
+    "q": "What is a module in Python?",
+    "choices": [
+     "A bundle of ready-made tools you can borrow",
+     "A kind of block",
+     "A Minecraft mob",
+     "A broken program"
+    ],
+    "answerIndex": 0,
+    "explain": "A module is code someone already wrote that you import and use."
+   },
+   {
+    "q": "Why wait between stops?",
+    "choices": [
+     "So you can see each stop",
+     "So the computer rests",
+     "Because Python forgets",
+     "No reason"
+    ],
+    "answerIndex": 0,
+    "explain": "Without a wait, the program jumps so fast you only see the last stop."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 5,
+  "title": "Mission #4: Fix the Buggy Teleportation 🐛 (Book p. 45)",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, the book open to Mission #4 (p. 45), and a pencil.\nHere's the Idea — A bug is a mistake in a program. Debugging means hunting for the mistake and fixing it. Professional coders spend a lot of their time debugging. It is a detective job, not a failure.\nSee It Done — Read the error message from the bottom up. It usually names the line and the problem. Fix one thing, run again, and read what changed.\nYour Turn — 1. Type the buggy program from the book. 2. Run it and read what goes wrong. 3. Find the bug using the error message or by reading line by line. 4. Fix it. 5. Run again until it works. 6. Write what the bug was.\nCheck Yourself — Can you explain what the bug was and how you found it?\nShow What You Know — Tell Mom about your bug like a detective story.",
+  "quiz": [
+   {
+    "q": "What is debugging?",
+    "choices": [
+     "Finding and fixing mistakes in a program",
+     "Adding more code",
+     "Deleting the game",
+     "Turning off the computer"
+    ],
+    "answerIndex": 0,
+    "explain": "Debugging is hunting for what is wrong and fixing it."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 6,
+  "title": "Teach-Back: Explain Your Python Program to Mom 🎤",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 15,
+  "standard": "3-5.F",
+  "passage": "Gather first — your Mission programs and Mom or another grown-up.\nHere's the Idea — If you can explain it, you really understand it.\nYour Turn — 1. Open one of your missions. 2. Tell Mom what a variable is. 3. Tell her what each line does. 4. Tell her one bug you found. 5. Say one thing you want to try next.\nCheck Yourself — Did you use the words variable, program, and bug?\nShow What You Know — Run the program for Mom and let her pick one number to change.",
+  "quiz": [
+   {
+    "q": "A variable is…",
+    "choices": [
+     "A labeled box that holds a value",
+     "A kind of block",
+     "A mob",
+     "A server"
+    ],
+    "answerIndex": 0,
+    "explain": "A variable stores something the program can use later."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ }
+];
+var MC_STEM_LAB_RYAN = [
+ {
+  "d": 0,
+  "title": "STEM Lab: Gravity Impact — Drop Test 🌍 (Book Lab 3, p. 36)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "S4P3",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 3, Gravity Impact (p. 36), a few small safe things to drop (a ball, a crumpled paper, a spoon), a ruler or tape measure, paper, and a grown-up.\nHere's the Idea — Gravity is the force that pulls things toward Earth. Something that falls faster hits harder. The higher you drop it from, the faster it goes before it lands.\nSee It Done — Drop a ball from 1 foot, then from 3 feet. Watch and listen. The higher drop lands with a bigger thud, so it hit with more force.\nYour Turn — 1. Predict which height will make the biggest thud. 2. Drop each item from 1 foot, then 3 feet, on the same floor. 3. Write what you saw and heard for each. 4. Then try the Minecraft part from the book. 5. Write one sentence: what does height change?\nCheck Yourself — Was your prediction right? Why or why not?\nShow What You Know — Do the drop test for Mom and explain gravity in your own words.",
+  "quiz": [
+   {
+    "q": "A ball dropped from higher up hits with…",
+    "choices": [
+     "More force",
+     "Less force",
+     "The same force",
+     "No force"
+    ],
+    "answerIndex": 0,
+    "explain": "It speeds up longer before it lands, so it hits harder."
+   },
+   {
+    "q": "What is gravity?",
+    "choices": [
+     "A force that pulls things toward Earth",
+     "A kind of block",
+     "A type of weather",
+     "A tool"
+    ],
+    "answerIndex": 0,
+    "explain": "Gravity pulls everything toward the ground."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 1,
+  "title": "STEM Lab: Piston Powers — Push and Pull 🔧 (Book Lab 4, p. 40)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "S4P3",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 4, Piston Powers (p. 40), a syringe or squeeze bottle with no needle (ask a grown-up), a cup of water, and paper towels.\nHere's the Idea — A piston pushes by using force in a straight line. A force is a push or a pull. A bigger push can move something farther.\nSee It Done — Push a syringe plunger gently and water squirts out. Push harder and it goes farther.\nYour Turn — 1. Fill the syringe with water over a sink or tray. 2. Push gently. Measure how far the water goes. 3. Push harder and measure again. 4. Write both distances. 5. Do the Minecraft piston build from the book. 6. Tell what pushing harder did.\nCheck Yourself — What changed when you pushed harder?\nShow What You Know — Show Mom the squirt test and explain force.",
+  "quiz": [
+   {
+    "q": "A bigger push on the plunger makes the water go…",
+    "choices": [
+     "Farther",
+     "Shorter",
+     "Nowhere",
+     "Backward"
+    ],
+    "answerIndex": 0,
+    "explain": "More force moves the water farther."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 2,
+  "title": "STEM Lab: Zipline — Speed Down the Line 🪢 (Book Lab 10, p. 68)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "S4P3",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 10, Zipline (p. 68), string, a paper cup, a small toy, tape, two chairs, a ruler, and a grown-up. Nobody rides this zipline. Only the toy does.\nHere's the Idea — A zipline works by gravity. When one end is higher, the cup slides down. A steeper slope means a faster trip.\nSee It Done — Tie the string between two chairs with one end higher. The cup with the toy slides toward the lower chair.\nYour Turn — 1. Set up with the low slope and count how long it takes. 2. Make one end higher and count again. 3. Write both times. 4. Build the Minecraft zipline from the book. 5. Say what a steeper slope did.\nCheck Yourself — Which slope was faster?\nShow What You Know — Race the cup for Mom and explain why.",
+  "quiz": [
+   {
+    "q": "A steeper zipline makes the cup go…",
+    "choices": [
+     "Faster",
+     "Slower",
+     "Backward",
+     "Nowhere"
+    ],
+    "answerIndex": 0,
+    "explain": "Gravity pulls it down the steeper slope faster."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 3,
+  "title": "STEM Lab: Chain Reaction Contraption ⛓️ (Book Lab 22, p. 122)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4P3",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 22, Chain Reaction Contraption (p. 122), dominoes or small blocks, a marble, a book, a ruler, and a clear floor.\nHere's the Idea — In a chain reaction, one thing moves the next. Energy and force get passed along. Every link must hit the next one.\nSee It Done — Line up dominoes and tip the first. The force passes down the line.\nYour Turn — 1. Plan three links on paper. 2. Build it in real life. 3. Test it. If it breaks, find which link failed. 4. Fix one link and test again. 5. Build the Minecraft chain reaction from the book.\nCheck Yourself — Which link needed the most fixing?\nShow What You Know — Run your contraption for Mom and name each link.",
+  "quiz": [
+   {
+    "q": "In a chain reaction…",
+    "choices": [
+     "One thing sets off the next",
+     "Nothing moves",
+     "Only one thing moves",
+     "Everything stops"
+    ],
+    "answerIndex": 0,
+    "explain": "Each link passes energy to the next link."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ }
+];
+var MC_STEM_LAB_ANNA = [
+ {
+  "d": 0,
+  "title": "Egg Farm: Follow a Chicken's Life Cycle 🐔 (Book Lab 17, p. 100)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 15,
+  "standard": "S2L1",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 17, Egg Farm (p. 100), paper, crayons, and a grown-up to read with you.\nHere's the Idea — A life cycle is the steps an animal goes through as it grows. A chicken starts as an egg. The egg hatches into a chick. The chick grows into a young chicken. Then it becomes an adult hen or rooster, and the hen lays eggs, so the cycle starts again.\nSee It Done — Draw four boxes in a circle with arrows: egg, chick, young chicken, adult hen.\nYour Turn — 1. Draw the four boxes. 2. Draw each stage. 3. Add arrows. 4. Say the cycle out loud. 5. If you like, build an egg farm in Minecraft with Mom.\nCheck Yourself — What comes right after the chick?\nShow What You Know — Tell Mom the chicken life cycle using your drawing.",
+  "quiz": [
+   {
+    "q": "What does an egg hatch into?",
+    "choices": [
+     "A chick",
+     "A hen",
+     "A rooster",
+     "A duck"
+    ],
+    "answerIndex": 0,
+    "explain": "A chicken egg hatches into a chick."
+   },
+   {
+    "q": "What does an adult hen do?",
+    "choices": [
+     "Lays eggs",
+     "Turns into an egg",
+     "Flies away",
+     "Hatches"
+    ],
+    "answerIndex": 0,
+    "explain": "The hen lays eggs, so the cycle starts again."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Science"
+  ]
+ }
+];
+function addPackItems(kidId, list){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var start = packStart();
+  var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  list.forEach(function(it){
+    if(have.indexOf(it.title)!==-1) return;
+    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, skillId:it.skillId||null, createdAt:new Date().toISOString()});
   });
 }
 function addRyanVirtualPhones(kidId){

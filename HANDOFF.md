@@ -116,3 +116,9 @@ The HeyGen Reconstruction video (id 5457908650b240fdb2dff7969eccf198, 47 credits
 
 ## TODO (filed 16 Oct 2026): store purchases without approval
 Mom asked: she should NOT have to approve store purchases, except screen time. Instead send her a notification only when a kid buys something that needs her help or action (e.g. a real-world reward she must provide). Not started. Start by finding the store purchase/approval code in index.html (search "approv", "purchase", store/redeem), keep screen-time purchases as approval-required, auto-approve the rest, and add a Leader-visible notice for purchases needing Mom's action.
+
+## Minecraft book packs (16 Oct 2026)
+- New Leader > Content Packs: "Ryan: Minecraft Python Missions" (7 lessons: setup pp. 2-10/24, variables, Missions 1-4, teach-back; book "Learn to Program with Minecraft", Java Edition on Ryan's PC), "Ryan: Minecraft STEM Lab" (4 labs: Gravity Impact, Piston Powers, Zipline, Chain Reaction), "Anna: Minecraft STEM Lab" (Egg Farm). Arrays MC_PYTHON_MISSIONS, MC_STEM_LAB_RYAN, MC_STEM_LAB_ANNA + addPackItems, next to addRyanVirtualPhones.
+- Written from the books' contents pages only (own words, page numbers). Mom must check the book's code against each Mission step. The STEM Lab book's standards table (p. 138) is NGSS/IB, not Georgia.
+- Standards: Python lessons use "3-5.F" (unverified, same as other computer lessons; check Mom's table); labs use S4P3 (verified); Egg Farm uses S2L1 (exists).
+- More from the books later: STEM Lab Labs 1,2,11,13-19; Python Chapters 3-4 (Missions 5-16).
