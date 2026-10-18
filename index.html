@@ -18613,7 +18613,7 @@ function patchSafetyUndo(){
 var STANDARD_STATUS = {
   "ELAGSE2RL2":"verified", "ELAGSE2RF3":"verified", "ELAGSE2RI1":"verified", "S2L1":"exists", "S2P1":"verified", "VA2.CR.2":"verified",
   "2.NR.1":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
-  "S4P3":"verified", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
+  "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
   "ELAGSE4RI1":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
 };
@@ -19525,9 +19525,9 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
-    {label:"Ryan: Minecraft Python Missions (7 lessons, Learn to Program with Minecraft)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
-    {label:"Ryan: Minecraft STEM Lab (5 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
-    {label:"Anna: Minecraft STEM Lab (Egg Farm)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
+    {label:"Ryan: Minecraft Python Missions (7 lessons; needs the library book Learn to Program with Minecraft)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
+    {label:"Ryan: Minecraft STEM Lab (9 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
+    {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
@@ -20297,7 +20297,7 @@ var MC_STEM_LAB_RYAN = [
   "stage": "apply",
   "xp": 25,
   "standard": "S4P3",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 2, All Aboard (pp. 30–35), about 1/2-inch flexible foam tubing, scissors (a grown-up cuts the tubing open lengthwise), masking tape, props like books, pots, cardboard tubes and plastic cups, a few marbles, and graph paper. Allow 1–2 hours.\nHere's the Idea — Everything that can fall has stored energy called potential energy. A marble waiting at the top of a track has it. When it rolls, that stored energy turns into kinetic energy, which is movement energy. Your coaster is a machine for turning one kind of energy into the other.\nSee It Done — The book's family activity shows the steps. Open the foam tubing along its seam. Tape pieces together on the underside only, because tape on the top of the rail can stop the marble. Start high and end low. Add curves, bridges, and tunnels.\nYour Turn — 1. Sketch your coaster on graph paper first. 2. Build it with the book's steps on pages 31–32. 3. Roll a marble from the top and watch where it speeds up and slows down. 4. Fix one problem and test again. 5. Then do the Minecraft Play: Rail System on pp. 32–35 (Creative mode): a one-stop station with powered rails and a button, then try a detector rail. 6. Write one sentence about where the marble had the most potential energy.\nCheck Yourself — Where on your track does the marble have the most potential energy?\nShow What You Know — Run your coaster for Mom and name where the energy changes.",
+  "passage": "Gather first — about 1/2-inch foam pipe tubing (the foam pipe insulation sold at hardware stores) or paper towel tubes cut in half lengthwise, scissors (a grown-up cuts the tubing), masking tape, books, pots, cardboard tubes, plastic cups, a few marbles, and graph paper. Allow 1–2 hours. Marbles are small, so keep them away from little kids. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Everything that can fall has stored energy called potential energy. A marble at the top of a track has it. When it rolls, that stored energy turns into kinetic energy, which is movement energy. A roller coaster is a machine that turns one kind of energy into the other.\nSee It Done — Foam tubing usually comes split down one side. Open it all the way along that seam, then cut it lengthwise into two equal pieces. Each piece is a track with a groove for the marble.\nYour Turn — 1. Sketch your coaster on graph paper first. 2. Make the track. Join pieces with tape on the underside only, because tape on top can stop the marble. 3. Start the coaster high and let it end near the floor. Prop it up with books, pots, cups, and tubes. 4. Add curves, bridges, tunnels, and a few turns in direction. Turns save space. 5. Roll a marble from the top. Watch where it speeds up and slows down. 6. Fix one problem and test again. 7. Now build a Minecraft rail system in Creative mode. First dig a hole 1 block deep and 2 blocks wide. Put two powered rails in it and connect normal rails to one end. Put a block beside the hole at ground level and a button on the block, facing the powered rails. Put a minecart on a powered rail, push the button, and ride. 8. Add a detector rail in your line with redstone dust running from it to a note block. When the cart rolls over, the note plays. 9. Write one sentence about where your marble had the most potential energy.\nCheck Yourself — Where on your track does the marble have the most potential energy?\nShow What You Know — Run your coaster for Mom and name where the energy changes.",
   "quiz": [
    {
     "q": "A marble at the top of the track has stored energy called…",
@@ -20335,7 +20335,7 @@ var MC_STEM_LAB_RYAN = [
   "stage": "apply",
   "xp": 25,
   "standard": "S4P3",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 3, Gravity Impact (pp. 36–37), about 3 cups of flour, a baking tray, a ruler, 4 or 5 objects of different sizes and weights (a rock, a marble, a bouncy ball), paper for a data table, and a grown-up. Flour makes a mess, so work over a table you can wipe. Allow 30 minutes.\nHere's the Idea — Gravity is the force that pulls things toward Earth. When something lands in soft flour it leaves a crater, so the crater shows how hard it hit. Long ago the thinker Aristotle said heavy things fall faster. The book says Galileo tested that idea and found that the force of gravity is constant.\nSee It Done — The book's table has the columns object, size, crater depth, crater diameter, and other observations. Fill one row for each thing you drop.\nYour Turn — 1. Spread the flour smooth in the tray and measure how deep it is. 2. Drop one object at a time from the same height. 3. Measure the crater's depth and width with the ruler. 4. Smooth the flour and drop the next object. 5. Write your results in a table like the book's. 6. Then do Minecraft Play: Gravity in Minecraft (pp. 38–39, Creative mode): a tower of alternating colored wool to measure distance and a pressure plate wired with redstone dust to a lamp. 7. Write what you noticed about size, weight, and crater.\nCheck Yourself — Which object made the biggest crater? Why do you think so?\nShow What You Know — Show Mom your table and explain what the craters tell you.",
+  "passage": "Gather first — about 3 cups of flour, a baking tray, a ruler, 4 or 5 things of different sizes and weights to drop (a rock, a marble, a bouncy ball), paper for a data table, and a grown-up. Flour makes a mess, so work where you can wipe it up. Allow 30 minutes for the real part and 45 for the Minecraft part. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Gravity is the force that pulls things toward Earth. When something lands in soft flour it leaves a crater, and the crater shows how hard it hit. The thinker Aristotle said heavy things fall faster. The story says Galileo tested that and found that the force of gravity is constant.\nSee It Done — Make a table with these columns: object, size, crater depth, crater diameter, and other things I noticed. You will fill in one row for each thing you drop.\nYour Turn — 1. Spread the flour smooth in the tray and measure how deep it is. 2. Drop one thing at a time from the same height. 3. Measure the depth and the width of each crater with the ruler. 4. Smooth the flour and drop the next thing. 5. Fill in your table. 6. Now try Minecraft in Creative mode. Build a tall tower of wool that alternates yellow and black so you can measure height by counting colors. 7. Put a wooden pressure plate at the base and run redstone dust from it to a redstone lamp. 8. Drop gravel, sand, concrete powder, and an anvil from the top so they land on the plate, and see if the lamp lights. 9. Change the drop height and try a stone pressure plate. Write what you noticed.\nCheck Yourself — Which object made the biggest crater? Why do you think so?\nShow What You Know — Show Mom your table and explain what the craters tell you.",
   "quiz": [
    {
     "q": "What does a crater in the flour show you?",
@@ -20373,7 +20373,7 @@ var MC_STEM_LAB_RYAN = [
   "stage": "apply",
   "xp": 25,
   "standard": "S4P3",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 4, Piston Power (pp. 40–41), small tubing or aquarium air-line tubing, a zippered snack baggie, a balloon, water, packing tape, 2 empty plastic containers, small objects to lift (start light, then try books or rocks), and paper towels. Do it over a tray or sink. Allow 30 minutes.\nHere's the Idea — A hydraulic piston pushes with liquid. Pressing on one end of a closed tube of water pushes the water to the other end. The book calls this Pascal's principle: pressure on one side of a closed system with a fluid gets passed on to the other side. By changing the size of the parts you can make the push bigger. That gain is called mechanical advantage.\nSee It Done — Put one end of the tubing into the balloon and the other into the baggie. Tape the balloon closed first, then fill the baggie with water, zip it, and seal it well with tape. Set each in its own container. Press the baggie and the balloon fills with water and lifts the object on top.\nYour Turn — 1. Build it with the book's steps on page 41. 2. Check for leaks before you press. 3. Test with a light object, then a heavier one. 4. Write how much your piston could lift. 5. Then do Minecraft Play: Redstone Pistons (pp. 42–43, Creative mode). The book says Minecraft pistons use redstone power and not hydraulics. Build the Jeb trap or a simple piston door. 6. Write one way the real piston and the Minecraft piston are different.\nCheck Yourself — What carried the push from the baggie to the balloon?\nShow What You Know — Show Mom the hydraulic piston lifting something and explain it.",
+  "passage": "Gather first — a balloon, a zippered snack baggie, small tubing (aquarium air-line tubing works), water, packing tape, 2 empty plastic containers, small objects to lift (start light, then try books or rocks), and paper towels. Do it over a tray or sink. Allow 30 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — A hydraulic piston pushes with liquid. Pressing on one end of a closed tube of water pushes the water to the other end. This is called Pascal's principle: pressure on one side of a closed system of fluid passes to the other side. If you change the sizes of the parts, you can make the push bigger. That gain is called mechanical advantage.\nSee It Done — The water carries the push from the baggie to the balloon, so the balloon swells and lifts the object sitting on it.\nYour Turn — 1. Push one end of the tubing far into the balloon and the other end far into the baggie. 2. Tape the balloon closed around the tube first. 3. Fill the baggie with water, zip it, and tape the opening well. 4. Set the balloon and baggie in separate plastic containers. 5. Check for leaks. If water drips, add tape. 6. Put a light object on the balloon and press the baggie slowly. Watch the balloon fill and lift it. 7. Try heavier objects like a book or rock. Write how much it could lift. 8. Now try Minecraft in Creative mode. Build a secret piston door: place two sticky pistons side by side pointing at each other at a cave entrance, put a block on the end of each, and hide a lever behind a block nearby. Flip the lever and the blocks pull back to open the door. 9. Write one way the real piston and the Minecraft piston are different. The real one uses liquid. The Minecraft one runs on redstone.\nCheck Yourself — What carried the push from the baggie to the balloon?\nShow What You Know — Show Mom the hydraulic piston lifting something and explain it.",
   "quiz": [
    {
     "q": "In your hydraulic piston, what carries the push from one side to the other?",
@@ -20406,23 +20406,34 @@ var MC_STEM_LAB_RYAN = [
  },
  {
   "d": 3,
-  "title": "STEM Lab: Zipline — Speed Down the Line 🪢 (Book Lab 10, p. 68)",
+  "title": "STEM Lab: Zipline — Elytra Wings on a String 🪢 (Book Lab 10, pp. 68–71)",
   "subject": "Science",
   "stage": "apply",
-  "xp": 20,
+  "xp": 25,
   "standard": "S4P3",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 10, Zipline (p. 68), string, a paper cup, a small toy, tape, two chairs, a ruler, and a grown-up. Nobody rides this zipline. Only the toy does.\nHere's the Idea — A zipline works by gravity. When one end is higher, the cup slides down. A steeper slope means a faster trip.\nSee It Done — Tie the string between two chairs with one end higher. The cup with the toy slides toward the lower chair.\nYour Turn — 1. Set up with the low slope and count how long it takes. 2. Make one end higher and count again. 3. Write both times. 4. Build the Minecraft zipline from the book. 5. Say what a steeper slope did.\nCheck Yourself — Which slope was faster?\nShow What You Know — Race the cup for Mom and explain why.",
+  "passage": "Gather first — cardboard, crayons or markers, masking tape, small weights like coins, string, a paper clip, and scissors. Allow 30 minutes. Nobody rides this zipline. Only your paper wings do. For the Minecraft part you need the Java Edition on the PC (Elytra came in version 1.9). The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Friction is a force that slows things down. Air resistance, also called drag, is friction between moving air and an object. Air flowing over and under wings also makes lift, the force that helps things fly. Elytra are the gliding wings in Minecraft.\nSee It Done — Design three kinds of wings from cardboard: small, large, and an odd irregular shape. Tape each to a coin or other small weight. Stretch string from a high spot to a low spot. Bend a paper clip into a hanger, hang the wings from it, and hang the clip on the string.\nYour Turn — 1. Make the three wing shapes and color them. 2. Hang each one on the string and let it glide down. 3. Watch which is fastest, or time each run. 4. Change one thing, like the wing shape, the weight, or how tight the string is, and test again. 5. Now Minecraft. Equip Elytra in the chestplate slot. In Creative they are in the transportation tab of the inventory. 6. Build a tower 50 blocks high with jumping stations every 10 blocks. Use white and black wool so you can count the height. 7. Along the flight path, put numbered blocks every 10 blocks so you can measure. 8. Before each jump, write a guess of how far you will glide. 9. Jump, open the wings in mid-air, and fly. Write the real distance. 10. Make a chart with column height in one column and distance flown in the next.\nCheck Yourself — Which wing shape went fastest, and what do you think made it faster?\nShow What You Know — Show Mom your three wings and your chart, and explain air resistance.",
   "quiz": [
    {
-    "q": "A steeper zipline makes the cup go…",
+    "q": "Another name for air resistance is…",
     "choices": [
-     "Faster",
-     "Slower",
-     "Backward",
-     "Nowhere"
+     "Drag",
+     "Lift",
+     "Gravity",
+     "Weight"
     ],
     "answerIndex": 0,
-    "explain": "Gravity pulls it down the steeper slope faster."
+    "explain": "The book says air resistance can be thought of as friction, also called drag."
+   },
+   {
+    "q": "Why change only one thing at a time when you test?",
+    "choices": [
+     "So you know what caused the difference",
+     "It is faster",
+     "It uses less tape",
+     "The book says so"
+    ],
+    "answerIndex": 0,
+    "explain": "One change at a time shows which change made the difference."
    }
   ],
   "skillId": "mc-stem-lab",
@@ -20433,12 +20444,163 @@ var MC_STEM_LAB_RYAN = [
  },
  {
   "d": 4,
-  "title": "STEM Lab: Chain Reaction Contraption ⛓️ (Book Lab 22, p. 122)",
+  "title": "STEM Lab: Map Maker — Find North With Sticks 🧭 (Book Lab 5, pp. 46–49)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4E2",
+  "passage": "Gather first — two sticks about one yard long, two rocks, a sunny outdoor spot, and a grown-up. Allow about an hour. Never look straight at the Sun. For Minecraft you need the PC in Creative mode for about 45 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — The Sun rises in the east and sets in the west. As Earth turns, a stick's shadow moves. If you mark where the shadow tip is at two different times, the line between your marks runs east and west. North is straight across that line.\nSee It Done — Push the first stick into the ground in the sun. Put a rock at the end of its shadow. Wait at least 30 minutes, longer is better. Put a second rock at the new end of the shadow.\nYour Turn — 1. Push the first stick in the ground and set a rock at the tip of its shadow. 2. Wait at least 30 minutes. 3. Set the second rock at the new tip of the shadow. 4. Put the second stick in the ground in front of both rocks. 5. Stand with your heels at the rocks, facing away from the stick. You are facing north. Draw a line in the ground to mark north. 6. Now Minecraft. Press F3 to open the debug screen and find your X, Y, and Z. Walk east and watch X change. 7. Watch the Sun rise in the east and set in the west. Notice that clouds drift from east to west and sunflowers always face east. 8. Craft a clock. Its hand points to the Sun or Moon. 9. Sketch your stick shadow and label north, east, south, and west.\nCheck Yourself — Which way does the Sun rise? Which way is north from your east to west line?\nShow What You Know — Show Mom your rocks and point north, then tell her how you found it.",
+  "quiz": [
+   {
+    "q": "The Sun rises in the…",
+    "choices": [
+     "East",
+     "West",
+     "North",
+     "South"
+    ],
+    "answerIndex": 0,
+    "explain": "The Sun rises in the east and sets in the west."
+   },
+   {
+    "q": "Your two rocks make a line that runs…",
+    "choices": [
+     "East to west",
+     "North to south",
+     "Up and down",
+     "In a circle"
+    ],
+    "answerIndex": 0,
+    "explain": "The shadow tip moves along an east to west line. North is straight across it."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 5,
+  "title": "STEM Lab: Let There Be Light — Glowing Goo and Rainbow Beacons 🌈 (Book Lab 6, pp. 50–53)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4P1",
+  "passage": "Gather first — a mixing bowl, 1 1/2 cups marshmallow creme or melted marshmallows, 1 1/2 cups cornstarch, 2 ounces glow-in-the-dark craft paint, a bright light, and a grown-up. Allow 15 minutes plus at least an hour to charge the goo. Do not eat the goo. Throw it away after 1 or 2 days. Keep hands out of mouths while you work. For Minecraft you need Creative mode for about an hour. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — White light is really a mix of colors, the colors of the rainbow. Glow-in-the-dark paint holds a substance called phosphor. Phosphor takes in light and then slowly lets that energy out, so it glows after the lights go off. The goo is a non-Newtonian fluid. It acts a bit like a solid and a bit like a liquid.\nSee It Done — Mix the marshmallow and cornstarch into a soft dough. Add the paint a little at a time and fold it in. If it is too sticky, add more cornstarch.\nYour Turn — 1. Mix the marshmallow and cornstarch in the bowl with your hands or a spatula until a soft dough forms. 2. Drizzle in the paint a little at a time and fold it in until blended. 3. Set the goo under a bright light for an hour or more. 4. Turn off the lights and watch it glow. 5. Now Minecraft in Creative mode. Build seven small pyramids from iron, gold, diamond, or emerald blocks, each with a 3 by 3 base, with a gap between them. 6. Put a beacon in the center of each pyramid so seven beams shoot into the sky. 7. Cover each beam with stained glass in rainbow order: red, orange, yellow, green, light blue, blue, purple. 8. Make it night to see them best. 9. Write the seven rainbow colors in order.\nCheck Yourself — What do you have to do to the goo so it glows?\nShow What You Know — Show Mom the glowing goo and explain how phosphor works.",
+  "quiz": [
+   {
+    "q": "Why does the goo glow after the lights go off?",
+    "choices": [
+     "It takes in light and slowly lets it out",
+     "It is hot",
+     "It is full of batteries",
+     "It is magic"
+    ],
+    "answerIndex": 0,
+    "explain": "Phosphor takes in light energy and then lets it out slowly."
+   },
+   {
+    "q": "Is it safe to eat the goo?",
+    "choices": [
+     "No",
+     "Yes",
+     "Only a little",
+     "Only if it glows"
+    ],
+    "answerIndex": 0,
+    "explain": "The book says do not eat the goo. It is for science only."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Science"
+  ]
+ },
+ {
+  "d": 6,
+  "title": "STEM Lab: Weather Watcher — Collect a Cloud 🌥️ (Book Lab 11, pp. 72–75)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4E3",
+  "passage": "Gather first — a clear glass, a bowl, ice, water, a timer, a measuring cup, and a weather app or website. Allow about an hour. For Minecraft you need Creative mode for about 45 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Clouds are made of tiny drops of water. Water vapor in the air is hard to see until it condenses, which means it turns into drops of liquid. Warm air rises, cools, and its vapor condenses into drops that make clouds. When the drops grow heavy they fall as rain.\nSee It Done — Put a glass in a bowl. Fill it with ice and then water. Drops will gather on the outside of the glass. Those drops came from the water vapor in the air in the room.\nYour Turn — 1. Look up the room temperature and humidity and write them down. 2. Put the glass in the bowl, add ice, and fill it with water. Start your timer. 3. Write how long it takes for drops to show up on the outside, and how long until they run down the glass. 4. After about an hour, wipe the drops into the bowl and pour them into the measuring cup. Write how much you collected. 5. Now Minecraft. Walk to three biomes, a cold one, a mild one, and a hot one like a desert, and write what weather each one has. Cold biomes have snow, mild ones have rain, and hot ones have none. 6. With cheats on, try the chat commands /weather clear, /weather rain, and /weather thunder. 7. Draw the clouds you see outside.\nCheck Yourself — Where did the water on the outside of the glass come from?\nShow What You Know — Show Mom your glass and explain how a cloud forms.",
+  "quiz": [
+   {
+    "q": "The water on the outside of the cold glass came from…",
+    "choices": [
+     "Water vapor in the air",
+     "The inside of the glass",
+     "The bowl",
+     "The ice melting through the glass"
+    ],
+    "answerIndex": 0,
+    "explain": "Water vapor in the air cooled and condensed into drops."
+   },
+   {
+    "q": "Condensation is when water vapor…",
+    "choices": [
+     "Turns into drops of liquid water",
+     "Turns into ice",
+     "Disappears",
+     "Turns into wind"
+    ],
+    "answerIndex": 0,
+    "explain": "Condensation is vapor turning into liquid drops, like on your glass or in a cloud."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 7,
+  "title": "STEM Lab: Mars Space Station — Design a Mars Habitat 🚀 (Book Lab 9, pp. 64–67)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4E1",
+  "passage": "Gather first — craft paint, toilet paper tubes, foam shapes or clay, aluminum foil, tape, toothpicks or bamboo skewers (a grown-up helps with sharp ends), and a sheet of cardboard for a base. Allow about 45 minutes. For Minecraft you need Survival mode for 1 to 2 hours. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Mars is the fourth planet from the Sun. Its air has less than 1 percent oxygen and its air pressure is less than 1 percent of Earth's. Its gravity is 37.5 percent of Earth's. It has no magnetic field to protect it from the Sun's radiation. It has wind and dust storms, and its temperature runs from about minus 100 degrees to 67 degrees Fahrenheit. People could live there only indoors. Scientists try a design, test it, and improve it. That is called iteration.\nSee It Done — Build one round room for sleeping. Connect another room for eating or growing food. Then ask, what could go wrong on Mars? Change the design to fix it.\nYour Turn — 1. Build a model habitat with places to sleep, eat, grow food, and do experiments. 2. Test it. Write one thing you would improve. 3. Change your layout once and write why. 4. Mount it on the cardboard. 5. Now Minecraft in Survival mode in a Mesa biome, which looks like Mars. Pretend your rocket brought gold, iron, glass, coal for fuel, tools, food, water, a furnace, a bed, and redstone. 6. Build an indoor garden first, because food cannot grow outside on Mars. 7. Build living quarters underground for protection. 8. Build a research building. 9. Improve your base once. 10. Try this: multiply your weight by 0.375 to see how much you would weigh on Mars.\nCheck Yourself — Name two things on Mars that people would need protection from.\nShow What You Know — Show Mom your habitat and explain one change you made and why.",
+  "quiz": [
+   {
+    "q": "Mars's gravity compared with Earth's is…",
+    "choices": [
+     "Weaker, about 37.5 percent",
+     "Stronger",
+     "The same",
+     "Zero"
+    ],
+    "answerIndex": 0,
+    "explain": "The book says Mars's gravity is 37.5 percent of Earth's."
+   },
+   {
+    "q": "What does iteration mean?",
+    "choices": [
+     "Testing and improving a design again and again",
+     "Giving up",
+     "Building once",
+     "Copying"
+    ],
+    "answerIndex": 0,
+    "explain": "Iteration is repeating and improving your design after testing."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 8,
+  "title": "STEM Lab: Chain Reaction Contraption ⛓️",
   "subject": "Science",
   "stage": "apply",
   "xp": 25,
   "standard": "S4P3",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 22, Chain Reaction Contraption (p. 122), dominoes or small blocks, a marble, a book, a ruler, and a clear floor.\nHere's the Idea — In a chain reaction, one thing moves the next. Energy and force get passed along. Every link must hit the next one.\nSee It Done — Line up dominoes and tip the first. The force passes down the line.\nYour Turn — 1. Plan three links on paper. 2. Build it in real life. 3. Test it. If it breaks, find which link failed. 4. Fix one link and test again. 5. Build the Minecraft chain reaction from the book.\nCheck Yourself — Which link needed the most fixing?\nShow What You Know — Run your contraption for Mom and name each link.",
+  "passage": "Gather first — dominoes or small blocks, a marble, a book, a ruler, and a clear floor.\nHere's the Idea — In a chain reaction, one thing moves the next. Energy and force get passed along. Every link must hit the next one.\nSee It Done — Line up dominoes and tip the first. The force passes down the line.\nYour Turn — 1. Plan three links on paper. 2. Build it in real life. 3. Test it. If it breaks, find which link failed. 4. Fix one link and test again. 5. Build the Minecraft chain reaction from the book.\nCheck Yourself — Which link needed the most fixing?\nShow What You Know — Run your contraption for Mom and name each link.",
   "quiz": [
    {
     "q": "In a chain reaction…",
@@ -20467,7 +20629,7 @@ var MC_STEM_LAB_ANNA = [
   "stage": "apply",
   "xp": 15,
   "standard": "S2L1",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 17, Egg Farm (p. 100), paper, crayons, and a grown-up to read with you.\nHere's the Idea — A life cycle is the steps an animal goes through as it grows. A chicken starts as an egg. The egg hatches into a chick. The chick grows into a young chicken. Then it becomes an adult hen or rooster, and the hen lays eggs, so the cycle starts again.\nSee It Done — Draw four boxes in a circle with arrows: egg, chick, young chicken, adult hen.\nYour Turn — 1. Draw the four boxes. 2. Draw each stage. 3. Add arrows. 4. Say the cycle out loud. 5. If you like, build an egg farm in Minecraft with Mom.\nCheck Yourself — What comes right after the chick?\nShow What You Know — Tell Mom the chicken life cycle using your drawing.",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 17, Egg Farm (p. 100), paper, crayons, and a grown-up to read with you.  The library book (Unofficial Minecraft STEM Lab for Kids) is optional. This lesson has every step.\nHere's the Idea — A life cycle is the steps an animal goes through as it grows. A chicken starts as an egg. The egg hatches into a chick. The chick grows into a young chicken. Then it becomes an adult hen or rooster, and the hen lays eggs, so the cycle starts again.\nSee It Done — Draw four boxes in a circle with arrows: egg, chick, young chicken, adult hen.\nYour Turn — 1. Draw the four boxes. 2. Draw each stage. 3. Add arrows. 4. Say the cycle out loud. 5. If you like, build an egg farm in Minecraft with Mom.\nCheck Yourself — What comes right after the chick?\nShow What You Know — Tell Mom the chicken life cycle using your drawing.",
   "quiz": [
    {
     "q": "What does an egg hatch into?",
@@ -20490,6 +20652,43 @@ var MC_STEM_LAB_ANNA = [
     ],
     "answerIndex": 0,
     "explain": "The hen lays eggs, so the cycle starts again."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Science"
+  ]
+ },
+ {
+  "d": 1,
+  "title": "Crystals: Grow Your Own Sparkly Snowflake ❄️ (Book Lab 7, pp. 54–55)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 15,
+  "standard": "S2P1",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 7, Crystals (pp. 54–55), Epsom salt, warm tap water, two jars, pipe cleaners, string, a pencil, food coloring if you want, and a grown-up. The grown-up pours the warm water. Do not eat the crystals.  The library book (Unofficial Minecraft STEM Lab for Kids) is optional. This lesson has every step.\nHere's the Idea — A crystal is a solid with tiny parts lined up in a pattern. When Epsom salt dissolves in warm water it disappears into the water. When the water cools, the salt comes back out and builds crystals. This is called crystallizing.\nSee It Done — Stir Epsom salt into warm water until you cannot see it any more. Hang a pipe cleaner in the jar. Soon sparkly crystals grow on it.\nYour Turn — 1. With a grown-up, mix Epsom salt and warm water in each jar until it dissolves. 2. Add a little food coloring if you like. 3. Twist a pipe cleaner into a snowflake shape. 4. Tie it to string and hang it from a pencil across the jar so it dips in the water. 5. Put the jar somewhere safe, like the refrigerator, where nobody will bump it. 6. Look again in 24 hours and draw what grew.\nCheck Yourself — What happened to the salt when you stirred it into warm water?\nShow What You Know — Show Mom your crystal snowflake and tell her how it grew.",
+  "quiz": [
+   {
+    "q": "When you stir Epsom salt into warm water, it…",
+    "choices": [
+     "Dissolves into the water",
+     "Turns into ice",
+     "Melts the jar",
+     "Floats away"
+    ],
+    "answerIndex": 0,
+    "explain": "The salt breaks into tiny parts that mix into the water. It looks like it disappeared."
+   },
+   {
+    "q": "How do the crystals grow?",
+    "choices": [
+     "The salt comes back out of the water as it cools",
+     "They fall from the sky",
+     "You paint them on",
+     "The pipe cleaner makes them"
+    ],
+    "answerIndex": 0,
+    "explain": "As the water cools, salt leaves the water and builds crystals on the pipe cleaner."
    }
   ],
   "skillId": "mc-stem-lab",
