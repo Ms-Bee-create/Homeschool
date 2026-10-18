@@ -19526,8 +19526,8 @@ function contentPacks(){
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
     {label:"Ryan: Minecraft Python Missions (7 lessons; needs the library book Learn to Program with Minecraft)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
-    {label:"Ryan: Minecraft STEM Lab (9 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
-    {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
+    {label:"Ryan: Minecraft STEM Lab (14 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
+    {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
@@ -20595,23 +20595,34 @@ var MC_STEM_LAB_RYAN = [
  },
  {
   "d": 8,
-  "title": "STEM Lab: Chain Reaction Contraption ⛓️",
+  "title": "STEM Lab: Chain Reaction Contraption — Build a Rube Goldberg Machine ⛓️",
   "subject": "Science",
   "stage": "apply",
-  "xp": 25,
+  "xp": 30,
   "standard": "S4P3",
-  "passage": "Gather first — dominoes or small blocks, a marble, a book, a ruler, and a clear floor.\nHere's the Idea — In a chain reaction, one thing moves the next. Energy and force get passed along. Every link must hit the next one.\nSee It Done — Line up dominoes and tip the first. The force passes down the line.\nYour Turn — 1. Plan three links on paper. 2. Build it in real life. 3. Test it. If it breaks, find which link failed. 4. Fix one link and test again. 5. Build the Minecraft chain reaction from the book.\nCheck Yourself — Which link needed the most fixing?\nShow What You Know — Run your contraption for Mom and name each link.",
+  "passage": "Gather first — dominoes, wooden toy train tracks and a small train (or any toy that rolls), a large bouncy ball, string, small wood blocks, a few books, and a clear floor or table. You can add anything else you find at home, like toy cars or cups. Skip anything electrical unless a grown-up helps. Allow about an hour. For Minecraft you need Creative mode for about 90 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — A Rube Goldberg machine uses a chain of simple steps to do one easy job in a hard way. Rube Goldberg was a cartoonist who drew them. One thing moves the next, so force and energy get passed down the line. Every link has to hit the next one just right. The best machines take many tries and a lot of patience.\nSee It Done — The book's example has six reactions. A swinging ball hits a toy train. The train rolls into dominoes. The dominoes hit blocks. The blocks tip a track piece. The track pieces fall on books. The books tumble onto a switch.\nYour Turn — 1. Plan at least four links on paper first. 2. Tape a bouncy ball to a string so it swings like a pendulum and kicks off your machine. 3. Line up the next links: a rolling toy, then dominoes, then blocks, then something that falls over. 4. Test it. When a link fails, change only that link and try again. It can take dozens of tries. 5. Now Minecraft in Creative mode. Build a chain: fire an arrow at a wooden button on a dispenser, so the dispenser drops redstone dust that flows down a water channel into a hopper and a chest. A comparator can then power a sticky piston that pushes a block down a runway onto a pressure plate, which powers a rail that sends a minecart on its way. 6. Draw your real machine with arrows to show each link.\nCheck Yourself — Which link failed most, and how did you fix it?\nShow What You Know — Run your machine for Mom and name each link.",
   "quiz": [
    {
-    "q": "In a chain reaction…",
+    "q": "In a chain reaction, what happens when one link fails?",
     "choices": [
-     "One thing sets off the next",
-     "Nothing moves",
-     "Only one thing moves",
-     "Everything stops"
+     "The rest of the chain stops",
+     "The next link still works",
+     "The machine speeds up",
+     "Nothing changes"
     ],
     "answerIndex": 0,
-    "explain": "Each link passes energy to the next link."
+    "explain": "Each link needs the one before it. If one link fails, nothing passes force to the next."
+   },
+   {
+    "q": "Why change only one link at a time when fixing it?",
+    "choices": [
+     "So you know what fixed it",
+     "It is faster",
+     "It uses fewer books",
+     "The rules say so"
+    ],
+    "answerIndex": 0,
+    "explain": "One change at a time shows which change worked."
    }
   ],
   "skillId": "mc-stem-lab",
@@ -20619,17 +20630,206 @@ var MC_STEM_LAB_RYAN = [
    "Math",
    "Science"
   ]
+ },
+ {
+  "d": 9,
+  "title": "STEM Lab: Egg Drop Challenge — Save the Egg 🥚 (Book Lab 17)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4P3",
+  "passage": "Gather first — eggs (a few, since some will break), tape, small containers (a take-out box, foam cup, or plant pot), packing material like cotton balls, tissue, paper, bubble wrap, or straws, paper to record, and a safe place to drop from, like a low porch or standing on a chair with a grown-up holding it. Work on a tarp, a tray, or outside. Wash hands after touching raw egg. Allow about an hour. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — When a falling egg stops suddenly, a big force hits it, and it breaks. Packing makes the stop slower and spreads the push out, so the force on the egg is smaller. That is why packages are packed with foam, bubble wrap, or paper.\nSee It Done — Pick a challenge. Option 1: everyone gets the same materials. Option 2: everyone gets the same container but picks their own packing. Option 3, the math game: each material has a pretend price, and the cheapest container that saves the egg wins. Option 4: the lightest container wins. Option 5: the smallest container wins.\nYour Turn — 1. Choose one option and write the goal. 2. Sketch your design. 3. Build a container that holds the egg. 4. Predict if the egg will survive. 5. Drop it from the same height each time. 6. If the egg breaks, change one thing and try again. 7. Write what worked. 8. Now Minecraft in Creative or Survival, about an hour. Build an automatic egg collector: make a 7 by 7 foundation. Build walls all around with a spot for a door. Put 6 trapped chests inside with a hopper at the back of each. To attach a hopper, hold Shift and right-click the chest with the hopper in your hand. Extend the walls inside and add iron bars along the sides. Use a chicken spawn egg inside each hopper to put a chicken in. Cover the roof so they cannot get out. Check in the morning for eggs in the chests.\nCheck Yourself — Why does packing material protect the egg?\nShow What You Know — Drop your container for Mom and explain why it worked or what you would change.",
+  "quiz": [
+   {
+    "q": "Why does packing material help an egg survive a fall?",
+    "choices": [
+     "It slows the stop and spreads out the force",
+     "It makes the egg heavier",
+     "It makes gravity weaker",
+     "It makes the egg bounce higher"
+    ],
+    "answerIndex": 0,
+    "explain": "Soft packing makes the stop slower, so the force on the egg is smaller."
+   },
+   {
+    "q": "If your egg breaks, what is the best next step?",
+    "choices": [
+     "Change one thing and test again",
+     "Give up",
+     "Change everything",
+     "Drop it from higher"
+    ],
+    "answerIndex": 0,
+    "explain": "Changing one thing at a time shows which change helps."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 10,
+  "title": "STEM Lab: Under the Sea — Build a Bathtub Submarine 🌊 (Book Lab 24)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 30,
+  "standard": "S4P3",
+  "passage": "Gather first — a large 2-liter plastic bottle, sand, a funnel, scissors, two smaller 12-ounce plastic bottles, 4 rubber bands, 2 drinking straws, a little non-hardening modeling clay, 2 binder clips, a ruler, a bathtub or large tub of water, and a grown-up. A grown-up pokes the holes. Allow about 30 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — Two forces act on a floating thing. Gravity pulls it down, and buoyancy pushes it up. When the up push equals the down pull, it floats. When gravity is stronger, it sinks. Your submarine sinks when water fills its tanks and floats up again when you push the water out with air.\nSee It Done — Fill the big bottle with sand about two-thirds full so it sinks slowly. Add two small bottles on the sides as buoyancy tanks. Each tank has a straw sticking up and a bigger hole in the bottom. Clip the straws shut and the air stays trapped, so the tanks float. Unclip them and water comes in through the bottom hole while the air escapes through the straw, so the sub sinks.\nYour Turn — 1. Use the funnel to fill the large bottle two-thirds full with sand so it just barely sinks in water. 2. With the scissors, a grown-up pokes a small hole in one side of each small bottle, big enough for a straw. On the opposite side, poke a hole about twice as big. 3. Attach the small bottles on either side of the large bottle using the rubber bands. 4. Put a straw in each small hole. Smear clay around each straw to make it airtight. 5. Clip a binder clip on each straw to trap the air. 6. Put the sub in the water. It should float. 7. Release the clips. Watch air leave the straws, water enter the big holes, and the sub sink. 8. To raise it, blow into both straws at once to push the water out. 9. Write what happened to the up force and the down force each time. 10. Now Minecraft in Creative mode, 3 to 4 hours (split it over days). Plan an underwater field station on paper first, with food and shelter, a power supply, automatic doors, a teleport station back to the surface, and a big fish tank with a viewing room. 11. Find a spot in the ocean that is not too deep and has a mostly flat floor. Light up the work area with glowstone or sea lanterns. 12. Build one small room first. Add a door, then right-click with a sponge to soak up the water. 13. Surround each finished building with a layer of glass so you can punch out windows without flooding it. 14. Connect your buildings with long glass corridors. 15. Build a big room with glass walls to make an aquarium, then add a teleport station, piston doors, and power. 16. Sketch your station and label each part.\nCheck Yourself — What was different about the forces when the sub floated and when it sank?\nShow What You Know — Sink and raise your submarine for Mom and explain buoyancy.",
+  "quiz": [
+   {
+    "q": "A submarine floats when buoyancy…",
+    "choices": [
+     "Equals the downward pull of gravity",
+     "Is zero",
+     "Is smaller than gravity",
+     "Is bigger than the water"
+    ],
+    "answerIndex": 0,
+    "explain": "When the up force and the down force are equal, the object floats."
+   },
+   {
+    "q": "How do you make your bottle sub rise?",
+    "choices": [
+     "Blow air into the tanks to push water out",
+     "Add more sand",
+     "Add more water",
+     "Turn it upside down"
+    ],
+    "answerIndex": 0,
+    "explain": "Air pushes the water out of the tanks, so the up force beats gravity."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 11,
+  "title": "STEM Lab: Create an Ecosystem — Build a Bottle Terrarium 🌿 (Book Lab 19)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4E3",
+  "passage": "Gather first — a clear 2-liter plastic bottle, a rubber band, a ruler, a marker, scissors, sand, small rocks, activated charcoal, sphagnum moss, potting soil, a small moisture-loving plant like a fern, and clear packing tape. A grown-up cuts the bottle. Allow about 45 minutes. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — A closed terrarium makes its own little water cycle. Water in the soil warms up and evaporates. It condenses into drops on the inside of the bottle and rains back down on the plant. The layers of sand, rocks, and charcoal let extra water drain away from the roots. The charcoal also cleans the water. Plants still need soil for nutrients like nitrogen, phosphorus, and potassium.\nSee It Done — Watch the inside of the bottle after a few hours. Tiny drops appear on the walls. That is condensation, the same thing that makes clouds.\nYour Turn — 1. Stretch a rubber band around the bottle about 6 inches up from the bottom. Draw a line along the band and take it off. 2. A grown-up cuts along the line. You now have a bottom piece and a top piece. 3. In the bottom piece, make layers: 1 inch of sand, 1 inch of small rocks, and half an inch of activated charcoal. 4. Add a thin layer of moist moss and 2 inches of damp potting soil. 5. Plant your small plant in the soil. 6. Put the top part of the bottle on like a lid and seal the seam with clear tape. 7. Twist off the cap if too much water builds up. Keep it out of too much direct sun, because too much light burns plants. 8. Check it each day for a week and write what you see. 9. Now Minecraft in Creative mode for about 30 minutes. Build a tall bottle-shaped glass tower with layers inside: gravel, sand, coal blocks, dirt, then ferns or other small plants.\nCheck Yourself — Where do the drops on the inside of the bottle come from?\nShow What You Know — Show Mom your terrarium and explain how it waters itself.",
+  "quiz": [
+   {
+    "q": "In a closed terrarium, water drops on the walls come from…",
+    "choices": [
+     "Water that evaporated from the soil",
+     "Outside the bottle",
+     "The tape",
+     "The plant's flowers"
+    ],
+    "answerIndex": 0,
+    "explain": "Water evaporates, then condenses on the cool walls and drips back down."
+   },
+   {
+    "q": "Why does the terrarium have layers of rocks and sand?",
+    "choices": [
+     "To let extra water drain from the roots",
+     "To make it heavy",
+     "For decoration only",
+     "To grow rocks"
+    ],
+    "answerIndex": 0,
+    "explain": "The drainage layers keep the roots from sitting in too much water."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Science"
+  ]
+ },
+ {
+  "d": 12,
+  "title": "STEM Lab: Pocket Solar System — Clay Saturn and Minecraft Planets 🪐 (Book Lab 23)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "S4E1",
+  "passage": "Gather first — modeling clay in several colors (about 4 ounces each), a rolling pin, 8 toothpicks, a dairy knife for a grown-up to use, and paper. Allow about an hour. For Minecraft you need Creative mode for 1 to 2 hours. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — The planets near the Sun are solid with heavy metal cores. Saturn is a gas giant. It is mostly gases like hydrogen and helium, with a core that may be solid. It also has rings. A model lets you see inside.\nSee It Done — Roll a solid ball of dark clay for the core. Wrap it in a layer of another color, then add a pink layer for helium and a yellow layer for hydrogen. Cut a wedge out and you can see every layer.\nYour Turn — 1. Roll half your dark clay into a solid ball for the core. 2. Roll another color flat and wrap it around the core, then add two more layers, one pink for helium and one yellow for hydrogen. 3. Roll a flat circle of clay for the ring and cut a hole in the middle slightly smaller than your planet. 4. Push toothpicks around the planet's middle like a fence. Set the ring on top of the toothpicks. 5. A grown-up uses a dairy knife to cut a quarter of the planet out, so you can see the layers. 6. Label the layers. 7. Now Minecraft in Creative mode. Pick a number for your planet's radius, like 5. Build three lines of wool that cross in the middle, each 11 blocks long. They are the x, y, and z axes. Build an X shape of blocks at the end of each line and fill it in to round out a sphere, leaving the corners empty at first. Add rows of blocks to fill in the ball. 8. Try different colored blocks for different planets. Add a ring around one.\nCheck Yourself — Which layers does your Saturn model show, from the center out?\nShow What You Know — Show Mom the cut-open Saturn and name the layers.",
+  "quiz": [
+   {
+    "q": "What kind of planet is Saturn?",
+    "choices": [
+     "A gas giant",
+     "A rocky planet",
+     "A moon",
+     "A star"
+    ],
+    "answerIndex": 0,
+    "explain": "Saturn is a gas giant made mostly of hydrogen and helium."
+   },
+   {
+    "q": "In your clay model, the center of Saturn is…",
+    "choices": [
+     "A solid core",
+     "A ring",
+     "Water",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "The model has a solid core wrapped in layers of gas."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Science"
+  ]
+ },
+ {
+  "d": 13,
+  "title": "STEM Lab: Code Your Commands — Paper Coding Game and Minecraft Commands 💻 (Book Lab 21)",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — graph paper or dot paper, a pencil, a partner like Mom, and for Minecraft the PC with a world that has cheats turned on (a grown-up helps turn on cheats when making the world). Allow about an hour. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — A program is a list of instructions. A computer follows them exactly, even if they are wrong. A mistake in a program is a bug, and fixing it is debugging. Minecraft has commands you type in chat that start with a slash.\nSee It Done — Draw a maze path on dot paper. Write commands like: Draw up 8. Draw right 7. Draw up 8. Draw right 6. Draw down 14. Draw left 6. Your partner follows them exactly with a pencil.\nYour Turn — 1. Draw a simple shape on dot paper. 2. Write the program as commands: draw up, draw down, draw left, draw right, with a number each. 3. Give only the commands to your partner. Do not show the picture. 4. Your partner draws exactly what the commands say. If the picture is wrong, find the bug and fix the commands. 5. Swap roles. 6. Now Minecraft. Type commands in the chat box. Try /weather thunder 100, then /time set night. Teleport with /tp and three numbers, like /tp 100 75 -270. Summon a chicken with a name by typing /summon and pressing Tab to see choices. 7. Write down three commands that worked and what each one does. 8. Tell what bug you found in your paper program.\nCheck Yourself — What did your partner do when a command was wrong?\nShow What You Know — Give Mom your program and let her draw it, then show her one command in Minecraft.",
+  "quiz": [
+   {
+    "q": "What is a program?",
+    "choices": [
+     "A list of instructions for a computer",
+     "A kind of block",
+     "A game score",
+     "A password"
+    ],
+    "answerIndex": 0,
+    "explain": "A program is a list of instructions the computer follows in order."
+   },
+   {
+    "q": "What is debugging?",
+    "choices": [
+     "Finding and fixing mistakes",
+     "Adding sound",
+     "Turning off the game",
+     "Saving the file"
+    ],
+    "answerIndex": 0,
+    "explain": "Debugging means finding the mistake and fixing it."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Math",
+   "Computer Science"
+  ]
  }
 ];
 var MC_STEM_LAB_ANNA = [
  {
   "d": 0,
-  "title": "Egg Farm: Follow a Chicken's Life Cycle 🐔 (Book Lab 17, p. 100)",
+  "title": "Egg Farm: Follow a Chicken's Life Cycle 🐔",
   "subject": "Science",
   "stage": "apply",
   "xp": 15,
   "standard": "S2L1",
-  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 17, Egg Farm (p. 100), paper, crayons, and a grown-up to read with you.  The library book (Unofficial Minecraft STEM Lab for Kids) is optional. This lesson has every step.\nHere's the Idea — A life cycle is the steps an animal goes through as it grows. A chicken starts as an egg. The egg hatches into a chick. The chick grows into a young chicken. Then it becomes an adult hen or rooster, and the hen lays eggs, so the cycle starts again.\nSee It Done — Draw four boxes in a circle with arrows: egg, chick, young chicken, adult hen.\nYour Turn — 1. Draw the four boxes. 2. Draw each stage. 3. Add arrows. 4. Say the cycle out loud. 5. If you like, build an egg farm in Minecraft with Mom.\nCheck Yourself — What comes right after the chick?\nShow What You Know — Tell Mom the chicken life cycle using your drawing.",
+  "passage": "Gather first — the Minecraft STEM Lab book open to Lab 17, Egg Farm (p. 100), paper, crayons, and a grown-up to read with you.\nHere's the Idea — A life cycle is the steps an animal goes through as it grows. A chicken starts as an egg. The egg hatches into a chick. The chick grows into a young chicken. Then it becomes an adult hen or rooster, and the hen lays eggs, so the cycle starts again.\nSee It Done — Draw four boxes in a circle with arrows: egg, chick, young chicken, adult hen.\nYour Turn — 1. Draw the four boxes. 2. Draw each stage. 3. Add arrows. 4. Say the cycle out loud. 5. If you like, build an egg farm in Minecraft with Mom.\nCheck Yourself — What comes right after the chick?\nShow What You Know — Tell Mom the chicken life cycle using your drawing.",
   "quiz": [
    {
     "q": "What does an egg hatch into?",
@@ -20689,6 +20889,43 @@ var MC_STEM_LAB_ANNA = [
     ],
     "answerIndex": 0,
     "explain": "As the water cools, salt leaves the water and builds crystals on the pipe cleaner."
+   }
+  ],
+  "skillId": "mc-stem-lab",
+  "crossSubjects": [
+   "Science"
+  ]
+ },
+ {
+  "d": 2,
+  "title": "Dinosaur Dig: Find the Hidden Fossils 🦖 (Book Lab 16)",
+  "subject": "Science",
+  "stage": "apply",
+  "xp": 20,
+  "standard": "S2P1",
+  "passage": "Gather first — about 2 cups cornstarch, 1 cup water, a mixing bowl, a stirring stick, a plastic box that will not shatter, 2 or 3 small plastic dinosaurs (a grown-up cuts them into pieces), a heavy spoon, safety goggles, and a grown-up. Do this outside or over a table you can wipe. Allow 30 minutes plus a day to dry. The library book (Unofficial Minecraft STEM Lab for Kids) has pictures if you can get it, but you do not need it. This lesson has every step.\nHere's the Idea — A fossil is an animal that lived long ago, turned to stone. When a dinosaur died, mud covered its bones and slowly turned them to rock. Scientists who dig up fossils are called paleontologists. Cornstarch and water make a funny mix called oobleck. It acts like a solid when you squeeze it and like a liquid when you let go.\nSee It Done — Mix two parts cornstarch with one part water until it is as thick as paint or honey. Press it fast and it feels hard. Hold it still and it flows.\nYour Turn — 1. With a grown-up, mix 2 cups cornstarch with 1 cup water in the bowl. 2. Pour half into the box. 3. Scatter the dinosaur pieces on top. 4. Pour the rest on top to cover them. 5. Put the box in the sun and let it dry for a day. 6. Put on goggles. A grown-up taps the hard top with a heavy spoon to crack it. 7. Dig carefully and find every dinosaur piece. 8. Put the dinosaur back together. 9. Draw your dinosaur and tell how fossils form.\nCheck Yourself — Was the oobleck a solid or a liquid?\nShow What You Know — Show Mom the dinosaur you dug out and tell her how a fossil forms.",
+  "quiz": [
+   {
+    "q": "Oobleck acts like…",
+    "choices": [
+     "A solid when squeezed and a liquid when held still",
+     "Only a solid",
+     "Only a gas",
+     "Rock"
+    ],
+    "answerIndex": 0,
+    "explain": "Oobleck changes with pressure. That makes it special."
+   },
+   {
+    "q": "A fossil is…",
+    "choices": [
+     "An animal or plant from long ago turned to stone",
+     "A new bone",
+     "A kind of rock candy",
+     "A living dinosaur"
+    ],
+    "answerIndex": 0,
+    "explain": "Fossils form when old bones or shells are slowly turned to stone."
    }
   ],
   "skillId": "mc-stem-lab",
