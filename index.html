@@ -19525,7 +19525,7 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
-    {label:"Ryan: Minecraft Python Missions (7 lessons; needs the library book Learn to Program with Minecraft)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
+    {label:"Ryan: Minecraft Python Missions (8 lessons, code is in the lessons; Windows PC, Python, Java, Spigot)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
     {label:"Ryan: Minecraft STEM Lab (14 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
     {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
@@ -20073,7 +20073,7 @@ var MC_PYTHON_MISSIONS = [
   "stage": "teach",
   "xp": 20,
   "standard": "3-5.F",
-  "passage": "Gather first — the library book \"Learn to Program with Minecraft\" open to Chapter 1, the Windows PC, Minecraft Java Edition (you already have it), and a grown-up. A grown-up does every download and install. You do NOT need a Raspberry Pi or a Mac. The book has three setup paths, and yours is the Windows PC one.\nHere's the Idea — Today you set up a coding workshop. Python is the language you will write. Java is what Minecraft runs on. A small helper server called Spigot lets your Python programs talk to your Minecraft world. When every piece is ready, your code can move you, build blocks, and send chat messages.\nSee It Done — Think of building a workbench. First the table (Minecraft), then the tools (Python and Java), then the power cord (the Spigot server that connects them). In the book, read only the part called Setting Up Your Windows PC, about pages 2 to 11. Skip Setting Up Your Mac (pages 12 to 18) and Setting Up Your Raspberry Pi (about page 19).\nYour Turn — 1. With a grown-up, follow the Windows PC part one page at a time: Installing Minecraft, Installing Python, Installing Java, Installing the Minecraft Python API and Spigot, then Running Spigot and Creating a Game. 2. After each part, stop and tell the grown-up what you just installed. 3. Read Starting Over with a New World, Playing Offline, and Switching to Survival Mode so you know where they are. 4. Skip the Mac and Raspberry Pi parts. 5. Read Getting to Know IDLE (pages 20 to 23). IDLE is where you type your Python. The Python Shell runs one line at a time. The Text Editor lets you save a whole program. 6. Do Testing Your Minecraft Python Setup (page 24). 7. Write down any step that did not work and show the grown-up.\nCheck Yourself — Can you say what Python, Java, and Spigot each do, in one sentence each? Which setup path is yours?\nShow What You Know — Tell Mom the three setup pieces and what each one is for.",
+  "passage": "Gather first — the library book \"Learn to Program with Minecraft\" if you can get it (Chapter 1 is the setup), the Windows PC, Minecraft Java Edition (you already have it), and a grown-up. A grown-up does every download and install. You do NOT need a Raspberry Pi or a Mac. The book has three setup paths, and yours is the Windows PC one.\nHere's the Idea — Today you set up a coding workshop. Python is the language you will write. Java is what Minecraft runs on. A small helper server called Spigot lets your Python programs talk to your Minecraft world. When every piece is ready, your code can move you, build blocks, and send chat messages.\nSee It Done — Think of building a workbench. First the table (Minecraft), then the tools (Python and Java), then the power cord (the Spigot server that connects them). In the book, read only the part called Setting Up Your Windows PC, about pages 2 to 11. Skip Setting Up Your Mac (pages 12 to 18) and Setting Up Your Raspberry Pi (about page 19).\nYour Turn — 1. With a grown-up, follow the Windows PC part one page at a time: Installing Minecraft, Installing Python, Installing Java, Installing the Minecraft Python API and Spigot, then Running Spigot and Creating a Game. 2. After each part, stop and tell the grown-up what you just installed. 3. Read Starting Over with a New World, Playing Offline, and Switching to Survival Mode so you know where they are. 4. Skip the Mac and Raspberry Pi parts. 5. Read Getting to Know IDLE (pages 20 to 23). IDLE is where you type your Python. The Python Shell runs one line at a time. The Text Editor lets you save a whole program. 6. Do Testing Your Minecraft Python Setup (page 24). 7. Write down any step that did not work and show the grown-up.\nCheck Yourself — Can you say what Python, Java, and Spigot each do, in one sentence each? Which setup path is yours?\nShow What You Know — Tell Mom the three setup pieces and what each one is for.",
   "quiz": [
    {
     "q": "What does Python do in your setup?",
@@ -20106,12 +20106,12 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 1,
-  "title": "Python Basics: What Is a Variable? 📦 (Book pp. 27–31)",
+  "title": "Python Basics: What Is a Variable? 📦",
   "subject": "Independent",
   "stage": "teach",
   "xp": 15,
   "standard": "3-5.F",
-  "passage": "Gather first — the book open to Chapter 2, pages 27–31, paper, and a pencil.\nHere's the Idea — A program is a list of instructions a computer follows in order. A variable is a labeled box that holds one thing so the program can use it later. The label is the name and what is inside is the value.\nSee It Done — In Python you write x = 5. That means: put the number 5 in a box named x. Then print(x) shows 5 on the screen. If you write x = 8 next, the box now holds 8 and the 5 is gone. Later, in Minecraft, you will keep your position in three boxes, x for left and right, y for up and down, and z for forward and back.\nYour Turn — 1. Read pages 27–31 with your pencil. 2. Draw three boxes on paper. Label them x, y, and z. 3. Write a number in each box. 4. Change the number in one box and cross out the old one. 5. Say out loud what a variable is.\nCheck Yourself — If x = 5 and then x = 8, what is in the box now?\nShow What You Know — Explain a variable to Mom using a real box or a cup with a label.",
+  "passage": "Gather first — paper and a pencil. No computer needed for this one.\nHere's the Idea — A program is a list of instructions a computer follows in order. A variable is a labeled box that holds one thing so the program can use it later. The label is the name, and what is inside is the value.\nSee It Done — In Python you write x = 5. That means: put the number 5 in a box named x. Then print(x) shows 5 on the screen. If you write x = 8 next, the box now holds 8 and the 5 is gone. Later, in Minecraft, you will keep your place in three boxes: x for left and right, y for up and down, and z for forward and back.\nYour Turn — 1. Draw three boxes on paper. Label them x, y, and z. 2. Write a number in each box. 3. Change the number in one box and cross out the old one. 4. Write two lines of Python on paper that put 10 in a box named height and then change it to 20. 5. Say out loud what a variable is.\nCheck Yourself — If x = 5 and then x = 8, what is in the box now?\nShow What You Know — Explain a variable to Mom using a real box or a cup with a label.",
   "quiz": [
    {
     "q": "x = 5, then x = 8. What does x hold now?",
@@ -20144,13 +20144,24 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 2,
-  "title": "Mission #1: Teleport the Player ✨ (Book pp. 37–38)",
+  "title": "Mission #1: Say Hello and Find Where You Are 💬",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — the Windows PC with your Python setup working, the book open to Mission #1 (pp. 37–38), and a grown-up nearby.\nHere's the Idea — You already know a variable holds a number. In this mission your numbers become a place, and Python moves you there. This is your first real Minecraft program.\nSee It Done — The book shows the exact lines to type. Typing code exactly matters: one wrong letter or missing bracket makes an error, and an error is a clue, not a failure.\nYour Turn — 1. Start your Spigot server and join the game (book p. 7). 2. Type Mission #1 exactly as the book shows. 3. Run it and watch what happens to your player. 4. Change one number. Run it again and see what changes. 5. Write one sentence about what each number does.\nCheck Yourself — Did the player land where you expected? If not, which number would you change?\nShow What You Know — Show Mom your program and teleport yourself while she watches. Tell her what each variable does.",
+  "passage": "Gather first — your working Python setup from the setup lesson, IDLE open with a new file in the Text Editor, Spigot running, Minecraft open in Creative mode, and a grown-up nearby. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — Your first Minecraft program connects Python to your game, sends a chat message, and asks the game where you are. Your position is three numbers, x, y, and z. Typing code exactly matters. One wrong letter or missing bracket makes an error, and an error is a clue, not a failure.\nSee It Done — Type these lines exactly, with the same capital letters:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nmc.postToChat(\"Hello from Python!\")\npos = mc.player.getPos()\nmc.postToChat(\"My x is \" + str(pos.x))\nNotice str(pos.x). The game gives you a number, and str turns it into text so it can join with the words.\nYour Turn — 1. Start Spigot and join your world. 2. Type the program in a new Text Editor file and save it. 3. Run it with F5. 4. Look at the chat in Minecraft. Did your message and your x number show up? 5. Add two more lines so it also shows your y and your z. 6. Walk to a new spot, run it again, and see the numbers change. 7. Write what x, y, and z tell you.\nCheck Yourself — Did the numbers change when you moved? Which one changed when you went up?\nShow What You Know — Show Mom your program and tell her what each line does.",
   "quiz": [
+   {
+    "q": "What does mc.postToChat(\"Hi\") do?",
+    "choices": [
+     "Shows Hi in the Minecraft chat",
+     "Builds a block",
+     "Teleports you",
+     "Closes the game"
+    ],
+    "answerIndex": 0,
+    "explain": "postToChat sends a message to the chat box in the game."
+   },
    {
     "q": "An error message in your code means…",
     "choices": [
@@ -20171,15 +20182,15 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 3,
-  "title": "Mission #2: Go Exactly Where You Want 🎯 (Book p. 40)",
+  "title": "Mission #2: Teleport Yourself ✨",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup, the book open to Mission #2 (p. 40), paper, and a pencil.\nHere's the Idea — Last time you copied a place. Now you choose the place. To choose it you must know what x, y, and z mean in the world, so a good coder sketches first.\nSee It Done — Say you want to land ten blocks east of where you stand. Only the x number changes, and y and z stay the same. Change one number at a time and test.\nYour Turn — 1. On paper, draw a top-down sketch of your world with a spot you want to visit. 2. Check the book for how to find your current position. 3. Write the numbers for your spot. 4. Type Mission #2 and use your numbers. 5. Run it. If you land in the wrong place, fix one number and run again.\nCheck Yourself — Did you test one change at a time?\nShow What You Know — Tell Mom how you worked out your x, y, and z.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — You can read your position, and you can also set it. Setting your position teleports you. To choose a good spot you need to know what x, y, and z mean, so a good coder works out the numbers first.\nSee It Done — This program reads your spot and sends you ten blocks along x:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 10, pos.y, pos.z)\nOnly the x number changes. y and z stay the same. Change one number at a time and test.\nYour Turn — 1. Type the program and run it. 2. Did you land ten blocks away? 3. Change the 10 to 30 and run it again. 4. Change the program to move you up by changing y instead. 5. Try going backward by using a minus sign. 6. Write which number moves you which way.\nCheck Yourself — Which of x, y, or z moves you up and down?\nShow What You Know — Teleport yourself for Mom and tell her what each number does.",
   "quiz": [
    {
-    "q": "Best way to fix a program that goes to the wrong spot?",
+    "q": "Best way to fix a program that sends you to the wrong spot?",
     "choices": [
      "Change one number and test again",
      "Change every number",
@@ -20188,6 +20199,17 @@ var MC_PYTHON_MISSIONS = [
     ],
     "answerIndex": 0,
     "explain": "One change at a time shows you exactly what fixed it."
+   },
+   {
+    "q": "In pos.x + 10, what does the + 10 do?",
+    "choices": [
+     "Moves you 10 blocks along x",
+     "Makes you 10 years older",
+     "Adds 10 blocks to your inventory",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "Adding 10 to x moves your position 10 blocks along the x line."
    }
   ],
   "skillId": "mc-python",
@@ -20198,12 +20220,12 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 4,
-  "title": "Mission #3: Teleportation Tour 🚀 (Book p. 43)",
+  "title": "Mission #3: Teleportation Tour 🚀",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup, the book open to Mission #3 (p. 43), and a grown-up nearby.\nHere's the Idea — A program runs one line after another, so it can teleport you to many places in a row. If it runs too fast you cannot see each stop. The book uses Python's time module to make it wait between stops. A module is a bundle of ready-made tools you can borrow.\nSee It Done — Think of a tour guide: go to the first stop, wait so people can look, go to the second stop, wait again. The program's order is the order of the tour.\nYour Turn — 1. Plan three stops on paper. 2. Type Mission #3 from the book. 3. Use your three stops. 4. Run it and watch the tour. 5. Change how long it waits and watch the difference.\nCheck Yourself — Why does the tour need a wait between stops?\nShow What You Know — Give Mom a tour of your world and tell her what each line does.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — A program runs one line after another, so it can teleport you to many places in a row. If it runs too fast you cannot see each stop. Python's time module can make it wait. A module is a bundle of ready-made tools you borrow with import.\nSee It Done — A tour guide goes to the first stop, waits so people can look, goes to the second stop, and waits again. The program's order is the order of the tour:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nimport time\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 20, pos.y, pos.z)\ntime.sleep(3)\nmc.player.setPos(pos.x + 20, pos.y, pos.z + 20)\ntime.sleep(3)\nmc.player.setPos(pos.x, pos.y, pos.z)\nThe last line takes you home. time.sleep(3) means wait 3 seconds.\nYour Turn — 1. Plan three stops on paper. 2. Type the tour program and run it. 3. Change the waits to 1 second and to 5 seconds, and see the difference. 4. Add a postToChat message at each stop that says what it is. 5. Add a fourth stop of your own.\nCheck Yourself — Why does the tour need a wait between stops?\nShow What You Know — Give Mom a tour of your world and tell her what each line does.",
   "quiz": [
    {
     "q": "What is a module in Python?",
@@ -20236,12 +20258,12 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 5,
-  "title": "Mission #4: Fix the Buggy Teleportation 🐛 (Book p. 45)",
+  "title": "Mission #4: Fix the Buggy Program 🐛",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup, the book open to Mission #4 (p. 45), and a pencil.\nHere's the Idea — A bug is a mistake in a program. Debugging means hunting for the mistake and fixing it. Professional coders spend a lot of their time debugging. It is a detective job, not a failure.\nSee It Done — Read the error message from the bottom up. It usually names the line and the problem. Fix one thing, run again, and read what changed.\nYour Turn — 1. Type the buggy program from the book. 2. Run it and read what goes wrong. 3. Find the bug using the error message or by reading line by line. 4. Fix it. 5. Run again until it works. 6. Write what the bug was.\nCheck Yourself — Can you explain what the bug was and how you found it?\nShow What You Know — Tell Mom about your bug like a detective story.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — A bug is a mistake in a program. Debugging means hunting for the mistake and fixing it. Professional coders spend a lot of their time debugging. It is a detective job, not a failure.\nSee It Done — Read an error message from the bottom up. It usually names the line and the problem. Fix one thing, run again, and read what changed.\nYour Turn — 1. Type this buggy program exactly and run it:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.postToChat(\"I am at x = \" + pos.x)\n2. Read the error. It says Python cannot join text and a number. 3. Fix the last line by wrapping pos.x in str(), like str(pos.x). 4. Run again until the chat shows your x. 5. Make a second bug on purpose, like leaving off a closing bracket, and read the new error. 6. Fix it. 7. Write what each bug was and how you found it.\nCheck Yourself — Can you explain what the bug was and how you found it?\nShow What You Know — Tell Mom about your bug like a detective story.",
   "quiz": [
    {
     "q": "What is debugging?",
@@ -20253,6 +20275,17 @@ var MC_PYTHON_MISSIONS = [
     ],
     "answerIndex": 0,
     "explain": "Debugging is hunting for what is wrong and fixing it."
+   },
+   {
+    "q": "Why does \"x = \" + pos.x give an error?",
+    "choices": [
+     "You cannot join text and a number without str()",
+     "pos.x is too big",
+     "The chat is full",
+     "Spigot is off"
+    ],
+    "answerIndex": 0,
+    "explain": "Text and numbers are different kinds of things. str() turns the number into text."
    }
   ],
   "skillId": "mc-python",
@@ -20263,12 +20296,50 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 6,
+  "title": "Mission #5: Build a Block Tower 🧱",
+  "subject": "Independent",
+  "stage": "apply",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and paper. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — Your program can place blocks, too. The command mc.setBlock(x, y, z, 1) puts one stone block (block number 1) at that spot. By changing the y number you can stack blocks upward to build a tower.\nSee It Done — This program builds a three-block tower next to you:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nmc.setBlock(pos.x + 2, pos.y, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 1, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 2, pos.z, 1)\ngetTilePos gives whole numbers, which is better for placing blocks. The +1 and +2 on y go up one block each time.\nYour Turn — 1. Type the program and run it. 2. Look two blocks away from you. Is there a tower? 3. Make it five blocks tall. 4. Try a different block number, like 2 for grass or 4 for cobblestone. 5. Build a second tower next to the first. 6. Draw your towers and label the x, y, and z numbers you used.\nCheck Yourself — Which number did you change to make the tower taller?\nShow What You Know — Show Mom your towers and explain how the program builds them.",
+  "quiz": [
+   {
+    "q": "Which number changes to stack a block higher?",
+    "choices": [
+     "y",
+     "x",
+     "z",
+     "The block number"
+    ],
+    "answerIndex": 0,
+    "explain": "y is up and down, so adding to y moves the block up."
+   },
+   {
+    "q": "What does the 1 at the end of setBlock mean in the example?",
+    "choices": [
+     "The block type, stone",
+     "One second",
+     "One player",
+     "The first line"
+    ],
+    "answerIndex": 0,
+    "explain": "The last number picks which kind of block to place. 1 is stone."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 7,
   "title": "Teach-Back: Explain Your Python Program to Mom 🎤",
   "subject": "Independent",
   "stage": "apply",
   "xp": 15,
   "standard": "3-5.F",
-  "passage": "Gather first — your Mission programs and Mom or another grown-up.\nHere's the Idea — If you can explain it, you really understand it.\nYour Turn — 1. Open one of your missions. 2. Tell Mom what a variable is. 3. Tell her what each line does. 4. Tell her one bug you found. 5. Say one thing you want to try next.\nCheck Yourself — Did you use the words variable, program, and bug?\nShow What You Know — Run the program for Mom and let her pick one number to change.",
+  "passage": "Gather first — your Mission programs and Mom or another grown-up.\nHere's the Idea — If you can explain it, you really understand it.\nYour Turn — 1. Open one of your saved mission programs. 2. Tell Mom what a variable is. 3. Tell her what each line does. 4. Tell her one bug you found. 5. Say one thing you want to try next.\nCheck Yourself — Did you use the words variable, program, and bug?\nShow What You Know — Run the program for Mom and let her pick one number to change.",
   "quiz": [
    {
     "q": "A variable is…",
