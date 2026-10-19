@@ -11575,6 +11575,7 @@ var ANNA_BRACELET_EXTRA = {
   passage:"Gather first — 3 colors of yarn or embroidery thread (or 3 colors of ribbon), scissors (ask a grown-up to help cut), tape, a ruler, and paper with colored pencils.\nHere's the Idea — A friendship bracelet is a gift you make for someone special. Before you braid, you plan your colors in a pattern. A pattern is colors that repeat the same way again and again. Example: pink, purple, pink, purple is an AB pattern. Pink, purple, blue, pink, purple, blue is an ABC pattern.\nSee It Done — Plan on paper first. Draw 8 little squares in a row. Color them in an AB pattern: pink, purple, pink, purple, pink, purple, pink, purple. Now try an ABC pattern with 9 squares. The colors keep repeating in the same order.\nYour Turn — 1. Draw your own pattern on paper with at least 8 squares, and say out loud which colors repeat. 2. Pick 3 colors you love. Measure and cut 3 strands, each about as long as 2 rulers. 3. Hold the 3 strands together and tie a knot about 3 fingers down from the top. Tape the knot to a table so it stays still. 4. Braid: bring the right strand over the middle one. Then bring the left strand over the middle one. Keep going right, left, right, left. 5. When your braid is long enough to go around a wrist, tie a knot at the bottom. Ask a grown-up to help trim the ends. 6. Count how many times each color shows at the top of your braid, and write the numbers on your paper.\nCheck Yourself — Does your pattern on paper repeat the same way every time? Could a friend tell which colors repeat?\nShow What You Know — Give your bracelet to a friend or family member and tell them how you chose the colors, or take a photo to keep."
 };
 function autoAddAnnaBraceletExtra(){
+  return; /* Mom asked to drop bracelets (19 Oct 2026) */
   if(!db) return;
   var has = Object.keys(state.assignments).some(function(id){ var a = state.assignments[id]; return a.kidId==="kid1" && a.title===ANNA_BRACELET_EXTRA.title; });
   var flag = "al_bracelet_extra_added";
@@ -13611,7 +13612,7 @@ var ANNA_IXL2_SCI2 = [
   "xp": 15,
   "standard": "S2P3",
   "title": "Science Book, Unit 2: Observe Magnets — What Sticks?",
-  "passage": "Gather first — a bar or fridge magnet (keep it away from phones, tablets, laptops and cards), a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil. A grown-up should supervise, and never put magnets near your mouth.\nHere's the Idea — A magnet is an object that pulls on some metals. We say a magnet attracts things made of iron or steel, like a paper clip. Things made of paper, plastic and wood are not attracted. A scientist predicts first, tests, then records what really happened.\nSee It Done — Make a three-column chart: Object, My Guess, What Happened. For the paper clip, guess 'sticks', test, and write 'sticks'. For the plastic spoon, guess 'does not stick', test, and write what happened. If your guess was wrong, that is great science, because you learned something.\nYour Turn — 1. Make your chart. 2. Predict each object, then test it with the magnet. 3. Write what happened. 4. Sort the objects into 'sticks' and 'does not stick'. 5. Tell what the objects that stick have in common.\nCheck Yourself — Which guesses were right? What surprised you?\nShow What You Know — Show Mom your chart and tell her one thing a magnet can pick up.",
+  "passage": "Gather first — a bar or fridge magnet (keep it away from phones, tablets, laptops and cards), a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil. A grown-up should supervise, and never put magnets near your mouth.\nHere's the Idea — A magnet is an object that pulls on some metals. We say a magnet attracts things made of iron or steel, like a paper clip. Things made of paper, plastic and wood are not attracted. Every magnet has two ends called poles. Opposite poles pull together and the same poles push apart. A magnet's force even works through paper. A scientist predicts first, tests, then records what really happened.\nSee It Done — Make a three-column chart: Object, My Guess, What Happened. For the paper clip, guess 'sticks', test, and write 'sticks'. For the plastic spoon, guess 'does not stick', test, and write what happened. If your guess was wrong, that is great science, because you learned something.\nYour Turn — 1. Make your chart. 2. Predict each object, then test it with the magnet. 3. Write what happened. 4. Sort the objects into 'sticks' and 'does not stick'. 5. Tell what the objects that stick have in common. 6. Put the paper clip on the paper plate and hold the magnet underneath. Move the magnet along a path you drew on the plate and watch the clip follow without being touched. Tell what force moved it.\nCheck Yourself — Which guesses were right? What surprised you?\nShow What You Know — Show Mom your chart and tell her one thing a magnet can pick up.",
   "quiz": [
    {
     "q": "Which is usually pulled by a magnet?",
@@ -13645,83 +13646,6 @@ var ANNA_IXL2_SCI2 = [
     ],
     "answerIndex": 0,
     "explain": "A magnet attracts, or pulls, certain metals."
-   }
-  ]
- },
- {
-  "d": 2,
-  "subject": "Science",
-  "stage": "teach",
-  "xp": 15,
-  "standard": "S2P3",
-  "title": "Science Book, Unit 2: Magnets Push and Pull Without Touching",
-  "passage": "Gather first — 2 bar or ring magnets (kept away from electronics), a paper clip, a paper plate or thin cardboard, and paper and a pencil. A grown-up should supervise.\nHere's the Idea — Every magnet has two ends called poles. Opposite poles pull together. The same poles push apart. A magnet's force can work through paper and thin cardboard, so it can move things without touching them.\nSee It Done — Hold two magnets close. If they pull together, the poles are different. Flip one over, and they push each other away. Put a paper clip on a paper plate and hold the magnet under the plate. When you move the magnet, the paper clip follows, even though the magnet never touches it.\nYour Turn — 1. Try two magnets and feel the pull and push. Mark which sides pulled together. 2. Try the paper clip on a plate with the magnet underneath. 3. Draw what you saw with arrows for the push and the pull. 4. Tell why the paper clip moved without being touched.\nCheck Yourself — How could you tell opposite ends from the same ends?\nShow What You Know — Show Mom the magnet moving the paper clip through the plate.",
-  "quiz": [
-   {
-    "q": "Two magnets are pushing each other apart. This means...",
-    "choices": [
-     "The same poles are facing",
-     "The magnets are broken",
-     "They are different poles",
-     "They are too far"
-    ],
-    "answerIndex": 0,
-    "explain": "Same poles push apart."
-   },
-   {
-    "q": "A magnet can move a paper clip through a paper plate because...",
-    "choices": [
-     "Its force works through thin things",
-     "The plate is magnetic",
-     "The clip is alive",
-     "It is magic"
-    ],
-    "answerIndex": 0,
-    "explain": "Magnetic force can pass through thin materials like paper."
-   },
-   {
-    "q": "The two ends of a magnet are called...",
-    "choices": [
-     "Poles",
-     "Plates",
-     "Edges",
-     "Stars"
-    ],
-    "answerIndex": 0,
-    "explain": "Every magnet has two poles."
-   }
-  ]
- },
- {
-  "d": 3,
-  "subject": "Science",
-  "stage": "apply",
-  "xp": 20,
-  "standard": "S2P3",
-  "title": "Science Book, Unit 2: Think Like an Engineer — Build a Magnet Maze",
-  "passage": "Gather first — a paper plate, a marker, a paper clip, a magnet, paper and colors. A grown-up should supervise the magnet.\nHere's the Idea — Engineers use what they know about forces to solve problems. The problem: move a paper clip through a maze without touching it. Plan, build, test, and improve.\nSee It Done — Draw a maze path on the plate with start and finish marks. Put the paper clip at the start. Hold the magnet under the plate and move it along the path. If the clip jumps off the path or gets stuck, improve it: make the path wider, or move the magnet more slowly.\nYour Turn — 1. Draw your maze on the plate and plan it on paper first. 2. Test with the paper clip and magnet. 3. Improve one thing and test again. 4. Write how many tries it took before the clip reached the finish. 5. Tell which force moved the clip.\nCheck Yourself — What did you change to make it better? Did it work?\nShow What You Know — Show Mom your maze and explain the force that moves the clip.",
-  "quiz": [
-   {
-    "q": "What force moves the paper clip along the plate?",
-    "choices": [
-     "A magnet's pull",
-     "Wind",
-     "Gravity only",
-     "A push from your finger"
-    ],
-    "answerIndex": 0,
-    "explain": "The magnet pulls the clip through the plate."
-   },
-   {
-    "q": "After a test does not work, an engineer should...",
-    "choices": [
-     "Change one thing and test again",
-     "Give up",
-     "Hide it",
-     "Break the plate"
-    ],
-    "answerIndex": 0,
-    "explain": "Engineers improve their design and test it again."
    }
   ]
  }
@@ -15256,7 +15180,7 @@ var ANNA_SS_CH1 = [
   "xp": 15,
   "standard": "SS2G1",
   "title": "Social Studies Book, Chapter 3: Landforms, Bodies of Water, and Kinds of Maps",
-  "passage": "Gather first — your social studies book, open to Lesson 4, \"Landforms and Bodies of Water\" (pages 100–103), paper, clay or playdough in three colors, a baking tray, and colored pencils.\nHere's the Idea — Geography is the study of Earth. A geographer is a person who studies Earth's land and water. The shapes of Earth's land are called landforms. A mountain is the highest land on Earth. A hill is an area of raised land that is like a mountain but not as high. The low land between mountains or hills is called a valley. A plain is a large area of flat land. A high plain is called a plateau. Earth has two kinds of water, salt water and fresh water. Oceans have salt water. Rivers and lakes have fresh water. A river is a long body of water that flows into another body of water. A lake is a body of water surrounded by land. An island is a landform that has water on all sides. A peninsula has water on all sides but one. The place where land meets the ocean is called the coast. Physical maps show Earth's land and water. Political maps show imaginary lines called borders. Towns, states, and countries all have borders.\nSee It Done — Blue is used on physical maps to show water. On the United States physical map, the key shows colors and symbols for mountains, plateaus, plains, and rivers. On the North America political map, borders separate Canada, the United States, and Mexico.\nYour Turn — 1. Read the pages. 2. Build a landform model with clay on a tray: a mountain, a hill, a valley, a plain, an island, and a peninsula, with blue clay for a river and a lake. Label each with a paper flag. 3. Underline two kinds of water. 4. Look at the physical map of the United States and circle the areas with mountains. 5. On the political map of North America, circle a border line and the three countries. 6. Write the name of one landform or body of water in your community.\nCheck Yourself — Can you tell a mountain from a hill and an island from a peninsula?\nShow What You Know — Show Mom your model and tell her what a physical map and a political map show.",
+  "passage": "Gather first — your social studies book, open to Lesson 4, \"Landforms and Bodies of Water\" (pages 100–103), paper and colored pencils.\nHere's the Idea — Geography is the study of Earth. A geographer is a person who studies Earth's land and water. The shapes of Earth's land are called landforms. A mountain is the highest land on Earth. A hill is an area of raised land that is like a mountain but not as high. The low land between mountains or hills is called a valley. A plain is a large area of flat land. A high plain is called a plateau. Earth has two kinds of water, salt water and fresh water. Oceans have salt water. Rivers and lakes have fresh water. A river is a long body of water that flows into another body of water. A lake is a body of water surrounded by land. An island is a landform that has water on all sides. A peninsula has water on all sides but one. The place where land meets the ocean is called the coast. Physical maps show Earth's land and water. Political maps show imaginary lines called borders. Towns, states, and countries all have borders.\nSee It Done — Blue is used on physical maps to show water. On the United States physical map, the key shows colors and symbols for mountains, plateaus, plains, and rivers. On the North America political map, borders separate Canada, the United States, and Mexico.\nYour Turn — 1. Read the pages. 2. Draw a landform picture with a mountain, a hill, a valley, a plain, an island, and a peninsula, plus a blue river and a lake. Label each one. 3. Underline two kinds of water. 4. Look at the physical map of the United States and circle the areas with mountains. 5. On the political map of North America, circle a border line and the three countries. 6. Write the name of one landform or body of water in your community.\nCheck Yourself — Can you tell a mountain from a hill and an island from a peninsula?\nShow What You Know — Show Mom your drawing and tell her what a physical map and a political map show.",
   "quiz": [
    {
     "q": "What are landforms?",
@@ -15388,7 +15312,7 @@ var ANNA_SS_CH1 = [
   "xp": 15,
   "standard": "SS2G2",
   "title": "Social Studies Book, Chapter 3: How People Change Their Environment",
-  "passage": "Gather first — your social studies book, open to Lesson 6, \"Our Environment\" (pages 108–111), paper, crayons, and a shoebox with some clay, twigs, and paper for a model.\nHere's the Idea — The environment is the air, land, water, and life around us. It is the plants, animals, people, and buildings that make up where we live. People choose to change the environment they live in to get things they need. People build cities on the land, and a city is an urban environment. In cities, people build highways, apartment buildings, and office buildings. Before building, people remove the trees and other plants, and animals must find other places to live. People use machines to make the land flat. A suburban environment is close to a city, where people clear land to build roads, houses, parks, and shopping centers. A rural environment is made up of small towns and farms, where farmers clear land to plant crops. People also change the water. A dam is a wall across a river or stream, and dams can hold water and create energy. A canal is a waterway that connects two bodies of water, and canals help people travel and move goods. Farmers plow soil to plant seeds, and when there is not enough rain, they irrigate, which means to move water to dry land. We change our environment to make life easier, with roads, bridges, and tunnels that connect places.\nSee It Done — The book's pictures show an urban scene with tall buildings, a suburban scene with houses and a mall, and a rural scene with farms and cows. Hoover Dam holds back a river, and Pittsburgh has bridges over its rivers.\nYour Turn — 1. Read the pages. Write U, S, and R where urban, suburban, and rural environments are shown in the picture. 2. Underline two ways people change the water. 3. Circle the part of the picture that shows what irrigate means. 4. Build a small model of one environment (urban, suburban, or rural) in a shoebox. 5. Write an effect that changing the environment can have. 6. Say whether where you live is urban, suburban, or rural, and one way you know.\nCheck Yourself — Can you tell the three kinds of environments apart?\nShow What You Know — Show Mom your model and name the environment.",
+  "passage": "Gather first — your social studies book, open to Lesson 6, \"Our Environment\" (pages 108–111), paper and crayons.\nHere's the Idea — The environment is the air, land, water, and life around us. It is the plants, animals, people, and buildings that make up where we live. People choose to change the environment they live in to get things they need. People build cities on the land, and a city is an urban environment. In cities, people build highways, apartment buildings, and office buildings. Before building, people remove the trees and other plants, and animals must find other places to live. People use machines to make the land flat. A suburban environment is close to a city, where people clear land to build roads, houses, parks, and shopping centers. A rural environment is made up of small towns and farms, where farmers clear land to plant crops. People also change the water. A dam is a wall across a river or stream, and dams can hold water and create energy. A canal is a waterway that connects two bodies of water, and canals help people travel and move goods. Farmers plow soil to plant seeds, and when there is not enough rain, they irrigate, which means to move water to dry land. We change our environment to make life easier, with roads, bridges, and tunnels that connect places.\nSee It Done — The book's pictures show an urban scene with tall buildings, a suburban scene with houses and a mall, and a rural scene with farms and cows. Hoover Dam holds back a river, and Pittsburgh has bridges over its rivers.\nYour Turn — 1. Read the pages. Write U, S, and R where urban, suburban, and rural environments are shown in the picture. 2. Underline two ways people change the water. 3. Circle the part of the picture that shows what irrigate means. 4. Draw a small picture of one environment (urban, suburban, or rural). 5. Write an effect that changing the environment can have. 6. Say whether where you live is urban, suburban, or rural, and one way you know.\nCheck Yourself — Can you tell the three kinds of environments apart?\nShow What You Know — Show Mom your picture and name the environment.",
   "quiz": [
    {
     "q": "What is the environment?",
@@ -18018,8 +17942,8 @@ var ANNA_IXL2_SCI5 = [
   "stage": "teach",
   "xp": 15,
   "standard": "S2L1",
-  "title": "Science Book, Unit 6: What Is a Habitat? Build a Shoebox Habitat",
-  "passage": "Gather first — a shoebox, construction paper, clay, craft sticks, a small toy animal, and crayons. Find a book or website picture of a habitat with a grown-up.\nHere's the Idea — A habitat is the place where a plant or animal lives and gets what it needs: food, water, shelter, and space. Different habitats have different weather, plants, and animals. Some habitats are a forest, a desert, an ocean, a pond, a grassland, and a rainforest.\nSee It Done — A frog lives in a pond habitat. The pond has water, bugs to eat, plants to hide in, and rocks to sit on. A camel lives in a desert habitat, where it is hot and dry and has few plants. A habitat gives each animal what it needs to live.\nYour Turn — 1. Pick an animal and a habitat it lives in. 2. Make a shoebox model with food, water, shelter, and space for your animal. 3. Label the parts. 4. Draw a second habitat and tell why the animal could not live there.\nCheck Yourself — Does your habitat give your animal everything it needs?\nShow What You Know — Give Mom a tour of your shoebox habitat.",
+  "title": "Science Book, Unit 6: What Is a Habitat? Draw a Habitat",
+  "passage": "Gather first — paper, crayons, and a small toy animal. Find a book or website picture of a habitat with a grown-up.\nHere's the Idea — A habitat is the place where a plant or animal lives and gets what it needs: food, water, shelter, and space. Different habitats have different weather, plants, and animals. Some habitats are a forest, a desert, an ocean, a pond, a grassland, and a rainforest.\nSee It Done — A frog lives in a pond habitat. The pond has water, bugs to eat, plants to hide in, and rocks to sit on. A camel lives in a desert habitat, where it is hot and dry and has few plants. A habitat gives each animal what it needs to live.\nYour Turn — 1. Pick an animal and a habitat it lives in. 2. Draw the habitat with food, water, shelter, and space for your animal. 3. Label the parts. 4. Draw a second habitat and tell why the animal could not live there.\nCheck Yourself — Does your habitat give your animal everything it needs?\nShow What You Know — Give Mom a tour of your habitat drawing.",
   "quiz": [
    {
     "q": "What is a habitat?",
@@ -18107,7 +18031,7 @@ var ANNA_IXL2_SCI5 = [
   "xp": 20,
   "standard": "S2L1",
   "title": "Science Book, Unit 6: Environmental Engineering — Design a Shelter for an Animal",
-  "passage": "Gather first — a small toy animal, paper, cardboard, tape, craft sticks, a spray bottle or cup of water, and a grown-up.\nHere's the Idea — Engineers design things to solve problems. Problem: an animal needs a shelter that keeps it dry. The engineering steps: ask, imagine, plan, create, test, and improve. When people build, they change the environment, so good engineers try to protect the animals that live there.\nSee It Done — A sparrow needs a dry nest in the rain. Plan a roof that slopes so water runs off. Build it from cardboard, then test it with a few drops of water. If it leaks, improve it.\nYour Turn — 1. Choose an animal and what it needs for shelter. 2. Draw your plan and label the materials. 3. Build the shelter. 4. Test it with water from a spray bottle (outside or over a tray). 5. Improve one thing and test again. 6. Add the plan and a photo to your science portfolio.\nCheck Yourself — What did you change after the test? Did it keep the animal dry?\nShow What You Know — Show Mom your shelter and explain what you changed.",
+  "passage": "Gather first — a small toy animal, a few sheets of paper, tape, a cup of water with a spoon, and a grown-up.\nHere's the Idea — Engineers design things to solve problems. Problem: an animal needs a shelter that keeps it dry. The engineering steps: ask, imagine, plan, create, test, and improve. When people build, they change the environment, so good engineers try to protect the animals that live there.\nSee It Done — A sparrow needs a dry nest in the rain. Plan a roof that slopes so water runs off. Build it from folded paper, then test it with a few drops of water. If it leaks, improve it.\nYour Turn — 1. Choose an animal and what it needs for shelter. 2. Draw your plan and label the materials. 3. Build the shelter. 4. Test it by dripping spoonfuls of water on the roof over a sink or tray, then wipe up. 5. Improve one thing and test again. 6. Add the plan and a photo to your science portfolio.\nCheck Yourself — What did you change after the test? Did it keep the animal dry?\nShow What You Know — Show Mom your shelter and explain what you changed.",
   "quiz": [
    {
     "q": "What do engineers do after a test shows a problem?",
@@ -18140,7 +18064,7 @@ var ANNA_IXL2_SCI5 = [
   "xp": 20,
   "standard": "S2L1",
   "title": "Science Book, Unit 6: Help Our Habitat — Review and Science Word Cards",
-  "passage": "Gather first — index cards or paper squares, crayons, a pencil, and your plant cups and shoebox habitat.\nHere's the Idea — Today you review plants and habitats and teach what you know. Science word cards have a word on one side and a picture and meaning on the other. Review words: habitat, camouflage, roots, stem, leaves, shelter, data, fair test.\nSee It Done — Word card example: front says habitat. Back has a small drawing of a pond and 'the place where a living thing lives and gets what it needs.'\nYour Turn — 1. Make eight word cards. 2. Quiz yourself, then quiz a family member. 3. Look at your plant data one last time and write which plant grew best and why. 4. Think of one way you can help animals near your home, like putting out water or planting flowers, and do it this week.\nCheck Yourself — Can you say what each word means without looking?\nShow What You Know — Teach Mom three of your word cards.",
+  "passage": "Gather first — index cards or paper squares, crayons, a pencil, and your plant cups and habitat drawing.\nHere's the Idea — Today you review plants and habitats and teach what you know. Science word cards have a word on one side and a picture and meaning on the other. Review words: habitat, camouflage, roots, stem, leaves, shelter, data, fair test.\nSee It Done — Word card example: front says habitat. Back has a small drawing of a pond and 'the place where a living thing lives and gets what it needs.'\nYour Turn — 1. Make eight word cards. 2. Quiz yourself, then quiz a family member. 3. Look at your plant data one last time and write which plant grew best and why. 4. Think of one way you can help animals near your home, like putting out water or planting flowers, and do it this week.\nCheck Yourself — Can you say what each word means without looking?\nShow What You Know — Teach Mom three of your word cards.",
   "quiz": [
    {
     "q": "Which word means the place where a living thing lives?",
@@ -18676,6 +18600,25 @@ function patchRyanLessonText(){
 }
 /* Anna's long Social Studies Book readings: shorter sentences, same facts. Only lessons she has not finished. Idempotent. */
 var ANNA_TEXT_FIXES = [
+ ["paper, clay or playdough in three colors, a baking tray, and colored pencils.", "paper and colored pencils."],
+ ["2. Build a landform model with clay on a tray: a mountain, a hill, a valley, a plain, an island, and a peninsula, with blue clay for a river and a lake. Label each with a paper flag.", "2. Draw a landform picture with a mountain, a hill, a valley, a plain, an island, and a peninsula, plus a blue river and a lake. Label each one."],
+ ["Show Mom your model and tell her what a physical map and a political map show.", "Show Mom your drawing and tell her what a physical map and a political map show."],
+ ["paper, crayons, and a shoebox with some clay, twigs, and paper for a model.", "paper and crayons."],
+ ["4. Build a small model of one environment (urban, suburban, or rural) in a shoebox.", "4. Draw a small picture of one environment (urban, suburban, or rural)."],
+ ["Show Mom your model and name the environment.", "Show Mom your picture and name the environment."],
+ ["a shoebox, construction paper, clay, craft sticks, a small toy animal, and crayons.", "paper, crayons, and a small toy animal."],
+ ["2. Make a shoebox model with food, water, shelter, and space for your animal.", "2. Draw the habitat with food, water, shelter, and space for your animal."],
+ ["Give Mom a tour of your shoebox habitat.", "Give Mom a tour of your habitat drawing."],
+ ["your plant cups and shoebox habitat.", "your plant cups and habitat drawing."],
+ ["a small toy animal, paper, cardboard, tape, craft sticks, a spray bottle or cup of water, and a grown-up.", "a small toy animal, a few sheets of paper, tape, a cup of water with a spoon, and a grown-up."],
+ ["Build it from cardboard, then test it with a few drops of water.", "Build it from folded paper, then test it with a few drops of water."],
+ ["4. Test it with water from a spray bottle (outside or over a tray).", "4. Test it by dripping spoonfuls of water on the roof over a sink or tray, then wipe up."],
+ ["Also get a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil to write on.", "Also get a paper clip, a penny, a plastic spoon, a metal spoon, a paper plate, and paper and a pencil to write on."],
+ ["Things made of paper, plastic and wood are not attracted.", "Things made of paper, plastic and wood are not attracted. Every magnet has two ends called poles. Opposite poles pull together and the same poles push apart. A magnet's force even works through paper."],
+ ["5. Tell what the objects that stick have in common.", "5. Tell what the objects that stick have in common. 6. Put the paper clip on the paper plate and hold the magnet underneath. Move the magnet along a path you drew on the plate and watch the clip follow without being touched. Tell what force moved it."],
+ ["craft supplies from home like yarn, paper, scissors (kid safe), glue, crayons, and a grown-up to help.", "paper, crayons, kid-safe scissors, and a grown-up to help."],
+ ["Pick one: (1) a friendship bracelet, (2) paper flowers for a bouquet, or (3) a collage of your favorite things.", "Pick one: (1) a long paper strip with colored shapes in a pattern, (2) paper flowers for a bouquet, or (3) a drawing of your favorite things."],
+ ["Last I tied it off.", "Last I hung it up."],
  ["is a symbol of our country, and there is a picture of the bald eagle", "is a symbol of our country. There is a picture of the bald eagle"],
  ["Our country has two national holidays to honor special heroes who protect our country: On Memorial Day, we remember United States citizens who died in war, and it is celebrated on the last Monday in May.", "Our country has two national holidays to honor special heroes who protect our country. On Memorial Day, we remember United States citizens who died in war. It is celebrated on the last Monday in May."],
  ["The book tells about three folk tale people: Davy Crockett was born in a cabin in Tennessee in 1786, worked hard as a boy to buy a horse, became a great bear hunter, and grew up to be a soldier and a government leader.", "The book tells about three folk tale people. Davy Crockett was born in a cabin in Tennessee in 1786. He worked hard as a boy to buy a horse. He became a great bear hunter. He grew up to be a soldier and a government leader."],
@@ -18700,7 +18643,7 @@ var ANNA_TEXT_FIXES = [
  ["Watch first — the Fact Families Song from Numberock (the video above) shows how an adding fact and a subtracting fact go together, like 5 + 3 = 8 and 8 - 3 = 5.", "Watch first — the Fact Families Song from Numberock (the video above). It shows how an adding fact and a subtracting fact go together, like 5 + 3 = 8 and 8 - 3 = 5."],
  ["Think of a family: one person writes a new rule (like Congress), one person signs it and makes sure it happens (like the president), and one person decides if the rule is fair (like the Supreme Court).", "Think of a family. One person writes a new rule, like Congress. One person signs it and makes sure it happens, like the president. One person decides if the rule is fair, like the Supreme Court."],
  ["The book follows the strawberries: workers pick them when they are ripe, put them on a truck that carries them to a market, Farmer Green (the producer) earns money selling them, and the consumer buys them.", "The book follows the strawberries. Workers pick them when they are ripe. A truck carries them to a market. Farmer Green, the producer, earns money selling them. The consumer buys them."],
- ["Gather first — a bar or fridge magnet (keep it away from phones, tablets, laptops and cards), a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil.", "Gather first — a bar or fridge magnet. Keep it away from phones, tablets, laptops and cards. Also get a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil to write on."],
+ ["Gather first — a bar or fridge magnet (keep it away from phones, tablets, laptops and cards), a paper clip, a penny, a plastic spoon, a piece of paper, a wooden pencil, a metal spoon, aluminum foil, and paper and a pencil.", "Gather first — a bar or fridge magnet. Keep it away from phones, tablets, laptops and cards. Also get a paper clip, a penny, a plastic spoon, a metal spoon, a paper plate, and paper and a pencil to write on."],
  ["See It Done — With the cookie model, scrape the cream off one side of each cookie to make the shapes: full (all cream), then a gibbous, quarter, crescent, and new (no cream).", "See It Done — With the cookie model, scrape the cream off one side of each cookie to make the shapes. Full has all the cream. Then make gibbous, quarter, crescent, and new, which has no cream."]
 ];
 function annaShortenLine(line){
@@ -18726,7 +18669,7 @@ function patchAnnaLessonText(){
 }
 /* Anna's Handwriting warm-ups: same steps, shorter words. Only pages she has not finished. */
 var ANNA_HW_FIXES = [
- ["your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and scissors for the heart word cards.", "your Handwriting, Letter Cards, and Heart & Sight Words book and a sharpened pencil. Cut out this page's heart word cards if they are not cut yet, then keep them all in one zip bag or envelope so there is nothing to clean up."],
+ ["your Handwriting, Letter Cards, and Heart & Sight Words book and a sharpened pencil. Cut out this page's heart word cards if they are not cut yet, then keep them all in one zip bag or envelope so there is nothing to clean up.", "your Handwriting, Letter Cards, and Heart & Sight Words book, a sharpened pencil, and scissors for the heart word cards."],
  ["Good handwriting means every letter is the right shape, starts in the right place, and sits on the line, so someone else can read it easily. ", "Good handwriting means every letter is the right shape and sits on the line. "],
  ["A heart word is a word where some part has to be learned by heart, because it does not spell the way it sounds. You learn it by saying it, tapping the sounds, finding the tricky part, and writing it from memory.", "A heart word has one tricky part you must learn by heart. Say it, tap the sounds, find the tricky part, then write it from memory."],
  ["Look at the dotted letters first. Put your pencil on the starting dot, trace the whole letter slowly, then write the same letter on your own right beside it. ", "Trace the dotted letters slowly. Then write the same letter on your own beside it. "],
@@ -18735,6 +18678,18 @@ var ANNA_HW_FIXES = [
  ["For each word, say it, tap the sounds, circle the tricky part, then cover it and write it from memory. Check and fix.", "For each word: say it, tap the sounds, circle the tricky part, cover it, and write it from memory."],
  [" (Optional: use your cut-out Letter Cards to spell two of the words.)", ""]
 ];
+/* Keep-the-mess-small cleanup (CLAUDE.md rule 26): Mom dropped the bracelet extra, and two magnet lessons were folded into the first one. */
+var ANNA_DROP_TITLES = ["Design Studio Extra: Friendship Bracelet", "Science Book, Unit 2: Magnets Push and Pull Without Touching", "Science Book, Unit 2: Think Like an Engineer — Build a Magnet Maze"];
+function patchAnnaMessCleanup(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.done) return;
+    var t = String(a.title||"");
+    if(ANNA_DROP_TITLES.some(function(d){ return t.indexOf(d)===0; })){ db.doc("assignments/"+id).delete(); delete state.assignments[id]; return; }
+    if(t.indexOf("Build a Shoebox Habitat")>=0){ a.title = t.replace("Build a Shoebox Habitat","Draw a Habitat"); db.doc("assignments/"+id).update({title:a.title}); }
+  });
+}
 function patchAnnaHandwriting(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -18967,7 +18922,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -22062,7 +22017,7 @@ var OFFSCREEN_FRIDAYS = [
    "Science",
    "ELA"
   ],
-  "passage": "Gather first — craft supplies from home like yarn, paper, scissors (kid safe), glue, crayons, and a grown-up to help.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Artists make a plan, make something, and then tell how they made it. Telling the steps is called explaining a process. Use words like first, next, and last.\nSee It Done — Pick one: (1) a friendship bracelet, (2) paper flowers for a bouquet, or (3) a collage of your favorite things. An artist says: 'First I picked my colors. Next I made a pattern, red, blue, red, blue. Last I tied it off.'\nYour Turn — 1. Pick one project from the three. Draw a quick plan or choose your colors. 2. Make your pattern. Try a pattern like ABAB. 3. Make your project. Take your time and ask for help if you need it. 4. When you are done, say the steps out loud: first, next, last. 5. Give your project to someone, or hang it up for everyone to see.\nCheck Yourself — Did you use first, next, and last? Can you point to the pattern in your project?\nShow What You Know — Show your project to Mom or Dad and tell them the steps like a teacher.",
+  "passage": "Gather first — paper, crayons, kid-safe scissors, and a grown-up to help.\nHere's the Idea — It is Friday, and Friday is a screen-free treat for finishing the week! Artists make a plan, make something, and then tell how they made it. Telling the steps is called explaining a process. Use words like first, next, and last.\nSee It Done — Pick one: (1) a long paper strip with colored shapes in a pattern, (2) paper flowers for a bouquet, or (3) a drawing of your favorite things. An artist says: 'First I picked my colors. Next I made a pattern, red, blue, red, blue. Last I hung it up.'\nYour Turn — 1. Pick one project from the three. Draw a quick plan or choose your colors. 2. Make your pattern. Try a pattern like ABAB. 3. Make your project. Take your time and ask for help if you need it. 4. When you are done, say the steps out loud: first, next, last. 5. Give your project to someone, or hang it up for everyone to see.\nCheck Yourself — Did you use first, next, and last? Can you point to the pattern in your project?\nShow What You Know — Show your project to Mom or Dad and tell them the steps like a teacher.",
   "xp": 25
  },
  {
