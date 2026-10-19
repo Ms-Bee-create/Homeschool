@@ -19525,7 +19525,7 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
-    {label:"Ryan: Minecraft Python Missions (10 lessons, setup and code are in the lessons)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
+    {label:"Ryan: Learn to Program with Minecraft (21 lessons, all 12 chapters, setup and code are in the lessons)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
     {label:"Ryan: Minecraft STEM Lab (14 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
     {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
@@ -20407,6 +20407,424 @@ var MC_PYTHON_MISSIONS = [
  },
  {
   "d": 9,
+  "title": "Chapter 3 · Build Quickly with setBlocks and Math 🧮",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working Python setup, Spigot running and joined in Creative mode, IDLE with a new file, and paper. Block names come from mcpi. If a block name gives an error, use its number instead, like 1 for stone, 2 for grass, 3 for dirt, 5 for wood planks, 20 for glass, 24 for sandstone, 35 for wool, 41 for a gold block.\nHere's the Idea — setBlock places one block. setBlocks fills a whole box of blocks at once, from one corner to the opposite corner. Python can do math, so you can work out the corners from a size. The math signs are + for add, - for subtract, * for multiply, and / for divide.\nSee It Done — This builds a stone wall 5 wide and 4 tall, three blocks in front of you. The corners come from the numbers width and height. The minus 1 is there because a wall 5 blocks wide runs from block 0 to block 4. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nx = pos.x + 3\ny = pos.y\nz = pos.z\nwidth = 5\nheight = 4\nmc.setBlocks(x, y, z, x + width - 1, y + height - 1, z, block.STONE.id)\nYour Turn — 1. Type the program and run it. 2. Change width to 9 and height to 6 and run it again. 3. Now build a hollow house. Replace the last line with these lines: size = 7, then mc.setBlocks(x, y, z, x + size - 1, y + 3, z + size - 1, block.STONE.id) to fill a solid box, then mc.setBlocks(x + 1, y + 1, z + 1, x + size - 2, y + 2, z + size - 2, block.AIR.id) to hollow the inside with air. 4. Add a door gap: mc.setBlocks(x + 3, y + 1, z, x + 3, y + 2, z, block.AIR.id). 5. Change size and the block type, and see the house change. 6. Write the corner math in your own words.\nCheck Yourself — Why do you subtract 1 when you work out the far corner?\nShow What You Know — Show Mom your house and tell her which numbers make it bigger.",
+  "quiz": [
+   {
+    "q": "If width = 5, a wall starting at x ends at x + ____.",
+    "choices": [
+     "4",
+     "5",
+     "6",
+     "1"
+    ],
+    "answerIndex": 0,
+    "explain": "The wall covers blocks x, x+1, x+2, x+3, and x+4. That is 5 blocks, so the last one is x + 4."
+   },
+   {
+    "q": "Which block ID makes a gap, like a doorway?",
+    "choices": [
+     "block.AIR.id",
+     "block.STONE.id",
+     "block.GLASS.id",
+     "block.WOOL.id"
+    ],
+    "answerIndex": 0,
+    "explain": "Air is the empty block. Filling a space with air removes what was there."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 10,
+  "title": "Chapter 3 · Travel Far with Math: Speed, Distance, and Area 🚀",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and paper.\nHere's the Idea — Python follows the same order of math as you do at school. Multiply and divide happen before add and subtract. Brackets happen first. Python also has // for division that drops the leftover, ** for powers, and % for the remainder.\nSee It Done — To travel far, multiply. A distance of 100 times 3 is 300 blocks. To find the area of a floor, multiply width by length. To find how long a trip takes, divide distance by speed. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\ndistance = 100\nlaps = 3\ntotal = distance * laps\nmc.postToChat(\"Total blocks: \" + str(total))\nmc.player.setPos(pos.x + total, pos.y + 20, pos.z)\n\nwidth = 12\nlength = 8\narea = width * length\nmc.postToChat(\"Floor area: \" + str(area))\n\nspeed = 4\ntime_needed = total / speed\nmc.postToChat(\"Seconds at speed 4: \" + str(time_needed))\nremainder = total % 7\nmc.postToChat(\"Leftover when sharing among 7: \" + str(remainder))\nYour Turn — 1. Type the program and run it. You will teleport far to the east, so be ready to fly back or teleport home. 2. Read each chat line. Check each answer by hand on paper. 3. Change distance to 250 and predict the new total before you run it. 4. Add a line that finds the volume of a room 12 by 8 by 5. 5. Add a line using ** to square a number, like 9 ** 2. 6. Write the math order rule in your own words.\nCheck Yourself — What is 2 + 3 * 4 in Python, and why?\nShow What You Know — Show Mom your numbers and check one answer together on paper.",
+  "quiz": [
+   {
+    "q": "What does 2 + 3 * 4 equal in Python?",
+    "choices": [
+     "14",
+     "20",
+     "24",
+     "9"
+    ],
+    "answerIndex": 0,
+    "explain": "Multiplying happens before adding. 3 * 4 is 12, plus 2 is 14."
+   },
+   {
+    "q": "What does 17 % 5 give?",
+    "choices": [
+     "2",
+     "3",
+     "12",
+     "85"
+    ],
+    "answerIndex": 0,
+    "explain": "% gives the remainder. 17 divided by 5 is 3 with 2 left over."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 11,
+  "title": "Chapter 4 · Chatting with Strings 💬",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A string is text inside quotes. You can join strings with +, repeat them with *, measure them with len(), and change them with methods like .upper() and .lower(). input() asks the player to type something. Numbers must be turned into strings with str() before you join them to text.\nSee It Done — name = \"Ryan\" is a string. \"Hi, \" + name makes \"Hi, Ryan\". \"ha\" * 3 makes \"hahaha\". len(name) is 4 because there are four letters. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nname = input(\"What is your name? \")\nmc.postToChat(\"Hello, \" + name + \"!\")\nmc.postToChat(\"Shouting: \" + name.upper())\nmc.postToChat(\"Letters in your name: \" + str(len(name)))\nmc.postToChat(\"ha\" * 5)\nmc.postToChat(\"I am at x = \" + str(pos.x) + \", y = \" + str(pos.y) + \", z = \" + str(pos.z))\nYour Turn — 1. Type the program and run it with F5. The question appears in the IDLE window. Type your name there and press Enter. 2. Watch the chat in Minecraft. 3. Add a line that makes your name lowercase with .lower(). 4. Add a line that repeats a word 10 times. 5. Make the program ask for a favorite color and then tell the chat: \"Your favorite color is ...\". 6. Break it on purpose by removing str() around len(name). Read the error and fix it.\nCheck Yourself — Why do you need str() before joining a number to text?\nShow What You Know — Show Mom a chat message your program made from something you typed.",
+  "quiz": [
+   {
+    "q": "What does \"ab\" * 3 make?",
+    "choices": [
+     "ababab",
+     "ab3",
+     "aaabbb",
+     "6"
+    ],
+    "answerIndex": 0,
+    "explain": "Multiplying a string repeats it."
+   },
+   {
+    "q": "What does len(\"Minecraft\") give?",
+    "choices": [
+     "9",
+     "8",
+     "10",
+     "1"
+    ],
+    "answerIndex": 0,
+    "explain": "Minecraft has 9 letters."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 12,
+  "title": "Chapter 5 · What Is True and False? Booleans ✅❌",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A Boolean is a value that is either True or False. You make one by asking a question with a comparison: == means is equal to, != means is not equal to, > is greater than, < is less than. and, or, and not combine Booleans. A single = stores a value, but == asks a question.\nSee It Done — pos.y > 70 asks if you are above height 70. The answer is True or False. under == block.GRASS.id asks if the block under your feet is grass. A True and a False together with and gives False, but with or gives True. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nunder = mc.getBlock(pos.x, pos.y - 1, pos.z)\nis_grass = under == block.GRASS.id\nhigh_up = pos.y > 70\nmc.postToChat(\"Standing on grass? \" + str(is_grass))\nmc.postToChat(\"Above height 70? \" + str(high_up))\nmc.postToChat(\"Both? \" + str(is_grass and high_up))\nmc.postToChat(\"Either one? \" + str(is_grass or high_up))\nmc.postToChat(\"Not grass? \" + str(not is_grass))\nYour Turn — 1. Type the program. Stand on grass, run it, and read the chat. 2. Move to sand or stone and run it again. What changed? 3. Climb higher or dig down and test the height question. 4. Add a line asking if the block under you is stone. 5. Write a truth table on paper for and and or using True and False. 6. Write why == and = are different.\nCheck Yourself — What is the difference between = and ==?\nShow What You Know — Show Mom a True and a False your program found.",
+  "quiz": [
+   {
+    "q": "What does 5 > 3 and 2 > 4 give?",
+    "choices": [
+     "False",
+     "True",
+     "5",
+     "Error"
+    ],
+    "answerIndex": 0,
+    "explain": "and needs both to be true. 2 > 4 is false, so the whole thing is false."
+   },
+   {
+    "q": "Which one asks a question?",
+    "choices": [
+     "x == 5",
+     "x = 5",
+     "x + 5",
+     "x := 5"
+    ],
+    "answerIndex": 0,
+    "explain": "== compares two things and gives True or False. = stores a value."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 13,
+  "title": "Chapter 6 · Mini-Games with if Statements 🎮",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 30,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — An if statement lets your program choose. If the question is True, the indented lines under it run. elif means else if, for a second question. else is for everything left over. Python uses the indent, four spaces, to know which lines belong to the choice.\nSee It Done — if under == block.GRASS.id: runs its lines only when you are standing on grass. elif handles sand. else handles everything else. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nunder = mc.getBlock(pos.x, pos.y - 1, pos.z)\nif under == block.GRASS.id:\n    mc.postToChat(\"Safe! You are on grass.\")\nelif under == block.SAND.id:\n    mc.postToChat(\"Sandy beach.\")\nelif under == block.STONE.id:\n    mc.postToChat(\"Hard rock.\")\nelse:\n    mc.postToChat(\"Some other block.\")\nYour Turn — 1. Type the program with the same indents. Four spaces under each if, elif, and else. 2. Run it on grass, then sand, then stone, then dirt. 3. Make a mini-game: add a line at the end that says mc.postToChat(\"Run it again somewhere new!\"). 4. Add a new elif for dirt. 5. Make a score: write score = 0 at the top, add 1 to score inside the grass branch, and show it with mc.postToChat(\"Score: \" + str(score)). 6. Draw a flow chart on paper showing the choices.\nCheck Yourself — What does elif mean, and when does an else run?\nShow What You Know — Play your mini-game for Mom: walk to a block and run the program.",
+  "quiz": [
+   {
+    "q": "When does the else part run?",
+    "choices": [
+     "When none of the earlier questions were true",
+     "Always",
+     "Never",
+     "Only first"
+    ],
+    "answerIndex": 0,
+    "explain": "else catches everything the if and elif did not match."
+   },
+   {
+    "q": "What does the indent tell Python?",
+    "choices": [
+     "Which lines belong to the choice",
+     "Nothing",
+     "The font size",
+     "The color"
+    ],
+    "answerIndex": 0,
+    "explain": "Indented lines belong to the if, elif, or else above them."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 14,
+  "title": "Chapter 7 · Dance Parties and Flower Parades with while Loops 🔁",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 30,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A loop repeats lines. A while loop keeps going as long as its question stays True. You need something inside the loop that changes, like a counter, or the loop never ends. A loop that never ends is called an infinite loop. To stop one in IDLE press Ctrl and C.\nSee It Done — count = 0 starts a counter. while count < 10: keeps looping. count = count + 1 adds one each time, so the loop stops after 10. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\nimport time\ncount = 0\nwhile count < 10:\n    pos = mc.player.getTilePos()\n    mc.setBlock(pos.x, pos.y - 1, pos.z, block.WOOL.id, count)\n    time.sleep(0.5)\n    count = count + 1\nmc.postToChat(\"Dance party over!\")\nYour Turn — 1. Type the program and run it. Walk around while it runs. Wool in a new color appears under your feet every half second. 2. Change the 0.5 to a smaller number and see it speed up. 3. Make a flower parade. Use block.FLOWER_YELLOW.id placed at pos.x, pos.y, pos.z, with the same loop. 4. Make a loop that runs 30 times. 5. Write a loop that counts down from 10 to 0 and posts each number to the chat. 6. On paper, say what would happen if you forgot the count = count + 1 line.\nCheck Yourself — What would happen if you forgot to change the counter?\nShow What You Know — Run the dance party for Mom.",
+  "quiz": [
+   {
+    "q": "What is an infinite loop?",
+    "choices": [
+     "A loop whose question never becomes False",
+     "A loop that runs once",
+     "A loop with a bug fix",
+     "A loop with no lines"
+    ],
+    "answerIndex": 0,
+    "explain": "If nothing changes the counter, the question stays True forever."
+   },
+   {
+    "q": "In IDLE, how do you stop a loop that never ends?",
+    "choices": [
+     "Press Ctrl and C",
+     "Unplug the computer",
+     "Delete Minecraft",
+     "Press F5 once"
+    ],
+    "answerIndex": 0,
+    "explain": "Ctrl and C interrupts the running program."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 15,
+  "title": "Chapter 8 · Functions Give You Superpowers ⚡",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 30,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A function is a named bundle of code you can run again and again. You define it once with def, then call it by name. Parameters are the inputs a function takes. return sends a value back. Functions save typing and make your program easier to read.\nSee It Done — def build_tower(x, y, z, height): defines a tower builder. Calling build_tower(10, 70, 10, 5) builds a tower five blocks tall. You can call it as many times as you like with different numbers. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\ndef build_tower(x, y, z, height):\n    count = 0\n    while count < height:\n        mc.setBlock(x, y + count, z, block.STONE.id)\n        count = count + 1\n\ndef double(number):\n    return number * 2\n\npos = mc.player.getTilePos()\nbuild_tower(pos.x + 2, pos.y, pos.z, 5)\nbuild_tower(pos.x + 4, pos.y, pos.z, double(4))\nmc.postToChat(\"Towers built!\")\nYour Turn — 1. Type the program and run it. You get two towers. 2. Call build_tower a third time to build another one. 3. Add a parameter for the block type so each tower can be a different material. 4. Write a function called fly_up(amount) that teleports you up by that amount. 5. Write a function that returns the area of a rectangle, area(width, length). 6. Explain in your own words the difference between defining and calling.\nCheck Yourself — What is the difference between defining and calling a function?\nShow What You Know — Show Mom a function you wrote and call it twice.",
+  "quiz": [
+   {
+    "q": "What does return do?",
+    "choices": [
+     "Sends a value back from the function",
+     "Ends the game",
+     "Prints a message",
+     "Restarts Python"
+    ],
+    "answerIndex": 0,
+    "explain": "return hands the answer to the line that called the function."
+   },
+   {
+    "q": "Where do the numbers you pass to a function go?",
+    "choices": [
+     "Into its parameters",
+     "Into the chat",
+     "Into the sky",
+     "Nowhere"
+    ],
+    "answerIndex": 0,
+    "explain": "The values you pass become the parameters inside the function."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 16,
+  "title": "Chapter 9 · Hit Things: Lists, Dictionaries, and Block Hits 🗡️",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 35,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, a sword in your hotbar, and IDLE.\nHere's the Idea — A list holds many things in order, in square brackets. You get one item by its number, starting at 0. A dictionary holds pairs of a key and a value, in curly braces, like a name and a color number. A for loop can visit each item in a list. In Minecraft you can read block hits: right-click a block with a sword and your program sees it.\nSee It Done — colors = [\"red\", \"blue\"] is a list. colors[0] is \"red\". wool = {\"red\": 14, \"blue\": 11} is a dictionary. wool[\"red\"] is 14, the wool data number for red. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\nimport time\nwool = {\"red\": 14, \"blue\": 11, \"green\": 5, \"yellow\": 4}\nnames = [\"red\", \"blue\", \"green\", \"yellow\"]\nmc.postToChat(\"Right-click blocks with a sword for 20 seconds!\")\nend = time.time() + 20\nturn = 0\nwhile time.time() < end:\n    hits = mc.events.pollBlockHits()\n    for hit in hits:\n        p = hit.pos\n        color = names[turn % len(names)]\n        mc.setBlock(p.x, p.y, p.z, block.WOOL.id, wool[color])\n        mc.postToChat(\"Painted \" + color)\n        turn = turn + 1\n    time.sleep(0.2)\nmc.postToChat(\"Painting finished!\")\nYour Turn — 1. Type the program and run it. Hold a sword and right-click blocks. Each hit paints the block the next color in the list. 2. Add two more colors to both the list and the dictionary. The wool data number for orange is 1 and for pink is 6. 3. Change the program so every hit makes the same color, picked by you. 4. Print the length of the list with len(). 5. Make a list of three block names and loop over it with for name in names, posting each one to the chat. 6. Write how a list and a dictionary are different.\nCheck Yourself — How are a list and a dictionary different?\nShow What You Know — Show Mom your painting game.",
+  "quiz": [
+   {
+    "q": "In a list, what number is the first item?",
+    "choices": [
+     "0",
+     "1",
+     "-1",
+     "First"
+    ],
+    "answerIndex": 0,
+    "explain": "Python starts counting at 0."
+   },
+   {
+    "q": "What does wool[\"red\"] give in a dictionary?",
+    "choices": [
+     "The value stored for the key red",
+     "The word wool",
+     "A list",
+     "An error always"
+    ],
+    "answerIndex": 0,
+    "explain": "A dictionary looks up a key and gives its value."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 17,
+  "title": "Chapter 10 · Minecraft Magic with for Loops ✨",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 30,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A for loop repeats a set number of times, or once for each item in a list. range(5) gives the numbers 0, 1, 2, 3, 4. Loops can go inside loops, called nested loops. With a for loop you can build a staircase or a pyramid with only a few lines.\nSee It Done — for i in range(5): runs five times. The variable i changes each time, 0 then 1 then 2. Use i in the block position to build a staircase, where each step is higher and farther away. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nx = pos.x + 2\ny = pos.y\nz = pos.z\nfor i in range(8):\n    mc.setBlock(x + i, y + i, z, block.STONE.id)\n\nsize = 11\nfor level in range(5):\n    mc.setBlocks(x + level, y + level, z + 3 + level, x + size - 1 - level, y + level, z + 3 + size - 1 - level, block.SANDSTONE.id)\nYour Turn — 1. Type the program and run it. You get a staircase and a pyramid. 2. Make the staircase twice as tall. 3. Change the pyramid to a different block. 4. Write a loop that builds a row of 10 gold blocks. 5. Use a nested loop: for a in range(3): then for b in range(3): and place a block at x + a, y, z + b to make a 3 by 3 floor. 6. Write what range(2, 6) gives, then test it with print.\nCheck Yourself — What numbers does range(5) give?\nShow What You Know — Show Mom your pyramid and explain how the loop builds it.",
+  "quiz": [
+   {
+    "q": "What numbers does range(4) give?",
+    "choices": [
+     "0, 1, 2, 3",
+     "1, 2, 3, 4",
+     "0, 1, 2, 3, 4",
+     "4"
+    ],
+    "answerIndex": 0,
+    "explain": "range starts at 0 and stops before the number you give."
+   },
+   {
+    "q": "What is a nested loop?",
+    "choices": [
+     "A loop inside another loop",
+     "A loop with no end",
+     "A broken loop",
+     "A function"
+    ],
+    "answerIndex": 0,
+    "explain": "A nested loop runs all of its repeats for each repeat of the outer loop."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 18,
+  "title": "Chapter 11 · Save and Load Buildings with Files and Modules 💾",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 35,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE. Save your programs in one folder.\nHere's the Idea — A file lets a program remember things after it stops. open(\"name.txt\", \"w\") opens a file for writing, and \"r\" is for reading. Always close the file when you are finished. A module is a Python file you import so other programs can use its functions. You can write your own.\nSee It Done — To save a building, write one line for each block: its offset from you and its block ID. To load it, read the lines, split each one at the commas, and place each block. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nblocks = [(0, 0, 0, 1), (1, 0, 0, 1), (0, 1, 0, 5), (1, 1, 0, 5), (0, 2, 0, 20)]\n\nf = open(\"building.txt\", \"w\")\nfor b in blocks:\n    f.write(str(b[0]) + \",\" + str(b[1]) + \",\" + str(b[2]) + \",\" + str(b[3]) + \"\\n\")\nf.close()\n\nf = open(\"building.txt\", \"r\")\nfor line in f:\n    parts = line.strip().split(\",\")\n    dx = int(parts[0])\n    dy = int(parts[1])\n    dz = int(parts[2])\n    id = int(parts[3])\n    mc.setBlock(pos.x + 3 + dx, pos.y + dy, pos.z + dz, id)\nf.close()\nmc.postToChat(\"Building loaded from file!\")\nYour Turn — 1. Save the program in your Minecraft Python folder and run it. A file named building.txt appears next to it. Open it in Notepad and read it. 2. Add more blocks to the list and run it again. 3. Move the loading part into its own program file so you can build the same thing anywhere you stand. 4. Now make a module. In a new file called mytools.py write def build_tower(x, y, z, height): and the loop that builds it, like in the functions lesson. Save it in the same folder. 5. In your main program write import mytools, then mytools.build_tower(pos.x, pos.y, pos.z, 6). 6. Write why a module is useful.\nCheck Yourself — What is the difference between writing with \"w\" and reading with \"r\"?\nShow What You Know — Show Mom the saved file and the building it makes.",
+  "quiz": [
+   {
+    "q": "What does open(\"a.txt\", \"w\") do?",
+    "choices": [
+     "Opens a file for writing",
+     "Reads a file",
+     "Deletes a file",
+     "Prints a file"
+    ],
+    "answerIndex": 0,
+    "explain": "\"w\" means write. It creates the file or replaces it."
+   },
+   {
+    "q": "What is a module?",
+    "choices": [
+     "A Python file you can import",
+     "A kind of block",
+     "A Minecraft mob",
+     "A broken file"
+    ],
+    "answerIndex": 0,
+    "explain": "A module is a Python file with functions you bring into another program with import."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 19,
+  "title": "Chapter 12 · Get Classy with Object-Oriented Programming 🏗️",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 40,
+  "standard": "3-5.F",
+  "passage": "Gather first — your working setup, Spigot running, Creative mode, and IDLE.\nHere's the Idea — A class is a blueprint. An object is one thing built from the blueprint. A class holds data, called attributes, and actions, called methods. __init__ runs when you make a new object and sets up its attributes. self means this object. Object-oriented programming lets you build many towers, each with its own size.\nSee It Done — class Tower: is the blueprint. Tower(x, y, z, 5) makes one tower object. tower.build(block.STONE.id) is a method call that builds it. Type this program:\nfrom mcpi.minecraft import Minecraft\nfrom mcpi import block\nmc = Minecraft.create()\nclass Tower:\n    def __init__(self, x, y, z, height):\n        self.x = x\n        self.y = y\n        self.z = z\n        self.height = height\n\n    def build(self, block_id):\n        for i in range(self.height):\n            mc.setBlock(self.x, self.y + i, self.z, block_id)\n\n    def grow(self, extra):\n        self.height = self.height + extra\n\npos = mc.player.getTilePos()\nsmall = Tower(pos.x + 2, pos.y, pos.z, 3)\nbig = Tower(pos.x + 4, pos.y, pos.z, 8)\nsmall.build(block.STONE.id)\nbig.build(block.GOLD_BLOCK.id)\nbig.grow(4)\nbig.build(block.GOLD_BLOCK.id)\nmc.postToChat(\"Big tower height: \" + str(big.height))\nYour Turn — 1. Type the program and run it. You get two towers, and the big one grows. 2. Make a third tower of your own. 3. Add an attribute for the block type, so each tower remembers its material. 4. Add a method called remove that fills the tower with air. 5. Make a class called Wall with its own build method using setBlocks. 6. Draw the class as a box on paper with its attributes and methods labeled.\nCheck Yourself — What is the difference between a class and an object?\nShow What You Know — Show Mom your classes and explain what each object remembers.",
+  "quiz": [
+   {
+    "q": "What is an object?",
+    "choices": [
+     "One thing made from a class blueprint",
+     "The blueprint itself",
+     "A Python file",
+     "A block"
+    ],
+    "answerIndex": 0,
+    "explain": "A class is the blueprint. Each object is a thing built from it."
+   },
+   {
+    "q": "What does self mean in a method?",
+    "choices": [
+     "This object",
+     "The class",
+     "The player",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "self points to the object the method is working on."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science",
+   "Math"
+  ]
+ },
+ {
+  "d": 20,
   "title": "Teach-Back: Explain Your Python Program to Mom 🎤",
   "subject": "Independent",
   "stage": "apply",
