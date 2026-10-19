@@ -1716,7 +1716,7 @@ function renderPetPanel(){
   p.innerHTML = '<div class="pp-head"><b>My pets</b><button type="button" class="pp-x" aria-label="Close">✕</button></div>'+
     '<div class="pp-grid">'+petTiles+'</div>'+
     '<div class="pp-sub">Accessories</div><div class="pp-grid">'+accTiles+'</div>'+
-    '<div class="pp-note">New pets and accessories are in the Momma Money shop. Ask Mom or Dad to approve your purchase.</div>';
+    '<div class="pp-note">New pets and accessories are in the Momma Money shop. Buy them there with your coins. They show up here right away.</div>';
   p.querySelector(".pp-x").onclick = closePetPanel;
   Array.prototype.forEach.call(p.querySelectorAll(".pp-tile"), function(b){
     b.onclick = function(){
