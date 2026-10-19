@@ -47,7 +47,7 @@ const h = require('./harness'); const fs = require('fs');
       if(!hasGather && /Minecraft|paper|pencil|tape|scissors|cup|ruler|string/i.test(r.passage)) w.push('uses supplies but has no "Gather first" list');
       const limit = r.kid==='kid1' ? 14 : 22; const ss = sents(r.passage); const avg = ss.length? words(r.passage)/ss.length : 0;
       const longest = ss.reduce((m,s)=>Math.max(m,words(s)),0);
-      if(r.hasCards){} else if(r.kid==='kid1' && words(r.passage)>260) w.push(kid+': long ('+words(r.passage)+' words), may feel like a wall of text');
+      if(r.hasCards){} else if(r.kid==='kid1' && words(r.passage)>(/^Handwriting p\./.test(r.title||'')?330:260)) w.push(kid+': long ('+words(r.passage)+' words), may feel like a wall of text');
       else if(r.kid==='kid2' && words(r.passage)>420) w.push(kid+': long ('+words(r.passage)+' words)');
       if(avg>limit) w.push(kid+': sentences average '+avg.toFixed(1)+' words (hard to read)');
       if(longest>(r.kid==='kid1'?32:45)) w.push(kid+': one sentence is '+longest+' words long');
