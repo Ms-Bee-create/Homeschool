@@ -19525,7 +19525,7 @@ function contentPacks(){
     {label:"Ryan: OS Museum Archive Challenge", kid:"kid2", items:CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE, oldPrefix:"", load:function(){ addOsMuseumArchiveChallenge("kid2"); }},
     {label:"Ryan: JohnnyOS — build an operating system for Johnny (4 weeks)", kid:"kid2", items:RYAN_JOHNNY_BUILD, oldPrefix:"", load:function(){ addRyanJohnnyBuild("kid2"); }},
     {label:"Ryan: Virtual Phones Lab (5 lessons)", kid:"kid2", items:RYAN_VIRTUAL_PHONES, oldPrefix:"", load:function(){ addRyanVirtualPhones("kid2"); }},
-    {label:"Ryan: Minecraft Python Missions (8 lessons, code is in the lessons; Windows PC, Python, Java, Spigot)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
+    {label:"Ryan: Minecraft Python Missions (10 lessons, setup and code are in the lessons)", kid:"kid2", items:MC_PYTHON_MISSIONS, oldPrefix:"", load:function(){ addPackItems("kid2", MC_PYTHON_MISSIONS); }},
     {label:"Ryan: Minecraft STEM Lab (14 hands-on labs)", kid:"kid2", items:MC_STEM_LAB_RYAN, oldPrefix:"", load:function(){ addPackItems("kid2", MC_STEM_LAB_RYAN); }},
     {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
@@ -20068,44 +20068,80 @@ function patchRyanVirtualPhones(){
 var MC_PYTHON_MISSIONS = [
  {
   "d": 0,
-  "title": "Python Missions Setup: Get Minecraft and Python Ready 🐍 (Book pp. 2–11 and 20–24)",
+  "title": "Python Setup, Part 1: Install Python and Java 🐍",
   "subject": "Independent",
   "stage": "teach",
   "xp": 20,
   "standard": "3-5.F",
-  "passage": "Gather first — the library book \"Learn to Program with Minecraft\" if you can get it (Chapter 1 is the setup), the Windows PC, Minecraft Java Edition (you already have it), and a grown-up. A grown-up does every download and install. You do NOT need a Raspberry Pi or a Mac. The book has three setup paths, and yours is the Windows PC one.\nHere's the Idea — Today you set up a coding workshop. Python is the language you will write. Java is what Minecraft runs on. A small helper server called Spigot lets your Python programs talk to your Minecraft world. When every piece is ready, your code can move you, build blocks, and send chat messages.\nSee It Done — Think of building a workbench. First the table (Minecraft), then the tools (Python and Java), then the power cord (the Spigot server that connects them). In the book, read only the part called Setting Up Your Windows PC, about pages 2 to 11. Skip Setting Up Your Mac (pages 12 to 18) and Setting Up Your Raspberry Pi (about page 19).\nYour Turn — 1. With a grown-up, follow the Windows PC part one page at a time: Installing Minecraft, Installing Python, Installing Java, Installing the Minecraft Python API and Spigot, then Running Spigot and Creating a Game. 2. After each part, stop and tell the grown-up what you just installed. 3. Read Starting Over with a New World, Playing Offline, and Switching to Survival Mode so you know where they are. 4. Skip the Mac and Raspberry Pi parts. 5. Read Getting to Know IDLE (pages 20 to 23). IDLE is where you type your Python. The Python Shell runs one line at a time. The Text Editor lets you save a whole program. 6. Do Testing Your Minecraft Python Setup (page 24). 7. Write down any step that did not work and show the grown-up.\nCheck Yourself — Can you say what Python, Java, and Spigot each do, in one sentence each? Which setup path is yours?\nShow What You Know — Tell Mom the three setup pieces and what each one is for.",
+  "passage": "Gather first — the Windows PC, a grown-up (a grown-up does every download and install), and Minecraft Java Edition already on the PC. Allow about 30 minutes. The library book (Learn to Program with Minecraft by Craig Richardson) shows these steps with pictures in Chapter 1, but you do not need it.\nHere's the Idea — To control Minecraft with code you need five things working together: Minecraft, Python 3, Java, the Minecraft Python API, and the Spigot server. Today is Python and Java. Python is the language you will write. Java is what the Spigot server runs on.\nSee It Done — Think of building a workbench. Minecraft is the table. Python and Java are the tools. The API and Spigot are the power cord that connects them. Next lesson you plug it in.\nYour Turn — 1. Open the Start Menu and open Minecraft once to make sure it runs. Press Esc to free your mouse, then close it. 2. INSTALL PYTHON. A grown-up goes to python.org/downloads and clicks the button to download the newest Python 3. 3. Save the file, then open it and click Run if asked. 4. On the first installer screen, tick the box at the bottom that says Add Python to PATH. This is very important. Then click Install Now. 5. Click Yes if Windows asks. Wait, then click Finish or Close. 6. CHECK JAVA. Click the Start Menu, type cmd, and open the Command Prompt. A black window opens. 7. Type java -version and press Enter. 8. If you see a message with a version number, Java is already installed. Skip to the last step. 9. If it says Java is not recognized, install it. A grown-up goes to java.com/en/download and clicks the Free Java Download button, then Agree and Start Free Download. Run the file and click Install. 10. Be careful. The installer may offer an extra program or a new homepage. Untick it or choose Do not update browser settings. You do not need it. 11. When it finishes, open a new Command Prompt and type java -version again. You should now see a version number. If you still see not recognized, reinstall Java.\nCheck Yourself — Which box must you tick when you install Python? What does java -version tell you?\nShow What You Know — Tell Mom what Python and Java are each for.",
   "quiz": [
    {
-    "q": "What does Python do in your setup?",
+    "q": "Which box must be ticked when installing Python?",
     "choices": [
-     "It is the language you write your programs in",
-     "It is the Minecraft world",
-     "It is the screen",
-     "It is the keyboard"
+     "Add Python to PATH",
+     "Install extra toolbars",
+     "Make Yahoo my homepage",
+     "Delete old files"
     ],
     "answerIndex": 0,
-    "explain": "Python is the programming language. You type your commands in it."
+    "explain": "Adding Python to PATH lets the computer find Python from any window. Without it, later steps fail."
    },
    {
-    "q": "What does the Spigot server do?",
+    "q": "What does Java do in this setup?",
     "choices": [
-     "It lets your Python programs talk to Minecraft",
-     "It draws the pictures",
-     "It plays the music",
-     "It saves your homework"
+     "It runs the Spigot server",
+     "It draws the Minecraft pictures",
+     "It is the language you write",
+     "It plays music"
     ],
     "answerIndex": 0,
-    "explain": "Spigot is the helper in the middle that carries your code's messages into the Minecraft world."
+    "explain": "The Spigot server needs Java to run."
    }
   ],
   "skillId": "mc-python",
   "crossSubjects": [
-   "Computer Science",
-   "Math"
+   "Computer Science"
   ]
  },
  {
   "d": 1,
+  "title": "Python Setup, Part 2: Start Your Minecraft Python World 🌍",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 25,
+  "standard": "3-5.F",
+  "passage": "Gather first — the Windows PC with Python and Java installed (Part 1), Minecraft Java Edition, a grown-up, and about 45 minutes. A grown-up does the downloads. The library book (Learn to Program with Minecraft by Craig Richardson) shows these steps with pictures in Chapter 1, but you do not need it.\nHere's the Idea — The Minecraft Python API is a set of tools that let your code talk to the game. Normal single-player Minecraft does not allow that. So you run your own small server called Spigot on your own computer. Your code talks to the server, and you join the server like a game with friends, but it is only you.\nSee It Done — The author of the book made a free download called Minecraft Tools.zip that holds the API installer and a ready-to-run Spigot server. It is on the book's page at nostarch.com/pythonwithminecraft. Ask a grown-up to download the Minecraft Tools.zip for Windows from there.\nYour Turn — 1. Open Documents (My Documents). A grown-up makes a new folder named Minecraft Python. 2. Right-click the downloaded Minecraft Tools.zip, choose Extract All, and extract it into the Minecraft Python folder. 3. Open Minecraft Python, then Minecraft Tools. You should see files named Install_API and Start_Server. 4. Double-click Install_API. If Windows warns you, click Run Anyway. When it finishes, press any key. If it says pip is not recognized, Python was not installed with Add Python to PATH, so redo Part 1. 5. Double-click Start_Server. If Windows asks about access, click Allow. 6. A window full of text opens while Spigot builds a world. Wait until it stops and says Done. Keep that window open. 7. Open Minecraft, click Multiplayer, then Add Server. 8. Name it Minecraft Python World. Type localhost for the Server Address and click Done. 9. Double-click Minecraft Python World to join. 10. The world is in Creative mode. Double-tap the spacebar to fly. Hold the spacebar to go up and hold Shift to go down. Double-tap the spacebar again to stop flying. 11. If Minecraft says the server is outdated or the client is outdated, tell a grown-up. The server in the download is an older version. A grown-up can open the Minecraft Launcher, add an Installation for the version the server window names, and play that version.\nCheck Yourself — Why do you start Start_Server before you open Minecraft? Is the Spigot window still open?\nShow What You Know — Show Mom your world and fly around in it.",
+  "quiz": [
+   {
+    "q": "Why do you run a Spigot server?",
+    "choices": [
+     "So your Python code can talk to Minecraft",
+     "To play with other people only",
+     "To make Minecraft faster",
+     "To save your homework"
+    ],
+    "answerIndex": 0,
+    "explain": "Single-player Minecraft does not let code in. The Spigot server does."
+   },
+   {
+    "q": "What should you do with the Spigot window while you play?",
+    "choices": [
+     "Keep it open",
+     "Close it",
+     "Delete it",
+     "Turn it into a picture"
+    ],
+    "answerIndex": 0,
+    "explain": "If you close the window, the server stops and your code cannot connect."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science"
+  ]
+ },
+ {
+  "d": 2,
   "title": "Python Basics: What Is a Variable? 📦",
   "subject": "Independent",
   "stage": "teach",
@@ -20143,13 +20179,50 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 2,
+  "d": 3,
+  "title": "Python Setup, Part 3: New Worlds, Offline Play, and Survival Mode 🔧",
+  "subject": "Independent",
+  "stage": "teach",
+  "xp": 15,
+  "standard": "3-5.F",
+  "passage": "Gather first — the Minecraft Python folder from Part 2, Notepad, and a grown-up. Close the Spigot window and Minecraft before you start. This is optional extras. Come back to it when you need it. The library book (Learn to Program with Minecraft by Craig Richardson) shows these steps with pictures in Chapter 1, but you do not need it.\nHere's the Idea — You can make more than one world, play without the Internet, and change from Creative to Survival. All three are done by changing files in the Minecraft Tools folder. Always make a copy before you change anything, so you cannot break your setup.\nSee It Done — A server remembers its settings in a plain text file called server.properties. You open it in Notepad and change one word. Then you save and restart the server.\nYour Turn — 1. NEW WORLD. Right-click the Minecraft Tools folder and click Copy. Right-click empty space in the Minecraft Python folder and click Paste. 2. Rename the copy, for example New World. 3. Open it, then open the server folder inside. 4. Select the folders named world, world_nether, and world_the_end and press Delete. 5. In the server folder, double-click the start file. Not the Start_Server file in the main folder. This builds a new world. 6. OFFLINE PLAY. If there is no Internet you get an error. Close the server. Open Minecraft Tools, then server, and open server.properties in Notepad. 7. Find online-mode=true. Change true to false. Save and close. 8. Start the server again. 9. SURVIVAL MODE. In server.properties find gamemode=1 and change it to gamemode=0. Save, close, and start the server. You are now in Survival. 10. To go back to Creative, change gamemode=0 back to gamemode=1.\nCheck Yourself — Which word do you change to play offline? Which number is Creative and which is Survival?\nShow What You Know — Tell Mom how you would make a second world.",
+  "quiz": [
+   {
+    "q": "In server.properties, which setting is Creative mode?",
+    "choices": [
+     "gamemode=1",
+     "gamemode=0",
+     "online-mode=false",
+     "level-name=world"
+    ],
+    "answerIndex": 0,
+    "explain": "gamemode=1 is Creative and gamemode=0 is Survival."
+   },
+   {
+    "q": "What should you do before changing the Minecraft Tools folder?",
+    "choices": [
+     "Make a copy first",
+     "Delete it",
+     "Rename it to world",
+     "Nothing"
+    ],
+    "answerIndex": 0,
+    "explain": "A copy lets you undo a mistake."
+   }
+  ],
+  "skillId": "mc-python",
+  "crossSubjects": [
+   "Computer Science"
+  ]
+ },
+ {
+  "d": 4,
   "title": "Mission #1: Say Hello and Find Where You Are 💬",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working Python setup from the setup lesson, IDLE open with a new file in the Text Editor, Spigot running, Minecraft open in Creative mode, and a grown-up nearby. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — Your first Minecraft program connects Python to your game, sends a chat message, and asks the game where you are. Your position is three numbers, x, y, and z. Typing code exactly matters. One wrong letter or missing bracket makes an error, and an error is a clue, not a failure.\nSee It Done — Type these lines exactly, with the same capital letters:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nmc.postToChat(\"Hello from Python!\")\npos = mc.player.getPos()\nmc.postToChat(\"My x is \" + str(pos.x))\nNotice str(pos.x). The game gives you a number, and str turns it into text so it can join with the words.\nYour Turn — 1. Start Spigot and join your world. 2. Type the program in a new Text Editor file and save it. 3. Run it with F5. 4. Look at the chat in Minecraft. Did your message and your x number show up? 5. Add two more lines so it also shows your y and your z. 6. Walk to a new spot, run it again, and see the numbers change. 7. Write what x, y, and z tell you.\nCheck Yourself — Did the numbers change when you moved? Which one changed when you went up?\nShow What You Know — Show Mom your program and tell her what each line does.",
+  "passage": "Gather first — your working Python setup from the setup lesson, IDLE open with a new file in the Text Editor, Spigot running, Minecraft open in Creative mode, and a grown-up nearby. If the first two lines give a connection error, make sure the Spigot window is open and says Done, and tell a grown-up.\nHere's the Idea — Your first Minecraft program connects Python to your game, sends a chat message, and asks the game where you are. Your position is three numbers, x, y, and z. Typing code exactly matters. One wrong letter or missing bracket makes an error, and an error is a clue, not a failure.\nSee It Done — Type these lines exactly, with the same capital letters:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nmc.postToChat(\"Hello from Python!\")\npos = mc.player.getPos()\nmc.postToChat(\"My x is \" + str(pos.x))\nNotice str(pos.x). The game gives you a number, and str turns it into text so it can join with the words.\nYour Turn — 1. Start Spigot and join your world. 2. Type the program in a new Text Editor file and save it. 3. Run it with F5. 4. Look at the chat in Minecraft. Did your message and your x number show up? 5. Add two more lines so it also shows your y and your z. 6. Walk to a new spot, run it again, and see the numbers change. 7. Write what x, y, and z tell you.\nCheck Yourself — Did the numbers change when you moved? Which one changed when you went up?\nShow What You Know — Show Mom your program and tell her what each line does.",
   "quiz": [
    {
     "q": "What does mc.postToChat(\"Hi\") do?",
@@ -20181,13 +20254,13 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 3,
+  "d": 5,
   "title": "Mission #2: Teleport Yourself ✨",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — You can read your position, and you can also set it. Setting your position teleports you. To choose a good spot you need to know what x, y, and z mean, so a good coder works out the numbers first.\nSee It Done — This program reads your spot and sends you ten blocks along x:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 10, pos.y, pos.z)\nOnly the x number changes. y and z stay the same. Change one number at a time and test.\nYour Turn — 1. Type the program and run it. 2. Did you land ten blocks away? 3. Change the 10 to 30 and run it again. 4. Change the program to move you up by changing y instead. 5. Try going backward by using a minus sign. 6. Write which number moves you which way.\nCheck Yourself — Which of x, y, or z moves you up and down?\nShow What You Know — Teleport yourself for Mom and tell her what each number does.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. If the first two lines give a connection error, make sure the Spigot window is open and says Done, and tell a grown-up.\nHere's the Idea — You can read your position, and you can also set it. Setting your position teleports you. To choose a good spot you need to know what x, y, and z mean, so a good coder works out the numbers first.\nSee It Done — This program reads your spot and sends you ten blocks along x:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 10, pos.y, pos.z)\nOnly the x number changes. y and z stay the same. Change one number at a time and test.\nYour Turn — 1. Type the program and run it. 2. Did you land ten blocks away? 3. Change the 10 to 30 and run it again. 4. Change the program to move you up by changing y instead. 5. Try going backward by using a minus sign. 6. Write which number moves you which way.\nCheck Yourself — Which of x, y, or z moves you up and down?\nShow What You Know — Teleport yourself for Mom and tell her what each number does.",
   "quiz": [
    {
     "q": "Best way to fix a program that sends you to the wrong spot?",
@@ -20219,13 +20292,13 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 4,
+  "d": 6,
   "title": "Mission #3: Teleportation Tour 🚀",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — A program runs one line after another, so it can teleport you to many places in a row. If it runs too fast you cannot see each stop. Python's time module can make it wait. A module is a bundle of ready-made tools you borrow with import.\nSee It Done — A tour guide goes to the first stop, waits so people can look, goes to the second stop, and waits again. The program's order is the order of the tour:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nimport time\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 20, pos.y, pos.z)\ntime.sleep(3)\nmc.player.setPos(pos.x + 20, pos.y, pos.z + 20)\ntime.sleep(3)\nmc.player.setPos(pos.x, pos.y, pos.z)\nThe last line takes you home. time.sleep(3) means wait 3 seconds.\nYour Turn — 1. Plan three stops on paper. 2. Type the tour program and run it. 3. Change the waits to 1 second and to 5 seconds, and see the difference. 4. Add a postToChat message at each stop that says what it is. 5. Add a fourth stop of your own.\nCheck Yourself — Why does the tour need a wait between stops?\nShow What You Know — Give Mom a tour of your world and tell her what each line does.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, paper, and a pencil. If the first two lines give a connection error, make sure the Spigot window is open and says Done, and tell a grown-up.\nHere's the Idea — A program runs one line after another, so it can teleport you to many places in a row. If it runs too fast you cannot see each stop. Python's time module can make it wait. A module is a bundle of ready-made tools you borrow with import.\nSee It Done — A tour guide goes to the first stop, waits so people can look, goes to the second stop, and waits again. The program's order is the order of the tour:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\nimport time\npos = mc.player.getPos()\nmc.player.setPos(pos.x + 20, pos.y, pos.z)\ntime.sleep(3)\nmc.player.setPos(pos.x + 20, pos.y, pos.z + 20)\ntime.sleep(3)\nmc.player.setPos(pos.x, pos.y, pos.z)\nThe last line takes you home. time.sleep(3) means wait 3 seconds.\nYour Turn — 1. Plan three stops on paper. 2. Type the tour program and run it. 3. Change the waits to 1 second and to 5 seconds, and see the difference. 4. Add a postToChat message at each stop that says what it is. 5. Add a fourth stop of your own.\nCheck Yourself — Why does the tour need a wait between stops?\nShow What You Know — Give Mom a tour of your world and tell her what each line does.",
   "quiz": [
    {
     "q": "What is a module in Python?",
@@ -20257,13 +20330,13 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 5,
+  "d": 7,
   "title": "Mission #4: Fix the Buggy Program 🐛",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and a pencil. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — A bug is a mistake in a program. Debugging means hunting for the mistake and fixing it. Professional coders spend a lot of their time debugging. It is a detective job, not a failure.\nSee It Done — Read an error message from the bottom up. It usually names the line and the problem. Fix one thing, run again, and read what changed.\nYour Turn — 1. Type this buggy program exactly and run it:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.postToChat(\"I am at x = \" + pos.x)\n2. Read the error. It says Python cannot join text and a number. 3. Fix the last line by wrapping pos.x in str(), like str(pos.x). 4. Run again until the chat shows your x. 5. Make a second bug on purpose, like leaving off a closing bracket, and read the new error. 6. Fix it. 7. Write what each bug was and how you found it.\nCheck Yourself — Can you explain what the bug was and how you found it?\nShow What You Know — Tell Mom about your bug like a detective story.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and a pencil. If the first two lines give a connection error, make sure the Spigot window is open and says Done, and tell a grown-up.\nHere's the Idea — A bug is a mistake in a program. Debugging means hunting for the mistake and fixing it. Professional coders spend a lot of their time debugging. It is a detective job, not a failure.\nSee It Done — Read an error message from the bottom up. It usually names the line and the problem. Fix one thing, run again, and read what changed.\nYour Turn — 1. Type this buggy program exactly and run it:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getPos()\nmc.postToChat(\"I am at x = \" + pos.x)\n2. Read the error. It says Python cannot join text and a number. 3. Fix the last line by wrapping pos.x in str(), like str(pos.x). 4. Run again until the chat shows your x. 5. Make a second bug on purpose, like leaving off a closing bracket, and read the new error. 6. Fix it. 7. Write what each bug was and how you found it.\nCheck Yourself — Can you explain what the bug was and how you found it?\nShow What You Know — Tell Mom about your bug like a detective story.",
   "quiz": [
    {
     "q": "What is debugging?",
@@ -20295,13 +20368,13 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 6,
+  "d": 8,
   "title": "Mission #5: Build a Block Tower 🧱",
   "subject": "Independent",
   "stage": "apply",
   "xp": 25,
   "standard": "3-5.F",
-  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and paper. Use the two lines your setup test used to connect, if they look different from these.\nHere's the Idea — Your program can place blocks, too. The command mc.setBlock(x, y, z, 1) puts one stone block (block number 1) at that spot. By changing the y number you can stack blocks upward to build a tower.\nSee It Done — This program builds a three-block tower next to you:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nmc.setBlock(pos.x + 2, pos.y, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 1, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 2, pos.z, 1)\ngetTilePos gives whole numbers, which is better for placing blocks. The +1 and +2 on y go up one block each time.\nYour Turn — 1. Type the program and run it. 2. Look two blocks away from you. Is there a tower? 3. Make it five blocks tall. 4. Try a different block number, like 2 for grass or 4 for cobblestone. 5. Build a second tower next to the first. 6. Draw your towers and label the x, y, and z numbers you used.\nCheck Yourself — Which number did you change to make the tower taller?\nShow What You Know — Show Mom your towers and explain how the program builds them.",
+  "passage": "Gather first — your working setup and Spigot running, Minecraft in Creative mode, and paper. If the first two lines give a connection error, make sure the Spigot window is open and says Done, and tell a grown-up.\nHere's the Idea — Your program can place blocks, too. The command mc.setBlock(x, y, z, 1) puts one stone block (block number 1) at that spot. By changing the y number you can stack blocks upward to build a tower.\nSee It Done — This program builds a three-block tower next to you:\nfrom mcpi.minecraft import Minecraft\nmc = Minecraft.create()\npos = mc.player.getTilePos()\nmc.setBlock(pos.x + 2, pos.y, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 1, pos.z, 1)\nmc.setBlock(pos.x + 2, pos.y + 2, pos.z, 1)\ngetTilePos gives whole numbers, which is better for placing blocks. The +1 and +2 on y go up one block each time.\nYour Turn — 1. Type the program and run it. 2. Look two blocks away from you. Is there a tower? 3. Make it five blocks tall. 4. Try a different block number, like 2 for grass or 4 for cobblestone. 5. Build a second tower next to the first. 6. Draw your towers and label the x, y, and z numbers you used.\nCheck Yourself — Which number did you change to make the tower taller?\nShow What You Know — Show Mom your towers and explain how the program builds them.",
   "quiz": [
    {
     "q": "Which number changes to stack a block higher?",
@@ -20333,7 +20406,7 @@ var MC_PYTHON_MISSIONS = [
   ]
  },
  {
-  "d": 7,
+  "d": 9,
   "title": "Teach-Back: Explain Your Python Program to Mom 🎤",
   "subject": "Independent",
   "stage": "apply",
