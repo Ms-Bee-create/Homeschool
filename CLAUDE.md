@@ -235,3 +235,7 @@ Crediting a source is not permission. Do not copy pictures from other websites i
 Only use: public-domain images (for example Library of Congress items whose Rights line says no known restrictions, or Wikimedia Commons items marked public domain), images under a Creative Commons license whose terms we follow (credit and any conditions), pictures Mom or the kids made or took, or drawings and diagrams made here (SVG).
 Linking out to a page is fine. When a lesson needs a picture from a page, link to the page or recreate the idea as a drawing. For AI video (HeyGen), give it only images that meet this rule. Mom's HeyGen credits are shared with her business: ask first and stay inside the monthly budget she sets (150 credits for school in Oct 2026).
 
+
+## 26. Keep the mess small
+
+Mom and Dad run this day to day, and a pile of supplies every day becomes a huge cleanup. A hands-on lesson needs at most 3 supplies beyond what is always out (paper, pencil, crayons, a ruler). Prefer things already in the house, recycled things, and things the kid can put away alone. Do not schedule messy lessons (clay, paint, glue, food coloring, sand, soil, many small parts) back to back: at most one per week, with a clean-up step written into the lesson. Reuse the same supplies across several lessons when possible (one bag of beads, one egg carton). Cut-out pieces go in one labeled bag. Before adding a hands-on lesson, ask if drawing it, acting it out, or a Minecraft build would teach the same thing with no mess.
