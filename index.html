@@ -5987,6 +5987,7 @@ function renderLessonDetail(){
           : passageLines.length>1
           ? '<ol style="margin:0;padding:0 0 0 20px;font-size:14.5px;line-height:1.5">'+passageLines.map(function(l){ return '<li style="margin-bottom:5px">'+escapeHtml(l)+'</li>'; }).join("")+'</ol>'
           : '<div style="font-size:14.5px;line-height:1.5">'+escapeHtml(a.passage)+'</div>')+
+      (/^Gather first/m.test(a.passage) ? '<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(80,160,120,.12);font-size:14px">🧹 <b>When you are done:</b> put everything you pulled out back where it goes. Books on the shelf, supplies in their spot, trash in the bin.</div>' : '')+
       '</div>'
     : '';
 
