@@ -187,3 +187,5 @@ Ryan STEM Lab pack is now 16 labs (added Volcanic Activity, tagged S4E2 which is
 
 ## 19 Oct 2026 (later): craft cleanup DONE for Anna
 Mom approved all of it: clay maps, shoebox models and cardboard shelter swapped for drawings or paper; Habitat lesson retitled "Draw a Habitat"; three magnet lessons folded into one (the push/pull plate step now lives in "Observe Magnets"); Make-It Friday no longer lists bracelets; the Design Studio bracelet extra is deleted and its auto-add disabled. Mom said LEAVE the scissors in the Handwriting lessons (my zip-bag wording is reversed by ANNA_HW_FIXES). Left alone on purpose: plant cups (Dec 16), celery (Dec 23), erosion tray (Dec 2), puppet show. "Fact Families and Bracelet Bead Problems" (math, beads) was not touched: ask Mom if she wants it renamed. Done by patchAnnaMessCleanup + ANNA_TEXT_FIXES pairs; audit: 285 lessons, 0 hard problems.
+
+Put-it-away reminder (19 Oct 2026): every lesson whose passage has a "Gather first" line now ends its Lesson box with a "When you are done: put everything you pulled out back" note (renderLessonDetail, both kids).
