@@ -3945,6 +3945,18 @@ function renderToday(){
     return;
   }
 
+  var noted = assignmentsFor(kidId, null).filter(function(x){ return x.reviewStatus==="flagged" || (x.noteUnread && x.reviewNote); });
+  if(noted.length){
+    var nc = document.createElement("div"); nc.className = "card"; nc.style.cssText = "margin-bottom:10px;border-color:var(--gold)";
+    nc.innerHTML = '<div style="font-weight:800;margin-bottom:6px">💌 Mom left you a note on '+noted.length+' lesson'+(noted.length===1?"":"s")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:6px">You still get credit for what you did. Open one to read the note and fix it if you want.</div>';
+    noted.slice(0,5).forEach(function(x){
+      var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "display:block;width:100%;text-align:left;opacity:1;border:1px solid var(--border);margin:4px 0;padding:8px 10px;color:var(--ink)";
+      b.textContent = (x.reviewStatus==="flagged" ? "🚩 " : "💬 ")+String(x.title||"").slice(0,70);
+      b.onclick = function(){ state.lessonDetailId = x.id; renderView(); };
+      nc.appendChild(b);
+    });
+    els.view.appendChild(nc);
+  }
   var blocks = orderedBlocksFor(kidId);
   var listOn = isListMode(kidId);
   var list = assignmentsFor(kidId, iso);
@@ -5899,11 +5911,24 @@ function normalizeBlocks(a){
   if(out.length===0) out.push({type:"text", text:""});
   return out;
 }
-/* A lesson sent back for another look has to land on the kid's Today list, not stay on its old (past) date where nobody sees it. */
+/* Sending a lesson back keeps what the kid did: it stays done (the credit and hours stay), it gets Mom's note and a flag, and the kid sees it
+   in "Mom left you a note" on Today. Saving their fixes clears the flag. (It used to set the lesson back to not done on its old date, so it
+   vanished from Today and the kid lost credit for work they had done.) */
 function flagFields(a, note){
-  var t = todayISO(), u = {reviewStatus:"flagged", reviewNote:note, noteUnread:!!note, done:false, doneAt:null};
-  if(!a.date || a.date<t) u.date = t;
-  return u;
+  return {reviewStatus:"flagged", reviewNote:note, noteUnread:true};
+}
+/* Lessons already sent back the old way (not done, flagged, stuck on an old date): count the work that is there and keep the flag so the kid can still fix it. */
+function patchFlaggedStranded(){
+  if(!db) return;
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a.kidId || a.done || a.reviewStatus!=="flagged" || !hasWork(a)) return;
+    var at = a.submittedAt || new Date().toISOString();
+    a.done = true; a.doneAt = at; a.noteUnread = true;
+    db.doc("assignments/"+id).update({done:true, doneAt:at, noteUnread:true}); n++;
+  });
+  if(n) console.log("patchFlaggedStranded: counted "+n+" lesson(s) the kid had worked on");
 }
 /* Quiz-only lessons the kid finished with 70% or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
    lessons with real work to look at, and the quizzes the kid struggled with. */
@@ -6818,6 +6843,11 @@ function renderLessonDetail(){
   doneBtn.style.width = "100%";
   doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Turn it in";
   doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
+  if(a.done && a.reviewStatus==="flagged"){
+    /* Sent back with a note but still counted: fixing it should never undo the credit. */
+    doneBtn.textContent = "💾 Save my fixes (your credit stays)";
+    doneBtn.onclick = function(){ saveWork(); state.lessonDetailId = null; renderView(); };
+  }
   els.view.appendChild(doneBtn);
 }
 
@@ -7112,7 +7142,7 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson goes back to the kid on today's list. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
 
   var all = [];
@@ -7192,6 +7222,28 @@ function renderLeaderArea(){
         renderLeaderArea();
       };
       btnRow.appendChild(approveBtn);
+      if(!a.done || a.reviewStatus==="flagged"){
+        var halfBtn = document.createElement("button");
+        halfBtn.className = "reward-skip";
+        halfBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
+        halfBtn.textContent = "👍 Count it (partly done)";
+        halfBtn.onclick = function(){
+          if(!db) return;
+          var note = window.prompt("Optional note for "+a.kidName+" (what to add next time):", a.reviewNote||"");
+          if(note===null) return;
+          var upd = {reviewStatus:"approved", reviewNote:note||null, noteUnread:!!note};
+          if(!a.done){
+            var half = Math.max(1, Math.round((a.xp||0)/2)), kd = kidData(a.kidId), nowIso = new Date().toISOString();
+            upd.done = true; upd.doneAt = nowIso;
+            var kdUpd = {xp: (kd.xp||0)+half}; Object.assign(kd, kdUpd); state.kids[a.kidId] = kd; db.doc("kids/"+a.kidId).update(kdUpd);
+            toast("Counted: +"+half+" XP for "+a.kidName);
+          }
+          if(state.assignments[a.id]) Object.assign(state.assignments[a.id], upd);
+          db.doc("assignments/"+a.id).update(upd);
+          renderLeaderArea();
+        };
+        btnRow.appendChild(halfBtn);
+      }
     }
 
     if(!isCompleted){
@@ -19124,6 +19176,7 @@ function runAutoMigrations(){
     patchKid2Content();
     moveWeekendLessonsToMonday();
     patchDuplicateLessons();
+    patchFlaggedStranded();
     autoApproveQuizOnly();
     fillAnnaDailyBasics();
     patchAnnaStorytimeFromReaders();
@@ -19745,7 +19798,7 @@ function weekReportData(kidId, days){
       var sj = a.subject || "Other"; bySubject[sj] = bySubject[sj] || {done:0,total:0};
       bySubject[sj].total++; if(a.done) bySubject[sj].done++;
     });
-    return {iso:iso, total:list.length, done:list.filter(function(a){ return a.done; }).length, open:list.filter(function(a){ return !a.done; })};
+    return {iso:iso, total:list.length, done:list.filter(function(a){ return a.done; }).length, partial:list.filter(function(a){ return !a.done && hasWork(a); }).length, open:list.filter(function(a){ return !a.done; })};
   });
   return {perDay:perDay, bySubject:bySubject};
 }
@@ -19866,7 +19919,7 @@ function weekReportCard(){
       var pct = x.total ? Math.round(x.done/x.total*100) : 0, col = !x.total ? "var(--border)" : pct===100 ? "var(--success)" : pct>=50 ? "var(--gold)" : "var(--coral)";
       html += '<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin:3px 0"><span style="width:62px">'+lbl+'</span>'+
         '<span style="flex:1;height:8px;border-radius:6px;background:var(--paper);border:1px solid var(--border);overflow:hidden"><span style="display:block;height:100%;width:'+(x.total ? pct : 0)+'%;background:'+col+'"></span></span>'+
-        '<span style="width:70px;text-align:right">'+(x.total ? x.done+" of "+x.total : "none")+'</span></div>';
+        '<span style="width:110px;text-align:right">'+(x.total ? x.done+" of "+x.total+(x.partial ? " (+"+x.partial+" partly)" : "") : "none")+'</span></div>';
       if(x.open.length && x.iso<todayISO()){
         html += '<div class="muted" style="font-size:12px;margin:0 0 4px 70px">Not done: '+x.open.slice(0,4).map(function(a){ return escapeHtml(String(a.title).slice(0,48)); }).join("; ")+(x.open.length>4 ? " and "+(x.open.length-4)+" more" : "")+'</div>';
       }
