@@ -18492,14 +18492,15 @@ function patchRyanWorkbookTitles(){
 }
 /* Anna's Social Studies Chapter 1 runs one lesson per Friday. This keeps the series current: it updates lessons that are not done yet
    (matched by title), moves them into the right order, and adds the missing ones once. */
+var ANNA_SS_START = "2026-10-23";
 function syncAnnaSsCh1(){
   if(!db) return;
   var mine = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
     .filter(function(x){ return x.a.kidId==="kid1" && x.a.skillId==="anna-book-lessons"; });
   var byTitle = {}; mine.forEach(function(x){ byTitle[x.a.title] = x; });
-  var anchor = null;
-  ANNA_SS_CH1.forEach(function(it){ var x = byTitle[it.title]; if(x && x.a.date && (!anchor || x.a.date < anchor)) anchor = x.a.date; });
-  var start = anchor ? new Date(anchor+"T00:00:00") : new Date(todayISO()+"T00:00:00");
+  /* Fixed start (first Friday on or after Oct 23, 2026). It used to start from wherever the first lesson currently sat, so every time the load
+     balancer pushed a lesson off a full Friday the whole series slid a week later (it had reached Nov 20). */
+  var start = new Date(ANNA_SS_START+"T00:00:00");
   while(start.getDay()!==5) start.setDate(start.getDate()+1);
   var flag = "al_anna_ss_v7", added = false;
   try{ added = !!localStorage.getItem(flag); }catch(e){}
@@ -18877,6 +18878,21 @@ function patchRyanMathVideos(){
     }
   });
 }
+/* Anna's Creek and Cherokee lessons that were never done and are dated in the past never show on Today. Move them to the next Tuesdays and Thursdays (the Science & Social Studies block is open then), in their original order, once. */
+function patchAnnaSsOverdue(){
+  if(!db) return;
+  var today = todayISO();
+  var late = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
+    .filter(function(x){ return x.a.kidId==="kid1" && !x.a.done && x.a.skillId==="anna-ss-creek-cherokee" && x.a.date && x.a.date<today && !hasWork(x.a); })
+    .sort(function(x,y){ return x.a.date.localeCompare(y.a.date) || String(x.a.title).localeCompare(String(y.a.title)); });
+  if(!late.length) return;
+  var d = new Date(today+"T00:00:00");
+  late.forEach(function(x){
+    do { d.setDate(d.getDate()+1); } while(d.getDay()!==2 && d.getDay()!==4);
+    var iso = isoDate(d); x.a.date = iso; db.doc("assignments/"+x.id).update({date:iso});
+  });
+  console.log("patchAnnaSsOverdue: moved "+late.length+" lesson(s)");
+}
 function patchAnnaHandwriting(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -19111,7 +19127,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchRyanMathVideos();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -19172,7 +19188,7 @@ function balanceFutureLoad(){
       var a = state.assignments[id];
       if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || isWeekendIso(a.date)) return;
       if(a.date>maxDate) maxDate = a.date;
-      if(a.done || hasWork(a)){
+      if(a.done || hasWork(a) || (kid==="kid1" && a.subject==="Social Studies" && a.skillId==="anna-book-lessons")){
         fixed[a.date] = (fixed[a.date]||0)+1;
         var fb = blockKeyFor(a); fixedBlk[a.date] = fixedBlk[a.date]||{}; fixedBlk[a.date][fb] = (fixedBlk[a.date][fb]||0)+1;
         if(a.stage==="teach") fixedTeach[a.date] = (fixedTeach[a.date]||0)+1;
