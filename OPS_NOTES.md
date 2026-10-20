@@ -38,3 +38,10 @@ environment (only WebSearch snippets work), so "verified" means the code exists 
   4.PAR.3 (group exists; sub-standard wording unconfirmed), ELAGSE4SL4, older SS2*, S2E*, S2P3 tags on Anna's earlier lessons, and anything the Leader "Standards check" card lists as unverified.
 - Process now (CLAUDE.md rule 24): before using a tag, confirm the code exists AND matches the skill via search; if not confirmed, ask Mom to check her alignment table; record it in STANDARD_STATUS in index.html.
 
+
+## Server load of the 20 Oct 2026 changes (Mom: be careful, the egress limit just came back)
+- version.json self-update check: fetched from GitHub Pages, not Supabase, about 25 bytes every 4 minutes per open, active device. No Supabase cost.
+- Lesson work autosave (renderLessonDetail scheduleDraft): one small update (work_blocks only, no response body) about 3 seconds after the kid stops changing something, only when it changed. Light polls still skip work_blocks, so other devices do not download drafts.
+- Add-once seeding (addSeed/addOnce): an upsert that ignores duplicates, only issued when a lesson is missing locally; no reads.
+- patchDuplicateLessons, patchFlaggedStranded, patchSplitBigBookLessons, patchAnnaSsOverdue, balanceFutureLoad, autoApproveQuizOnly: each writes only the rows that change, once; they are idempotent so a second load writes nothing. The first load after release does a burst of writes (the 17 big lessons split adds 17 rows), then it settles.
+- Do NOT add anything that polls or re-reads lessons more often. If egress climbs, look at syncSoon callers first (every checkWriteError and addOnce calls it, it is debounced).

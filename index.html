@@ -6547,9 +6547,9 @@ function renderLessonDetail(){
       if(j===draftSnap || !db) return;
       draftSnap = j; a.workBlocks = blocks;
       if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
-      db.doc("assignments/"+a.id).update({workBlocks: blocks});
+      db.doc("assignments/"+a.id).updateQuiet({workBlocks: blocks});
       savedNote.textContent = "Saved \u2705";
-    }, 900);
+    }, 3000);
   }
   var scratchStatus = null;
   function renderBlocks(){
@@ -6856,7 +6856,7 @@ function renderLessonDetail(){
       cb.text = "Check Yourself answers:\n"+Object.keys(cb.answers).map(function(k){ return "- "+k+" -> "+cb.answers[k]; }).join("\n");
       a.workBlocks = blocks;
       if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
-      if(db) db.doc("assignments/"+a.id).update({workBlocks: blocks});
+      if(db) db.doc("assignments/"+a.id).updateQuiet({workBlocks: blocks});
     }
     var btnCss = "min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:700;cursor:pointer";
     wraps.forEach(function(w){
@@ -8560,6 +8560,13 @@ function doc(path){
   return {
     update: function(partial){
       return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(checkWriteError);
+    },
+    /* Same as update but does not trigger a sync afterwards: for frequent small autosaves (a kid typing), so they cost one write and no extra reads. */
+    updateQuiet: function(partial){
+      return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(function(res){
+        if(res && res.error){ console.error("Academy Log sync error:", res.error); toast("\u26A0\uFE0F Couldn't save"+(res.error.message ? ": "+res.error.message : " \u2014 check your connection and try again")); }
+        return res;
+      });
     },
     set: function(full){
       return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(checkWriteError);
@@ -23113,7 +23120,38 @@ function syncAll(force){
     if(syncState.again){ syncState.again = false; syncSoon(); }
   });
 }
-document.addEventListener("visibilitychange", function(){ if(!document.hidden) syncAll(); });
+/* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
+   when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
+   Bump APP_BUILD here AND in version.json together on every release (same value). */
+var APP_BUILD = "2026-10-20.1";
+var newBuildSeen = null;
+function reloadForNewBuild(){
+  try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
+}
+function showNewBuildBar(){
+  if(document.getElementById("newBuildBar")) return;
+  var bar = document.createElement("div"); bar.id = "newBuildBar";
+  bar.style.cssText = "position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9999;background:#2a9d8f;color:#fff;border-radius:999px;padding:10px 16px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center";
+  bar.appendChild(document.createTextNode("\u2728 A new version is ready"));
+  var b = document.createElement("button"); b.type = "button"; b.textContent = "Update now";
+  b.style.cssText = "border:0;border-radius:999px;padding:6px 12px;font:700 13px system-ui,sans-serif;background:#fff;color:#2a9d8f;cursor:pointer";
+  b.onclick = reloadForNewBuild; bar.appendChild(b); document.body.appendChild(bar);
+}
+function newBuildSafeNow(){
+  return state.lessonDetailId==null && !state.quiz && !state.miniGame && !state.fileInputActive && !isTypingInFormField() && (Date.now()-lastTouchAt) > 12000;
+}
+function checkForNewBuild(){
+  if(document.hidden && !newBuildSeen) return;
+  if(newBuildSeen){ if(newBuildSafeNow()) reloadForNewBuild(); else showNewBuildBar(); return; }
+  try{
+    fetch("version.json?cb="+Date.now(), {cache:"no-store"}).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+      if(!j || !j.build || j.build===APP_BUILD) return;
+      newBuildSeen = j.build;
+      if(newBuildSafeNow()) reloadForNewBuild(); else showNewBuildBar();
+    }).catch(function(){});
+  }catch(e){}
+}
+document.addEventListener("visibilitychange", function(){ if(!document.hidden){ syncAll(); setTimeout(checkForNewBuild, 1500); } });
 function isTypingInFormField(){
   var el = document.activeElement;
   if(!el) return false;
@@ -23228,6 +23266,8 @@ function showApp(){
      for 3 minutes (a tablet left open overnight), catching up the moment someone does. */
   setInterval(function(){ if(!document.hidden && Date.now()-lastTouchAt < 180000) syncAll(); }, 60000);
   setInterval(function(){ if(!document.hidden) autoCheckSweep(); }, 300000);
+  setInterval(checkForNewBuild, 240000);
+  setTimeout(checkForNewBuild, 25000);
   setTimeout(function(){ if(!document.hidden) autoCheckSweep(); }, 30000);
   ["pointerdown","keydown","touchstart"].forEach(function(evt){
     document.addEventListener(evt, function(){
