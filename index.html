@@ -8430,6 +8430,14 @@ function collection(coll){
       row.id = id; row.household_id = HOUSEHOLD_ID;
       return sb.from(table).insert(row).then(checkWriteError);
     },
+    /* Insert with a fixed id: if any device or earlier run already added this row, nothing happens (no overwrite, no error toast). */
+    addOnce: function(obj, id){
+      var row = toRow(coll, obj);
+      row.id = id; row.household_id = HOUSEHOLD_ID;
+      var q = sb.from(table);
+      var p = (typeof q.upsert==="function") ? q.upsert(row, {onConflict:"id", ignoreDuplicates:true}) : q.insert(row);
+      return p.then(function(res){ if(res && res.error) console.warn("addOnce:", res.error.message); syncSoon(); return res; });
+    },
     onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-collection */ }
   };
 }
@@ -11492,6 +11500,36 @@ function patchBookCrossSubjects(){
     db.doc("assignments/"+id).update({crossSubjects: cs});
   });
 }
+/* A repeatable id for a row, so the same lesson added twice (two devices, or two runs before the first save syncs) is one row, not two. */
+function stableUuid(str){
+  function h(seed){ var a = 0xdeadbeef^seed, b = 0x41c6ce57^seed; for(var i=0;i<str.length;i++){ var c = str.charCodeAt(i); a = Math.imul(a^c, 2654435761); b = Math.imul(b^c, 1597334677); } a = Math.imul(a^(a>>>16), 2246822507)^Math.imul(b^(b>>>13), 3266489909); b = Math.imul(b^(b>>>16), 2246822507)^Math.imul(a^(a>>>13), 3266489909); return ((b>>>0).toString(16).padStart(8,"0")+(a>>>0).toString(16).padStart(8,"0")); }
+  var x = h(1)+h(2);
+  return x.slice(0,8)+"-"+x.slice(8,12)+"-4"+x.slice(13,16)+"-"+"89ab"[parseInt(x[16],16)%4]+x.slice(17,20)+"-"+x.slice(20,32);
+}
+var annaFillSeen = {};
+/* Same kid, same day, same title, not started: keep one and delete the extras (these came from the same lesson being added twice). Never touches a done or started lesson. */
+function patchDuplicateLessons(){
+  if(!db) return;
+  var today = todayISO(), groups = {}, removed = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a.kidId || !a.date || a.date<today) return;
+    var key = a.kidId+"|"+a.date+"|"+String(a.title||"").trim().toLowerCase();
+    (groups[key] = groups[key] || []).push({id:id, a:a});
+  });
+  Object.keys(groups).forEach(function(k){
+    var g = groups[k]; if(g.length<2) return;
+    g.sort(function(x,y){
+      var px = (x.a.done||hasWork(x.a)) ? 0 : 1, py = (y.a.done||hasWork(y.a)) ? 0 : 1;
+      return px-py || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || x.id.localeCompare(y.id);
+    });
+    g.slice(1).forEach(function(it){
+      if(it.a.done || hasWork(it.a)) return;
+      db.doc("assignments/"+it.id).delete(); delete state.assignments[it.id]; removed++;
+    });
+  });
+  if(removed) console.log("patchDuplicateLessons: removed "+removed+" repeated lesson(s)");
+}
 function fillAnnaDailyBasics(){
   if(!db) return;
   var d = new Date(todayISO()+"T00:00:00");
@@ -11510,13 +11548,14 @@ function fillAnnaDailyBasics(){
       {block:"math", subject:"Math", list:ANNA_DAILY_MATH, skillId:"anna-math-place-value", standard:"2.NR.1"},
       {block:"reading", subject:"ELA", list:ANNA_DAILY_READING, skillId:"anna-ela-story-elements", standard:"ELAGSE2RL2-RL5"}
     ].forEach(function(spec){
-      if(have[spec.block]) return;
+      if(have[spec.block] || annaFillSeen[iso+"|"+spec.block]) return;
+      annaFillSeen[iso+"|"+spec.block] = true;
       var item = (spec.block==="reading" && annaReadersItem(d)) || spec.list[ordinal % spec.list.length];
-      db.collection("assignments").add({
+      db.collection("assignments").addOnce({
         kidId:"kid1", date:iso, subject:spec.subject, title:item.title,
         xp:10, done:false, doneAt:null, skillId:spec.skillId, stage:"practice", standard:spec.standard,
         passage:item.passage, quiz:item.quiz||null, crossSubjects:bookCross(item.title), createdAt:new Date().toISOString()
-      });
+      }, stableUuid("anna-basic|"+iso+"|"+spec.block));
       added++;
     });
     d = addSchoolDays(d, 1);
@@ -18974,6 +19013,7 @@ function runAutoMigrations(){
     retireAnnaFillerLessons();
     patchKid2Content();
     moveWeekendLessonsToMonday();
+    patchDuplicateLessons();
     fillAnnaDailyBasics();
     patchAnnaStorytimeFromReaders();
     patchRyanJohnnyOS();
@@ -19007,7 +19047,8 @@ function runAutoMigrations(){
    Sunday). Past dates are left alone so nothing looks like it vanished. */
 /* A day with more than this many lessons is where they stop finishing (Anna finished all of her 6-lesson days, and only 3 of 10 on a stacked Monday).
    Fridays are off-screen days: the off-screen quests are the main work, plus a couple of book-based lessons. */
-var DAILY_LESSON_CAP = {kid1:6, kid2:10};
+/* 20 Oct 2026: Ryan's cap went from 10 to 5. His 8-10 lesson days ran about 7.8 estimated hours against a 4.5 target; Anna's 6-lesson days sit on target. */
+var DAILY_LESSON_CAP = {kid1:6, kid2:5};
 var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
 function dayCapFor(kidId, iso){
   var dow = new Date(iso+"T00:00:00").getDay();
