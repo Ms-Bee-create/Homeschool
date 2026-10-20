@@ -18727,6 +18727,30 @@ function patchAnnaMessCleanup(){
     if(t.indexOf("Build a Shoebox Habitat")>=0){ a.title = t.replace("Build a Shoebox Habitat","Draw a Habitat"); db.doc("assignments/"+id).update({title:a.title}); }
   });
 }
+/* Ryan's math videos. The HeyGen place-value video plays from videos/ryan-place-value.mp4 once Mom uploads it (checked with a quick HEAD request,
+   so nothing breaks before the upload). Math Antics "Place Value" (Mom approved the link, verified 20 Oct 2026) is the fallback and goes on the
+   "Up to One Million" lesson. */
+var RYAN_MATH_VIDEO = "https://www.youtube.com/watch?v=T5Qf0qSSJFI";
+function patchRyanMathVideos(){
+  if(!db) return;
+  var hey = "videos/ryan-place-value.mp4";
+  function setVideo(id, a, v){ if(a.video===v) return; a.video = v; db.doc("assignments/"+id).update({video:v}); }
+  var haveFile = null;
+  function checkFile(cb){
+    if(haveFile!==null) return cb(haveFile);
+    try{ fetch(hey, {method:"HEAD"}).then(function(r){ haveFile = !!r.ok; cb(haveFile); }, function(){ haveFile = false; cb(false); }); }
+    catch(e){ haveFile = false; cb(false); }
+  }
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], t = String(a.title||"");
+    if(a.kidId!=="kid2" || a.done) return;
+    if(t.indexOf("Math Book, Unit 1: Place Value Is a Times-10 Machine")===0){
+      checkFile(function(ok){ if(ok) setVideo(id, a, hey); else if(!a.video) setVideo(id, a, RYAN_MATH_VIDEO); });
+    } else if(t.indexOf("Math Book, Unit 1: Place Value Up to One Million")===0 && !a.video){
+      setVideo(id, a, RYAN_MATH_VIDEO);
+    }
+  });
+}
 function patchAnnaHandwriting(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -18959,7 +18983,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchRyanMathVideos();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
