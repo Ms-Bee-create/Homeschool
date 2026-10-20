@@ -19083,6 +19083,10 @@ function runAutoMigrations(){
 /* 20 Oct 2026: Ryan's cap went from 10 to 5. His 8-10 lesson days ran about 7.8 estimated hours against a 4.5 target; Anna's 6-lesson days sit on target. */
 var DAILY_LESSON_CAP = {kid1:6, kid2:5};
 var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
+/* Mon-Thu limits per kind of lesson, so one block's time window is not stacked: at most this many lessons in the same block on one day
+   (project = Independent, Related Arts, Live Lesson), and at most this many brand-new "teach" lessons in a day. Overflow moves to the next day. */
+var BLOCK_DAY_CAP = {kid1:{project:2}, kid2:{project:2}};
+var TEACH_DAY_CAP = {kid1:2, kid2:2};
 function dayCapFor(kidId, iso){
   var dow = new Date(iso+"T00:00:00").getDay();
   return dow===5 ? (FRIDAY_LESSON_CAP[kidId]||3) : (DAILY_LESSON_CAP[kidId]||99);
@@ -19120,25 +19124,37 @@ function balanceFutureLoad(){
   if(!db) return;
   var tomorrow = isoDate(addSchoolDays(new Date(todayISO()+"T00:00:00"), 1)), moved = 0;
   ["kid1","kid2"].forEach(function(kid){
-    var fixed = {}, byDate = {}, maxDate = tomorrow;
+    var fixed = {}, fixedBlk = {}, fixedTeach = {}, byDate = {}, maxDate = tomorrow;
     Object.keys(state.assignments).forEach(function(id){
       var a = state.assignments[id];
       if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || isWeekendIso(a.date)) return;
       if(a.date>maxDate) maxDate = a.date;
-      if(a.done || hasWork(a)){ fixed[a.date] = (fixed[a.date]||0)+1; return; }
+      if(a.done || hasWork(a)){
+        fixed[a.date] = (fixed[a.date]||0)+1;
+        var fb = blockKeyFor(a); fixedBlk[a.date] = fixedBlk[a.date]||{}; fixedBlk[a.date][fb] = (fixedBlk[a.date][fb]||0)+1;
+        if(a.stage==="teach") fixedTeach[a.date] = (fixedTeach[a.date]||0)+1;
+        return;
+      }
       (byDate[a.date] = byDate[a.date]||[]).push({id:id, a:a, o:a.date, date:a.date});
     });
     var d = new Date(tomorrow+"T00:00:00"), guard = 0;
     while(isoDate(d)<=maxDate && guard++<900){
       var iso = isoDate(d), list = byDate[iso]||[], room = dayCapFor(kid, iso)-(fixed[iso]||0);
       if(room<0) room = 0;
-      if(list.length>room){
-        var fri = d.getDay()===5;
+      var fri = d.getDay()===5, blkCap = (BLOCK_DAY_CAP[kid]||{}), teachCap = TEACH_DAY_CAP[kid]||99;
+      var overBlock = !fri && list.some(function(it){ var b = blockKeyFor(it.a); return blkCap[b] && ((fixedBlk[iso]||{})[b]||0) + list.filter(function(o){ return blockKeyFor(o.a)===b; }).length > blkCap[b]; });
+      var overTeach = !fri && ((fixedTeach[iso]||0) + list.filter(function(o){ return o.a.stage==="teach"; }).length) > teachCap;
+      if(list.length>room || overBlock || overTeach){
         list.sort(function(x,y){
           if(fri){ var px = (x.a.skillId==="anna-book-lessons"||x.a.subject==="Social Studies"||x.a.subject==="Related Arts") ? 0 : 1, py = (y.a.skillId==="anna-book-lessons"||y.a.subject==="Social Studies"||y.a.subject==="Related Arts") ? 0 : 1; if(px!==py) return px-py; }
           return (x.o||"").localeCompare(y.o||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||""));
         });
-        var keep = list.slice(0, room), push = list.slice(room);
+        var keep = [], push = [], blkN = Object.assign({}, fixedBlk[iso]||{}), teachN = fixedTeach[iso]||0;
+        list.forEach(function(it){
+          var b = blockKeyFor(it.a), isT = it.a.stage==="teach";
+          if(keep.length<room && (fri || !blkCap[b] || (blkN[b]||0)<blkCap[b]) && (fri || !isT || teachN<teachCap)){ keep.push(it); blkN[b] = (blkN[b]||0)+1; if(isT) teachN++; }
+          else push.push(it);
+        });
         byDate[iso] = keep;
         var nd = addSchoolDays(new Date(iso+"T00:00:00"), 1), nIso = isoDate(nd);
         push.forEach(function(it){ it.date = nIso; (byDate[nIso] = byDate[nIso]||[]).push(it); });
