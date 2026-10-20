@@ -18,6 +18,7 @@ Lessons checked: 285. With problems: 0. Warnings only: 129.
 - 3 x standard N.NR.N/N.NR.N exists but fit not confirmed (rule N)
 - 3 x standard SNLN is not verified (rule N)
 - 3 x standard N.GSR.N is not verified (rule N)
+- 2 x kid: long (N words), may feel like a wall of text
 - 2 x standard ELAGSENRIN exists but fit not confirmed (rule N)
 - 2 x standard N.GSR.N exists but fit not confirmed (rule N)
 - 2 x standard N.NR.N/N.NR.N is not verified (rule N)
@@ -27,7 +28,6 @@ Lessons checked: 285. With problems: 0. Warnings only: 129.
 - 1 x standard ELAGSENRIN is not verified (rule N)
 - 1 x standard MGSEN.G.N is not verified (rule N)
 - 1 x standard MGSEN.OA.N is not verified (rule N)
-- 1 x kid: long (N words), may feel like a wall of text
 - 1 x kid: one sentence is N words long
 
 ## Lessons with problems
