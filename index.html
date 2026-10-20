@@ -11576,6 +11576,11 @@ function stableUuid(str){
   var x = h(1)+h(2);
   return x.slice(0,8)+"-"+x.slice(8,12)+"-4"+x.slice(13,16)+"-"+"89ab"[parseInt(x[16],16)%4]+x.slice(17,20)+"-"+x.slice(20,32);
 }
+/* Adds a lesson once, whatever device or run tries it: the row id comes from the kid and title, and a second insert with the same id does nothing.
+   Every "add the series" routine uses this, so a new device, a cleared browser, or two devices opening together cannot create copies. */
+function addSeed(obj){
+  return db.collection("assignments").addOnce(obj, stableUuid("lesson|"+obj.kidId+"|"+String(obj.title||"").trim()));
+}
 var annaFillSeen = {};
 /* Same kid, same day, same title, not started: keep one and delete the extras (these came from the same lesson being added twice). Never touches a done or started lesson. */
 function patchDuplicateLessons(){
@@ -11586,6 +11591,20 @@ function patchDuplicateLessons(){
     if(!a.kidId || !a.date || a.date<today) return;
     var key = a.kidId+"|"+a.date+"|"+String(a.title||"").trim().toLowerCase();
     (groups[key] = groups[key] || []).push({id:id, a:a});
+  });
+  /* Series lessons (each title is unique within its series) that ended up twice on different dates, from an old double add: keep the earliest. */
+  var SERIES = {"mc-python":1,"mc-stem-lab":1,"anna-book-lessons":1,"ryan-virtual-phones":1,"scooter-track":1,"ryan-tablet-autopsy":1,"offscreen-friday":1,"anna-wobbly-math":1,"anna-stuffie-school":1,"anna-grandpa-song":1,"ryan-mc-lab-book":1,"ryan-linux-birthday-build":1};
+  var series = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a.kidId || !a.date || a.date<today || !SERIES[a.skillId] || a.done || hasWork(a)) return;
+    var key = a.kidId+"|"+a.skillId+"|"+String(a.title||"").trim().toLowerCase();
+    (series[key] = series[key] || []).push({id:id, a:a});
+  });
+  Object.keys(series).forEach(function(k){
+    var g = series[k]; if(g.length<2) return;
+    g.sort(function(x,y){ return x.a.date.localeCompare(y.a.date) || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || x.id.localeCompare(y.id); });
+    g.slice(1).forEach(function(it){ db.doc("assignments/"+it.id).delete(); delete state.assignments[it.id]; removed++; });
   });
   Object.keys(groups).forEach(function(k){
     var g = groups[k]; if(g.length<2) return;
@@ -11671,7 +11690,7 @@ function addRyanJohnnyBuild(kidId){
   RYAN_JOHNNY_BUILD.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return;
     var d = addSchoolDays(start, item.d);
-    db.collection("assignments").add({
+    addSeed({
       kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
       xp: item.xp, done:false, doneAt:null, standard: item.standard||null, stage: item.stage||null,
       passage: item.passage||null, quiz: item.quiz||null, installHelp: item.help||null, skillId: "ryan-linux-birthday-build",
@@ -18456,7 +18475,7 @@ function autoAddRyanMcLab3(){
     var start = new Date(todayISO()+"T00:00:00");
     while(start.getDay()===0 || start.getDay()===6) start.setDate(start.getDate()+1);
     lab.items.forEach(function(it){
-      db.collection("assignments").add({
+      addSeed({
         kidId:(lab.kid||"kid2"), date:isoDate(lab.dows ? nthOfDays(start, it.d+lab.offset, lab.dows) : lab.mwf ? nthMonWedFri(start, it.d+lab.offset) : addSchoolDays(start, it.d+lab.offset)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
         standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz||null, crossSubjects:bookCross(it.title),
         skillId:(lab.skill||"ryan-mc-lab-book"), createdAt:new Date().toISOString()
@@ -18513,7 +18532,7 @@ function syncAnnaSsCh1(){
       if(x.a.passage===it.passage && x.a.date===iso) return;
       Object.assign(x.a, upd); db.doc("assignments/"+x.id).update(upd);
     } else if(!added){
-      db.collection("assignments").add({kidId:"kid1", date:iso, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      addSeed({kidId:"kid1", date:iso, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
         standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz, crossSubjects:bookCross(it.title), skillId:"anna-book-lessons", createdAt:new Date().toISOString()});
     }
   });
@@ -20114,7 +20133,7 @@ function addDosboxPivotTask(kidId){
     }
     return;
   }
-  db.collection("assignments").add({
+  addSeed({
     kidId: kidId, date: todayISO(), subject:"Independent", title: title,
     xp: 25, done:false, doneAt:null,
     installHelp: "win95dosbox", crossSubjects: ["Reading","ELA","Computer Science","Social Studies"],
@@ -20144,7 +20163,7 @@ function addOsMuseumArchiveChallenge(kidId){
   CURRICULUM_OS_MUSEUM_ARCHIVE_CHALLENGE.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return; // already added — skip, don't duplicate
     var d = addSchoolDays(todayDate, item.d - minArchiveDay);
-    db.collection("assignments").add({
+    addSeed({
       kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
       xp: item.xp, done:false, doneAt:null,
       materials: item.materials||null, video: item.video||null,
@@ -20209,7 +20228,7 @@ function addMinecraftWorld2(kidId){
   CURRICULUM_MINECRAFT_WORLD2.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return;
     var d = addSchoolDays(todayDate, item.d);
-    db.collection("assignments").add({
+    addSeed({
       kidId: kidId, date: isoDate(d), subject: item.subject, title: item.title,
       xp: item.xp, done:false, doneAt:null, standard: item.standard||null,
       materials: item.materials||null, video: item.video||null,
@@ -20475,7 +20494,7 @@ function autoAddRyanVirtualPhones(){
   var mine = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId==="kid2"; });
   var it = RYAN_VIRTUAL_PHONES[0];
   if(!mine.some(function(a){ return a.title===it.title; })){
-    db.collection("assignments").add({kidId:"kid2", date:todayISO(), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:"kid2", date:todayISO(), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz,
       crossSubjects:["Computer Science"], skillId:"ryan-virtual-phones", createdAt:new Date().toISOString()});
   }
@@ -22030,7 +22049,7 @@ function addPackItems(kidId, list){
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   list.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
-    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, skillId:it.skillId||null, createdAt:new Date().toISOString()});
   });
 }
@@ -22041,7 +22060,7 @@ function addRyanVirtualPhones(kidId){
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   RYAN_VIRTUAL_PHONES.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
-    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz,
       crossSubjects:["Computer Science"], skillId:"ryan-virtual-phones", createdAt:new Date().toISOString()});
   });
@@ -22087,7 +22106,7 @@ function addAnnaGrandpaSong(kidId){
   var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   ANNA_GRANDPA_SONG.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
-    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, video:it.video||null, crossSubjects:it.cross, skillId:"anna-grandpa-song", createdAt:new Date().toISOString()});
   });
 }
@@ -22277,11 +22296,11 @@ function autoAddRyanTabletAutopsy(){
     var ex = mine.filter(function(x){ return x.a.title===it.title; })[0];
     var date = it.d===0 ? todayISO() : tomorrow;
     if(ex){
-      if(it.d===1 && !ex.a.done && !hasWork(ex.a) && ex.a.date!==date){ ex.a.date = date; db.doc("assignments/"+ex.id).update({date:date}); }
+      if(it.d===1 && !ex.a.done && !hasWork(ex.a) && ex.a.date<todayISO()){ ex.a.date = date; db.doc("assignments/"+ex.id).update({date:date}); }
       return;
     }
     if(it.d===0 && keptOld) return;
-    db.collection("assignments").add({kidId:"kid2", date:date, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:"kid2", date:date, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, materials:it.materials||null, quiz:it.quiz, crossSubjects:it.cross, skillId:"ryan-tablet-autopsy", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
@@ -22535,7 +22554,7 @@ function autoAddScooterTrack(){
   SCOOTER_TRACK.forEach(function(it){
     if(have["kid2|"+it.title]) return;
     var d = new Date(first); d.setDate(d.getDate()+7*it.week);
-    db.collection("assignments").add({kidId:"kid2", date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:"kid2", date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"scooter-track", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
@@ -22556,7 +22575,7 @@ function autoAddOffScreenFridays(){
   OFFSCREEN_FRIDAYS.forEach(function(it){
     if(have[it.kid+"|"+it.title]) return;
     var d = new Date(first); d.setDate(d.getDate()+7*it.week);
-    db.collection("assignments").add({kidId:it.kid, date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:it.kid, date:isoDate(d), subject:"Related Arts", title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"offscreen-friday", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
@@ -22640,7 +22659,7 @@ function autoAddAnnaStuffieSchool(){
   ANNA_STUFFIE_SCHOOL.forEach(function(it){
     if(have[it.title]) return;
     var d = new Date(first); d.setDate(d.getDate()+7*it.week);
-    db.collection("assignments").add({kidId:"kid1", date:isoDate(d), subject:"Live Lesson", title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:"kid1", date:isoDate(d), subject:"Live Lesson", title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"anna-stuffie-school", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
@@ -22684,7 +22703,7 @@ function addAnnaWobblyMath(kidId){
   var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
   ANNA_WOBBLY_MATH.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
-    db.collection("assignments").add({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:"Math", title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:"Math", title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"anna-wobbly-math", createdAt:new Date().toISOString()});
   });
 }
@@ -22714,7 +22733,7 @@ function addRyanThoughtExperiments(kidId){
   RYAN_THOUGHT_EXPERIMENTS.forEach(function(item){
     if(existingTitles.indexOf(item.title)!==-1) return;
     var d = addSchoolDays(todayDate, item.d);
-    db.collection("assignments").add({
+    addSeed({
       kidId: kidId, date: isoDate(d), subject: "Live Lesson", title: item.title,
       xp: 15, done:false, doneAt:null, passage: item.passage, materials: item.materials||null,
       standard: "ELAGSE4SL1", crossSubjects: ["ELA"],
