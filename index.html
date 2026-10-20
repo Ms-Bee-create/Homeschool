@@ -11454,27 +11454,65 @@ var ANNA_READERS_SPECIFIC = {
   ]
  }
 };
+/* Long books are read over 2 or 3 days instead of all in one. From ANNA_READERS_SPLIT_FROM on, each book takes 1 day (under 17 pages),
+   2 days (17-25 pages) or 3 days (26 or more), with a short "Read and Tell" lesson for the early parts and the full lesson on the last part.
+   Days before that date keep the old one-book-a-day order, so nothing already planned or done changes. */
+var ANNA_READERS_SPLIT_FROM = "2026-10-20";
+function annaReadersSchoolDays(d){
+  var c = new Date(ANNA_READERS_START+"T00:00:00"), n = 0;
+  while(c < d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) n++; }
+  return n;
+}
+function annaReaderEnd(i){ var next = ANNA_READERS[i+1]; return next ? next[1]-1 : ANNA_READERS_LAST_PAGE; }
+function annaReaderParts(i){ var pages = annaReaderEnd(i)-ANNA_READERS[i][1]+1; return pages>=26 ? 3 : pages>=17 ? 2 : 1; }
+var annaReaderSlots = null;
+function annaReaderSlotList(i0){
+  if(annaReaderSlots) return annaReaderSlots;
+  annaReaderSlots = [];
+  for(var k=0;k<ANNA_READERS.length;k++){
+    var idx = (i0+k)%ANNA_READERS.length, parts = annaReaderParts(idx);
+    for(var p=1;p<=parts;p++) annaReaderSlots.push({idx:idx, part:p, parts:parts});
+  }
+  return annaReaderSlots;
+}
 function annaReadersItem(d){
   var start = new Date(ANNA_READERS_START+"T00:00:00");
   if(d < start) return null;
-  var n = 0, c = new Date(start);
-  while(c < d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) n++; }
-  var i = n % ANNA_READERS.length, r = ANNA_READERS[i], next = ANNA_READERS[i+1];
-  var end = next ? next[1]-1 : ANNA_READERS_LAST_PAGE;
-  if(ANNA_READERS_SPECIFIC[r[0]]) return ANNA_READERS_SPECIFIC[r[0]];
-  var where = 'your Readers Collection book, open to "'+r[0]+'" (pages '+r[1]+(end>r[1] ? "–"+end : "")+')';
+  var n = annaReadersSchoolDays(d), cut = new Date(ANNA_READERS_SPLIT_FROM+"T00:00:00");
+  if(d < cut) return annaReadersBuild(n, n % ANNA_READERS.length, 1, 1);
+  var nCut = annaReadersSchoolDays(cut), slots = annaReaderSlotList(nCut % ANNA_READERS.length), slot = slots[(n-nCut) % slots.length];
+  return annaReadersBuild(n, slot.idx, slot.part, slot.parts);
+}
+function annaReadersBuild(n, i, part, parts){
+  var r = ANNA_READERS[i], first = r[1], end = annaReaderEnd(i), total = end-first+1;
+  var pa = first+Math.floor((part-1)*total/parts), pb = part===parts ? end : first+Math.floor(part*total/parts)-1;
+  var span = "pages "+pa+(pb>pa ? "–"+pb : "");
+  if(parts>1 && part<parts){
+    var kind = r[2]==="story" ? "what you think will happen next" : "what you think you will read about next";
+    return {title:"Storytime: "+r[0]+" — Part "+part+" of "+parts+", Read and Tell", passage:
+      "Gather first — your Readers Collection book, open to \""+r[0]+"\" ("+span+"), plus a cozy spot.\nHere's the Idea — A long book is read in parts. Today you read one part, stop at the end of it, and say what you learned, so the next part makes sense.\nYour Turn — 1. Read "+span+" of \""+r[0]+"\" with Mom. 2. Tell Mom what this part was about in two sentences. 3. Point to one picture, fact, or bold word and tell why it matters. 4. Say "+kind+".\nCheck Yourself — Did you stop at the end of the part? Did you use your own words?\nShow What You Know — Tell Mom the most interesting thing from today's pages."};
+  }
+  var lastNote = parts>1 ? "\nLast part — you read the earlier pages on the days before, so use what you remember. Today: "+span+"." : "";
+  var spec = ANNA_READERS_SPECIFIC[r[0]];
+  if(spec){
+    if(parts===1) return spec;
+    var lines = spec.passage.split("\n");
+    lines[0] = lines[0].replace(/\(pages [0-9]+(?:[–-][0-9]+)?[^)]*\)/, "("+span+")");
+    return Object.assign({}, spec, {passage: lines[0]+lastNote+"\n"+lines.slice(1).join("\n")});
+  }
+  var where = 'your Readers Collection book, open to "'+r[0]+'" ('+span+')';
   if(r[2]==="story"){
     var base = ANNA_DAILY_READING[n % ANNA_DAILY_READING.length];
-    var passage = base.passage.replace(/Gather first — [^\n]*/, "Gather first — "+where+", plus a cozy spot"+(/paper/i.test(base.passage.split("\n")[0]) ? ", paper and colors" : "")+".")
+    var passage = base.passage.replace(/Gather first — [^\n]*/, "Gather first — "+where+", plus a cozy spot"+(/paper/i.test(base.passage.split("\n")[0]) ? ", paper and colors" : "")+"."+lastNote)
       .replace(/Read for 20 minutes/g, 'Read "'+r[0]+'" aloud or quietly (if it is long, read some today and finish next time)');
     return {title:"Storytime: "+r[0]+" — "+base.title.replace("Storytime: ",""), passage:passage};
   }
   if(r[2]==="info"){
     return {title:"Storytime: "+r[0]+" — Facts and Questions", passage:
-      "Gather first — "+where+", paper and a pencil.\nHere's the Idea — Some pieces tell true facts. A fact is something that is true. While you read, look for facts and pictures that teach you something, and think about what you still wonder.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Write or draw 3 facts you learned. 3. Write one question you still have. 4. Tell Mom your favorite fact.\nCheck Yourself — Are your 3 facts really in the text?\nShow What You Know — Tell Mom what the piece was mostly about in one sentence."};
+      "Gather first — "+where+", paper and a pencil."+lastNote+"\nHere's the Idea — Some pieces tell true facts. A fact is something that is true. While you read, look for facts and pictures that teach you something, and think about what you still wonder.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Write or draw 3 facts you learned. 3. Write one question you still have. 4. Tell Mom your favorite fact.\nCheck Yourself — Are your 3 facts really in the text?\nShow What You Know — Tell Mom what the piece was mostly about in one sentence."};
   }
   return {title:"Storytime: "+r[0]+" — Tell It Back", passage:
-    "Gather first — "+where+", plus a cozy spot.\nHere's the Idea — After you read, say it back in your own words. Tell what it was about, your favorite part, and one thing you felt or learned.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Tell Mom what it was about. 3. Tell your favorite part and why. 4. Tell one thing you felt or learned.\nCheck Yourself — Did you tell it in your own words, in an order that makes sense?\nShow What You Know — Draw your favorite part and write one sentence under it."};
+    "Gather first — "+where+", plus a cozy spot."+lastNote+"\nHere's the Idea — After you read, say it back in your own words. Tell what it was about, your favorite part, and one thing you felt or learned.\nYour Turn — 1. Read \""+r[0]+"\" (if it is long, read some today and finish next time). 2. Tell Mom what it was about. 3. Tell your favorite part and why. 4. Tell one thing you felt or learned.\nCheck Yourself — Did you tell it in your own words, in an order that makes sense?\nShow What You Know — Draw your favorite part and write one sentence under it."};
 }
 /* Moves Anna's not-yet-done Storytime days from the "pick any book" version to the Readers Collection version. */
 function patchAnnaStorytimeFromReaders(){
