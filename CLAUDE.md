@@ -243,3 +243,8 @@ Linking out to a page is fine. When a lesson needs a picture from a page, link t
 ## 26. Keep the mess small
 
 Mom and Dad run this day to day, and a pile of supplies every day becomes a huge cleanup. A hands-on lesson needs at most 3 supplies beyond what is always out (paper, pencil, crayons, a ruler). Prefer things already in the house, recycled things, and things the kid can put away alone. Do not schedule messy lessons (clay, paint, glue, food coloring, sand, soil, many small parts) back to back: at most one per week, with a clean-up step written into the lesson. Reuse the same supplies across several lessons when possible (one bag of beads, one egg carton). Cut-out pieces go in one labeled bag. Before adding a hands-on lesson, ask if drawing it, acting it out, or a Minecraft build would teach the same thing with no mess.
+
+
+## 27. Video scripts leave the kids' names out
+
+Mom may one day share some lesson videos with other homeschool families (a YouTube channel is an idea saved in HANDOFF.md). So every NEW video script (HeyGen, Synthesia, or any recording) must not say Ryan's or Anna's name, or show their faces, voices, or details that identify them. Address the viewer as "you" or "friend" ("Hey friend! Let's crack the Times-10 Machine."), and keep family details out (no "tell Mom", "your brother", home or town names): say "show a grown-up" instead. Keep the script about the idea, not about our family, so the video works for anyone. The two videos already made say "Hey Ryan!" and "tell Mom" (place value, recipe): they are for Ryan's lessons only and are not for sharing as they are. Rule 25 still applies to pictures, and check HeyGen's terms for commercial use before posting anything publicly.
