@@ -18731,6 +18731,12 @@ function patchAnnaMessCleanup(){
    so nothing breaks before the upload). Math Antics "Place Value" (Mom approved the link, verified 20 Oct 2026) is the fallback and goes on the
    "Up to One Million" lesson. */
 var RYAN_MATH_VIDEO = "https://www.youtube.com/watch?v=T5Qf0qSSJFI";
+/* More Ryan math videos Mom approved (Gemini list, she opened each one): title prefix, link. */
+var RYAN_MATH_VIDEOS = [
+  ["Math Book, Unit 1: Say It, Write It, Stretch It", "https://www.youtube.com/watch?v=yzhATFwpJx0"],
+  ["Math Book, Unit 1: Which Score Is Bigger?", "https://www.youtube.com/watch?v=TOrcUx0wDDQ"],
+  ["Math: Perimeter and Area of a Wall", "https://www.youtube.com/watch?v=xCdxURXMdFY"]
+];
 function patchRyanMathVideos(){
   if(!db) return;
   var hey = "videos/ryan-place-value.mp4";
@@ -18746,10 +18752,12 @@ function patchRyanMathVideos(){
     if(a.kidId!=="kid2" || a.done) return;
     if(t.indexOf("Math Book, Unit 1: Place Value Is a Times-10 Machine")===0){
       checkFile(function(ok){ if(ok) setVideo(id, a, hey); else if(!a.video) setVideo(id, a, RYAN_MATH_VIDEO); });
-    } else if(t.indexOf("Math Book, Unit 1: Place Value Up to One Million")===0 && !a.video){
-      setVideo(id, a, RYAN_MATH_VIDEO);
+    } else if(t.indexOf("Math Book, Unit 1: Place Value Up to One Million")===0 && (!a.video || a.video===RYAN_MATH_VIDEO)){
+      setVideo(id, a, "https://www.youtube.com/watch?v=ZeW3n4A8U9I"); /* Math & Learning Videos 4 Kids, 4 min; Mom opened it (Gemini list) */
     } else if(t.indexOf("Math: Multiply a 2-Digit Number by 1 Digit")===0 && !a.video){
       setVideo(id, a, "https://www.youtube.com/watch?v=vbGwcvXgDlg"); /* Khan Academy, area model; Mom opened it (Gemini list) */
+    } else {
+      RYAN_MATH_VIDEOS.forEach(function(v){ if(t.indexOf(v[0])===0 && !a.video) setVideo(id, a, v[1]); });
     }
   });
 }

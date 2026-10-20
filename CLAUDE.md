@@ -208,6 +208,8 @@ Approved videos, with what they are for (video id after `watch?v=`):
   Geography/social studies: _pOKoIAnybg The Geography Song, Globe vs Map (Scratch Garden; on SS Chapter 3 Our Earth); 6Due3L2QeQM The Directions Song (Scratch Garden; on SS Chapter 3 All About Maps);
   Jd4kD9TicbA Goods and Services for Kids (Homeschool Pop; on SS Chapter 2 Producing and Consuming Goods).
   Ryan math: T5Qf0qSSJFI Math Antics, Place Value (about 9 min; on Ryan's Place Value lessons).
+  Ryan math: ZeW3n4A8U9I What is Place Value? Up to 1,000,000 (Math & Learning Videos 4 Kids, 4 min; on Place Value Up to One Million); yzhATFwpJx0 Reading and Writing Whole Numbers (Khan Academy, 5 min; on the Three Forms lesson);
+  TOrcUx0wDDQ Comparing Whole Numbers (Math Antics Extras, on the Comparing Numbers lesson); xCdxURXMdFY Area (Math Antics, on the Perimeter and Area of a Wall lesson).
   Ryan math: vbGwcvXgDlg Khan Academy, Multiplying 2-digit by 1-digit numbers within 100, area model (about 2 min; on the 2-digit x 1-digit lesson).
   Science: tzN299RpJHA Living Things (Jack Hartmann; on Science Book Unit 6 What Animals Need); dPHX_5l0gLE Awesome Insects & Amazing Bugs, a 21-minute Scratch Garden compilation (not on a lesson).
 
