@@ -7124,7 +7124,7 @@ function renderLeaderArea(){
       all.push(Object.assign({id:id, kidName: kidData(k.id).name}, a));
     });
   });
-  var pending = all.filter(function(a){ return a.reviewStatus!=="approved"; });
+  var pending = all.filter(function(a){ return a.reviewStatus!=="approved" && a.reviewStatus!=="retired"; });
   var completed = all.filter(function(a){ return a.reviewStatus==="approved"; });
   pending.sort(function(x,y){ return (y.submittedAt||"").localeCompare(x.submittedAt||""); });
   completed.sort(function(x,y){ return (y.submittedAt||"").localeCompare(x.submittedAt||""); });
@@ -18883,7 +18883,7 @@ function patchAnnaSsOverdue(){
   if(!db) return;
   var today = todayISO();
   var late = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
-    .filter(function(x){ return x.a.kidId==="kid1" && !x.a.done && x.a.skillId==="anna-ss-creek-cherokee" && x.a.date && x.a.date<today && !hasWork(x.a); })
+    .filter(function(x){ return x.a.kidId==="kid1" && !x.a.done && x.a.skillId==="anna-ss-creek-cherokee" && x.a.date && x.a.date<today && !hasWork(x.a) && x.a.reviewStatus!=="retired"; })
     .sort(function(x,y){ return x.a.date.localeCompare(y.a.date) || String(x.a.title).localeCompare(String(y.a.title)); });
   if(!late.length) return;
   var d = new Date(today+"T00:00:00");
@@ -19649,14 +19649,14 @@ function catchUpCard(){
   var today = todayISO(), total = 0, perKid = {};
   KIDS.forEach(function(k){
     perKid[k.id] = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
-      .filter(function(x){ return x.a.kidId===k.id && !x.a.done && x.a.date && x.a.date<today && !hasWork(x.a); })
+      .filter(function(x){ return x.a.kidId===k.id && !x.a.done && x.a.date && x.a.date<today && !hasWork(x.a) && x.a.reviewStatus!=="retired"; })
       .sort(function(x,y){ return x.a.date.localeCompare(y.a.date); });
     total += perKid[k.id].length;
   });
   sum.textContent = "🧹 Old unfinished lessons — "+total+" waiting";
   det.appendChild(sum);
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
-  note.textContent = "Lessons dated before today that were never done. For each one you can bring it back (it lands on the next day with room under the daily limit) or retire it for good. Nothing changes until you tap.";
+  note.textContent = "Lessons dated before today that were never done. For each one you can bring it back (it lands on the next day with room under the daily limit) or take it off the list. Taking it off the list does NOT delete it: it stays in the records and keeps any credit, it just stops waiting to be done. Nothing changes until you tap.";
   det.appendChild(note);
   KIDS.forEach(function(k){
     var list = perKid[k.id], name = kidData(k.id).name || k.defaultName;
@@ -19672,17 +19672,30 @@ function catchUpCard(){
         toast("Spread out ✓"); renderLeaderArea();
       };
       head.appendChild(spread);
+      function takeOff(items, label){
+        if(!window.confirm("Take "+items.length+" lessons off "+name+"'s to-do list? Nothing is deleted: they stay in the records and keep any credit, they just stop waiting to be done.")) return;
+        items.forEach(function(x){ x.a.reviewStatus = "retired"; db.doc("assignments/"+x.id).update({reviewStatus:"retired"}); });
+        toast("Took "+items.length+" off the list"); renderLeaderArea();
+      }
       var old = list.filter(function(x){ return x.a.date < isoDate(new Date(Date.now()-14*86400000)); });
-      if(old.length){
-        var retire = document.createElement("button"); retire.type = "button"; retire.className = "reward-skip"; retire.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--ink)";
-        retire.textContent = "Retire the "+old.length+" older than 2 weeks";
-        retire.onclick = function(){
-          if(!window.confirm("Permanently delete "+old.length+" lessons for "+name+" that are more than 2 weeks old and were never started? This can't be undone.")) return;
-          old.forEach(function(x){ db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; });
-          toast("Retired "+old.length); renderLeaderArea();
-        };
+      var btnCss = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--ink)";
+      if(old.length && old.length<list.length){
+        var retire = document.createElement("button"); retire.type = "button"; retire.className = "reward-skip"; retire.style.cssText = btnCss;
+        retire.textContent = "Take the "+old.length+" older than 2 weeks off the list";
+        retire.onclick = function(){ takeOff(old); };
         head.appendChild(retire);
       }
+      var allOff = document.createElement("button"); allOff.type = "button"; allOff.className = "reward-skip"; allOff.style.cssText = btnCss;
+      allOff.textContent = "Take all "+list.length+" off the list";
+      allOff.onclick = function(){ takeOff(list); };
+      head.appendChild(allOff);
+    }
+    var gone = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; }).filter(function(x){ return x.a.kidId===k.id && x.a.reviewStatus==="retired" && !x.a.done; });
+    if(gone.length){
+      var undo = document.createElement("button"); undo.type = "button"; undo.className = "reward-skip"; undo.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px;color:var(--ink)";
+      undo.textContent = "Put the "+gone.length+" taken off the list back";
+      undo.onclick = function(){ if(!window.confirm("Put "+gone.length+" lessons back on "+name+"'s old unfinished list?")) return; gone.forEach(function(x){ x.a.reviewStatus = null; db.doc("assignments/"+x.id).update({reviewStatus:null}); }); renderLeaderArea(); };
+      head.appendChild(undo);
     }
     det.appendChild(head);
     list.slice(0,40).forEach(function(x){
@@ -19691,8 +19704,8 @@ function catchUpCard(){
       row.innerHTML = '<span style="width:52px;flex:none" class="muted">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span><span style="flex:1">'+escapeHtml(String(x.a.title).slice(0,70))+' <span class="muted">('+escapeHtml(x.a.subject||"")+')</span></span>';
       var back = document.createElement("button"); back.type = "button"; back.className = "reward-skip"; back.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:4px 9px;color:var(--ink)"; back.textContent = "Bring back";
       back.onclick = function(){ var dest = nextRoomDate(k.id, today, loadCounts()); x.a.date = dest; db.doc("assignments/"+x.id).update({date:dest}); toast("Moved to "+fmtDate(dest)); renderLeaderArea(); };
-      var del = document.createElement("button"); del.type = "button"; del.className = "reward-skip"; del.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:4px 9px;color:var(--coral)"; del.textContent = "Retire";
-      del.onclick = function(){ if(!window.confirm('Retire "'+x.a.title+'"? This deletes it.')) return; db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; renderLeaderArea(); };
+      var del = document.createElement("button"); del.type = "button"; del.className = "reward-skip"; del.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:4px 9px;color:var(--coral)"; del.textContent = "Take off list";
+      del.onclick = function(){ x.a.reviewStatus = "retired"; db.doc("assignments/"+x.id).update({reviewStatus:"retired"}); toast("Taken off the list (kept in the records)"); renderLeaderArea(); };
       row.appendChild(back); row.appendChild(del); det.appendChild(row);
     });
     if(list.length>40){ var more = document.createElement("div"); more.className = "muted"; more.style.cssText = "font-size:12px;margin:4px 0"; more.textContent = "and "+(list.length-40)+" more (use the buttons at the top to handle the rest together)"; det.appendChild(more); }
@@ -19708,7 +19721,7 @@ function weekReportData(kidId, days){
     d.setDate(d.getDate()-1);
   }
   var bySubject = {}, perDay = dates.map(function(iso){
-    var list = assignmentsFor(kidId, iso);
+    var list = assignmentsFor(kidId, iso).filter(function(a){ return a.reviewStatus!=="retired"; });
     list.forEach(function(a){
       var sj = a.subject || "Other"; bySubject[sj] = bySubject[sj] || {done:0,total:0};
       bySubject[sj].total++; if(a.done) bySubject[sj].done++;
