@@ -198,3 +198,5 @@ HeyGen place-value video finished: id 7c4f98021c024c24813be061fa18fa5f, 72.7 s, 
 Mom: every Gemini video she sends has been opened by her; only flag a link that does not work, do not ask her to re-check. Khan vbGwcvXgDlg is on Ryan's "Multiply a 2-Digit Number by 1 Digit" lesson (patchRyanMathVideos). The place value HeyGen video is at videos/ryan-place-value.mp4 (moved from repo root).
 
 More Ryan math videos attached by patchRyanMathVideos (all from Mom's Gemini list, she opened them): Place Value Up to One Million -> ZeW3n4A8U9I; Three Forms -> yzhATFwpJx0; Comparing Numbers -> TOrcUx0wDDQ; Perimeter and Area of a Wall -> xCdxURXMdFY. Still without a video: place value Times-10 uses her HeyGen file; Oct 26 Mystery Number, Oct 28 recipe scaling, Nov 2 multiply three numbers, Nov 3 rounding.
+
+Rounding video fd-E18EqSVk (Math Antics) attached to Ryan's "Math Book, Unit 1: Rounding". Gemini found no suitable video for recipe scaling or multiplying three numbers: use step-through cards (RYAN_MATH_CARDS pattern) if Mom wants help there.
