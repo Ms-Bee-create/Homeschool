@@ -18748,6 +18748,8 @@ function patchRyanMathVideos(){
       checkFile(function(ok){ if(ok) setVideo(id, a, hey); else if(!a.video) setVideo(id, a, RYAN_MATH_VIDEO); });
     } else if(t.indexOf("Math Book, Unit 1: Place Value Up to One Million")===0 && !a.video){
       setVideo(id, a, RYAN_MATH_VIDEO);
+    } else if(t.indexOf("Math: Multiply a 2-Digit Number by 1 Digit")===0 && !a.video){
+      setVideo(id, a, "https://www.youtube.com/watch?v=vbGwcvXgDlg"); /* Khan Academy, area model; Mom opened it (Gemini list) */
     }
   });
 }

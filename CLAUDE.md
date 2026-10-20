@@ -179,7 +179,7 @@ a lesson's missed questions into ONE review lesson, not one lesson per question.
 ## 20. Parent-approved video sources
 
 Mom checks the videos herself. Any link she pastes, including lists she copies from Gemini, is approved for use as given
-(she has watched them); still use the exact video (rule 1) and make sure it fits the lesson. Never use a link nobody has
+(she has watched them; she confirmed every Gemini video she sends has been opened, so only flag one if it cannot be found or does not fit the lesson, and do not ask her to re-check); still use the exact video (rule 1) and make sure it fits the lesson. Never use a link nobody has
 approved, and never fill in a link from memory.
 
 Approved channel for Anna, use it in her lessons whenever it fits: Jack Hartmann Kids Music Channel,
@@ -208,6 +208,7 @@ Approved videos, with what they are for (video id after `watch?v=`):
   Geography/social studies: _pOKoIAnybg The Geography Song, Globe vs Map (Scratch Garden; on SS Chapter 3 Our Earth); 6Due3L2QeQM The Directions Song (Scratch Garden; on SS Chapter 3 All About Maps);
   Jd4kD9TicbA Goods and Services for Kids (Homeschool Pop; on SS Chapter 2 Producing and Consuming Goods).
   Ryan math: T5Qf0qSSJFI Math Antics, Place Value (about 9 min; on Ryan's Place Value lessons).
+  Ryan math: vbGwcvXgDlg Khan Academy, Multiplying 2-digit by 1-digit numbers within 100, area model (about 2 min; on the 2-digit x 1-digit lesson).
   Science: tzN299RpJHA Living Things (Jack Hartmann; on Science Book Unit 6 What Animals Need); dPHX_5l0gLE Awesome Insects & Amazing Bugs, a 21-minute Scratch Garden compilation (not on a lesson).
 
 ## 21. Operations notes
