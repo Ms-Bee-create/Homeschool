@@ -18645,6 +18645,7 @@ function syncAnnaSsCh1(){
     var iso = isoDate(d), x = byTitle[it.title];
     if(x){
       if(x.a.done) return;
+      if(String(x.a.passage||"").indexOf("Part 1 of 2")>=0){ if(x.a.date!==iso && !hasWork(x.a)){ x.a.date = iso; db.doc("assignments/"+x.id).update({date:iso}); } return; } /* split into two days: keep its text, only keep its Friday */
       var upd = {date:iso, passage:it.passage, quiz:it.quiz, standard:it.standard, stage:it.stage, xp:it.xp};
       if(x.a.passage===it.passage && x.a.date===iso) return;
       Object.assign(x.a, upd); db.doc("assignments/"+x.id).update(upd);
@@ -19029,6 +19030,47 @@ function patchAnnaSsOverdue(){
   });
   console.log("patchAnnaSsOverdue: moved "+late.length+" lesson(s)");
 }
+/* Anna's book lessons (Social Studies and Science) with 8 or more steps, or 7 steps and a long reading, are too big for one 30-minute slot for a 7-year-old.
+   Not-started future ones are split across two days: the lesson keeps its title and date and holds the first half of the steps (no quiz);
+   "<title> — Part 2" is added on the next school day with the rest, the check, and the quiz. Done once per lesson (stable id), never touches started work. */
+function splitNumberedSteps(text){
+  /* "1. a 2. b 3. c" -> ["a","b","c"], only counting numbers in order so a stray "Chapter 3." inside a step is not a break */
+  var idx = [], pos = 0, k = 1;
+  while(true){
+    var re = new RegExp("(^|\\s)"+k+"[.)]\\s+"), m = re.exec(text.slice(pos));
+    if(!m) break;
+    idx.push(pos+m.index+m[1].length); pos = pos+m.index+m[0].length; k++;
+  }
+  if(idx.length<2) return null;
+  var out = [];
+  for(var i=0;i<idx.length;i++){ out.push(text.slice(idx[i], i+1<idx.length ? idx[i+1] : text.length).replace(/^\d+[.)]\s+/, "").trim()); }
+  return out;
+}
+function patchSplitBigBookLessons(){
+  if(!db) return;
+  var today = todayISO(), n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.done || hasWork(a) || a.skillId!=="anna-book-lessons" || !a.date || a.date<=today || !a.passage) return;
+    if(!/^(Social Studies|Science) Book/.test(String(a.title||"")) || /— Part 2$/.test(a.title) || a.passage.indexOf("Part 1 of 2")>=0) return;
+    var lines = a.passage.split("\n"), ti = -1;
+    for(var i=0;i<lines.length;i++){ if(/^Your Turn — /.test(lines[i])){ ti = i; break; } }
+    if(ti<0) return;
+    var steps = splitNumberedSteps(lines[ti].replace(/^Your Turn — /, "")), words = a.passage.split(/\s+/).length;
+    if(!steps || !(steps.length>=8 || (steps.length>=7 && words>=380))) return;
+    var k = Math.ceil(steps.length/2), first = steps.slice(0,k), rest = steps.slice(k);
+    function numbered(list){ return list.map(function(t, i){ return (i+1)+". "+t; }).join(" "); }
+    var p1 = lines.slice(0, ti).concat(["Your Turn (Part 1 of 2) — "+numbered(first), "Stop here. Part 2 is on the next school day, so you can finish then."]).join("\n");
+    var p2 = [lines[0], "Here's the Idea — Today you finish this lesson. Use your notes from Part 1, and look back at the reading if you need it.", "Your Turn (Part 2 of 2) — "+numbered(rest)].concat(lines.slice(ti+1)).join("\n");
+    var title2 = a.title+" — Part 2", d2 = isoDate(addSchoolDays(new Date(a.date+"T00:00:00"), 1));
+    var xp1 = Math.max(1, Math.ceil((a.xp||0)/2)), xp2 = Math.max(1, (a.xp||0)-xp1);
+    addSeed({kidId:a.kidId, date:d2, subject:a.subject, title:title2, xp:xp2, done:false, doneAt:null, standard:a.standard, stage:a.stage, passage:p2,
+      quiz:a.quiz||null, crossSubjects:a.crossSubjects||null, skillId:a.skillId, createdAt:new Date().toISOString()});
+    var upd = {passage:p1, quiz:null, xp:xp1};
+    Object.assign(a, upd); db.doc("assignments/"+id).update(upd); n++;
+  });
+  if(n) console.log("patchSplitBigBookLessons: split "+n+" lesson(s) over two days");
+}
 function patchAnnaHandwriting(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -19264,7 +19306,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -20128,6 +20170,13 @@ function contentPacksCard(){
   startSel.onchange = function(){ packStartISO = startSel.value; };
   startRow.appendChild(startSel);
   det.appendChild(startRow);
+  var lightRow = document.createElement("label");
+  lightRow.style.cssText = "display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:8px";
+  var lightBox = document.createElement("input"); lightBox.type = "checkbox"; lightBox.checked = packLight; lightBox.style.cssText = "width:18px;height:18px;margin-top:1px;flex:none";
+  lightBox.onchange = function(){ packLight = lightBox.checked; };
+  lightRow.appendChild(lightBox);
+  lightRow.appendChild(document.createTextNode("Put the new lessons on the lightest days (recommended). Python, STEM Lab and the other big packs fill in one per day as the calendar thins, instead of piling onto busy weeks."));
+  det.appendChild(lightRow);
   contentPacks().forEach(function(pack){
     var have = {};
     Object.keys(state.assignments).forEach(function(id){
@@ -22160,14 +22209,42 @@ var MC_STEM_LAB_ANNA = [
   ]
  }
 ];
+/* When ON (the default), a pack's lessons go on the lightest school days from the start day on, one per day in order, skipping any day that already has this
+   many lessons (Fridays: one fewer than the Friday limit). This way a big pack does not pile onto busy weeks; it fills in as the calendar thins. */
+var packLight = true;
+var LIGHT_DAY_TARGET = {kid1:4, kid2:3};
+function lightPackDates(kidId, list, start){
+  var counts = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var x = state.assignments[id];
+    if(x.kidId===kidId && x.date && x.reviewStatus!=="retired"){ counts[x.date] = (counts[x.date]||0)+1; }
+  });
+  var out = {}, prev = null, lastD = null, lastIso = null;
+  list.slice().sort(function(p,q){ return (p.d||0)-(q.d||0); }).forEach(function(it){
+    if(lastD!==null && it.d===lastD){ out[it.title] = lastIso; return; }
+    var d = addSchoolDays(new Date(start), it.d || 0);
+    if(prev && d<=prev) d = addSchoolDays(new Date(prev), 1);
+    var guard = 0;
+    while(guard++<400){
+      var iso = isoDate(d), fri = d.getDay()===5;
+      var cap = fri ? Math.max(1, (FRIDAY_LESSON_CAP[kidId]||3)-1) : (LIGHT_DAY_TARGET[kidId]||3);
+      if((counts[iso]||0) < cap) break;
+      d = addSchoolDays(d, 1);
+    }
+    var iso2 = isoDate(d); counts[iso2] = (counts[iso2]||0)+1;
+    out[it.title] = iso2; prev = d; lastD = it.d; lastIso = iso2;
+  });
+  return out;
+}
 function addPackItems(kidId, list){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var start = packStart();
   var have = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
     .filter(function(a){ return a.kidId===kidId; }).map(function(a){ return a.title; });
+  var lightDates = packLight ? lightPackDates(kidId, list.filter(function(it){ return have.indexOf(it.title)===-1; }), start) : null;
   list.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
-    addSeed({kidId:kidId, date:isoDate(addSchoolDays(start, it.d)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+    addSeed({kidId:kidId, date:(lightDates ? lightDates[it.title] : isoDate(addSchoolDays(start, it.d))), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
       standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, skillId:it.skillId||null, createdAt:new Date().toISOString()});
   });
 }
