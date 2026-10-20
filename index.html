@@ -19663,6 +19663,22 @@ function scheduleCopyCard(){
     };
     det.appendChild(b);
   });
+  var ssBtn = document.createElement("button"); ssBtn.type = "button"; ssBtn.className = "primary-btn"; ssBtn.style.cssText = "margin:4px 6px 4px 0";
+  ssBtn.textContent = "Copy every Social Studies lesson (all dates)";
+  ssBtn.onclick = function(){
+    var out = "Social Studies lessons, all dates (as of "+todayISO()+")\n";
+    KIDS.forEach(function(k){
+      var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+        .filter(function(a){ return a.kidId===k.id && (a.subject==="Social Studies" || /social studies/i.test(String(a.title||""))); })
+        .sort(function(x,y){ return String(x.date||"").localeCompare(String(y.date||"")); });
+      out += "\n"+(kidData(k.id).name || k.defaultName)+" ("+rows.length+")\n";
+      rows.forEach(function(a){ out += "- "+a.date+" | "+(a.done ? "[done] " : "")+String(a.title||"")+" | skill "+(a.skillId||"-")+" | made "+String(a.createdAt||"").slice(0,10)+"\n"; });
+    });
+    function ok(){ msg.textContent = "Copied. Paste it into your chat with Claude."; }
+    function fallback(){ var ta = document.createElement("textarea"); ta.value = out; ta.style.cssText = "width:100%;height:140px;margin-top:6px"; msg.textContent = "Select all of this and copy it:"; msg.appendChild(ta); ta.focus(); ta.select(); }
+    try{ navigator.clipboard.writeText(out).then(ok, fallback); }catch(e){ fallback(); }
+  };
+  det.appendChild(ssBtn);
   det.appendChild(msg);
   if(dups.length){
     var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin:12px 0 4px"; h.textContent = "Repeated lessons (same kid, same day, same title)";
