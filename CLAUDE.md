@@ -207,6 +207,7 @@ Approved videos, with what they are for (video id after `watch?v=`):
   LdCOswMeXFQ Punctuation Explained (Scratch Garden); NK8_Tvu6bJk Digraphs (Jack Hartmann); aPeMKdEzGDs Noun Rap (Jack Hartmann). (The Scratch Garden Nouns Song link is dead, do not use.)
   Geography/social studies: _pOKoIAnybg The Geography Song, Globe vs Map (Scratch Garden; on SS Chapter 3 Our Earth); 6Due3L2QeQM The Directions Song (Scratch Garden; on SS Chapter 3 All About Maps);
   Jd4kD9TicbA Goods and Services for Kids (Homeschool Pop; on SS Chapter 2 Producing and Consuming Goods).
+  Ryan math: T5Qf0qSSJFI Math Antics, Place Value (about 9 min; on Ryan's Place Value lessons).
   Science: tzN299RpJHA Living Things (Jack Hartmann; on Science Book Unit 6 What Animals Need); dPHX_5l0gLE Awesome Insects & Amazing Bugs, a 21-minute Scratch Garden compilation (not on a lesson).
 
 ## 21. Operations notes
