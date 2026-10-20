@@ -19064,7 +19064,7 @@ function patchSplitBigBookLessons(){
     var p2 = [lines[0], "Here's the Idea — Today you finish this lesson. Use your notes from Part 1, and look back at the reading if you need it.", "Your Turn (Part 2 of 2) — "+numbered(rest)].concat(lines.slice(ti+1)).join("\n");
     var title2 = a.title+" — Part 2", d2 = isoDate(addSchoolDays(new Date(a.date+"T00:00:00"), 1));
     var xp1 = Math.max(1, Math.ceil((a.xp||0)/2)), xp2 = Math.max(1, (a.xp||0)-xp1);
-    addSeed({kidId:a.kidId, date:d2, subject:a.subject, title:title2, xp:xp2, done:false, doneAt:null, standard:a.standard, stage:a.stage, passage:p2,
+    addSeed({kidId:a.kidId, date:d2, subject:a.subject, title:title2, xp:xp2, done:false, doneAt:null, standard:a.standard, stage:(a.stage==="teach" ? "practice" : a.stage), passage:p2,
       quiz:a.quiz||null, crossSubjects:a.crossSubjects||null, skillId:a.skillId, createdAt:new Date().toISOString()});
     var upd = {passage:p1, quiz:null, xp:xp1};
     Object.assign(a, upd); db.doc("assignments/"+id).update(upd); n++;
