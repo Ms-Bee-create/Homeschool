@@ -2956,6 +2956,42 @@ var ANNA_STORY_CARDS = [
  ])
 ];
 EXPLAINER_CARDS = EXPLAINER_CARDS.concat(ANNA_STORY_CARDS);
+/* Ryan's math: a worked example he can step through (tap Next to see each step happen). Break-apart multiplication with an area model drawn as SVG. */
+function mcAreaSvg(top, bottom, a, b, hl){
+  /* a rectangle split into a wide part and a narrow part; hl = how many parts are filled in (0, 1 or 2) */
+  var W = 280, H = 90, w1 = Math.round(W*0.8), w2 = W-w1;
+  function part(x, w, fill, label, on){
+    return '<rect x="'+x+'" y="20" width="'+w+'" height="'+H+'" fill="'+(on?fill:"none")+'" stroke="#444" stroke-width="2"/>'+
+      (on ? '<text x="'+(x+w/2)+'" y="'+(20+H/2+7)+'" text-anchor="middle" font-size="20" font-weight="700" fill="#222">'+label+'</text>' : '');
+  }
+  return '<svg viewBox="0 0 316 130" width="100%" style="max-width:360px;display:block;margin:0 auto" role="img" aria-label="Rectangle split into '+top[0]+' and '+top[1]+', height '+bottom+'">'+
+    '<text x="'+(28+w1/2)+'" y="14" text-anchor="middle" font-size="16" font-weight="700" fill="currentColor">'+top[0]+'</text>'+
+    '<text x="'+(28+w1+w2/2)+'" y="14" text-anchor="middle" font-size="16" font-weight="700" fill="currentColor">'+top[1]+'</text>'+
+    '<g transform="translate(28,0)">'+part(0, w1, "#bfe3ff", a, hl>=1)+part(w1, w2, "#ffe0a8", b, hl>=2)+'</g>'+
+    '<text x="20" y="'+(20+H/2+6)+'" text-anchor="end" font-size="18" font-weight="700" fill="currentColor">'+bottom+'</text></svg>';
+}
+var RYAN_MATH_CARDS = [
+ {match:"Math: Multiply a 2-Digit Number by 1 Digit",
+  cards:[
+   {say:"Here is a big-looking problem: 48 times 3. Do not panic. We are going to break 48 into two easy pieces, solve each one, and put them back together.",
+    html:'<h3>The problem</h3><p class="xc-big" style="text-align:center">48 × 3</p><p>It looks big. We will <b>break it apart</b> into easy pieces, solve each piece, then add.</p>'},
+   {say:"Step one. Break 48 into tens and ones. 48 is the same as 40 plus 8. Nothing changed. It is the same number, just split into two pieces.",
+    html:'<h3>Step 1: Break 48 apart</h3><p class="xc-big" style="text-align:center">48 = <span style="color:#1d6fb8">40</span> + <span style="color:#b36b00">8</span></p><p>Tens piece: <b>40</b>. Ones piece: <b>8</b>. Same number, split in two.</p>'},
+   {say:"Here is the picture. A rectangle that is 3 tall and 48 wide. We cut it into a 40 wide part and an 8 wide part. The whole rectangle is the answer. The two parts together make the whole.",
+    html:'<h3>See it as a rectangle</h3>'+mcAreaSvg(["40","8"], "3", "?", "?", 0)+'<p>Height is <b>3</b>. The width 48 is cut into <b>40</b> and <b>8</b>.</p>'},
+   {say:"Step two. Multiply the tens piece. 40 times 3. Think 4 tens times 3, which is 12 tens. 12 tens is 120. So 40 times 3 is 120.",
+    html:'<h3>Step 2: Do the 40 part</h3>'+mcAreaSvg(["40","8"], "3", "120", "?", 1)+'<p><b>40 × 3</b>: think 4 tens × 3 = 12 tens = <b>120</b>.</p>'},
+   {say:"Step three. Multiply the ones piece. 8 times 3 is 24.",
+    html:'<h3>Step 3: Do the 8 part</h3>'+mcAreaSvg(["40","8"], "3", "120", "24", 2)+'<p><b>8 × 3 = 24</b>.</p>'},
+   {say:"Step four. Add the two pieces. 120 plus 24 equals 144. So 48 times 3 is 144.",
+    html:'<h3>Step 4: Add the pieces</h3><p class="xc-big" style="text-align:center">120 + 24 = <span style="color:#1a7f37">144</span></p><p>So <b>48 × 3 = 144</b>.</p>'},
+   {say:"Always check if your answer makes sense. 48 is close to 50, and 50 times 3 is 150. Our answer, 144, is a little less than 150, and that makes sense because 48 is a little less than 50.",
+    html:'<h3>Does it make sense?</h3><p>48 is close to 50. And 50 × 3 = 150.</p><p>Our answer, <b>144</b>, is just under 150. ✅ That fits, because 48 is just under 50.</p>'},
+   {say:"Your turn. Try 26 times 4 on graph paper. Break 26 into 20 and 6. Find 20 times 4. Find 6 times 4. Then add. When you are done, the answer is 104. If yours is different, go back and check each step.",
+    html:'<h3>Your turn: 26 × 4</h3><p>1. Break <b>26</b> into <b>20 + 6</b>.</p><p>2. Find <b>20 × 4</b> and <b>6 × 4</b>.</p><p>3. Add the two answers.</p><p style="color:var(--muted)">Check: the answer is 104. If yours is different, check each step.</p>'}
+  ]}
+];
+EXPLAINER_CARDS = EXPLAINER_CARDS.concat(RYAN_MATH_CARDS);
 function explainerCardsEl(a){
   var def = null;
   EXPLAINER_CARDS.forEach(function(d){ if(String(a.title||"").indexOf(d.match)===0) def = d; });
