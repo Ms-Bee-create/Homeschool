@@ -18858,6 +18858,9 @@ function patchRyanMathVideos(){
     try{ fetch(hey, {method:"HEAD"}).then(function(r){ haveFile = !!r.ok; cb(haveFile); }, function(){ haveFile = false; cb(false); }); }
     catch(e){ haveFile = false; cb(false); }
   }
+  /* HeyGen videos Mom uploads to videos/ play on their lesson as soon as the file exists. */
+  var recipe = "videos/ryan-recipe-scaling.mp4";
+  function ifFile(path, cb){ try{ fetch(path, {method:"HEAD"}).then(function(r){ if(r.ok) cb(); }, function(){}); }catch(e){} }
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id], t = String(a.title||"");
     if(a.kidId!=="kid2" || a.done) return;
@@ -18867,6 +18870,8 @@ function patchRyanMathVideos(){
       setVideo(id, a, "https://www.youtube.com/watch?v=ZeW3n4A8U9I"); /* Math & Learning Videos 4 Kids, 4 min; Mom opened it (Gemini list) */
     } else if(t.indexOf("Math: Multiply a 2-Digit Number by 1 Digit")===0 && !a.video){
       setVideo(id, a, "https://www.youtube.com/watch?v=vbGwcvXgDlg"); /* Khan Academy, area model; Mom opened it (Gemini list) */
+    } else if(t.indexOf("Math: Creating Potions")===0){
+      ifFile(recipe, function(){ setVideo(id, a, recipe); });
     } else {
       RYAN_MATH_VIDEOS.forEach(function(v){ if(t.indexOf(v[0])===0 && !a.video) setVideo(id, a, v[1]); });
     }
