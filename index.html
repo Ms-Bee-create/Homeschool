@@ -5899,6 +5899,25 @@ function normalizeBlocks(a){
   if(out.length===0) out.push({type:"text", text:""});
   return out;
 }
+/* A lesson sent back for another look has to land on the kid's Today list, not stay on its old (past) date where nobody sees it. */
+function flagFields(a, note){
+  var t = todayISO(), u = {reviewStatus:"flagged", reviewNote:note, noteUnread:!!note, done:false, doneAt:null};
+  if(!a.date || a.date<t) u.date = t;
+  return u;
+}
+/* Quiz-only lessons the kid finished with 70% or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
+   lessons with real work to look at, and the quizzes the kid struggled with. */
+function autoApproveQuizOnly(){
+  if(!db) return;
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
+    if(a.quizScore/a.quizTotal < 0.7) return;
+    a.reviewStatus = "approved"; db.doc("assignments/"+id).update({reviewStatus:"approved"}); n++;
+  });
+  if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
+}
 function hasWork(a){
   return !!((a.workBlocks && a.workBlocks.some(function(b){ return (b.type==="text" && b.text) || (b.type==="image" && b.url) || (b.type==="audio" && b.url); })) || a.submission || a.screenshotUrl);
 }
@@ -7093,7 +7112,7 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson goes back to the kid on today's list. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
 
   var all = [];
@@ -7198,7 +7217,7 @@ function renderLeaderArea(){
             bt.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)"; bt.textContent = label;
             bt.onclick = function(){
               if(!db) return;
-              var upd = flagIt ? {reviewStatus:"flagged", reviewNote:r.kidNote||"Please take another look at this one.", noteUnread:true, done:false, doneAt:null}
+              var upd = flagIt ? flagFields(a, r.kidNote||"Please take another look at this one.")
                                : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
               if(!flagIt && !a.done) toggleAssignment(a);
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], upd);
@@ -7247,7 +7266,7 @@ function renderLeaderArea(){
       var note = window.prompt("What should they fix or double-check?", a.reviewNote||"");
       if(note===null) return;
       if(!db) return;
-      var updates = {reviewStatus:"flagged", reviewNote:note, noteUnread:!!note, done:false, doneAt:null};
+      var updates = flagFields(a, note);
       if(state.assignments[a.id]) Object.assign(state.assignments[a.id], updates);
       db.doc("assignments/"+a.id).update(updates);
       renderLeaderArea();
@@ -7264,6 +7283,19 @@ function renderLeaderArea(){
     empty.style.cssText = "text-align:center;padding:30px 0";
     empty.textContent = "Nothing waiting on you right now.";
     els.view.appendChild(empty);
+  }
+  var oldCut = new Date(); oldCut.setDate(oldCut.getDate()-7);
+  var oldPending = pending.filter(function(a){ return a.done && a.reviewStatus!=="flagged" && (a.submittedAt||a.doneAt||"") && String(a.submittedAt||a.doneAt) < oldCut.toISOString(); });
+  if(oldPending.length){
+    var oldBtn = document.createElement("button");
+    oldBtn.type = "button"; oldBtn.className = "primary-btn"; oldBtn.style.cssText = "width:100%;margin-bottom:12px";
+    oldBtn.textContent = "Clear the backlog: approve the "+oldPending.length+" finished lessons older than a week";
+    oldBtn.onclick = function(){
+      if(!window.confirm("Approve "+oldPending.length+" finished lessons from more than a week ago without looking at each one? Anything you flagged stays flagged.")) return;
+      oldPending.forEach(function(a){ if(state.assignments[a.id]) state.assignments[a.id].reviewStatus = "approved"; db.doc("assignments/"+a.id).update({reviewStatus:"approved"}); });
+      renderLeaderArea();
+    };
+    els.view.appendChild(oldBtn);
   }
   if(pending.length>1 && typeof sb!=="undefined" && sb && sb.functions){
     var allBtn = document.createElement("button");
@@ -19014,6 +19046,7 @@ function runAutoMigrations(){
     patchKid2Content();
     moveWeekendLessonsToMonday();
     patchDuplicateLessons();
+    autoApproveQuizOnly();
     fillAnnaDailyBasics();
     patchAnnaStorytimeFromReaders();
     patchRyanJohnnyOS();
