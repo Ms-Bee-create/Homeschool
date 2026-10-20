@@ -7073,6 +7073,7 @@ function renderLeaderArea(){
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
@@ -19566,6 +19567,82 @@ function weekReportData(kidId, days){
     return {iso:iso, total:list.length, done:list.filter(function(a){ return a.done; }).length, open:list.filter(function(a){ return !a.done; })};
   });
   return {perDay:perDay, bySubject:bySubject};
+}
+/* Leader: copy a plain-text list of upcoming lessons (so Claude, who cannot see the live app, can check the load and the order) and find
+   duplicate lessons (same kid, same day, same title). Nothing is saved anywhere; the text goes to the clipboard only. */
+function scheduleListText(kidId, days){
+  var start = todayISO(), end = new Date(start+"T00:00:00"); end.setDate(end.getDate()+days);
+  var endIso = isoDate(end), byDay = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kidId || !a.date || a.date<start || a.date>endIso) return;
+    (byDay[a.date] = byDay[a.date] || []).push(a);
+  });
+  var out = kidData(kidId).name+" - lessons from "+start+" ("+days+" days)\n";
+  Object.keys(byDay).sort().forEach(function(d){
+    var dt = new Date(d+"T00:00:00");
+    out += "\n"+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dt.getDay()]+" "+d+" ("+byDay[d].length+" lessons)\n";
+    byDay[d].forEach(function(a){ out += "- "+(a.done ? "[done] " : "")+(a.subject||"")+" | "+String(a.title||"")+(a.stage ? " | "+a.stage : "")+"\n"; });
+  });
+  return out;
+}
+function duplicateLessons(){
+  var seen = {}, dups = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a.kidId || !a.date || a.date<todayISO()) return;
+    var key = a.kidId+"|"+a.date+"|"+String(a.title||"").trim().toLowerCase();
+    (seen[key] = seen[key] || []).push(a);
+  });
+  Object.keys(seen).forEach(function(k){ if(seen[k].length>1) dups.push(seen[k]); });
+  return dups;
+}
+function scheduleCopyCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"schedulecopy");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  var dups = duplicateLessons();
+  sum.textContent = "📋 Copy the schedule for Claude"+(dups.length ? " ("+dups.length+" repeated lesson"+(dups.length>1?"s":"")+" found)" : "");
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Copies a plain list of the next 3 weeks. Paste it to Claude so it can check how heavy each day is. Nothing is saved.";
+  det.appendChild(note);
+  var msg = document.createElement("div"); msg.style.cssText = "font-size:12.5px;margin-top:6px;min-height:16px";
+  KIDS.forEach(function(k){
+    var b = document.createElement("button"); b.type = "button"; b.className = "primary-btn"; b.style.cssText = "margin:4px 6px 4px 0";
+    b.textContent = "Copy "+(kidData(k.id).name || k.defaultName)+"'s next 3 weeks";
+    b.onclick = function(){
+      var text = scheduleListText(k.id, 21);
+      function ok(){ msg.textContent = "Copied. Paste it into your chat with Claude."; }
+      function fallback(){ var ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "width:100%;height:140px;margin-top:6px"; msg.textContent = "Select all of this and copy it:"; msg.appendChild(ta); ta.focus(); ta.select(); }
+      try{ navigator.clipboard.writeText(text).then(ok, fallback); }catch(e){ fallback(); }
+    };
+    det.appendChild(b);
+  });
+  det.appendChild(msg);
+  if(dups.length){
+    var h = document.createElement("div"); h.style.cssText = "font-weight:700;margin:12px 0 4px"; h.textContent = "Repeated lessons (same kid, same day, same title)";
+    det.appendChild(h);
+    dups.forEach(function(group){
+      var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px;align-items:center;font-size:12.5px;margin:4px 0";
+      var t = document.createElement("span"); t.style.flex = "1";
+      t.textContent = kidData(group[0].kidId).name+", "+group[0].date+": "+String(group[0].title).slice(0,60)+" (x"+group.length+")";
+      var rm = document.createElement("button"); rm.type = "button"; rm.className = "primary-btn"; rm.textContent = "Remove extra";
+      rm.onclick = function(){
+        var keep = group.filter(function(a){ return a.done; })[0] || group[0];
+        var extras = group.filter(function(a){ return a!==keep && !a.done; });
+        if(!extras.length || !window.confirm("Remove "+extras.length+" extra copy of this lesson and keep one?")) return;
+        extras.forEach(function(a){ db.doc("assignments/"+a.id).delete(); delete state.assignments[a.id]; });
+        renderView();
+      };
+      row.appendChild(t); row.appendChild(rm); det.appendChild(row);
+    });
+  }
+  wrap.appendChild(det);
+  return wrap;
 }
 function weekReportCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
