@@ -5944,7 +5944,7 @@ function autoApproveQuizOnly(){
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
 }
 function hasWork(a){
-  return !!((a.workBlocks && a.workBlocks.some(function(b){ return (b.type==="text" && b.text) || (b.type==="image" && b.url) || (b.type==="audio" && b.url); })) || a.submission || a.screenshotUrl);
+  return !!((a.workBlocks && a.workBlocks.some(function(b){ return !b.check && ((b.type==="text" && b.text) || (b.type==="image" && b.url) || (b.type==="audio" && b.url)); })) || a.submission || a.screenshotUrl);
 }
 
 function youtubeEmbedUrl(url){
@@ -6049,6 +6049,7 @@ function renderLessonDetail(){
         out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
         var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\b\d[.)]\s+/).filter(function(x){ return x.trim(); }) : null;
         if(steps && steps.length>1) steps.forEach(function(st){ out += row(st); });
+        else if(/^Check Yourself/i.test(m[1])) out += '<div class="chk-ans-wrap" data-text="'+escapeHtml(m[2])+'" style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
       } else {
@@ -6536,12 +6537,28 @@ function renderLessonDetail(){
       cb(sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl);
     }).catch(function(){ cb(null); });
   }
+  /* Everything typed, drawn, photographed or recorded is kept as a draft a moment after it changes, so nothing is lost if the kid leaves without tapping Turn it in.
+     A draft does not count as turned in (no submittedAt), so it does not land in Mom's review queue until it is turned in. */
+  var draftTimer = null, draftSnap = JSON.stringify(blocks);
+  function scheduleDraft(){
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(function(){
+      var j = JSON.stringify(blocks);
+      if(j===draftSnap || !db) return;
+      draftSnap = j; a.workBlocks = blocks;
+      if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
+      db.doc("assignments/"+a.id).update({workBlocks: blocks});
+      savedNote.textContent = "Saved \u2705";
+    }, 900);
+  }
   var scratchStatus = null;
   function renderBlocks(){
+    scheduleDraft();
     blocksWrap.innerHTML = "";
     blocks.forEach(function(block, i){
       var row = document.createElement("div");
       row.style.cssText = "position:relative;margin-bottom:10px";
+      if(block.check) return;
       if(block.type==="text" && isAnnaMode && !block.text && !showTyping) return;
       if(block.type==="audio"){
         var au = document.createElement("audio");
@@ -6553,7 +6570,7 @@ function renderLessonDetail(){
         ta.placeholder = isAnnaMode ? "Type here if you want to (you can also show or tell it above!)" : "Type your answer, notes, or steps here...";
         ta.rows = 4;
         ta.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 34px 10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
-        ta.oninput = function(){ block.text = ta.value; };
+        ta.oninput = function(){ block.text = ta.value; scheduleDraft(); };
         row.appendChild(ta);
       } else if(block.type==="image"){
         var img = document.createElement("img");
@@ -6696,11 +6713,7 @@ function renderLessonDetail(){
     addPicLabel.appendChild(picInput);
     if(scratchNeeded){
       var scratch = document.createElement("div"); scratch.className = "scratch-card";
-      scratch.innerHTML = '<div class="sc-title">\u270F\uFE0F Show me your thinking!</div><div class="sc-sub">Do your math on paper first. Then take a picture of your scratch work.</div><div class="sc-btns"></div><div class="sc-status"></div>';
-      var scBtns = scratch.querySelector(".sc-btns");
-      [["\uD83D\uDCF7 Show it", function(){ camBtn.click(); }], ["\uD83D\uDDBC\uFE0F Add a picture file", function(){ picInput.click(); }]].forEach(function(x){
-        var b = document.createElement("button"); b.type = "button"; b.textContent = x[0]; b.onclick = x[1]; scBtns.appendChild(b);
-      });
+      scratch.innerHTML = '<div class="sc-title">\u270F\uFE0F Show me your thinking!</div><div class="sc-sub">Do your math on paper first. Then tap the pink <b>Show it</b> button below (in My Work) and take a picture of your scratch work.</div><div class="sc-status"></div>';
       var scStatus = scratch.querySelector(".sc-status");
       scratchStatus = function(){
         var n = blocks.filter(function(b){ return b.type==="image"; }).length;
@@ -6825,23 +6838,75 @@ function renderLessonDetail(){
     var now = new Date().toISOString();
     var updates = {workBlocks: blocks, submittedAt: now};
     if(a.reviewStatus==="flagged"){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
-    a.workBlocks = blocks;
+    a.workBlocks = blocks; draftSnap = JSON.stringify(blocks);
     if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {workBlocks: blocks, submittedAt: now, reviewStatus: a.reviewStatus, reviewNote: a.reviewNote});
     db.doc("assignments/"+a.id).update(updates);
     savedNote.textContent = "Saved just now";
   }
 
-  var saveBtn = document.createElement("button");
-  saveBtn.className = "reward-skip";
-  saveBtn.style.cssText = "color:var(--ink);opacity:1;font-weight:700;display:block;margin:10px auto 12px";
-  saveBtn.textContent = "💾 Save my work";
-  saveBtn.onclick = saveWork;
-  els.view.appendChild(saveBtn);
+  /* "Check Yourself" gets answer buttons right at the question (yes / not yet, or a short answer), so a young kid does not have to notice a box far below. */
+  (function wireCheckYourself(){
+    var wraps = card.querySelectorAll(".chk-ans-wrap");
+    if(!wraps.length) return;
+    function findCheck(){ for(var i=0;i<blocks.length;i++){ if(blocks[i].check) return blocks[i]; } return null; }
+    function saveCheck(q, ans){
+      var cb = findCheck();
+      if(!cb){ cb = {type:"text", check:true, text:"", answers:{}}; blocks.push(cb); }
+      cb.answers = cb.answers || {}; cb.answers[q] = ans;
+      cb.text = "Check Yourself answers:\n"+Object.keys(cb.answers).map(function(k){ return "- "+k+" -> "+cb.answers[k]; }).join("\n");
+      a.workBlocks = blocks;
+      if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
+      if(db) db.doc("assignments/"+a.id).update({workBlocks: blocks});
+    }
+    var btnCss = "min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:700;cursor:pointer";
+    wraps.forEach(function(w){
+      var raw = w.getAttribute("data-text") || "", qs = raw.match(/[^?]+\?/g) || [raw];
+      var have = (findCheck() || {}).answers || {};
+      w.innerHTML = "";
+      qs.forEach(function(q0){
+        var q = q0.trim(); if(!q) return;
+        var box = document.createElement("div");
+        box.style.cssText = "margin:8px 0 10px;padding:12px 14px;border-radius:12px;background:var(--card);border:2px solid var(--gold)";
+        var head = document.createElement("div"); head.style.cssText = "display:flex;gap:8px;align-items:flex-start;font-size:17px;font-weight:800;line-height:1.4";
+        var qt = document.createElement("span"); qt.style.flex = "1"; qt.textContent = q;
+        var sp = document.createElement("button"); sp.type = "button"; sp.textContent = "\uD83D\uDD0A"; sp.title = "Read it to me"; sp.style.cssText = "border:none;background:none;font-size:20px;cursor:pointer;flex:none";
+        sp.onclick = function(){ speak(q); };
+        head.appendChild(qt); head.appendChild(sp); box.appendChild(head);
+        var fb = document.createElement("div"); fb.style.cssText = "margin-top:8px;font-size:14.5px;min-height:1.3em";
+        var row = document.createElement("div"); row.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin-top:10px";
+        function mark(btn, on){ btn.style.borderColor = on ? "var(--gold)" : "var(--border)"; btn.style.background = on ? "var(--gold-soft)" : "var(--card)"; }
+        if(/^(do|did|does|can|could|is|are|was|were|will|would|have|has|should)\b/i.test(q) && !/\bor\b/i.test(q)){
+          var yes = document.createElement("button"), no = document.createElement("button");
+          yes.type = no.type = "button"; yes.style.cssText = no.style.cssText = btnCss; yes.style.flex = no.style.flex = "1";
+          yes.textContent = "\u2705 Yes!"; no.textContent = "\uD83E\uDD14 Not yet";
+          function pick(v){ mark(yes, v==="Yes"); mark(no, v!=="Yes"); fb.textContent = v==="Yes" ? "Great job! \uD83C\uDF1F" : "That is okay! Look back at the lesson and try again. Tap Yes when it is fixed."; saveCheck(q, v); }
+          yes.onclick = function(){ pick("Yes"); }; no.onclick = function(){ pick("Not yet"); };
+          row.appendChild(yes); row.appendChild(no);
+          if(have[q]){ mark(yes, have[q]==="Yes"); mark(no, have[q]!=="Yes"); fb.textContent = have[q]==="Yes" ? "Great job! \uD83C\uDF1F" : "That is okay! Look back at the lesson and try again. Tap Yes when it is fixed."; }
+        } else {
+          var inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "Type your answer here";
+          inp.style.cssText = "flex:1;min-width:180px;min-height:48px;padding:8px 12px;font:inherit;font-size:16px;border-radius:12px;border:2px solid var(--border);background:var(--paper);color:var(--text)";
+          var sv = document.createElement("button"); sv.type = "button"; sv.style.cssText = btnCss; sv.textContent = "\u2705 Save";
+          var told = document.createElement("button"); told.type = "button"; told.style.cssText = btnCss; told.textContent = "\uD83D\uDDE3\uFE0F I told Mom";
+          sv.onclick = function(){ if(!inp.value.trim()){ fb.textContent = "Type your answer first, or tap I told Mom."; return; } saveCheck(q, inp.value.trim()); fb.textContent = "Saved! \uD83C\uDF1F You can change it any time."; };
+          told.onclick = function(){ saveCheck(q, "Told Mom"); fb.textContent = "Great job telling Mom! \uD83C\uDF1F"; mark(told, true); };
+          row.appendChild(inp); row.appendChild(sv); row.appendChild(told);
+          if(have[q]){ if(have[q]==="Told Mom") mark(told, true); else inp.value = have[q]; fb.textContent = "Saved \u2705"; }
+        }
+        box.appendChild(row); box.appendChild(fb); w.appendChild(box);
+      });
+    });
+  })();
+
+  var saveHint = document.createElement("div");
+  saveHint.className = "muted"; saveHint.style.cssText = "text-align:center;font-size:12.5px;margin:8px 0 6px";
+  saveHint.textContent = "Your work saves by itself as you go. Tap Turn it in when you are finished.";
+  els.view.appendChild(saveHint);
 
   var doneBtn = document.createElement("button");
   doneBtn.className = "primary-btn";
   doneBtn.style.width = "100%";
-  doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Turn it in";
+  doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Save and turn it in";
   doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
   if(a.done && a.reviewStatus==="flagged"){
     /* Sent back with a note but still counted: fixing it should never undo the credit. */
@@ -7150,7 +7215,7 @@ function renderLeaderArea(){
     Object.keys(state.assignments).forEach(function(id){
       var a = state.assignments[id];
       if(a.kidId!==k.id) return;
-      if(!hasWork(a) && a.quizScore==null) return;
+      if(!(hasWork(a) && (a.submittedAt || a.done)) && a.quizScore==null) return;
       all.push(Object.assign({id:id, kidName: kidData(k.id).name}, a));
     });
   });
@@ -18954,7 +19019,7 @@ function patchAnnaSsOverdue(){
   if(!db) return;
   var today = todayISO();
   var late = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
-    .filter(function(x){ return x.a.kidId==="kid1" && !x.a.done && x.a.skillId==="anna-ss-creek-cherokee" && x.a.date && x.a.date<today && !hasWork(x.a) && x.a.reviewStatus!=="retired"; })
+    .filter(function(x){ return x.a.kidId==="kid1" && !x.a.done && x.a.skillId==="anna-ss-creek-cherokee" && x.a.date && x.a.date<today && !(hasWork(x.a) && (x.a.submittedAt || x.a.done)) && x.a.reviewStatus!=="retired"; })
     .sort(function(x,y){ return x.a.date.localeCompare(y.a.date) || String(x.a.title).localeCompare(String(y.a.title)); });
   if(!late.length) return;
   var d = new Date(today+"T00:00:00");
@@ -19721,7 +19786,7 @@ function catchUpCard(){
   var today = todayISO(), total = 0, perKid = {};
   KIDS.forEach(function(k){
     perKid[k.id] = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
-      .filter(function(x){ return x.a.kidId===k.id && !x.a.done && x.a.date && x.a.date<today && !hasWork(x.a) && x.a.reviewStatus!=="retired"; })
+      .filter(function(x){ return x.a.kidId===k.id && !x.a.done && x.a.date && x.a.date<today && !(hasWork(x.a) && (x.a.submittedAt || x.a.done)) && x.a.reviewStatus!=="retired"; })
       .sort(function(x,y){ return x.a.date.localeCompare(y.a.date); });
     total += perKid[k.id].length;
   });
