@@ -8729,7 +8729,15 @@ function doc(path){
       return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(checkWriteError);
     },
     delete: function(){
-      return sb.from(table).delete().eq(keyCol, id).then(checkWriteError);
+      /* .select() returns the rows really removed, so a delete the server refuses (0 rows, no error) is caught instead of looking like it worked. */
+      return sb.from(table).delete().eq(keyCol, id).select().then(function(res){
+        if(res && !res.error && Array.isArray(res.data) && res.data.length===0){
+          console.warn("Academy Log: delete removed 0 rows for "+path);
+          res.error = {message:"the server did not delete it (0 rows removed)"};
+          res.notRemoved = true;
+        }
+        return checkWriteError(res);
+      });
     },
     onSnapshot: function(){ /* no-op: this build polls instead of pushing live snapshots per-doc */ }
   };
@@ -11871,8 +11879,8 @@ function addSeed(obj){
 var annaFillSeen = {};
 /* Same kid, same day, same title, not started: keep one and delete the extras (these came from the same lesson being added twice). Never touches a done or started lesson. */
 function patchDuplicateLessons(){
-  if(!db) return;
-  var today = todayISO(), groups = {}, removed = 0;
+  if(!db) return Promise.resolve({tried:0, gone:0});
+  var today = todayISO(), groups = {}, removed = 0, pend = [];
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(!a.kidId || !a.date || a.date<today) return;
@@ -11891,7 +11899,7 @@ function patchDuplicateLessons(){
   Object.keys(series).forEach(function(k){
     var g = series[k]; if(g.length<2) return;
     g.sort(function(x,y){ return x.a.date.localeCompare(y.a.date) || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || x.id.localeCompare(y.id); });
-    g.slice(1).forEach(function(it){ db.doc("assignments/"+it.id).delete(); delete state.assignments[it.id]; removed++; });
+    g.slice(1).forEach(function(it){ pend.push(db.doc("assignments/"+it.id).delete()); delete state.assignments[it.id]; removed++; });
   });
   Object.keys(groups).forEach(function(k){
     var g = groups[k]; if(g.length<2) return;
@@ -11901,10 +11909,11 @@ function patchDuplicateLessons(){
     });
     g.slice(1).forEach(function(it){
       if(it.a.done || hasWork(it.a)) return;
-      db.doc("assignments/"+it.id).delete(); delete state.assignments[it.id]; removed++;
+      pend.push(db.doc("assignments/"+it.id).delete()); delete state.assignments[it.id]; removed++;
     });
   });
   if(removed) console.log("patchDuplicateLessons: removed "+removed+" repeated lesson(s)");
+  return Promise.all(pend).then(function(rs){ return {tried:pend.length, gone:rs.filter(function(r){ return r && !r.error && !r.notRemoved; }).length}; });
 }
 function fillAnnaDailyBasics(){
   if(!db) return;
@@ -20264,10 +20273,15 @@ function scheduleCopyCard(){
     var fixMsg = document.createElement("div"); fixMsg.style.cssText = "font-size:12.5px;margin:4px 0 8px";
     fixBtn.onclick = function(){
       var before = duplicateLessons().length;
-      try{ patchDuplicateLessons(); patchAnnaStorytimeFromReaders(); }catch(e){ console.error(e); }
-      var left = duplicateLessons();
-      fixMsg.textContent = "Cleaned "+(before-left.length)+" of "+before+" repeated groups."+(left.length ? " "+left.length+" left: a kid already started or finished one of each, so they were kept. "+left.slice(0,6).map(function(g){ return g[0].date+" "+String(g[0].title).slice(0,40)+" x"+g.length; }).join("; ") : " All clean.");
-      sum.textContent = "📋 Copy the schedule for Claude"+(left.length ? " ("+left.length+" repeated lesson"+(left.length>1?"s":"")+" found)" : "");
+      fixMsg.textContent = "Working...";
+      var job; try{ job = patchDuplicateLessons(); patchAnnaStorytimeFromReaders(); }catch(e){ console.error(e); job = Promise.resolve({tried:0, gone:0}); }
+      Promise.resolve(job).then(function(r){
+        var left = duplicateLessons();
+        var bad = r.tried - r.gone;
+        fixMsg.textContent = (bad>0 ? "⚠️ The server refused to delete "+bad+" of "+r.tried+" lessons, so they will come back on reload. Tell Claude. " : "Server confirmed "+r.gone+" removed. ")
+          +"Cleaned "+(before-left.length)+" of "+before+" repeated groups."+(left.length ? " "+left.length+" left: a kid already started or finished one of each, so they were kept. "+left.slice(0,6).map(function(g){ return g[0].date+" "+String(g[0].title).slice(0,40)+" x"+g.length; }).join("; ") : " All clean.");
+        sum.textContent = "📋 Copy the schedule for Claude"+(left.length ? " ("+left.length+" repeated lesson"+(left.length>1?"s":"")+" found)" : "");
+      });
     };
     det.appendChild(fixBtn); det.appendChild(fixMsg);
   }
@@ -25328,7 +25342,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.19";
+var APP_BUILD = "2026-10-21.20";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
