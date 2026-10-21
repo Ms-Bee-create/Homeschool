@@ -19361,8 +19361,8 @@ function runAutoMigrations(){
 var DAILY_LESSON_CAP = {kid1:6, kid2:5};
 var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
 /* Mon-Thu limits per kind of lesson, so one block's time window is not stacked: at most this many lessons in the same block on one day
-   (project = Independent, Related Arts, Live Lesson), and at most this many brand-new "teach" lessons in a day. Overflow moves to the next day. */
-var BLOCK_DAY_CAP = {kid1:{project:2}, kid2:{project:2}};
+   (project = Independent, Related Arts, Live Lesson; math = 2 so a day is never all Math), and at most this many brand-new "teach" lessons in a day. Overflow moves to the next day. */
+var BLOCK_DAY_CAP = {kid1:{project:2, math:2}, kid2:{project:2, math:2}};
 var TEACH_DAY_CAP = {kid1:2, kid2:2};
 function dayCapFor(kidId, iso){
   var dow = new Date(iso+"T00:00:00").getDay();
@@ -19399,7 +19399,7 @@ function moveWeekendLessonsToMonday(){
    lessons stay, and anything pushed along keeps its place in line, so a series stays in order. On Fridays, book and project lessons stay first. */
 function balanceFutureLoad(){
   if(!db) return;
-  var tomorrow = isoDate(addSchoolDays(new Date(todayISO()+"T00:00:00"), 1)), moved = 0;
+  var tomorrow = todayISO(), moved = 0; /* starts today: unstarted lessons on a stacked day move on, started or finished ones stay */
   ["kid1","kid2"].forEach(function(kid){
     var fixed = {}, fixedBlk = {}, fixedTeach = {}, byDate = {}, maxDate = tomorrow;
     Object.keys(state.assignments).forEach(function(id){
@@ -23352,7 +23352,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.6";
+var APP_BUILD = "2026-10-21.7";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
