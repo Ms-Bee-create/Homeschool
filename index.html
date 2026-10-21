@@ -813,9 +813,25 @@ var WEEKEND_EXTRAS = [
   {title:"How does a floppy disk actually work?", blurb:"The magnetic disk spinning inside that plastic shell is how an entire game used to fit on one \"floppy.\"", link:"https://www.youtube.com/watch?v=FLJTUvlsVBg",
     steps:["Watch the video above.","Without looking anything up, explain to someone in your family how a floppy disk stores data.","See if you can answer it if they ask a follow-up question."]}
 ];
+/* Days off. School runs Monday to Friday except these ranges (breaks, trips, a missed day). Every scheduler treats an off day like a
+   weekend: lessons are not placed on it, unfinished ones move to the next school day, and it does not break a streak or use up
+   Anna's daily Math and Storytime. The list lives in al_settings.family_goal.daysOff (shared) and starts with these two breaks. */
+var DAYS_OFF_DEFAULT = [
+  {from:"2026-11-23", to:"2026-11-27", label:"Thanksgiving week"},
+  {from:"2026-12-21", to:"2027-01-08", label:"Winter break"}
+];
+function daysOffList(){
+  var g = familyGoal();
+  return Array.isArray(g.daysOff) ? g.daysOff : DAYS_OFF_DEFAULT;
+}
+function isDayOffIso(iso){
+  var l = daysOffList();
+  for(var i=0;i<l.length;i++){ if(iso>=l[i].from && iso<=(l[i].to||l[i].from)) return true; }
+  return false;
+}
+function isOffDate(d){ return d.getDay()===0 || d.getDay()===6 || isDayOffIso(isoDate(d)); }
 function isWeekendIso(iso){
-  var dow = new Date(iso+"T00:00:00").getDay();
-  return dow===0 || dow===6;
+  return isOffDate(new Date(iso+"T00:00:00"));
 }
 /* Same 3 picks all day (and if he checks back later), a different trio most weekends — keyed off
    the date so it doesn't reshuffle on every render, rotating through the whole pool over several
@@ -1051,7 +1067,7 @@ function setSectionOverride(key, isOpen){
    break just because there's no school on Saturday/Sunday. */
 function prevSchoolDay(d){
   var p = new Date(d); p.setDate(p.getDate()-1);
-  while(p.getDay()===0 || p.getDay()===6){ p.setDate(p.getDate()-1); }
+  while(isOffDate(p)){ p.setDate(p.getDate()-1); }
   return p;
 }
 /* A streak survives as long as no school day was skipped. Last counted on or after the most recent
@@ -1069,7 +1085,7 @@ function addSchoolDays(d, n){
   var p = new Date(d);
   while(n>0){
     p.setDate(p.getDate()+1);
-    if(p.getDay()!==0 && p.getDay()!==6) n--;
+    if(!isOffDate(p)) n--;
   }
   return p;
 }
@@ -2156,7 +2172,7 @@ function materialsCard(){
   if(isDetailsOpen(openKey)) det.open = true;
   det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
   var d1 = new Date(todayISO()+"T00:00:00");
-  if(d1.getDay()===0 || d1.getDay()===6){ while(d1.getDay()===0 || d1.getDay()===6) d1.setDate(d1.getDate()+1); }
+  if(isOffDate(d1)){ while(isOffDate(d1)) d1.setDate(d1.getDate()+1); }
   var d2 = addSchoolDays(d1, 1);
   var days = [{label:(isoDate(d1)===todayISO() ? "Today" : "Next school day"), iso:isoDate(d1)}, {label:"Tomorrow, so you can get ready", iso:isoDate(d2)}];
   var total = 0; days.forEach(function(d){ d.items = materialsFor(d.iso); total += d.items.length; });
@@ -7113,7 +7129,7 @@ function suggestedStreak(kidId){
     if(a.kidId===kidId && a.done && a.doneAt) days[new Date(a.doneAt).toDateString()] = true;
   });
   var d = new Date(); d.setHours(0,0,0,0);
-  if(d.getDay()===0 || d.getDay()===6) d = prevSchoolDay(new Date(d.getTime()+86400000));
+  if(isOffDate(d)) d = prevSchoolDay(new Date(d.getTime()+86400000));
   else if(!days[d.toDateString()]) d = prevSchoolDay(d);
   var n = 0;
   while(days[d.toDateString()]){ n++; d = prevSchoolDay(d); }
@@ -7166,7 +7182,7 @@ function applyStreak(kidId, field, dateField, n){
   upd[field] = n;
   if(n>0){
     var today = new Date(); today.setHours(0,0,0,0);
-    var todayWeekday = today.getDay()!==0 && today.getDay()!==6;
+    var todayWeekday = !isOffDate(today);
     // Keep it alive: counted through the last school day, so the next lesson continues it.
     upd[dateField] = (todayWeekday ? prevSchoolDay(today) : prevSchoolDay(new Date(today.getTime()+86400000))).toDateString();
     if(dateField==="lastCompletedDate" && todayWeekday){
@@ -7214,6 +7230,7 @@ function renderLeaderArea(){
   els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
+  els.view.appendChild(daysOffCard());
   els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
@@ -11605,7 +11622,7 @@ var ANNA_READERS_SPECIFIC = {
 var ANNA_READERS_SPLIT_FROM = "2026-10-20";
 function annaReadersSchoolDays(d){
   var c = new Date(ANNA_READERS_START+"T00:00:00"), n = 0;
-  while(c < d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) n++; }
+  while(c < d){ c.setDate(c.getDate()+1); if(!isOffDate(c)) n++; }
   return n;
 }
 function annaReaderEnd(i){ var next = ANNA_READERS[i+1]; return next ? next[1]-1 : ANNA_READERS_LAST_PAGE; }
@@ -11773,12 +11790,12 @@ function patchDuplicateLessons(){
 function fillAnnaDailyBasics(){
   if(!db) return;
   var d = new Date(todayISO()+"T00:00:00");
-  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  while(isOffDate(d)) d.setDate(d.getDate()+1);
   var anchor = new Date("2026-01-05T00:00:00"), added = 0;
   for(var i=0;i<10;i++){
     var iso = isoDate(d);
     var ordinal = 0, c = new Date(anchor);
-    while(c<d){ c.setDate(c.getDate()+1); if(c.getDay()!==0 && c.getDay()!==6) ordinal++; }
+    while(c<d){ c.setDate(c.getDate()+1); if(!isOffDate(c)) ordinal++; }
     var have = {};
     Object.keys(state.assignments).forEach(function(id){
       var a = state.assignments[id];
@@ -18605,7 +18622,7 @@ function nthMonWedFri(start, n){
   var d = new Date(start), seen = -1;
   while(true){
     var w = d.getDay();
-    if(w===1 || w===3 || w===5){ seen++; if(seen===n) return d; }
+    if((w===1 || w===3 || w===5) && !isOffDate(d)){ seen++; if(seen===n) return d; }
     d.setDate(d.getDate()+1);
   }
 }
@@ -18613,7 +18630,7 @@ function nthMonWedFri(start, n){
 function nthOfDays(start, n, dows){
   var d = new Date(start), seen = -1;
   while(true){
-    if(dows.indexOf(d.getDay())>=0){ seen++; if(seen===n) return d; }
+    if(dows.indexOf(d.getDay())>=0 && !isOffDate(d)){ seen++; if(seen===n) return d; }
     d.setDate(d.getDate()+1);
   }
 }
@@ -18624,7 +18641,7 @@ function autoAddRyanMcLab3(){
     var has = all.some(function(a){ return a.kidId===(lab.kid||"kid2") && a.skillId===(lab.skill||"ryan-mc-lab-book") && a.title===lab.items[0].title; });
     try{ if(has || localStorage.getItem(lab.flag)) return; }catch(e){ if(has) return; }
     var start = new Date(todayISO()+"T00:00:00");
-    while(start.getDay()===0 || start.getDay()===6) start.setDate(start.getDate()+1);
+    while(isOffDate(start)) start.setDate(start.getDate()+1);
     lab.items.forEach(function(it){
       addSeed({
         kidId:(lab.kid||"kid2"), date:isoDate(lab.dows ? nthOfDays(start, it.d+lab.offset, lab.dows) : lab.mwf ? nthMonWedFri(start, it.d+lab.offset) : addSchoolDays(start, it.d+lab.offset)), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
@@ -18674,9 +18691,11 @@ function syncAnnaSsCh1(){
   while(start.getDay()!==5) start.setDate(start.getDate()+1);
   var flag = "al_anna_ss_v7", added = false;
   try{ added = !!localStorage.getItem(flag); }catch(e){}
+  var fri = new Date(start);
   ANNA_SS_CH1.forEach(function(it, i){
-    var d = new Date(start); d.setDate(d.getDate()+7*i);
-    var iso = isoDate(d), x = byTitle[it.title];
+    while(isDayOffIso(isoDate(fri))) fri.setDate(fri.getDate()+7); /* a Friday that is a day off is skipped, the series keeps its order */
+    var iso = isoDate(fri), x = byTitle[it.title];
+    fri.setDate(fri.getDate()+7);
     if(x){
       if(x.a.done) return;
       if(String(x.a.passage||"").indexOf("Part 1 of 2")>=0){ if(x.a.date!==iso && !hasWork(x.a)){ x.a.date = iso; db.doc("assignments/"+x.id).update({date:iso}); } return; } /* split into two days: keep its text, only keep its Friday */
@@ -19391,7 +19410,7 @@ function moveWeekendLessonsToMonday(){
   var today = todayISO(), moved = 0, counts = loadCounts();
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if((a.kidId!=="kid1" && a.kidId!=="kid2") || a.done || !a.date || a.date<today || !isWeekendIso(a.date) || hasWork(a)) return;
+    if((a.kidId!=="kid1" && a.kidId!=="kid2") || a.done || !a.date || a.date<today || !isWeekendIso(a.date) || hasWork(a) || a.skillId==="offscreen-friday") return;
     var dest = nextRoomDate(a.kidId, a.date, counts);
     counts[a.kidId+"|"+a.date] = (counts[a.kidId+"|"+a.date]||1)-1; counts[a.kidId+"|"+dest] = (counts[a.kidId+"|"+dest]||0)+1;
     a.date = dest; db.doc("assignments/"+id).update({date:dest}); moved++;
@@ -19757,6 +19776,8 @@ function familyGoal(){
   return Object.assign({}, FAMILY_GOAL_DEFAULT, local||{}, state.familyGoal||{});
 }
 function saveFamilyGoal(g){
+  var cur = familyGoal();
+  if(g.daysOff===undefined && cur.daysOff!==undefined) g = Object.assign({}, g, {daysOff:cur.daysOff});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -19859,6 +19880,57 @@ function familyGoalLeaderCard(){
   wrap.appendChild(det);
   return wrap;
 }
+/* ---------- Leader: days off (breaks and missed days) ---------- */
+function daysOffApply(list, msg){
+  var g = Object.assign({}, familyGoal(), {daysOff:list});
+  saveFamilyGoal(g).then(function(){
+    moveWeekendLessonsToMonday(); balanceFutureLoad();
+    toast(msg); renderLeaderArea();
+  });
+}
+function daysOffCard(){
+  var list = daysOffList().slice().sort(function(a,b){ return a.from.localeCompare(b.from); });
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"daysoff");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🗓️ Days off — "+list.length+" on the list";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "No lessons are put on these days. Anything not started that was on one moves to the next school day (in order, never more than a day can hold), and Anna's daily Math and Storytime pick up where they left off. Lessons a kid already started stay put.";
+  det.appendChild(note);
+  list.forEach(function(r, i){
+    var row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding:5px 0;border-top:1px solid var(--border)";
+    var t = document.createElement("span"); t.textContent = (r.label||"Day off")+": "+r.from+(r.to&&r.to!==r.from ? " to "+r.to : ""); row.appendChild(t);
+    var rm = document.createElement("button"); rm.type = "button"; rm.className = "reward-skip"; rm.style.cssText = "opacity:1;border:1px solid var(--border);padding:4px 10px;color:var(--ink)"; rm.textContent = "Remove";
+    rm.onclick = function(){ if(!window.confirm("Remove "+(r.label||"this day off")+"? Lessons already moved stay where they are.")) return; daysOffApply(list.filter(function(x,j){ return j!==i; }), "Removed"); };
+    row.appendChild(rm); det.appendChild(row);
+  });
+  var add = document.createElement("div"); add.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px";
+  function inp(type, ph, w){ var i = document.createElement("input"); i.type = type; if(ph) i.placeholder = ph; i.style.cssText = "font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;width:"+w+"px;background:var(--card);color:var(--ink)"; return i; }
+  var fromI = inp("date","",140), toI = inp("date","",140), labI = inp("text","Name (optional)",150);
+  var addB = document.createElement("button"); addB.type = "button"; addB.className = "primary-btn"; addB.textContent = "Add days off";
+  addB.onclick = function(){
+    if(!fromI.value){ toast("Pick the first day off"); return; }
+    var to = toI.value || fromI.value; if(to<fromI.value){ toast("The last day is before the first day"); return; }
+    daysOffApply(list.concat([{from:fromI.value, to:to, label:(labI.value||"Day off").trim().slice(0,40)}]), "Days off added");
+  };
+  [document.createTextNode("From "), fromI, document.createTextNode(" to "), toI, labI, addB].forEach(function(x){ add.appendChild(x); });
+  det.appendChild(add);
+  var miss = document.createElement("button"); miss.type = "button"; miss.className = "reward-skip"; miss.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;font-weight:600;color:var(--ink);margin-top:10px";
+  miss.textContent = "We missed today (move today's lessons to the next school days)";
+  miss.onclick = function(){
+    var t = todayISO();
+    if(isDayOffIso(t)){ toast("Today is already a day off"); return; }
+    if(!window.confirm("Mark today as a day off? Lessons not started yet move to the next school days. Finished or started ones stay.")) return;
+    daysOffApply(list.concat([{from:t, to:t, label:"Missed day"}]), "Today marked off. Lessons moved forward.");
+  };
+  det.appendChild(miss);
+  wrap.appendChild(det);
+  return wrap;
+}
 /* ---------- Leader: old unfinished lessons (catch-up list) ---------- */
 function catchUpCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
@@ -19938,7 +20010,7 @@ function catchUpCard(){
 function weekReportData(kidId, days){
   var today = todayISO(), dates = [], d = new Date(today+"T00:00:00");
   while(dates.length<days){
-    if(d.getDay()!==0 && d.getDay()!==6) dates.push(isoDate(d));
+    if(!isOffDate(d)) dates.push(isoDate(d));
     d.setDate(d.getDate()-1);
   }
   var bySubject = {}, perDay = dates.map(function(iso){
@@ -20153,13 +20225,13 @@ function gimkitExportCard(){
 var packStartISO = null;
 function packStart(){
   var d = new Date((packStartISO||todayISO())+"T00:00:00");
-  while(d.getDay()===0 || d.getDay()===6) d.setDate(d.getDate()+1);
+  while(isOffDate(d)) d.setDate(d.getDate()+1);
   return d;
 }
 function packStartChoices(){
   var out = [], d = new Date(todayISO()+"T00:00:00"), names = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   while(out.length<10){
-    if(d.getDay()!==0 && d.getDay()!==6){
+    if(!isOffDate(d)){
       var label = (out.length===0 && isoDate(d)===todayISO() ? "Today — " : "")+names[d.getDay()]+" "+(d.getMonth()+1)+"/"+d.getDate();
       out.push({iso:isoDate(d), label:label});
     }
@@ -20355,7 +20427,7 @@ function addUsHistoryPack(){
     if(have[it.title]) return;
     var guard = 0, iso;
     do { d.setDate(d.getDate()+1); iso = isoDate(d); guard++; }
-    while(guard<400 && ((d.getDay()!==2 && d.getDay()!==4) || (counts[iso]||0)>=target));
+    while(guard<400 && ((d.getDay()!==2 && d.getDay()!==4) || isOffDate(d) || (counts[iso]||0)>=target));
     counts[iso] = (counts[iso]||0)+1;
     if(!first) first = iso; final = iso; n++;
     addSeed({kidId:kid, date:iso, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
@@ -23355,7 +23427,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.8";
+var APP_BUILD = "2026-10-21.9";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
