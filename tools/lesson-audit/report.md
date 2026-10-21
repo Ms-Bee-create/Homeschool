@@ -1,12 +1,12 @@
 # Lesson audit
 
-Lessons checked: 487. With problems: 41. Warnings only: 220.
+Lessons checked: 492. With problems: 41. Warnings only: 225.
 
 ## Most common
 - 39 x standard N-N.F is not verified (rule N)
 - 30 x no instructions at all (rule N)
 - 24 x no way to check understanding (no Check Yourself, no quiz)
-- 22 x kid: one sentence is N words long
+- 23 x kid: one sentence is N words long
 - 18 x standard SSNGN is not verified (rule N)
 - 18 x standard SSNHN is not verified (rule N)
 - 18 x standard SNLN exists but fit not confirmed (rule N)
@@ -15,6 +15,7 @@ Lessons checked: 487. With problems: 41. Warnings only: 220.
 - 12 x standard ELAGSENRLN is not verified (rule N)
 - 11 x standard SNEN is not verified (rule N)
 - 9 x standard SSNCGN is not verified (rule N)
+- 8 x standard N.NR.N/N.NR.N exists but fit not confirmed (rule N)
 - 8 x standard N.PAR.N exists but fit not confirmed (rule N)
 - 8 x standard SSNEN is not verified (rule N)
 - 8 x standard N.NR.N is not verified (rule N)
@@ -22,7 +23,7 @@ Lessons checked: 487. With problems: 41. Warnings only: 220.
 - 7 x lesson page shows broken text (undefined / [object])
 - 7 x no numbered steps to follow
 - 6 x standard ELAGSENRIN exists but fit not confirmed (rule N)
-- 6 x standard N.NR.N/N.NR.N exists but fit not confirmed (rule N)
+- 6 x standard ELAGSENWN exists but fit not confirmed (rule N)
 - 5 x standard SNLN is not verified (rule N)
 - 5 x standard ELAGSENSLN exists but fit not confirmed (rule N)
 - 5 x standard N.GSR.N/N.GSR.N is not verified (rule N)
@@ -32,7 +33,6 @@ Lessons checked: 487. With problems: 41. Warnings only: 220.
 - 4 x standard SNEN exists but fit not confirmed (rule N)
 - 4 x teaching lesson without a worked example (rule N)
 - 3 x kid: long (N words), may feel like a wall of text
-- 3 x standard ELAGSENWN exists but fit not confirmed (rule N)
 - 3 x kid: sentences average N words (hard to read)
 - 3 x standard N.GSR.N is not verified (rule N)
 - 3 x standard SNPN/SNPN is not verified (rule N)
