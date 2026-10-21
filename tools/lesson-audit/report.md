@@ -1,6 +1,6 @@
 # Lesson audit
 
-Lessons checked: 512. With problems: 25. Warnings only: 208.
+Lessons checked: 517. With problems: 25. Warnings only: 175.
 
 ## Most common
 - 24 x no way to check understanding (no Check Yourself, no quiz)
@@ -14,47 +14,40 @@ Lessons checked: 512. With problems: 25. Warnings only: 208.
 - 12 x standard ELAGSENRLN is not verified (rule N)
 - 11 x standard SNEN is not verified (rule N)
 - 9 x standard SSNCGN is not verified (rule N)
-- 8 x standard N.PAR.N exists but fit not confirmed (rule N)
 - 8 x standard SSNEN is not verified (rule N)
-- 8 x standard N.NR.N is not verified (rule N)
 - 7 x no standard tag (rule N)
 - 7 x lesson page shows broken text (undefined / [object])
 - 7 x no numbered steps to follow
 - 6 x standard ELAGSENRIN exists but fit not confirmed (rule N)
-- 6 x standard N.NR.N/N.NR.N exists but fit not confirmed (rule N)
 - 5 x standard SNLN is not verified (rule N)
 - 5 x standard ELAGSENSLN exists but fit not confirmed (rule N)
-- 5 x standard N.GSR.N/N.GSR.N is not verified (rule N)
 - 4 x kid: long (N words), may feel like a wall of text
 - 4 x apply lesson without Show What You Know (rule N)
-- 4 x standard N.NR.N exists but fit not confirmed (rule N)
-- 4 x standard N.MDR.N exists but fit not confirmed (rule N)
 - 4 x standard SNPN exists but fit not confirmed (rule N)
 - 4 x kid: long (N words)
 - 4 x standard SNEN exists but fit not confirmed (rule N)
 - 4 x teaching lesson without a worked example (rule N)
 - 3 x kid: sentences average N words (hard to read)
-- 3 x standard N.GSR.N is not verified (rule N)
 - 2 x standard ELAGSENWN is not verified (rule N)
-- 2 x standard N.GSR.N exists but fit not confirmed (rule N)
-- 2 x standard N.NR.N/N.NR.N is not verified (rule N)
+- 2 x standard N.NR.N is not verified (rule N)
 - 2 x standard SNPN is not verified (rule N)
 - 2 x uses supplies but has no "Gather first" list
 - 2 x standard SSNEN/SSNEN is not verified (rule N)
 - 1 x standard ELAGSENRIN is not verified (rule N)
 - 1 x standard MGSEN.G.N is not verified (rule N)
 - 1 x standard MGSEN.OA.N is not verified (rule N)
+- 1 x standard N.NR.N/N.NR.N is not verified (rule N)
 - 1 x standard SSNGN/SSNGN is not verified (rule N)
 
 ## Lessons with problems
 
 **Ryan 2099-01-01 - Blueprint your build: sketch your footprint on paper before opening Minecraft — mark the length and width in blocks.**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.GSR.7/4.GSR.8 is not verified (rule 24)
+
 
 **Ryan 2099-01-01 - Measure your blueprint: what's the perimeter and area of your planned footprint, in blocks?**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.GSR.7/4.GSR.8 is not verified (rule 24)
+
 
 **Ryan 2099-01-01 - Terraform your land: shape the ground before you build — smooth hills instead of sharp cliffs, curvy rivers instead of straight ones.**
 - PROBLEM: no instructions at all (rule 19)
@@ -62,7 +55,7 @@ Lessons checked: 512. With problems: 25. Warnings only: 208.
 
 **Ryan 2099-01-01 - Mark your build's corners with X/Z coordinates — write down all 4 corner coordinates in your lab journal.**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.MDR.6 exists but fit not confirmed (rule 24)
+
 
 **Ryan 2099-01-01 - Map your build like a neighborhood: label where each structure is relative to true north.**
 - PROBLEM: no instructions at all (rule 19)
@@ -74,11 +67,11 @@ Lessons checked: 512. With problems: 25. Warnings only: 208.
 
 **Ryan 2099-01-01 - Add structural detail: recess a window, trim a roofline, mix at least 2 block types on one wall for texture.**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.GSR.7/4.GSR.8 is not verified (rule 24)
+
 
 **Ryan 2099-01-01 - Villager trading ratios: find a villager trade and figure out the exchange ratio (e.g. how many emeralds per item).**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.PAR.3 exists but fit not confirmed (rule 24)
+
 
 **Ryan 2099-01-01 - Supply & demand at the trading post: why do some villager trades cost more emeralds than others?**
 - PROBLEM: no instructions at all (rule 19)
@@ -90,7 +83,7 @@ Lessons checked: 512. With problems: 25. Warnings only: 208.
 
 **Ryan 2099-01-01 - Scale check: does your build look the right size next to a Minecraft villager? Compare block height to a villager's height and explain if anything looks off.**
 - PROBLEM: no instructions at all (rule 19)
-- warning: standard 4.GSR.7/4.GSR.8 is not verified (rule 24)
+
 
 **Ryan 2099-01-01 - Dig a cross-section into a hillside and label the soil layers you'd expect to see in real life (topsoil, subsoil, bedrock).**
 - PROBLEM: no instructions at all (rule 19)
