@@ -1,6 +1,6 @@
 # Lesson audit
 
-Lessons checked: 507. With problems: 25. Warnings only: 208.
+Lessons checked: 512. With problems: 25. Warnings only: 208.
 
 ## Most common
 - 24 x no way to check understanding (no Check Yourself, no quiz)
