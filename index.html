@@ -8084,7 +8084,10 @@ function patchArchiveChallengeLessons(){
   var n = 0;
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id], f = a.kidId==="kid2" && ARCHIVE_FIXES[a.title];
-    if(!f || a.done || hasWork(a) || a.passage) return;
+    if(!f || a.done || hasWork(a)) return;
+    /* A link that was removed from the lesson text must go from lessons already on the schedule too, even when the passage was patched earlier. */
+    if(a.passage && "materials" in f && f.materials===null && a.materials){ a.materials = null; db.doc("assignments/"+id).update({materials:null}); n++; return; }
+    if(a.passage) return;
     var up = {passage:f.passage};
     if(f.standard) up.standard = f.standard;
     if("materials" in f && f.materials===null && a.materials) up.materials = null;
