@@ -939,6 +939,24 @@ function todayIdxFor(d){ var day = d.getDay(); return day===0?6:day-1; }
    active in the app; lastAttendanceDate guards against double-counting the same day. */
 var GA_ANNUAL_DAYS_TARGET = 180;
 var GA_DAILY_HOURS_TARGET = 4.5;
+/* Georgia Connections Academy (the kids' school until 10 Sep 2026) counted every 4.5 hours as one
+   school day. Both kids' transcripts show 183 hours from 5 Aug to 10 Sep 2026 (about 40 days). The app
+   keeps that rule: school days = (hours before this app + estimated hours of finished work here) / 4.5.
+   Hours here are the app's lesson estimates unless the leader logs actualMinutes. */
+var PRIOR_SCHOOL_HOURS = {kid1:183, kid2:183};
+function kidLoggedMinutes(kidId){
+  var mins = 0;
+  assignmentsFor(kidId, null).forEach(function(a){ if(a.done && a.doneAt) mins += estMinutesFor(a); });
+  (state.journalEntries||[]).forEach(function(j){
+    if(j.kidId===kidId && j.launchMood && (j.launchGoal || (LAUNCH_KID[kidId] && LAUNCH_KID[kidId].noGoal))) mins += JOURNAL_EST_MINUTES;
+  });
+  (state.reflections||[]).forEach(function(r){ if(r.kidId===kidId) mins += REFLECTION_EST_MINUTES; });
+  return mins;
+}
+function schoolDaysByHours(kidId){
+  var hrs = (PRIOR_SCHOOL_HOURS[kidId]||0) + kidLoggedMinutes(kidId)/60;
+  return {hours:hrs, days:Math.floor(hrs/GA_DAILY_HOURS_TARGET)};
+}
 function stampAttendance(kidId){
   var kd = kidData(kidId);
   var todayStr = todayISO();
@@ -5138,7 +5156,10 @@ function exportProgressCSV(kidId){
   lines.push(["Generated", new Date().toLocaleString()].map(csvEscape).join(","));
   lines.push("");
   lines.push(["Georgia Home Study Law Compliance (O.C.G.A. § 20-2-690.1)"].map(csvEscape).join(","));
-  lines.push(["Attendance Days Logged", (kd.attendanceCount||0)+" / "+GA_ANNUAL_DAYS_TARGET].map(csvEscape).join(","));
+  var sdh = schoolDaysByHours(kidId);
+  lines.push(["School Days (4.5 hours = 1 day, includes "+(PRIOR_SCHOOL_HOURS[kidId]||0)+" hrs from previous school)", sdh.days+" / "+GA_ANNUAL_DAYS_TARGET].map(csvEscape).join(","));
+  lines.push(["Total Hours", sdh.hours.toFixed(1)].map(csvEscape).join(","));
+  lines.push(["Days With Activity In This App", (kd.attendanceCount||0)].map(csvEscape).join(","));
   lines.push("");
 
   /* A quest tagged with crossSubjects (e.g. the VM-install lessons — reading the docs, writing
@@ -5229,7 +5250,7 @@ function renderFamilyOverview(container){
       '<div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">'+
         '<div class="stat"><div class="stat-num">'+pct+'%</div><div class="stat-lbl">Done this week</div></div>'+
         '<div class="stat"><div class="stat-num">🔥'+(kd.streak||0)+'</div><div class="stat-lbl">Day streak</div></div>'+
-        '<div class="stat"><div class="stat-num">'+(kd.attendanceCount||0)+'/'+GA_ANNUAL_DAYS_TARGET+'</div><div class="stat-lbl">Attendance days</div></div>'+
+        '<div class="stat"><div class="stat-num">'+schoolDaysByHours(k.id).days+'/'+GA_ANNUAL_DAYS_TARGET+'</div><div class="stat-lbl">School days ('+schoolDaysByHours(k.id).hours.toFixed(0)+' hrs, 4.5 hrs = 1 day)</div></div>'+
         '<div class="stat"><div class="stat-num" style="color:var(--gold)">$'+(kd.mommaMoney||0)+'</div><div class="stat-lbl">To log on Momma Money</div></div>'+
       '</div>';
     if(kd.mommaMoney>0){
@@ -23331,7 +23352,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.5";
+var APP_BUILD = "2026-10-21.6";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
