@@ -19453,6 +19453,8 @@ function autoCheckSweep(){
 }
 function runAutoMigrations(){
   if(!db) return;
+  /* Repeated lessons are cleaned first and on their own, so a problem in any other patch below can never stop it. */
+  try{ patchDuplicateLessons(); }catch(e){ console.error("duplicate cleanup error", e); }
   try{
     patchFaithRetag("kid1"); patchFaithRetag("kid2");
     patchAnnaCreativeStudioRetag();
@@ -20180,6 +20182,19 @@ function scheduleCopyCard(){
   var dups = duplicateLessons();
   sum.textContent = "📋 Copy the schedule for Claude"+(dups.length ? " ("+dups.length+" repeated lesson"+(dups.length>1?"s":"")+" found)" : "");
   det.appendChild(sum);
+  if(dups.length){
+    var fixBtn = document.createElement("button"); fixBtn.type = "button"; fixBtn.className = "primary-btn"; fixBtn.style.cssText = "margin:8px 0 4px";
+    fixBtn.textContent = "🧹 Remove the repeated lessons now";
+    var fixMsg = document.createElement("div"); fixMsg.style.cssText = "font-size:12.5px;margin:4px 0 8px";
+    fixBtn.onclick = function(){
+      var before = duplicateLessons().length;
+      try{ patchDuplicateLessons(); patchAnnaStorytimeFromReaders(); }catch(e){ console.error(e); }
+      var left = duplicateLessons();
+      fixMsg.textContent = "Cleaned "+(before-left.length)+" of "+before+" repeated groups."+(left.length ? " "+left.length+" left: a kid already started or finished one of each, so they were kept. "+left.slice(0,6).map(function(g){ return g[0].date+" "+String(g[0].title).slice(0,40)+" x"+g.length; }).join("; ") : " All clean.");
+      sum.textContent = "📋 Copy the schedule for Claude"+(left.length ? " ("+left.length+" repeated lesson"+(left.length>1?"s":"")+" found)" : "");
+    };
+    det.appendChild(fixBtn); det.appendChild(fixMsg);
+  }
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
   note.textContent = "Copies a plain list of the next 3 weeks. Paste it to Claude so it can check how heavy each day is. Nothing is saved.";
   det.appendChild(note);
@@ -25227,7 +25242,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.16";
+var APP_BUILD = "2026-10-21.17";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
