@@ -6670,6 +6670,14 @@ function renderLessonDetail(){
   card.appendChild(workLabel);
 
   var blocks = normalizeBlocks(a);
+  /* Typing is also kept on this device the moment it happens, so a reload (update, tab discarded by the browser, crash) cannot lose it. It is cleared once the server has the draft. */
+  var wbKey = "al_wb_"+a.id;
+  function textLen(bl){ return (bl||[]).reduce(function(n,b){ return n + (b && b.type==="text" ? String(b.text||"").length : 0); }, 0); }
+  var restoredNote = false;
+  try{
+    var bk = JSON.parse(localStorage.getItem(wbKey)||"null");
+    if(bk && bk.blocks && textLen(bk.blocks) > textLen(blocks)){ blocks = bk.blocks; restoredNote = true; }
+  }catch(e){}
   var blocksWrap = document.createElement("div");
   card.appendChild(blocksWrap);
 
@@ -6702,10 +6710,13 @@ function renderLessonDetail(){
       if(j===draftSnap || !db) return;
       draftSnap = j; a.workBlocks = blocks;
       if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
-      db.doc("assignments/"+a.id).updateQuiet({workBlocks: blocks});
+      db.doc("assignments/"+a.id).updateQuiet({workBlocks: blocks}).then(function(res){
+        if(res && !res.error){ try{ if(JSON.stringify(JSON.parse(localStorage.getItem(wbKey)||"{}").blocks)===j) localStorage.removeItem(wbKey); }catch(e){} }
+      });
       savedNote.textContent = "Saved \u2705";
     }, 3000);
   }
+  if(restoredNote){ savedNote.textContent = "Got back what you were typing \u2705"; setTimeout(function(){ scheduleDraft(); }, 0); }
   var scratchStatus = null;
   function renderBlocks(){
     scheduleDraft();
@@ -6725,7 +6736,7 @@ function renderLessonDetail(){
         ta.placeholder = isAnnaMode ? "Type here if you want to (you can also show or tell it above!)" : "Type your answer, notes, or steps here...";
         ta.rows = 4;
         ta.style.cssText = "width:100%;font:inherit;font-size:14px;padding:10px 34px 10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--paper);color:var(--text);resize:vertical;box-sizing:border-box";
-        ta.oninput = function(){ block.text = ta.value; scheduleDraft(); };
+        ta.oninput = function(){ block.text = ta.value; try{ localStorage.setItem(wbKey, JSON.stringify({t:Date.now(), blocks:blocks})); }catch(e){} scheduleDraft(); };
         row.appendChild(ta);
       } else if(block.type==="image"){
         var img = document.createElement("img");
@@ -25420,7 +25431,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.22";
+var APP_BUILD = "2026-10-21.23";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
@@ -25434,8 +25445,13 @@ function showNewBuildBar(){
   b.style.cssText = "border:0;border-radius:999px;padding:6px 12px;font:700 13px system-ui,sans-serif;background:#fff;color:#2a9d8f;cursor:pointer";
   b.onclick = reloadForNewBuild; bar.appendChild(b); document.body.appendChild(bar);
 }
+/* Any typed work still waiting to reach the server (see the al_wb_ backup in the lesson work box). */
+function hasUnsavedTyping(){
+  try{ for(var i=0;i<localStorage.length;i++){ if(String(localStorage.key(i)).indexOf("al_wb_")===0) return true; } }catch(e){}
+  return false;
+}
 function newBuildSafeNow(){
-  return state.lessonDetailId==null && !state.quiz && !state.miniGame && !state.fileInputActive && !isTypingInFormField() && (Date.now()-lastTouchAt) > 12000;
+  return state.lessonDetailId==null && !state.quiz && !state.miniGame && !state.fileInputActive && !isTypingInFormField() && !hasUnsavedTyping() && (Date.now()-lastTouchAt) > 300000;
 }
 function checkForNewBuild(){
   if(document.hidden && !newBuildSeen) return;
