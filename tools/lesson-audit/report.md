@@ -1,6 +1,6 @@
 # Lesson audit
 
-Lessons checked: 500. With problems: 41. Warnings only: 226.
+Lessons checked: 507. With problems: 41. Warnings only: 228.
 
 ## Most common
 - 39 x standard N-N.F is not verified (rule N)
@@ -17,13 +17,13 @@ Lessons checked: 500. With problems: 41. Warnings only: 226.
 - 9 x standard SSNCGN is not verified (rule N)
 - 8 x standard N.NR.N/N.NR.N exists but fit not confirmed (rule N)
 - 8 x standard N.PAR.N exists but fit not confirmed (rule N)
+- 8 x standard ELAGSENWN exists but fit not confirmed (rule N)
 - 8 x standard SSNEN is not verified (rule N)
 - 8 x standard N.NR.N is not verified (rule N)
 - 7 x no standard tag (rule N)
 - 7 x lesson page shows broken text (undefined / [object])
 - 7 x no numbered steps to follow
 - 6 x standard ELAGSENRIN exists but fit not confirmed (rule N)
-- 6 x standard ELAGSENWN exists but fit not confirmed (rule N)
 - 5 x standard SNLN is not verified (rule N)
 - 5 x standard ELAGSENSLN exists but fit not confirmed (rule N)
 - 5 x standard N.GSR.N/N.GSR.N is not verified (rule N)
