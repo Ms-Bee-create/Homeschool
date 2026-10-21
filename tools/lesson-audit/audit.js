@@ -7,6 +7,12 @@ const h = require('./harness'); const fs = require('fs');
   await page.waitForTimeout(8000);
   await page.evaluate(()=>{ __fa.runAutoMigrations(); }); /* like a second page load, so patches see the lessons the first load created */
   await page.waitForTimeout(1500);
+  await page.evaluate(()=>{ /* packs Mom has not added yet are audited too, as if they were on the calendar */
+    __fa.contentPacks().forEach((pk,pi)=>{ (pk.items||[]).forEach((it,ii)=>{
+      if(Object.values(state.assignments).some(a=>a.kidId===pk.kid && a.title===it.title)) return;
+      state.assignments['pack'+pi+'_'+ii] = Object.assign({kidId:pk.kid, date:'2099-01-01', done:false}, it);
+    }); });
+  });
   const rows = await page.evaluate(()=>{
     const out = [];
     const ids = Object.keys(state.assignments);
