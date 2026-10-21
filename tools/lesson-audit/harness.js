@@ -7,10 +7,24 @@ const HID = '11111111-1111-1111-1111-111111111111';
 const CHROME = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const SBJS = process.env.SBJS || '/var/tmp/sbtest/node_modules/@supabase/supabase-js/dist/umd/supabase.js';
 exports.HID = HID;
+/* Optional copy of the family's real schedule: SEED=/path/to/export.json (made with EXPORT_AND_ROLEPLAY.md step 1).
+   The rows go into the fake database only, so tapping Done, answering quizzes and submitting work is safe: nothing reaches the real Supabase. */
+function seedStore(store){
+  const file = process.env.SEED; if(!file) return;
+  const exp = JSON.parse(fs.readFileSync(file,'utf8'));
+  const html = fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+  const i = html.indexOf('var FIELD_MAP = {'), j = html.indexOf('\n};', i);
+  const FIELD_MAP = new Function(html.slice(i, j+3).replace('var FIELD_MAP =','return')+';')();
+  const toRow = (coll,o)=>{ const m = FIELD_MAP[coll]||{}, r = {}; Object.keys(o).forEach(k=>{ r[m[k]||k] = o[k]; }); return r; };
+  store.al_kids = Object.keys(exp.kids||{}).map(id=>Object.assign({household_id:HID}, toRow('kids',exp.kids[id]), {id}));
+  store.al_assignments = Object.keys(exp.assignments||{}).map(id=>Object.assign({household_id:HID}, toRow('assignments',exp.assignments[id]), {id}));
+  console.log('SEED: '+store.al_kids.length+' kids, '+store.al_assignments.length+' lessons loaded into the fake database');
+}
 exports.open = async function(){
   const store = { al_kids: [
     {id:'kid1',household_id:HID,name:'Anna',grade:2}, {id:'kid2',household_id:HID,name:'Ryan',grade:4}
   ] };
+  seedStore(store);
   const b = await chromium.launch({executablePath:CHROME, args:['--no-sandbox']});
   const ctx = await b.newContext({viewport:{width:420,height:900}});
   await ctx.addInitScript(([hid])=>{
