@@ -7353,6 +7353,7 @@ function renderLeaderArea(){
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(whatTheyKnowCard());
   els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(catchUpCard());
@@ -19377,7 +19378,8 @@ var STANDARD_STATUS = {
   "2.NR.1":"verified", "2.NR.3":"verified", "2.NR.3.1":"verified", "2.NR.3.2":"verified", "2.PAR.4":"verified", "2.PAR.4.1":"verified", "2.PAR.4.2":"verified", "2.MDR.5":"verified", "2.MDR.5.1":"verified", "2.MDR.5.2":"verified", "2.MDR.5.3":"verified", "2.MDR.5.5":"verified", "2.MDR.6":"verified", "2.MDR.6.1":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
   "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
-  "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"verified", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "CSS.EL.3-5.1.1":"verified", "CSS.EL.3-5.1.2":"verified", "CSS.EL.3-5.1.3":"verified", "CSS.DC.3-5.3.1":"verified", "CSS.CT.3-5.5.2":"verified", "CSS.CT.3-5.5.3":"verified", "CSS.CT.3-5.5.4":"verified", "ELAGSE4SL4":"verified", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
+  "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"verified", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "CSS.EL.3-5.1.1":"verified", "CSS.EL.3-5.1.2":"verified", "CSS.EL.3-5.1.3":"verified", "CSS.DC.3-5.3.1":"verified", "CSS.CT.3-5.5.2":"verified", "CSS.CT.3-5.5.3":"verified", "CSS.CT.3-5.5.4":"verified", "ELAGSE4SL4":"verified", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists",
+  "2.NR.1.1":"verified", "2.NR.1.2":"verified", "2.NR.1.3":"verified", "2.NR.2":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.NR.2.4":"verified", "2.MDR.5.4":"verified", "2.MDR.6.1":"verified", "2.MDR.6.2":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "4.NR.2":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified", "4.PAR.3":"verified", "4.PAR.3.1":"verified", "4.PAR.3.2":"verified", "4.PAR.3.3":"verified", "4.PAR.3.4":"verified", "4.NR.4":"verified", "4.NR.4.1":"verified", "4.NR.4.2":"verified", "4.NR.4.3":"verified", "4.NR.4.4":"verified", "4.NR.4.5":"verified", "4.NR.4.6":"verified", "4.NR.5":"verified", "4.NR.5.1":"verified", "4.NR.5.2":"verified", "4.NR.5.3":"verified", "4.MDR.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.7":"verified", "4.GSR.7.1":"verified", "4.GSR.7.2":"verified", "4.GSR.8":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified"
 };
 /* "3-5.F" is not a real Georgia code (checked on case.georgiastandards.org, 21 Oct 2026). Georgia's Computer Science grades 3-5 standards are CSS.<strand>.3-5.<n>.
    Verified wording: EL.1.1 describe how internal and external parts of computing devices work as a system; EL.1.2 model how hardware and software work together;
@@ -19421,7 +19423,7 @@ var STANDARD_TAG_FIXES = {
  "Teacher Anna: Sharing Circle and Writing Class ✏️": "ELAGSE2SL1",
  "Teacher Anna: Graduation Day at Stuffie School 🎓": "ELAGSE2SL1",
  "Wobbly Pizza Pay: Count by 20s 🍕": "2.NR.2.3",
- "Wobbly Job Chart: Which Job Pays More? 🍔": "2.MDR.5",
+ "Wobbly Job Chart: Which Job Pays More? 🍔": "2.MDR.5.4",
  "Save for Something Big: Make a Saving Plan 🛍️": "2.MDR.6.2",
  "Yard Mapper: Draw a Grid Map of the Backyard 🧭": "4.GSR.8.3",
  "Tree Detective: Measure, Estimate, and Graph 🌳": "4.MDR.6.2",
@@ -20032,6 +20034,7 @@ function familyGoal(){
 function saveFamilyGoal(g, quiet){
   var cur = familyGoal();
   if(g.daysOff===undefined && cur.daysOff!==undefined) g = Object.assign({}, g, {daysOff:cur.daysOff});
+  if(g.checkins===undefined && cur.checkins!==undefined) g = Object.assign({}, g, {checkins:cur.checkins});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -22493,7 +22496,82 @@ function contentPacks(){
     {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
-  ];
+  ].concat(checkinPackEntries());
+}
+/* Check-Ins: a short mixed quiz on one topic, so Mom can see what each kid already knows. No grade for the kid. The result lands on the Leader card "What they know",
+   where Mom chooses to skip the matching lessons that are not started yet, or keep them. Nothing is skipped on its own. */
+var CHECKINS = [{"id": "ryan-place-value", "kid": "kid2", "label": "Ryan: big numbers and rounding", "title": "Check-In: Big Numbers and Rounding 🎯", "covers": {"prefix": ["Math Book, Unit 1"]}}, {"id": "anna-place-value", "kid": "kid1", "label": "Anna: place value to 1000", "title": "Check-In: Hundreds, Tens and Ones 🎯", "covers": {"kidMath": "place value|number of the day|three ways|counting up by 10s|which number is bigger|treasure hunt"}}, {"id": "ryan-multiplication", "kid": "kid2", "label": "Ryan: multiplying big numbers", "title": "Check-In: Multiplication Power 🎯", "covers": {"prefix": ["Math Book, Unit 3", "Math Book, Unit 4"]}}, {"id": "ryan-fractions", "kid": "kid2", "label": "Ryan: fractions", "title": "Check-In: Fraction Facts 🎯", "covers": {"prefix": ["Math Book, Unit 8", "Math Book, Unit 9"]}}, {"id": "anna-addsub", "kid": "kid1", "label": "Anna: adding and subtracting within 100", "title": "Check-In: Add and Take Away Challenge 🎯", "covers": {"kidMath": "regroup|ten trade|trade back|make a ten|subtract by thinking|add tens"}}];
+var CHECKIN_LESSONS = {"ryan-place-value": {"d": 0, "subject": "Math", "stage": "mixed", "xp": 15, "standard": "4.NR.1", "title": "Check-In: Big Numbers and Rounding 🎯", "skillId": "checkin:ryan-place-value", "passage": "Gather first — paper and a pencil. No book needed.\nHere's the Idea — This is a Check-In. It shows what you already know, so your lessons can fit you. There is no grade and nobody to beat. Take your time.\nSee It Done — Read a question, think about it on paper if you want, then tap your answer. If you miss one, the app tells you why, so you learn something either way.\nYour Turn — 1. Do the questions below one at a time. 2. Use your paper to work out any that need it. 3. Do your best and do not ask for help until you are done.\nCheck Yourself — Did you try every question, even the tricky ones?\nShow What You Know — Tell a grown-up which question was your favorite.", "quiz": [{"q": "In 482,357, what is the value of the 8?", "choices": ["8,000", "80,000", "800,000", "800"], "answerIndex": 1, "explain": "The 8 is in the ten-thousands place, so it is worth 80,000."}, {"q": "Which number is the greatest?", "choices": ["94,205", "94,250", "92,550", "49,999"], "answerIndex": 1, "explain": "Compare from the left. 94,250 and 94,205 tie until the tens, and 5 tens beats 0 tens."}, {"q": "Which number is 300,000 + 40,000 + 600 + 5?", "choices": ["340,605", "346,005", "304,605", "300,465"], "answerIndex": 0, "explain": "Put each part in its place: 3 hundred-thousands, 4 ten-thousands, 0 thousands, 6 hundreds, 0 tens, 5 ones."}, {"q": "Round 46,382 to the nearest thousand.", "choices": ["46,000", "47,000", "46,400", "40,000"], "answerIndex": 0, "explain": "Look at the hundreds digit. It is 3, which is less than 5, so the thousands stay the same."}, {"q": "Round 285,641 to the nearest ten-thousand.", "choices": ["280,000", "290,000", "300,000", "285,000"], "answerIndex": 1, "explain": "The thousands digit is 5, so round up: 280,000 becomes 290,000."}, {"q": "A number has 7 hundred-thousands, 0 ten-thousands, 3 thousands, 2 hundreds, 5 tens and 1 one. What is it?", "choices": ["703,251", "730,251", "703,521", "70,325"], "answerIndex": 0, "explain": "Write each place in order: 7, 0, 3, 2, 5, 1 makes 703,251."}, {"q": "The 5 in 5,000 is how many times as large as the 5 in 500?", "choices": ["2 times", "10 times", "100 times", "1,000 times"], "answerIndex": 1, "explain": "Each place to the left is worth 10 times the place to its right."}, {"q": "Which is greater, 0.7 or 0.65?", "choices": ["0.7", "0.65", "They are equal", "You cannot tell"], "answerIndex": 0, "explain": "0.7 is the same as 0.70, and 70 hundredths is more than 65 hundredths."}]}, "anna-place-value": {"d": 0, "subject": "Math", "stage": "mixed", "xp": 15, "standard": "2.NR.1", "title": "Check-In: Hundreds, Tens and Ones 🎯", "skillId": "checkin:anna-place-value", "passage": "Gather first — paper and a pencil. No book needed.\nHere's the Idea — This is a Check-In. It shows what you already know, so your lessons can fit you. There is no grade and nobody to beat. Take your time.\nSee It Done — Read a question, think about it on paper if you want, then tap your answer. If you miss one, the app tells you why, so you learn something either way.\nYour Turn — 1. Do the questions below one at a time. 2. Use your paper to work out any that need it. 3. Do your best and do not ask for help until you are done.\nCheck Yourself — Did you try every question, even the tricky ones?\nShow What You Know — Tell a grown-up which question was your favorite.", "quiz": [{"q": "In 347, what is the 4 worth?", "choices": ["4", "40", "400", "34"], "answerIndex": 1, "explain": "The 4 is in the tens spot, so it is 4 tens, which is 40."}, {"q": "Which shows 526?", "choices": ["5 hundreds, 2 tens, 6 ones", "6 hundreds, 2 tens, 5 ones", "5 tens, 2 hundreds, 6 ones", "52 hundreds and 6 ones"], "answerIndex": 0, "explain": "526 is 500 + 20 + 6."}, {"q": "Which number is the biggest?", "choices": ["289", "298", "829", "892"], "answerIndex": 3, "explain": "Look at the hundreds first. 892 has 8 hundreds and the most tens."}, {"q": "Count by 10s: 340, 350, 360, __", "choices": ["361", "365", "370", "460"], "answerIndex": 2, "explain": "Each jump adds 10, so 360 + 10 is 370."}, {"q": "Count by 100s: 250, 350, 450, __", "choices": ["460", "550", "451", "650"], "answerIndex": 1, "explain": "Each jump adds 100, so 450 + 100 is 550."}, {"q": "Which sign goes in 461 __ 416?", "choices": [">", "<", "=", "+"], "answerIndex": 0, "explain": "Both have 4 hundreds. 6 tens is more than 1 ten, so 461 > 416."}, {"q": "What is 200 + 30 + 7?", "choices": ["237", "273", "2,037", "327"], "answerIndex": 0, "explain": "2 hundreds, 3 tens and 7 ones make 237."}, {"q": "Count by 5s: 215, 220, 225, __", "choices": ["226", "230", "235", "240"], "answerIndex": 1, "explain": "Each jump adds 5, so 225 + 5 is 230."}]}, "ryan-multiplication": {"d": 0, "subject": "Math", "stage": "mixed", "xp": 15, "standard": "4.NR.2.3", "title": "Check-In: Multiplication Power 🎯", "skillId": "checkin:ryan-multiplication", "passage": "Gather first — paper and a pencil. No book needed.\nHere's the Idea — This is a Check-In. It shows what you already know, so your lessons can fit you. There is no grade and nobody to beat. Take your time.\nSee It Done — Read a question, think about it on paper if you want, then tap your answer. If you miss one, the app tells you why, so you learn something either way.\nYour Turn — 1. Do the questions below one at a time. 2. Use your paper to work out any that need it. 3. Do your best and do not ask for help until you are done.\nCheck Yourself — Did you try every question, even the tricky ones?\nShow What You Know — Tell a grown-up which question was your favorite.", "quiz": [{"q": "What is 6 x 40?", "choices": ["24", "240", "2,400", "46"], "answerIndex": 1, "explain": "6 x 4 = 24, and 40 is 4 tens, so the answer is 24 tens, which is 240."}, {"q": "What is 7 x 300?", "choices": ["210", "2,100", "21,000", "2,010"], "answerIndex": 1, "explain": "7 x 3 = 21, and 300 is 3 hundreds, so the answer is 21 hundreds, which is 2,100."}, {"q": "What is 34 x 6?", "choices": ["184", "204", "214", "194"], "answerIndex": 1, "explain": "30 x 6 = 180 and 4 x 6 = 24. Add: 180 + 24 = 204."}, {"q": "What is 23 x 14?", "choices": ["312", "322", "332", "242"], "answerIndex": 1, "explain": "23 x 10 = 230 and 23 x 4 = 92. Add: 230 + 92 = 322."}, {"q": "Sam has 8 stickers. Mia has 4 times as many. How many does Mia have?", "choices": ["12", "32", "4", "2"], "answerIndex": 1, "explain": "4 times as many means 4 x 8 = 32."}, {"q": "Which equation shows that 18 is 3 times as many as 6?", "choices": ["3 x 6 = 18", "3 + 6 = 9", "18 - 3 = 15", "18 x 6 = 108"], "answerIndex": 0, "explain": "3 times as many as 6 is 3 x 6, and that equals 18."}, {"q": "About how much is 48 x 52?", "choices": ["200", "2,500", "250", "25,000"], "answerIndex": 1, "explain": "Round to 50 x 50, which is 2,500."}, {"q": "What is 4 x 1,235?", "choices": ["4,940", "4,840", "5,940", "4,920"], "answerIndex": 0, "explain": "4 x 1,000 = 4,000; 4 x 200 = 800; 4 x 35 = 140. Add them: 4,940."}]}, "ryan-fractions": {"d": 0, "subject": "Math", "stage": "mixed", "xp": 15, "standard": "4.NR.4", "title": "Check-In: Fraction Facts 🎯", "skillId": "checkin:ryan-fractions", "passage": "Gather first — paper and a pencil. No book needed.\nHere's the Idea — This is a Check-In. It shows what you already know, so your lessons can fit you. There is no grade and nobody to beat. Take your time.\nSee It Done — Read a question, think about it on paper if you want, then tap your answer. If you miss one, the app tells you why, so you learn something either way.\nYour Turn — 1. Do the questions below one at a time. 2. Use your paper to work out any that need it. 3. Do your best and do not ask for help until you are done.\nCheck Yourself — Did you try every question, even the tricky ones?\nShow What You Know — Tell a grown-up which question was your favorite.", "quiz": [{"q": "Which fraction equals 1/2?", "choices": ["2/3", "3/6", "1/4", "2/5"], "answerIndex": 1, "explain": "3/6 is 1/2 with the top and bottom both multiplied by 3."}, {"q": "Which is greater, 3/8 or 5/8?", "choices": ["3/8", "5/8", "They are equal", "You cannot tell"], "answerIndex": 1, "explain": "The pieces are the same size, so the one with more pieces is greater."}, {"q": "Which is greater, 2/3 or 2/5?", "choices": ["2/3", "2/5", "They are equal", "You cannot tell"], "answerIndex": 0, "explain": "Same top. Thirds are bigger pieces than fifths, so 2/3 is greater."}, {"q": "What is 3/8 + 2/8?", "choices": ["5/16", "5/8", "6/8", "1/8"], "answerIndex": 1, "explain": "Same bottom, so add the tops and keep the bottom: 5/8."}, {"q": "What is 7/10 - 3/10?", "choices": ["4/10", "4/0", "10/10", "21/10"], "answerIndex": 0, "explain": "Same bottom, so subtract the tops: 7 - 3 = 4, giving 4/10."}, {"q": "Write 1 3/4 as a fraction greater than one.", "choices": ["4/7", "7/4", "13/4", "5/4"], "answerIndex": 1, "explain": "1 whole is 4/4, and 4/4 + 3/4 = 7/4."}, {"q": "Which shows 5/6 as a sum of unit fractions?", "choices": ["1/6 + 1/6 + 1/6 + 1/6 + 1/6", "1/5 + 1/5 + 1/5 + 1/5 + 1/5 + 1/5", "5/6 + 5/6", "1/6 + 5"], "answerIndex": 0, "explain": "A unit fraction has 1 on top. 5/6 is five pieces of 1/6."}, {"q": "Which is greater, 3/4 or 2/3?", "choices": ["3/4", "2/3", "They are equal", "You cannot tell"], "answerIndex": 0, "explain": "Use twelfths: 3/4 = 9/12 and 2/3 = 8/12, so 3/4 is greater."}]}, "anna-addsub": {"d": 0, "subject": "Math", "stage": "mixed", "xp": 15, "standard": "2.NR.2.3", "title": "Check-In: Add and Take Away Challenge 🎯", "skillId": "checkin:anna-addsub", "passage": "Gather first — paper and a pencil. No book needed.\nHere's the Idea — This is a Check-In. It shows what you already know, so your lessons can fit you. There is no grade and nobody to beat. Take your time.\nSee It Done — Read a question, think about it on paper if you want, then tap your answer. If you miss one, the app tells you why, so you learn something either way.\nYour Turn — 1. Do the questions below one at a time. 2. Use your paper to work out any that need it. 3. Do your best and do not ask for help until you are done.\nCheck Yourself — Did you try every question, even the tricky ones?\nShow What You Know — Tell a grown-up which question was your favorite.", "quiz": [{"q": "What is 34 + 25?", "choices": ["49", "59", "69", "58"], "answerIndex": 1, "explain": "3 tens + 2 tens = 5 tens, and 4 ones + 5 ones = 9 ones. That is 59."}, {"q": "What is 58 - 23?", "choices": ["35", "45", "25", "81"], "answerIndex": 0, "explain": "5 tens - 2 tens = 3 tens, and 8 ones - 3 ones = 5 ones. That is 35."}, {"q": "What is 47 + 36?", "choices": ["73", "83", "93", "82"], "answerIndex": 1, "explain": "7 + 3 makes a ten. 47 + 3 = 50, and 50 + 33 = 83."}, {"q": "What is 72 - 28?", "choices": ["54", "44", "46", "56"], "answerIndex": 1, "explain": "72 - 20 = 52, and 52 - 8 = 44."}, {"q": "A girl has 45 beads and finds 18 more. How many beads does she have?", "choices": ["53", "63", "73", "27"], "answerIndex": 1, "explain": "Add: 45 + 18 = 63."}, {"q": "There are 60 cookies. 24 are eaten. How many are left?", "choices": ["36", "46", "84", "34"], "answerIndex": 0, "explain": "Take away: 60 - 24 = 36."}, {"q": "What is 50 + 37?", "choices": ["77", "87", "97", "57"], "answerIndex": 1, "explain": "5 tens + 3 tens = 8 tens, and 7 ones. That is 87."}, {"q": "About how much is 49 + 31?", "choices": ["60", "70", "80", "90"], "answerIndex": 2, "explain": "49 is about 50 and 31 is about 30. 50 + 30 = 80."}]}};
+function checkinPackEntries(){
+  return CHECKINS.map(function(c){
+    return {label:"Check-In: "+c.label+" (1 lesson)", kid:c.kid, items:[CHECKIN_LESSONS[c.id]], oldPrefix:"", load:function(){ addPackItems(c.kid, [CHECKIN_LESSONS[c.id]]); }};
+  });
+}
+function checkinCoverLessons(c){
+  var out = [], rx = c.covers.kidMath ? new RegExp(c.covers.kidMath, "i") : null;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==c.kid || a.done || hasWork(a) || !a.date || a.date<todayISO() || String(a.skillId||"").indexOf("checkin:")===0) return;
+    var t = String(a.title||"");
+    var hit = rx ? (a.subject==="Math" && rx.test(t)) : (c.covers.prefix||[]).some(function(p){ return t.indexOf(p)===0; });
+    if(hit) out.push({id:id, a:a});
+  });
+  return out.sort(function(x,y){ return x.a.date.localeCompare(y.a.date); });
+}
+function checkinDecide(id, decision){
+  var cur = familyGoal(), map = Object.assign({}, cur.checkins||{});
+  map[id] = {decision:decision, at:new Date().toISOString()};
+  return saveFamilyGoal(Object.assign({}, cur, {checkins:map}), true);
+}
+function whatTheyKnowCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"whatTheyKnow");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🎯 What they know (Check-Ins)";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Add a Check-In from Content Packs. When a kid finishes it, the result shows here. You choose whether to skip the matching lessons that are not started yet. Nothing is skipped on its own.";
+  det.appendChild(note);
+  var decisions = familyGoal().checkins || {};
+  CHECKINS.forEach(function(c){
+    var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+      .filter(function(a){ return a.kidId===c.kid && a.skillId==="checkin:"+c.id; });
+    var row = document.createElement("div"); row.style.cssText = "padding:8px 0;border-top:1px solid var(--border);font-size:13.5px";
+    var name = (kidData(c.kid).name || c.kid)+": "+c.label;
+    var res = rows.filter(function(a){ return a.quizScore!=null && a.quizTotal>0; })[0];
+    var head = document.createElement("div"); head.style.fontWeight = "700";
+    if(!rows.length){ head.textContent = name+" — not added yet"; row.appendChild(head); det.appendChild(row); return; }
+    if(!res){ head.textContent = name+" — added, waiting for "+(kidData(c.kid).name || "them"); row.appendChild(head); det.appendChild(row); return; }
+    var pct = res.quizScore/res.quizTotal, level = pct>=0.85 ? "Solid" : pct>=0.6 ? "Mostly there" : "Needs the lessons";
+    head.textContent = name+" — "+res.quizScore+" of "+res.quizTotal+" ("+level+")"+(res.doneAt ? ", "+String(res.doneAt).slice(0,10) : "");
+    row.appendChild(head);
+    var cover = checkinCoverLessons(c), dec = decisions[c.id];
+    var tip = document.createElement("div"); tip.className = "muted"; tip.style.cssText = "font-size:12.5px;margin:3px 0";
+    tip.textContent = dec ? (dec.decision==="skip" ? "You skipped the matching lessons." : "You kept the matching lessons.")
+      : cover.length+" matching lesson"+(cover.length===1?"":"s")+" not started yet"+(cover.length ? ": "+cover.slice(0,4).map(function(x){ return String(x.a.title).slice(0,48); }).join("; ")+(cover.length>4 ? "; and "+(cover.length-4)+" more" : "") : ".");
+    row.appendChild(tip);
+    if(!dec){
+      var skip = document.createElement("button"); skip.type = "button"; skip.className = "primary-btn"; skip.style.cssText = "margin:4px 6px 0 0";
+      skip.textContent = "Skip these "+cover.length+" lessons";
+      skip.disabled = !cover.length;
+      skip.onclick = function(){
+        var list = checkinCoverLessons(c);
+        if(!list.length) return;
+        if(!window.confirm("Remove these "+list.length+" lessons that are not started?\n\n"+list.map(function(x){ return x.a.date+"  "+x.a.title; }).join("\n"))) return;
+        list.forEach(function(x){ db.doc("assignments/"+x.id).delete(); delete state.assignments[x.id]; });
+        checkinDecide(c.id, "skip"); toast("Removed "+list.length+" lessons"); renderView();
+      };
+      var keep = document.createElement("button"); keep.type = "button"; keep.className = "reward-skip"; keep.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;color:var(--ink);margin-top:4px";
+      keep.textContent = "Keep them";
+      keep.onclick = function(){ checkinDecide(c.id, "keep"); renderView(); };
+      row.appendChild(skip); row.appendChild(keep);
+    }
+    det.appendChild(row);
+  });
+  wrap.appendChild(det); return wrap;
 }
 function contentPacksCard(){
   var wrap = document.createElement("div");
@@ -25227,7 +25305,7 @@ var ANNA_WOBBLY_MATH = [
  {
   "d": 2,
   "title": "Wobbly Job Chart: Which Job Pays More? 🍔",
-  "standard": "2.MDR.5",
+  "standard": "2.MDR.5.4",
   "cross": [
    "Math"
   ],
@@ -25469,7 +25547,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.26";
+var APP_BUILD = "2026-10-21.27";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
