@@ -7349,6 +7349,7 @@ function renderLeaderArea(){
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(daysOffCard());
+  els.view.appendChild(devicesCard());
   els.view.appendChild(helperChatsCard());
   els.view.appendChild(leaderFutureIdeasCard());
 
@@ -20051,6 +20052,81 @@ function daysOffCard(){
   wrap.appendChild(det);
   return wrap;
 }
+/* ---------- Leader: which version each device is running ---------- */
+/* Each device writes one small note (name, version, time) into the shared settings row when it loads with a new version, or about twice a day.
+   It reads the row first so it never overwrites the days off or anything else saved there. A device that is not listed has not loaded this version yet. */
+function deviceId(){
+  var id = null; try{ id = localStorage.getItem("al_device_id"); }catch(e){}
+  if(!id){ id = Math.random().toString(36).slice(2,8); try{ localStorage.setItem("al_device_id", id); }catch(e){} }
+  return id;
+}
+function deviceLabel(){
+  var custom = ""; try{ custom = localStorage.getItem("al_device_name")||""; }catch(e){}
+  if(custom) return custom;
+  var ua = navigator.userAgent||"", os = /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad/.test(ua) ? "iPhone/iPad" : /Mac OS/.test(ua) ? "Mac" : /CrOS/.test(ua) ? "Chromebook" : /Linux/.test(ua) ? "Linux" : "Device";
+  var br = /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "browser";
+  return os+" "+br;
+}
+function buildCmp(a, b){
+  function parts(x){ var m = String(x||"").split("."); return [m[0]||"", parseInt(m[1]||"0",10)||0]; }
+  var pa = parts(a), pb = parts(b);
+  return pa[0]<pb[0] ? -1 : pa[0]>pb[0] ? 1 : pa[1]-pb[1];
+}
+function noteDeviceBuild(force){
+  if(!sb || !HOUSEHOLD_ID) return;
+  var key = "", last = null;
+  try{ last = JSON.parse(localStorage.getItem("al_device_noted")||"null"); }catch(e){}
+  if(!force && last && last.b===APP_BUILD && Date.now()-last.t < 12*3600*1000) return;
+  var id = deviceId();
+  sb.from("al_settings").select("family_goal").eq("household_id", HOUSEHOLD_ID).maybeSingle().then(function(res){
+    if(res.error) return;
+    var g = Object.assign({}, res.data && res.data.family_goal ? res.data.family_goal : {});
+    var devs = Object.assign({}, g.devices), cutoff = Date.now()-30*86400000;
+    Object.keys(devs).forEach(function(k){ if(!devs[k] || new Date(devs[k].at).getTime()<cutoff) delete devs[k]; });
+    devs[id] = {b:APP_BUILD, at:new Date().toISOString(), l:deviceLabel()};
+    g.devices = devs;
+    return sb.from("al_settings").upsert({household_id:HOUSEHOLD_ID, family_goal:g}, {onConflict:"household_id"}).then(function(r2){
+      if(r2.error) return;
+      state.familyGoal = Object.assign({}, state.familyGoal||{}, {devices:devs});
+      try{ localStorage.setItem("al_device_noted", JSON.stringify({b:APP_BUILD, t:Date.now()})); }catch(e){}
+    });
+  });
+}
+function agoText(iso){
+  var m = Math.round((Date.now()-new Date(iso).getTime())/60000);
+  return m<2 ? "just now" : m<90 ? m+" min ago" : m<2880 ? Math.round(m/60)+" hours ago" : Math.round(m/1440)+" days ago";
+}
+function devicesCard(){
+  var devs = familyGoal().devices || {}, ids = Object.keys(devs).sort(function(a,b){ return String(devs[b].at).localeCompare(String(devs[a].at)); });
+  var behind = ids.filter(function(k){ return buildCmp(devs[k].b, APP_BUILD)<0; }).length;
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"devices");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "📱 Devices — this one runs "+APP_BUILD+(behind ? " · "+behind+" behind" : "");
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = "Each device checks in when it opens the app. A device that is behind, or not listed at all, has not loaded the newest version yet: open the app on it and tap Update now, or hard refresh (Ctrl+Shift+R). An old copy can bring back repeated lessons.";
+  det.appendChild(note);
+  if(!ids.length){ var none = document.createElement("div"); none.style.cssText = "font-size:13px;padding:4px 0"; none.textContent = "No device has checked in yet. This one will after it reloads."; det.appendChild(none); }
+  ids.forEach(function(k){
+    var d = devs[k], old = buildCmp(d.b, APP_BUILD)<0;
+    var row = document.createElement("div"); row.style.cssText = "display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:5px 0;border-top:1px solid var(--border)";
+    row.innerHTML = '<span>'+escapeHtml(d.l||"Device")+(k===deviceId() ? " (this one)" : "")+'</span><span class="mono" style="'+(old ? "color:var(--coral);font-weight:700" : "")+'">'+escapeHtml(d.b)+(old ? " · behind" : "")+' · '+escapeHtml(agoText(d.at))+'</span>';
+    det.appendChild(row);
+  });
+  var nameRow = document.createElement("div"); nameRow.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px";
+  var nameI = document.createElement("input"); nameI.type = "text"; nameI.maxLength = 30; nameI.placeholder = "Name this device (Anna's computer)";
+  try{ nameI.value = localStorage.getItem("al_device_name")||""; }catch(e){}
+  nameI.style.cssText = "font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;width:230px;max-width:100%;background:var(--card);color:var(--ink)";
+  var nameB = document.createElement("button"); nameB.type = "button"; nameB.className = "primary-btn"; nameB.textContent = "Save name";
+  nameB.onclick = function(){ try{ localStorage.setItem("al_device_name", nameI.value.trim().slice(0,30)); }catch(e){} noteDeviceBuild(true); toast("Saved. It shows here after a moment."); };
+  nameRow.appendChild(nameI); nameRow.appendChild(nameB); det.appendChild(nameRow);
+  wrap.appendChild(det);
+  return wrap;
+}
 /* ---------- Leader: old unfinished lessons (catch-up list) ---------- */
 function catchUpCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
@@ -25213,7 +25289,7 @@ function syncAll(force){
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     if(!changed) return;
     updateLibraryTabVisibility();
-    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); }
+    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); noteDeviceBuild(); }
     renderKidbar(); renderXpBar();
     if(whoGateEl.style.display!=="none") renderWhoGate();
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
@@ -25252,7 +25328,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.18";
+var APP_BUILD = "2026-10-21.19";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
