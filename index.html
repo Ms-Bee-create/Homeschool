@@ -19487,7 +19487,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -22237,6 +22237,16 @@ var RYAN_MICROBIT_GAMEOVER = {
 "crossSubjects": null,
 "skillId": "ryan-tech-lab"
 };
+/* Title-only "Robot Build kit" lessons (added by hand, no steps, written before he had opened the Wonder Building Kit) are removed from the coming calendar. Only ones nobody started or finished; the new micro:bit Lab pack covers the robot. */
+function patchRemoveRobotBuildStubs(){
+  if(!db) return;
+  var today = todayISO();
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid2" || a.done || a.date<today || a.passage || hasWork(a) || String(a.title||"").indexOf("Robot Build kit:")!==0) return;
+    db.doc("assignments/"+id).delete(); delete state.assignments[id];
+  });
+}
 function patchRyanMicrobitGameOver(){
   if(!db) return;
   Object.keys(state.assignments).forEach(function(id){
@@ -25242,7 +25252,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.17";
+var APP_BUILD = "2026-10-21.18";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
