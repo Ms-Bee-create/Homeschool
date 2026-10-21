@@ -9384,7 +9384,7 @@ function patchFaithRetag(kidId){
     if(a.kidId!==kidId) return;
     var item = items.filter(function(i){ return FAITH_OLD_PREFIX[kidId]+i.title===a.title || i.title===a.title; })[0];
     if(!item) return;
-    var updates = {title:item.title, standard:item.standard, crossSubjects:faithCross(item)};
+    var updates = {title:item.title, standard:(ELA_NEW_STD[item.standard] ? elaNewStandard(item.title, item.standard) : item.standard), crossSubjects:faithCross(item)};
     if(a.title===updates.title && a.standard===updates.standard && JSON.stringify(a.crossSubjects||null)===JSON.stringify(updates.crossSubjects)) return;
     Object.assign(a, updates);
     db.doc("assignments/"+id).update(updates);
@@ -9451,11 +9451,11 @@ function patchKid2Content(){
       if(hasGap(a.quizRetry) && Array.isArray(src.quizRetry)) updates.quizRetry = src.quizRetry;
       var oldStd = a.standard || "";
       var genericStd = !oldStd || oldStd==="Writing strands" || oldStd==="Reading strands" || oldStd==="Writing / Reading strands" || (oldStd==="3-5.F" && src.standard && src.standard.indexOf("ELAGS")===0);
-      if(src.standard && src.standard!==oldStd && genericStd) updates.standard = src.standard;
+      if(src.standard && src.standard!==oldStd && genericStd) updates.standard = (ELA_NEW_STD[src.standard] ? elaNewStandard(a.title, src.standard) : src.standard);
       if(!a.passage && src.passage) updates.passage = src.passage;
       if(!a.installHelp && src.installHelp) updates.installHelp = src.installHelp;
     }
-    if(te[a.title] && !a.standard){ updates.standard = "ELAGSE4SL1"; updates.crossSubjects = ["ELA"]; }
+    if(te[a.title] && !a.standard){ updates.standard = "4.P.CP.1"; updates.crossSubjects = ["ELA"]; }
     if(a.materials && KID2_DROP_LINKS.indexOf(a.materials.trim())>=0) updates.materials = null;
     if(!Object.keys(updates).length) return;
     Object.assign(a, updates);
@@ -11907,6 +11907,7 @@ function stableUuid(str){
 /* Adds a lesson once, whatever device or run tries it: the row id comes from the kid and title, and a second insert with the same id does nothing.
    Every "add the series" routine uses this, so a new device, a cleared browser, or two devices opening together cannot create copies. */
 function addSeed(obj){
+  if(obj && obj.standard && ELA_NEW_STD[obj.standard]) obj.standard = elaNewStandard(obj.title, obj.standard);
   if(obj && obj.kidId==="kid2"){ var cf = csTitleFix(obj.title); if(cf) obj.standard = cf; else if(obj.standard==="3-5.F") obj.standard = csStandardFor(obj); }
   return db.collection("assignments").addOnce(obj, stableUuid("lesson|"+obj.kidId+"|"+String(obj.title||"").trim()));
 }
@@ -19379,7 +19380,8 @@ var STANDARD_STATUS = {
   "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
   "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"verified", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "CSS.EL.3-5.1.1":"verified", "CSS.EL.3-5.1.2":"verified", "CSS.EL.3-5.1.3":"verified", "CSS.DC.3-5.3.1":"verified", "CSS.CT.3-5.5.2":"verified", "CSS.CT.3-5.5.3":"verified", "CSS.CT.3-5.5.4":"verified", "ELAGSE4SL4":"verified", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists",
-  "2.NR.1.1":"verified", "2.NR.1.2":"verified", "2.NR.1.3":"verified", "2.NR.2":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.NR.2.4":"verified", "2.MDR.5.4":"verified", "2.MDR.6.1":"verified", "2.MDR.6.2":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "4.NR.2":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified", "4.PAR.3":"verified", "4.PAR.3.1":"verified", "4.PAR.3.2":"verified", "4.PAR.3.3":"verified", "4.PAR.3.4":"verified", "4.NR.4":"verified", "4.NR.4.1":"verified", "4.NR.4.2":"verified", "4.NR.4.3":"verified", "4.NR.4.4":"verified", "4.NR.4.5":"verified", "4.NR.4.6":"verified", "4.NR.5":"verified", "4.NR.5.1":"verified", "4.NR.5.2":"verified", "4.NR.5.3":"verified", "4.MDR.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.7":"verified", "4.GSR.7.1":"verified", "4.GSR.7.2":"verified", "4.GSR.8":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified"
+  "2.NR.1.1":"verified", "2.NR.1.2":"verified", "2.NR.1.3":"verified", "2.NR.2":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.NR.2.4":"verified", "2.MDR.5.4":"verified", "2.MDR.6.1":"verified", "2.MDR.6.2":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "4.NR.2":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified", "4.PAR.3":"verified", "4.PAR.3.1":"verified", "4.PAR.3.2":"verified", "4.PAR.3.3":"verified", "4.PAR.3.4":"verified", "4.NR.4":"verified", "4.NR.4.1":"verified", "4.NR.4.2":"verified", "4.NR.4.3":"verified", "4.NR.4.4":"verified", "4.NR.4.5":"verified", "4.NR.4.6":"verified", "4.NR.5":"verified", "4.NR.5.1":"verified", "4.NR.5.2":"verified", "4.NR.5.3":"verified", "4.MDR.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.7":"verified", "4.GSR.7.1":"verified", "4.GSR.7.2":"verified", "4.GSR.8":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
+  "2.P.EICC.1":"verified", "2.P.EICC.2":"verified", "2.P.EICC.3":"verified", "2.P.EICC.4":"verified", "2.P.ST.1":"verified", "2.P.ST.2":"verified", "2.P.AC.1":"verified", "2.P.AC.2":"verified", "2.P.AC.3":"verified", "2.P.CP.1":"verified", "2.P.CP.2":"verified", "2.L.GC.1":"verified", "2.L.GC.2":"verified", "2.L.V.1":"verified", "2.L.V.2":"verified", "2.L.V.3":"verified", "2.T.C.1":"verified", "2.T.C.2":"verified", "2.T.SS.1":"verified", "2.T.SS.2":"verified", "2.T.T.1":"verified", "2.T.T.2":"verified", "2.T.T.3":"verified", "2.T.T.4":"verified", "2.T.RA.1":"verified", "2.T.RA.2":"verified", "2.F.F.1":"verified", "4.P.EICC.1":"verified", "4.P.EICC.2":"verified", "4.P.EICC.3":"verified", "4.P.EICC.4":"verified", "4.P.ST.1":"verified", "4.P.ST.2":"verified", "4.P.AC.1":"verified", "4.P.AC.2":"verified", "4.P.AC.3":"verified", "4.P.CP.1":"verified", "4.P.CP.2":"verified", "4.L.GC.1":"verified", "4.L.GC.2":"verified", "4.L.V.1":"verified", "4.L.V.2":"verified", "4.L.V.3":"verified", "4.T.C.1":"verified", "4.T.C.2":"verified", "4.T.SS.1":"verified", "4.T.SS.2":"verified", "4.T.T.1":"verified", "4.T.T.2":"verified", "4.T.T.3":"verified", "4.T.T.4":"verified", "4.T.RA.1":"verified", "4.T.RA.2":"verified", "4.F.F.1":"verified", "2.F.P.1":"verified", "2.F.P.2":"verified", "2.F.P.3":"verified", "2.F.H.1":"verified", "2.F.H.2":"verified", "4.F.P.4":"verified", "4.F.H.3":"verified", "4.F.H.4":"verified"
 };
 /* "3-5.F" is not a real Georgia code (checked on case.georgiastandards.org, 21 Oct 2026). Georgia's Computer Science grades 3-5 standards are CSS.<strand>.3-5.<n>.
    Verified wording: EL.1.1 describe how internal and external parts of computing devices work as a system; EL.1.2 model how hardware and software work together;
@@ -19412,16 +19414,39 @@ function patchCsStandards(){
   });
   if(n) console.log("patchCsStandards: retagged "+n+" lesson(s)");
 }
+/* Georgia retired the ELAGSE English codes; the current ELA standards (SY2025-2026) use F, P, L, T codes (case.georgiastandards.org, read 21 Oct 2026).
+   This maps each old tag to the closest current standard by what the lesson teaches. It is our own mapping, not an official crosswalk. */
+var ELA_NEW_STD = {
+  "ELAGSE2RF3":"2.F.P.2", "ELAGSE2RL2":"2.T.T.1", "ELAGSE2RL2-RL5":"2.T.T.1", "ELAGSE2RI1":"2.T.T.2", "ELAGSE2RI2":"2.T.T.2",
+  "ELAGSE2SL1":"2.P.CP.1", "ELAGSE2SL2":"2.P.CP.2", "ELAGSE2SL3":"2.P.CP.1",
+  "ELAGSE4RL2":"4.T.T.1", "ELAGSE4RI1":"4.T.T.2", "ELAGSE4RI2":"4.T.T.2", "ELAGSE4RI3":"4.T.T.2", "ELAGSE4W2":"4.T.T.2", "ELAGSE4W3":"4.T.T.1",
+  "ELAGSE4W4":"4.P.EICC.4", "ELAGSE4SL1":"4.P.CP.1", "ELAGSE4SL4":"4.P.CP.2"
+};
+function elaNewStandard(title, std){
+  var n = ELA_NEW_STD[std]; if(!n) return null;
+  if(std==="ELAGSE2RF3" && String(title||"").indexOf("Handwriting p.")===0) return "2.F.H.1";
+  return n;
+}
+function patchElaStandards(){
+  if(!db) return;
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], c = a.standard && elaNewStandard(a.title, a.standard);
+    if(!c) return;
+    a.standard = c; db.doc("assignments/"+id).update({standard:c}); n++;
+  });
+  if(n) console.log("patchElaStandards: retagged "+n+" lesson(s) to the current ELA standards");
+}
 var STANDARD_TAG_FIXES = {
- "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "ELAGSE2RL2",
+ "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "2.T.T.1",
  "Candy Math Friday: Make It Fair! 🍬": "2.NR.2.3",
  "Obstacle Course Friday: Beat Your Own Time 🏃": "2.NR.2.3",
  "Kitchen Helper Friday: Read the Recipe, Make the Snack 🍪": "2.NR.2.1",
  "Shop Friday: Open Your Own Store 🛒": "2.MDR.6.2",
- "Teacher Anna Opens Stuffie School 🧸": "ELAGSE2RL2",
+ "Teacher Anna Opens Stuffie School 🧸": "2.T.T.1",
  "Teacher Anna: Math Class with Candy 🍬": "2.NR.2.3",
- "Teacher Anna: Sharing Circle and Writing Class ✏️": "ELAGSE2SL1",
- "Teacher Anna: Graduation Day at Stuffie School 🎓": "ELAGSE2SL1",
+ "Teacher Anna: Sharing Circle and Writing Class ✏️": "2.P.CP.1",
+ "Teacher Anna: Graduation Day at Stuffie School 🎓": "2.P.CP.1",
  "Wobbly Pizza Pay: Count by 20s 🍕": "2.NR.2.3",
  "Wobbly Job Chart: Which Job Pays More? 🍔": "2.MDR.5.4",
  "Save for Something Big: Make a Saving Plan 🛍️": "2.MDR.6.2",
@@ -19623,7 +19648,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -25547,7 +25572,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.27";
+var APP_BUILD = "2026-10-21.28";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
