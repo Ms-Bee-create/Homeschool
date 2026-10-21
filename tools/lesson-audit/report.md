@@ -1,6 +1,6 @@
 # Lesson audit
 
-Lessons checked: 492. With problems: 41. Warnings only: 225.
+Lessons checked: 500. With problems: 41. Warnings only: 226.
 
 ## Most common
 - 39 x standard N-N.F is not verified (rule N)
@@ -27,12 +27,12 @@ Lessons checked: 492. With problems: 41. Warnings only: 225.
 - 5 x standard SNLN is not verified (rule N)
 - 5 x standard ELAGSENSLN exists but fit not confirmed (rule N)
 - 5 x standard N.GSR.N/N.GSR.N is not verified (rule N)
+- 4 x kid: long (N words), may feel like a wall of text
 - 4 x apply lesson without Show What You Know (rule N)
 - 4 x standard N.MDR.N exists but fit not confirmed (rule N)
 - 4 x kid: long (N words)
 - 4 x standard SNEN exists but fit not confirmed (rule N)
 - 4 x teaching lesson without a worked example (rule N)
-- 3 x kid: long (N words), may feel like a wall of text
 - 3 x kid: sentences average N words (hard to read)
 - 3 x standard N.GSR.N is not verified (rule N)
 - 3 x standard SNPN/SNPN is not verified (rule N)
