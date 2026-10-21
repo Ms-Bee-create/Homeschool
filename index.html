@@ -19156,7 +19156,7 @@ var STANDARD_STATUS = {
   "2.NR.1":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
   "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
-  "ELAGSE4RI1":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
+  "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
 };
 var STANDARD_TAG_FIXES = {
  "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "ELAGSE2RL2",
@@ -20435,6 +20435,669 @@ function addUsHistoryPack(){
   });
   toast(n ? "Added "+n+" US History lessons, "+first+" to "+final+" (Tue and Thu)" : "US History is already added");
 }
+/* Ryan: Tech Pioneers, Cyber Lab, and Energy & the Atom (14 lessons). From Mom's own curriculum doc (Reading Block biographies and virus history, the Cyber Lab theme, Energy & the Atom). Videos are the ones Mom approved from Gemini on 21 Oct 2026. Cyber Lab safety rules are in every Cyber Lab lesson. Original text. */
+var RYAN_TECH_LAB = [
+{
+"d": 0,
+"subject": "Reading",
+"title": "Two Steves and the First Apple Computer 🍎",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "teach",
+"video": "https://www.youtube.com/watch?v=5R7yrmbMYXI",
+"passage": "Gather first — the video above (Steve Wozniak remembering the first Apple computer, about 4 minutes), paper, and a pencil.\nHere's the Idea — In the 1970s, computers were huge and cost a fortune. A few hobbyists wanted their own. Steve Wozniak, a gifted engineer, designed a small computer board by hand. His friend Steve Jobs saw that other people would want one too, and they started Apple in 1976. The first one, the Apple I, was sold as a circuit board you had to add a keyboard and screen to. The Apple II, in 1977, came already assembled, with color graphics, and it became one of the first computers that ordinary families and schools bought. One of them built it, the other found people who wanted it. Both jobs mattered.\nSee It Done — A cause-and-effect chain: hobbyists want their own computers (cause) → Wozniak designs a small, cheap board (effect) → Jobs sees a market (effect and cause) → Apple is started (effect) → the Apple II reaches homes and schools (effect).\nYour Turn — 1. Watch the video once. Listen for what Wozniak says was hard. 2. Draw a chain of 4 boxes like the example. Write one short sentence in each. 3. Write down which job Wozniak had and which job Jobs had, and why a company needs both. 4. Add 1976 (Apple starts) and 1977 (Apple II) to a timeline strip of computer history.\nCheck Yourself — Does each box on your chain lead to the next? Are the two jobs different?\nShow What You Know — Tell a grown-up in your own words why the Apple II was a big deal for regular families.",
+"quiz": [
+{
+"q": "What did Steve Wozniak do for the first Apple computers?",
+"choices": [
+"He designed the computer board",
+"He sold the ads",
+"He painted the cases",
+"He wrote the newspaper stories"
+],
+"answerIndex": 0,
+"explain": "Wozniak was the engineer who designed the circuit board."
+},
+{
+"q": "What was different about the Apple II in 1977?",
+"choices": [
+"It came assembled with color graphics for homes and schools",
+"It was the size of a room",
+"It had no keyboard",
+"It only worked in banks"
+],
+"answerIndex": 0,
+"explain": "The Apple II came ready to use and reached ordinary families and schools."
+},
+{
+"q": "Why did Apple need both Steves?",
+"choices": [
+"One could build it and the other could see people would want it",
+"They needed two names for the logo",
+"Only one could carry the boxes",
+"The law required two founders"
+],
+"answerIndex": 0,
+"explain": "A great invention also needs someone who finds the people who will use it."
+}
+],
+"crossSubjects": [
+"Social Studies"
+],
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 1,
+"subject": "Independent",
+"title": "What Is a Computer Virus? The Bug That Copies Itself 🦠",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "teach",
+"video": "https://www.youtube.com/watch?v=PM9O7rk69Cw",
+"passage": "Gather first — the video above (The Dr Binocs Show, under 4 minutes), paper, and colored pencils. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — A computer virus is a small program that hides inside another file and copies itself onto other files and computers. It gets its name from a real virus because it spreads from one host to the next. A virus cannot spread by itself through the air. A person usually helps it along by opening an infected file, clicking a bad link, or sharing a program that carries it. Some viruses only show a silly message. Others damage files or steal private information, which is why people build defenses.\nSee It Done — How one virus spreads: someone emails a funny file (the file hides a virus) → a friend opens it (the virus copies itself onto her computer) → her computer sends the file to everyone in her contacts → the virus now sits on many computers.\nYour Turn — 1. Watch the video once. 2. Draw a spread map: one computer in the middle with arrows to four others. Label the first step: what did the person do that let the virus in? 3. Write the 3 ways a virus can get in (opening a file, clicking a link, sharing a program). 4. Write 2 safe habits that would stop it at the first step.\nCheck Yourself — Did your map show that a person helped the virus spread?\nShow What You Know — Explain to a grown-up the difference between a real-life virus and a computer virus, and one thing both have in common.",
+"quiz": [
+{
+"q": "What is a computer virus?",
+"choices": [
+"A small program that copies itself onto other files and computers",
+"A bug that lives inside the screen",
+"A broken keyboard",
+"A fast internet plan"
+],
+"answerIndex": 0,
+"explain": "A virus is a program that hides in other files and spreads by copying itself."
+},
+{
+"q": "How does a computer virus usually get onto a computer?",
+"choices": [
+"A person opens an infected file or link",
+"It floats through the air",
+"Turning the screen brightness up",
+"Plugging in a mouse"
+],
+"answerIndex": 0,
+"explain": "Viruses need a person to open or share an infected file or link."
+},
+{
+"q": "Which habit best helps stop viruses?",
+"choices": [
+"Not opening files or links you did not expect",
+"Leaving the computer on all night",
+"Typing faster",
+"Using a bigger screen"
+],
+"answerIndex": 0,
+"explain": "Not opening unexpected files and links stops a virus at the first step."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 2,
+"subject": "Science",
+"title": "Where Does Electricity Come From? ⚡",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "teach",
+"video": "https://www.youtube.com/watch?v=cOCbJc4e1QE",
+"passage": "Gather first — the video above (Sources of Electricity, about 9 minutes), paper, and a pencil.\nHere's the Idea — The electricity in a wall socket is made at a power plant. Most plants use a big machine called a generator. A generator makes electricity when something spins a turbine connected to it. Different power plants spin the turbine in different ways. Coal, natural gas, and nuclear plants make heat that boils water into steam, and the steam spins the turbine. Hydroelectric plants use falling water. Wind turbines use moving air. Solar panels are different, because they turn sunlight into electricity without a spinning turbine. Some sources can run out, like coal. Others, like wind and sunlight, keep coming back.\nSee It Done — One chain: coal burns (heat) → water boils (steam) → steam spins a turbine → the turbine spins a generator → electricity travels along wires to your house.\nYour Turn — 1. Watch the video once. Pause when it names each energy source. 2. Draw the chain for one source with arrows, like the example. 3. Make a two-column list: sources that can run out, and sources that keep coming back. 4. Write one sentence that says what almost every power plant has in common.\nCheck Yourself — Does your chain include a turbine and a generator? Is each source in the right column?\nShow What You Know — Tell a grown-up where the electricity in your house comes from, in 4 steps.",
+"quiz": [
+{
+"q": "What does a generator do?",
+"choices": [
+"Makes electricity when a turbine spins it",
+"Stores water",
+"Cools the house",
+"Makes wind"
+],
+"answerIndex": 0,
+"explain": "A generator turns spinning motion into electricity."
+},
+{
+"q": "Which source does NOT use a spinning turbine?",
+"choices": [
+"Solar panels",
+"Coal",
+"Nuclear",
+"Natural gas"
+],
+"answerIndex": 0,
+"explain": "Solar panels turn sunlight straight into electricity."
+},
+{
+"q": "Which source keeps coming back and does not run out?",
+"choices": [
+"Wind",
+"Coal",
+"Natural gas",
+"Oil"
+],
+"answerIndex": 0,
+"explain": "Wind and sunlight keep coming back, while coal and gas can run out."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 3,
+"subject": "Reading",
+"title": "Bill Gates and the Start of Microsoft 💾",
+"xp": 15,
+"standard": "ELAGSE4RI2",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=Wf7YpAVuPp0",
+"passage": "Gather first — the video above (about 6 minutes), paper, and a pencil.\nHere's the Idea — Bill Gates loved computers as a teenager. He learned to program at his school in Seattle, and he and his friend Paul Allen spent hours writing code. In 1975 they started Microsoft to write software, the programs that tell a computer what to do. Their early work made it easier for people to program the new small computers. In 1981 IBM picked a Microsoft operating system for the IBM PC, called MS-DOS, and that helped Microsoft grow fast. Later came Windows. Microsoft did not become big by building computers. It became big by writing the software everybody needed.\nYour Turn — 1. Watch the video once. 2. Write the main idea of the video in ONE sentence. 3. Write 3 key details that support your main idea. 4. Add 1975 (Microsoft starts) and 1981 (MS-DOS on the IBM PC) to your computer-history timeline strip.\nCheck Yourself — Does each detail help prove your main idea?\nShow What You Know — Explain to a grown-up the difference between hardware and software, and which one Microsoft made.",
+"quiz": [
+{
+"q": "What did Microsoft make?",
+"choices": [
+"Software",
+"Computer screens",
+"Keyboards",
+"Printers"
+],
+"answerIndex": 0,
+"explain": "Microsoft made the programs, called software, that tell computers what to do."
+},
+{
+"q": "Who started Microsoft with Bill Gates?",
+"choices": [
+"Paul Allen",
+"Steve Jobs",
+"Alan Turing",
+"Grace Hopper"
+],
+"answerIndex": 0,
+"explain": "Bill Gates and Paul Allen started Microsoft in 1975."
+},
+{
+"q": "Why did the IBM PC help Microsoft grow?",
+"choices": [
+"IBM chose a Microsoft operating system for it",
+"IBM bought the company",
+"IBM taught Gates to program",
+"The IBM PC had no software"
+],
+"answerIndex": 0,
+"explain": "IBM picked MS-DOS, so many computers shipped with Microsoft software."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 4,
+"subject": "Independent",
+"title": "Firewall and Antivirus: The Castle Guards 🏰",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=QUhcUVmUOts&t=352",
+"passage": "Gather first — the video above (SciShow Kids, starts at the 5:52 mark in the link), paper, and colored pencils. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — Defenders have two main tools. Antivirus software scans files and compares them to patterns of known viruses, and it also watches for strange behavior. A firewall is like a guard at the castle gate. It checks the messages going in and out of a computer and blocks the ones that break the rules. Defenses need updates, because new viruses appear all the time, and an old guard book will not know about them. Neither tool is perfect, so careful habits matter too.\nYour Turn — 1. Watch the video once. 2. Draw a castle: the gate is the firewall, a guard with a book of bad-guy pictures is the antivirus. 3. Label which tool checks the traffic and which tool scans the files. 4. Write why updates matter, in one sentence.\nCheck Yourself — Does your drawing show two different jobs?\nShow What You Know — Explain to a grown-up why a computer with antivirus still needs a careful user.",
+"quiz": [
+{
+"q": "What does a firewall do?",
+"choices": [
+"Checks the messages going in and out and blocks bad ones",
+"Makes the computer faster",
+"Cleans the screen",
+"Plays music"
+],
+"answerIndex": 0,
+"explain": "A firewall is like a gate guard for network traffic."
+},
+{
+"q": "What does antivirus software do?",
+"choices": [
+"Scans files for known virus patterns and odd behavior",
+"Prints documents",
+"Draws pictures",
+"Charges the battery"
+],
+"answerIndex": 0,
+"explain": "Antivirus compares files to known patterns and watches for strange behavior."
+},
+{
+"q": "Why do security tools need updates?",
+"choices": [
+"New viruses keep appearing",
+"The screen gets dusty",
+"The mouse wears out",
+"Updates make the computer louder"
+],
+"answerIndex": 0,
+"explain": "Without updates the tool does not know about the newest viruses."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 5,
+"subject": "Science",
+"title": "Inside the Atom: What Is Nuclear Energy? ⚛️",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "teach",
+"video": "https://www.youtube.com/watch?v=QR_Jk9lM6QU",
+"passage": "Gather first — the video above (Learn Bright, about 6 minutes), paper, and colored pencils.\nHere's the Idea — Everything around you is made of atoms, which are far too small to see. An atom has a tiny center called the nucleus. The nucleus holds protons, which have a positive charge, and neutrons, which have no charge. Electrons, with a negative charge, move around outside the nucleus. A helium atom has 2 protons, 2 neutrons, and 2 electrons. Nuclear energy comes from the nucleus. When the nucleus of a very big atom, like uranium, is split apart, it gives off a huge amount of heat. That splitting is called fission.\nSee It Done — A labeled helium atom: in the middle, the nucleus holds 2 protons (+) and 2 neutrons (no charge). Outside, 2 electrons (−) move around it. The 2 plus charges and 2 minus charges cancel out, so the whole atom has no charge.\nYour Turn — 1. Watch the video once. 2. Draw a helium atom: 2 protons and 2 neutrons in the middle, 2 electrons around the outside. Use 3 colors and make a key. 3. Write what is in the nucleus and what is outside it. 4. Write one sentence about what fission means.\nCheck Yourself — Does your atom have 2 protons, 2 neutrons, and 2 electrons, and are the electrons outside the nucleus?\nShow What You Know — Explain to a grown-up what an atom is made of and where nuclear energy comes from.",
+"quiz": [
+{
+"q": "Where are the protons and neutrons in an atom?",
+"choices": [
+"In the nucleus",
+"Floating far away",
+"Only on the outside",
+"They do not exist"
+],
+"answerIndex": 0,
+"explain": "Protons and neutrons are packed together in the nucleus."
+},
+{
+"q": "What is fission?",
+"choices": [
+"Splitting the nucleus of a big atom to release heat",
+"Freezing water",
+"Burning wood",
+"Charging a battery"
+],
+"answerIndex": 0,
+"explain": "Fission splits a nucleus and gives off a huge amount of heat."
+},
+{
+"q": "How many electrons does a helium atom have?",
+"choices": [
+"2",
+"1",
+"4",
+"0"
+],
+"answerIndex": 0,
+"explain": "A helium atom has 2 protons, 2 neutrons, and 2 electrons."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 6,
+"subject": "Reading",
+"title": "Alan Turing: The Codebreaker Who Dreamed of Thinking Machines 🧠",
+"xp": 15,
+"standard": "ELAGSE4RI2",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=ORerqRQK9K8",
+"passage": "Gather first — the video above (PastPorts Kids, about 4 minutes), paper, and a pencil.\nHere's the Idea — Alan Turing was a British mathematician who loved puzzles. Before World War II he wrote about a machine that could follow any set of written instructions, an idea that became the basis of modern computers. During the war he worked at a secret place called Bletchley Park, where codebreakers worked to read secret German messages sent with a machine called Enigma. Turing helped design machines that sped up the work. Reading those messages helped the Allies. Years later he asked a question people still debate: can a machine think?\nYour Turn — 1. Watch the video once. 2. Write the main idea of the video in ONE sentence. 3. Write 3 key details that support it. 4. Add World War II (1939 to 1945) to your computer-history timeline strip.\nCheck Yourself — Does your sentence say what Turing is known for, and do the details prove it?\nShow What You Know — Explain to a grown-up why a machine that can follow any instructions is the basis of every computer.",
+"quiz": [
+{
+"q": "Where did Alan Turing help break secret German codes?",
+"choices": [
+"Bletchley Park",
+"Silicon Valley",
+"A bank",
+"Hollywood"
+],
+"answerIndex": 0,
+"explain": "Turing worked at Bletchley Park during World War II."
+},
+{
+"q": "What was the code machine the Germans used?",
+"choices": [
+"Enigma",
+"Apple II",
+"Windows",
+"Abacus"
+],
+"answerIndex": 0,
+"explain": "The Germans sent secret messages with a machine called Enigma."
+},
+{
+"q": "What big idea did Turing write about?",
+"choices": [
+"A machine that can follow any set of instructions",
+"A faster bicycle",
+"A bigger airplane",
+"A new color"
+],
+"answerIndex": 0,
+"explain": "His idea of a machine that follows any instructions became the basis of modern computers."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 7,
+"subject": "Independent",
+"title": "The Morris Worm: The Day the Early Internet Slowed Down 🪱",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=emOSK-UPep8",
+"passage": "Gather first — the video above (a one-minute short on the Morris Worm), paper, and a pencil. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — In November 1988 the internet was small, and mostly used by universities and the government. A graduate student named Robert Morris released a program called a worm. A worm is like a virus, but it spreads from computer to computer by itself, without anyone opening a file. Morris said it was an experiment, but a mistake made it copy itself far too many times. It slowed down or stopped around one in ten of the computers connected at the time. Morris was the first person convicted under a new U.S. computer crime law. The worm also led to the creation of a team called CERT, which helps organizations respond to computer security problems.\nYour Turn — 1. Watch the one-minute video twice. Look for what a worm does that a virus does not. 2. Write one sentence that says how a worm is different from a virus. 3. Write a 3-step cause-and-effect chain for what happened in 1988. 4. Write one way people responded to the problem.\nCheck Yourself — Does your chain begin with the worm being released and end with the response?\nShow What You Know — Tell a grown-up what the Morris Worm taught people about computer safety.",
+"quiz": [
+{
+"q": "How is a worm different from a virus?",
+"choices": [
+"A worm spreads by itself without anyone opening a file",
+"A worm only lives in the water",
+"A worm is always harmless",
+"A worm needs a printer"
+],
+"answerIndex": 0,
+"explain": "A worm copies itself from computer to computer on its own."
+},
+{
+"q": "Why did the Morris Worm slow down so many computers?",
+"choices": [
+"A mistake made it copy itself too many times",
+"It unplugged the computers",
+"It ran out of power",
+"It was written in pencil"
+],
+"answerIndex": 0,
+"explain": "It copied itself far too often and used up the computers' resources."
+},
+{
+"q": "What was created after the Morris Worm?",
+"choices": [
+"A team to help respond to computer security problems",
+"A new keyboard",
+"A new internet cable",
+"A computer museum"
+],
+"answerIndex": 0,
+"explain": "The CERT team was created to help with computer security emergencies."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 8,
+"subject": "Science",
+"title": "How a Nuclear Power Plant Makes Electricity 🏭",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=uvhi4vju1TY",
+"passage": "Gather first — the video above (Nuclear Energy: A Kid's Guide, under 5 minutes), paper, and colored pencils.\nHere's the Idea — A nuclear power plant makes electricity almost the same way a coal plant does. Both heat water into steam that spins a turbine. The difference is where the heat comes from. In a nuclear reactor, uranium atoms split in fission and give off heat. Control rods slide in and out of the reactor to absorb extra neutrons and keep the reaction steady. Heat boils water, the steam spins the turbine, and the turbine spins a generator. A nuclear plant does not burn fuel, so it does not release smoke from burning. It does make waste that stays dangerous for a very long time, so it has to be stored carefully.\nYour Turn — 1. Watch the video once. 2. Draw the chain with arrows: reactor (fission) → hot water and steam → turbine → generator → power lines. 3. Label the control rods and say what they do. 4. Write one good thing and one challenge of nuclear power.\nCheck Yourself — Does your chain match the coal plant chain, with a different source of heat?\nShow What You Know — Explain to a grown-up how a nuclear plant and a coal plant are alike and how they are different.",
+"quiz": [
+{
+"q": "What makes the heat in a nuclear reactor?",
+"choices": [
+"Fission of uranium atoms",
+"Burning wood",
+"Sunlight",
+"Wind"
+],
+"answerIndex": 0,
+"explain": "Splitting uranium atoms gives off the heat."
+},
+{
+"q": "What do control rods do?",
+"choices": [
+"Absorb extra neutrons to keep the reaction steady",
+"Make the plant louder",
+"Stir the water",
+"Hold up the roof"
+],
+"answerIndex": 0,
+"explain": "Control rods absorb neutrons, which controls how fast fission happens."
+},
+{
+"q": "What is one challenge of nuclear power?",
+"choices": [
+"The waste stays dangerous for a long time and must be stored carefully",
+"It needs lots of coal",
+"It gives off black smoke",
+"It only works at night"
+],
+"answerIndex": 0,
+"explain": "Used nuclear fuel stays dangerous for a very long time."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 9,
+"subject": "Reading",
+"title": "Grace Hopper: Debugging, Compilers, and the Moth in the Machine 🐛",
+"xp": 15,
+"standard": "ELAGSE4RI2",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=-XTVT3lE7b8",
+"passage": "Gather first — the video above (Grace Hopper for Kids, about 8 minutes), paper, and a pencil.\nHere's the Idea — Grace Hopper was a mathematician who joined the U.S. Navy and became a rear admiral. She worked on some of the first big computers. She helped invent the compiler, a program that translates words people can read into instructions a computer can run. That idea led to programming languages like COBOL, which let programmers write in English-like words. The word bug was already used for a machine problem, but in 1947 her team found a real moth stuck in a computer relay and taped it into the logbook. After that, fixing problems in a program was called debugging.\nYour Turn — 1. Watch the video once. 2. Write the main idea of the video in ONE sentence. 3. Write 3 key details that support it. 4. Add 1947 (the moth) to your computer-history timeline strip.\nCheck Yourself — Does your main idea say what Hopper is known for?\nShow What You Know — Explain to a grown-up what a compiler does and why programmers use one.",
+"quiz": [
+{
+"q": "What did Grace Hopper's team find stuck in a computer in 1947?",
+"choices": [
+"A moth",
+"A coin",
+"A key",
+"A pencil"
+],
+"answerIndex": 0,
+"explain": "They taped a real moth into the logbook, which made debugging a famous word."
+},
+{
+"q": "What does a compiler do?",
+"choices": [
+"Translates readable instructions into code a computer can run",
+"Cleans the screen",
+"Charges the battery",
+"Draws pictures"
+],
+"answerIndex": 0,
+"explain": "A compiler turns programmer-friendly words into machine instructions."
+},
+{
+"q": "Why was COBOL special?",
+"choices": [
+"It used English-like words",
+"It had no letters",
+"It only ran on phones",
+"It was made of paper"
+],
+"answerIndex": 0,
+"explain": "COBOL let programmers write in words that look like English."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 10,
+"subject": "Independent",
+"title": "ILOVEYOU: The Email That Fooled the World 💌",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=x_1t3HC8Lmo&t=164",
+"passage": "Gather first — the video above (it is long, so the link starts at 2:44 and you can stop after the part about how it spread), paper, and a pencil. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — In May 2000 a worm called ILOVEYOU spread around the world in about a day. It arrived in an email with the subject line ILOVEYOU and an attachment that looked like a harmless love letter text file. The real file ended in .vbs, a script, hidden behind the friendly name. When people opened it, the program sent itself to everyone in their address book and damaged some files. It worked because people trust messages from someone they know and because the file name hid what it really was. The lesson is that attackers often trick people instead of breaking into computers.\nYour Turn — 1. Watch from the link and stop after the part about how it spread. 2. Write the 3 steps of how the worm tricked people. 3. Write 3 clues that an email attachment might be a trick. 4. Write a rule for your own family about unexpected attachments.\nCheck Yourself — Does your list of clues include a message from a person you did not expect to send you a file?\nShow What You Know — Tell a grown-up why this worm was a trick on people more than a trick on computers.",
+"quiz": [
+{
+"q": "How did the ILOVEYOU worm get people to open it?",
+"choices": [
+"It looked like a love letter from someone they knew",
+"It looked like a bill",
+"It was very loud",
+"It needed a password"
+],
+"answerIndex": 0,
+"explain": "People trusted a message that seemed to come from a friend."
+},
+{
+"q": "What did the worm do after it was opened?",
+"choices": [
+"Sent itself to everyone in the address book",
+"Cleaned the computer",
+"Printed a picture",
+"Updated the screen"
+],
+"answerIndex": 0,
+"explain": "It copied itself to every address in the person's contacts."
+},
+{
+"q": "Which is the best habit against tricks like this?",
+"choices": [
+"Do not open unexpected attachments, even from friends, without checking",
+"Open everything quickly",
+"Turn the sound up",
+"Delete the keyboard"
+],
+"answerIndex": 0,
+"explain": "Checking with the sender first stops many email tricks."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 11,
+"subject": "Science",
+"title": "Power the Town: Which Energy Source Would You Pick? 🏘️",
+"xp": 15,
+"standard": "ELAGSE4W2",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — paper, a pencil, and your notes from the electricity and nuclear lessons.\nHere's the Idea — Engineers and leaders compare energy sources before they build. They ask: where does the heat or motion come from, does the fuel run out, how much does it cost, and what are the risks? Strong thinkers do not pick a favorite and ignore the rest. They weigh the good and the bad of each choice and explain why.\nSee It Done — A plan with reasons: \"For a windy coastal town I would pick wind turbines because the wind keeps coming back and does not need fuel. A challenge is that the wind stops sometimes, so the town also needs a backup.\"\nYour Turn — 1. Pick a pretend town: a windy coast, a sunny desert, or a river valley. 2. Make a table with three sources you could use and two columns: good things and challenges. 3. Choose one source or a mix of two. Write 4 to 6 sentences explaining why, using a fact from each video you watched. 4. Read it out loud. Fix any sentence that does not have a reason.\nCheck Yourself — Did you use at least two real facts from the lessons, and did you name a challenge with your choice?\nShow What You Know — Present your town plan to a grown-up and answer one question they ask you.",
+"quiz": [
+{
+"q": "What should you do when comparing energy sources?",
+"choices": [
+"Weigh the good things and the challenges of each",
+"Pick the one your friend likes",
+"Ignore the cost",
+"Only look at the name"
+],
+"answerIndex": 0,
+"explain": "Good decisions compare both the benefits and the problems."
+},
+{
+"q": "Why might wind power need a backup?",
+"choices": [
+"The wind sometimes stops",
+"Wind turbines are too heavy",
+"Wind has no energy",
+"Wind is too hot"
+],
+"answerIndex": 0,
+"explain": "When the wind stops, the turbines stop making electricity."
+},
+{
+"q": "Why is nuclear waste a challenge?",
+"choices": [
+"It stays dangerous for a very long time",
+"It smells like smoke",
+"It disappears quickly",
+"It makes wind"
+],
+"answerIndex": 0,
+"explain": "Used fuel must be stored carefully for a very long time."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 12,
+"subject": "Independent",
+"title": "White Hats and Black Hats: Who Protects the Internet? 🎩",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": "https://www.youtube.com/watch?v=gYrRIcrr02k&t=29",
+"passage": "Gather first — the video above (PowerToFly Kids Tech, starts at 0:29), paper, and a pencil. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — A hacker is someone who is very good at finding ways into computer systems. A black hat hacker breaks in without permission to steal or cause harm. A white hat hacker has permission, and uses the same skills to find weak spots so they can be fixed before a bad guy finds them. Some companies even pay people, in programs called bug bounties, to report problems responsibly. The skills are the same. The difference is permission and purpose. That is why you only ever test things you own, or have written permission to test.\nYour Turn — 1. Watch the video once. 2. Make a 2-column chart: White Hat and Black Hat. Write 3 facts for each. 3. Write the one rule that makes a hacker a white hat. 4. Write one job where someone could use hacking skills for good.\nCheck Yourself — Does your chart say permission and purpose as the difference?\nShow What You Know — Tell a grown-up why you only practice security skills inside your own offline sandbox.",
+"quiz": [
+{
+"q": "What makes a hacker a white hat?",
+"choices": [
+"They have permission and use their skills to fix problems",
+"They break in secretly",
+"They only use phones",
+"They never touch a computer"
+],
+"answerIndex": 0,
+"explain": "White hats work with permission to make systems safer."
+},
+{
+"q": "What is a bug bounty?",
+"choices": [
+"A reward for reporting a problem responsibly",
+"A pet insect",
+"A broken keyboard",
+"A video game"
+],
+"answerIndex": 0,
+"explain": "Companies pay people who report weak spots so they can be fixed."
+},
+{
+"q": "Where should you practice security skills?",
+"choices": [
+"Only on things you own or have written permission to test",
+"On a stranger's computer",
+"On the school network",
+"On any website"
+],
+"answerIndex": 0,
+"explain": "Testing without permission is not okay, even for fun."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+},
+{
+"d": 13,
+"subject": "Independent",
+"title": "Cyber Lab Finale: Build a Harmless Prank Program in the Sandbox 🧪",
+"xp": 15,
+"standard": "ELAGSE4W2",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — your offline virtual machine with Python installed (turn its network OFF in the VM settings first), a text editor, and a grown-up watching. Cyber Lab rules: use an offline virtual machine only. Never touch the family's real computers or network. Never download real malware. Everything you build stays harmless.\nHere's the Idea — Real security experts learn by building safe things in a sandbox, a protected space where nothing can get out. Your prank program will pretend to be a scary virus alert, but it will only print words on the screen. It will not touch any file, will not connect to a network, will not copy itself, and will not start by itself. That is what makes it harmless. A program that only prints and exits can never spread.\nSee It Done — Here is the whole program. Type it into a file called prank.py: import time, then print(\"!!! WARNING: SUPER VIRUS DETECTED !!!\"), then for n in range(5, 0, -1): print(\"Deleting nothing in\", n); time.sleep(1), then print(\"Just kidding! Nothing was touched.\"), then input(\"Press Enter to close\"). Run it with python3 prank.py.\nYour Turn — 1. Turn the VM's network OFF. Ask a grown-up to check that it is off. 2. Type the program into prank.py and run it. Fix any typos. 3. Change the messages and the countdown to make your own version. Keep it to print, sleep, and input only. 4. Write a short safety report with 3 sentences: what your program does, 3 things it does NOT do, and why that makes it harmless.\nCheck Yourself — Does your program only print words and then end? Does your report list what it does not do?\nShow What You Know — Show a grown-up your program running in the VM and read your safety report out loud. Explain how a white hat tests safely.",
+"quiz": [
+{
+"q": "What makes your prank program harmless?",
+"choices": [
+"It only prints words and then ends",
+"It copies itself",
+"It connects to the internet",
+"It changes files"
+],
+"answerIndex": 0,
+"explain": "A program that only prints and exits cannot spread or damage anything."
+},
+{
+"q": "Why do you turn the VM network off?",
+"choices": [
+"So nothing can get out of the sandbox",
+"So it runs faster",
+"So the screen is brighter",
+"So the keyboard works"
+],
+"answerIndex": 0,
+"explain": "An offline sandbox keeps everything contained."
+},
+{
+"q": "Which line is NOT allowed in your Cyber Lab program?",
+"choices": [
+"Code that copies itself or changes files",
+"print() a funny message",
+"time.sleep(1)",
+"input() to close the window"
+],
+"answerIndex": 0,
+"explain": "Anything that copies itself or changes files is outside the Cyber Lab rules."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+}
+];
 function contentPacks(){
   return [
     {label:"Bible: Creation → Moses (Anna, 12 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
@@ -20448,6 +21111,7 @@ function contentPacks(){
     {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
+    {label:"Ryan: Tech Pioneers, Cyber Lab, and Energy & the Atom (14 lessons)", kid:"kid2", items:RYAN_TECH_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_TECH_LAB); }},
     {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
@@ -23427,7 +24091,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.9";
+var APP_BUILD = "2026-10-21.10";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
