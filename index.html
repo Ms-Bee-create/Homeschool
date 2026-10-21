@@ -20143,9 +20143,9 @@ function usHist(d, title, std, stage, video, p, quiz){
   var parts = ["Gather first — "+p.gather, "Here's the Idea — "+p.idea];
   if(p.example) parts.push("See It Done — "+p.example);
   parts.push("Your Turn — "+turn, "Check Yourself — "+p.check, "Show What You Know — "+p.show);
-  return {d:d, subject:"Reading", title:title, xp:15, standard:std, stage:stage, video:video||null, passage:parts.join("\n"),
+  return {d:d, subject:"Social Studies", title:title, xp:15, standard:std, stage:stage, video:video||null, passage:parts.join("\n"),
     quiz:quiz.map(function(q){ return {q:q[0], choices:q[1], answerIndex:q[2], explain:q[3]}; }),
-    crossSubjects:["Social Studies"]};
+    crossSubjects:["Reading"]};
 }
 var RYAN_US_HISTORY = [
  usHist(0, "Why Did the Colonies Break Away from Britain? 🔔", "SS4H1", "teach", "https://www.youtube.com/watch?v=mXE1l_7ytG8", {
@@ -20305,6 +20305,34 @@ var RYAN_US_HISTORY = [
    ["Which of these shows a cause leading to an effect?",["War debt led to new taxes, which led to protests","A map is on a wall","Three people sit in a room","A flag is red"],0,"A cause-and-effect chain shows one event leading to the next."]])
 ];
 
+/* Ryan's US History goes where his history stopped: after his last other Social Studies lesson, on Tuesdays and Thursdays (the Science & Social Studies block), only on days that have room. Does not use the light-day checkbox. */
+function addUsHistoryPack(){
+  if(!db){ toast("Not connected yet — try again in a moment"); return; }
+  var kid = "kid2", titles = {}, have = {}, counts = {}, last = todayISO();
+  RYAN_US_HISTORY.forEach(function(it){ titles[it.title] = true; });
+  Object.keys(state.assignments).forEach(function(id){
+    var x = state.assignments[id];
+    if(x.kidId!==kid) return;
+    have[x.title] = true;
+    if(x.reviewStatus==="retired" || !x.date) return;
+    counts[x.date] = (counts[x.date]||0)+1;
+    if(x.subject==="Social Studies" && !titles[x.title] && x.date>last) last = x.date;
+  });
+  var start = isoDate(packStart());
+  if(start>last) last = start;
+  var d = new Date(last+"T00:00:00"), target = LIGHT_DAY_TARGET[kid]||3, first = null, final = null, n = 0;
+  RYAN_US_HISTORY.forEach(function(it){
+    if(have[it.title]) return;
+    var guard = 0, iso;
+    do { d.setDate(d.getDate()+1); iso = isoDate(d); guard++; }
+    while(guard<400 && ((d.getDay()!==2 && d.getDay()!==4) || (counts[iso]||0)>=target));
+    counts[iso] = (counts[iso]||0)+1;
+    if(!first) first = iso; final = iso; n++;
+    addSeed({kidId:kid, date:iso, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:it.stage, passage:it.passage, video:it.video||null, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, createdAt:new Date().toISOString()});
+  });
+  toast(n ? "Added "+n+" US History lessons, "+first+" to "+final+" (Tue and Thu)" : "US History is already added");
+}
 function contentPacks(){
   return [
     {label:"Bible: Creation → Moses (Anna, 12 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
@@ -20318,7 +20346,7 @@ function contentPacks(){
     {label:"Anna: Minecraft STEM Lab (Egg Farm, Crystals, Dinosaur Dig)", kid:"kid1", items:MC_STEM_LAB_ANNA, oldPrefix:"", load:function(){ addPackItems("kid1", MC_STEM_LAB_ANNA); }},
     {label:"Anna: Grandpa's Wake-Up Song (3 lessons)", kid:"kid1", items:ANNA_GRANDPA_SONG, oldPrefix:"", load:function(){ addAnnaGrandpaSong("kid1"); }},
     {label:"Anna: Wobbly Life Money Math (3 lessons)", kid:"kid1", items:ANNA_WOBBLY_MATH, oldPrefix:"", load:function(){ addAnnaWobblyMath("kid1"); }},
-    {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_US_HISTORY); }},
+    {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
   ];
@@ -23297,7 +23325,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.2";
+var APP_BUILD = "2026-10-21.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
