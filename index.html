@@ -19271,7 +19271,7 @@ function patchSafetyUndo(){
    but its exact wording or fit is not confirmed. Anything else in the Leader "Standards check" card is unverified and needs Mom's alignment table. */
 var STANDARD_STATUS = {
   "ELAGSE2RL2":"verified", "ELAGSE2RF3":"verified", "ELAGSE2RI1":"verified", "S2L1":"exists", "S2P1":"verified", "VA2.CR.2":"verified",
-  "2.NR.1":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
+  "2.NR.1":"verified", "2.NR.3":"verified", "2.NR.3.1":"verified", "2.NR.3.2":"verified", "2.PAR.4":"verified", "2.PAR.4.1":"verified", "2.PAR.4.2":"verified", "2.MDR.5":"verified", "2.MDR.5.1":"verified", "2.MDR.5.2":"verified", "2.MDR.5.3":"verified", "2.MDR.5.5":"verified", "2.MDR.6":"verified", "2.MDR.6.1":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
   "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
   "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
@@ -19485,7 +19485,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -21835,6 +21835,402 @@ var ANNA_REGROUPING = [
 "skillId": "anna-regrouping"
 }
 ];
+/* Ryan: micro:bit Lab (7 lessons). Replaces the title-only micro:bit lessons that were added by hand: real steps for his ElecFreaks Starter Kit (Lessons 01, 02, 09), the Wonder Building Kit line-following car (Case 02), a two-board radio game, a playtest and design-notes day, and a family demo. Links are the exact ELECFREAKS guide pages. */
+var RYAN_MICROBIT = [
+{
+"d": 0,
+"subject": "Related Arts",
+"title": "micro:bit Lab 1: Build a Two-LED Light Show on a Breadboard 💡",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "teach",
+"video": "https://www.youtube.com/watch?v=cYiuqTReF2E",
+"passage": "Gather first — the video above (a tour of the ElecFreaks Starter Kit), your micro:bit, its USB cable, and the parts from your ElecFreaks Starter Kit: the breadboard adapter, the breadboard, 2 LEDs, 2 resistors (100 ohm), and jumper wires. Open MakeCode at makecode.microbit.org and the exact guide page, Lesson 01 LED, in the link above. Put every part back in the kit box when you finish.\nHere's the Idea — You have coded the micro:bit with your Retro Arcade kit. Now you will use your Starter Kit for the first time and make the board control a real circuit. A circuit is a loop that electricity can travel around. An LED lights up when current flows through it the right way, and it needs a resistor so too much current does not burn it out. The long leg of an LED is the positive side. A micro:bit pin can be switched on and off by a program, which is called a digital write. Writing 1 turns the pin on, and writing 0 turns it off.\nSee It Done — Here is the program idea in blocks. In a forever loop: digital write pin (the pin your LED A is plugged into) to 1, digital write pin (LED B) to 0, pause 500 ms, then write 0 to LED A, 1 to LED B, and pause 500 ms. The two LEDs take turns. Use the pins shown on the Lesson 01 page.\nYour Turn — 1. Open the Lesson 01 LED guide and read the parts list and the wiring picture. Build the circuit exactly like the picture, with the micro:bit unplugged. 2. Ask a grown-up to check the wiring, then plug in the USB cable. 3. Build the forever loop from the example in MakeCode and download it to the micro:bit. 4. Change the pause time to 100 ms, then to 1000 ms. Write what changes. 5. Challenge: add a third LED and make a traffic light that goes green, yellow, red in order.\nCheck Yourself — Do the two LEDs take turns, and did you check the long leg points the right way?\nShow What You Know — Explain to a grown-up what a resistor does, and why the LED needs one. Take a photo of your working circuit.",
+"quiz": [
+{
+"q": "Why does an LED need a resistor in the circuit?",
+"choices": [
+"To limit the current so the LED does not burn out",
+"To make it blink",
+"To make it a different color",
+"To store the program"
+],
+"answerIndex": 0,
+"explain": "A resistor limits the current flowing through the LED."
+},
+{
+"q": "What does \"digital write pin P0 to 1\" do?",
+"choices": [
+"Turns that pin on (high)",
+"Turns that pin off",
+"Reads a button",
+"Plays a sound"
+],
+"answerIndex": 0,
+"explain": "Writing 1 sets the pin high, which powers whatever is connected to it."
+},
+{
+"q": "What happens to the blink speed when you make the pause shorter?",
+"choices": [
+"The LEDs swap faster",
+"The LEDs swap slower",
+"Nothing changes",
+"The program stops"
+],
+"answerIndex": 0,
+"explain": "The pause controls how long each LED stays on before the next change."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": "https://learn-en.readthedocs.io/en/latest/microbitKit/Starter_Kit/starter_kit_case_01.html"
+},
+{
+"d": 2,
+"subject": "Related Arts",
+"title": "micro:bit Lab 2: Button Boss, Start and Stop the Lights 🔘",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": null,
+"passage": "Gather first — your micro:bit, USB cable, and the Starter Kit parts for Lesson 02: the breadboard adapter, the breadboard, 2 LEDs, 2 resistors, a pushbutton, and jumper wires. Open MakeCode and the Lesson 02 Button guide in the link above. Put everything back in the kit box afterward.\nHere's the Idea — A button is an input: it sends information to the program. An LED is an output: the program sends power to it. Programs use if/then to decide what to do. A variable can remember something, like whether the lights are on or off. Flipping a variable between two values is called a toggle.\nSee It Done — A toggle in blocks: on start, set running to 0. Forever: if the button pin reads 1 (pressed), then change running to 1 minus running (that flips it between 0 and 1) and pause 300 ms so one press counts once. Also in forever: if running = 1, then make the LEDs take turns, else turn both off.\nYour Turn — 1. Read the Lesson 02 guide and wire the circuit from the picture, with the micro:bit unplugged. Ask a grown-up to check it. 2. Build the program from the guide, then try the toggle version from the example. 3. Test it: press once and the lights start, press again and they stop. If one press acts like two, make the pause longer. 4. Add a rule: hold the button for a full second to make the lights flash faster. 5. Write down which parts are inputs and which are outputs.\nCheck Yourself — Does one press start the lights and the next press stop them, every time?\nShow What You Know — Show a grown-up your toggle and explain why the pause is needed after a button press.",
+"quiz": [
+{
+"q": "In this circuit, which part is the input?",
+"choices": [
+"The pushbutton",
+"The LED",
+"The resistor",
+"The USB cable"
+],
+"answerIndex": 0,
+"explain": "An input sends information into the program, and the button does that."
+},
+{
+"q": "What does \"set running to 1 minus running\" do?",
+"choices": [
+"Flips running between 0 and 1",
+"Makes running 5",
+"Stops the program",
+"Turns on a sound"
+],
+"answerIndex": 0,
+"explain": "If running is 0 you get 1, and if it is 1 you get 0, so it flips."
+},
+{
+"q": "Why add a short pause after a button press?",
+"choices": [
+"So one press is counted once",
+"To save power",
+"To make the LED brighter",
+"To play music"
+],
+"answerIndex": 0,
+"explain": "A press lasts longer than a program loop, so without a pause one press is counted many times."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": "https://learn-en.readthedocs.io/en/latest/microbitKit/Starter_Kit/starter_kit_case_02.html"
+},
+{
+"d": 4,
+"subject": "Related Arts",
+"title": "micro:bit Lab 3: Build a Siren and Learn About Pitch 🚨",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "practice",
+"video": null,
+"passage": "Gather first — your micro:bit, USB cable, and the Starter Kit parts for Lesson 09: the breadboard adapter, the breadboard, the buzzer, the transistor, a resistor, and jumper wires. Open MakeCode and the Lesson 09 Buzzer guide in the link above. Put everything back in the kit box afterward.\nHere's the Idea — Sound is vibration. Pitch is how fast something vibrates, and that speed is called frequency. Frequency is measured in hertz (Hz), the number of vibrations each second. A higher frequency makes a higher pitch. A micro:bit pin cannot supply enough current to drive a buzzer loudly by itself, so the guide uses a transistor, a small electronic switch that uses a little current to control a bigger current.\nSee It Done — A siren in blocks. Forever: for index from 400 to 1000 by 50, ring tone (index) Hz and pause 20 ms. Then count back down from 1000 to 400. The pitch rises and falls like an alarm.\nYour Turn — 1. Read the Lesson 09 guide and wire the circuit carefully, with the micro:bit unplugged. Ask a grown-up to check it. 2. Build the siren from the example and test it. 3. Change the range to 200 to 2000 and describe how the sound changes. 4. Make a tune: pick 5 frequencies and play them in order. Write the 5 numbers down. 5. Use the LED screen to show the number you are playing, with the plot bar graph block.\nCheck Yourself — Does the pitch go up and then down, and did your 5-note tune play in order?\nShow What You Know — Explain to a grown-up what frequency means and why the transistor is in the circuit.",
+"quiz": [
+{
+"q": "What does a higher frequency sound like?",
+"choices": [
+"A higher pitch",
+"A lower pitch",
+"A louder sound",
+"No sound"
+],
+"answerIndex": 0,
+"explain": "Higher frequency means faster vibrations, which we hear as a higher pitch."
+},
+{
+"q": "What is frequency measured in?",
+"choices": [
+"Hertz (Hz)",
+"Volts",
+"Meters",
+"Kilograms"
+],
+"answerIndex": 0,
+"explain": "One hertz is one vibration per second."
+},
+{
+"q": "Why does this circuit use a transistor?",
+"choices": [
+"A micro:bit pin cannot drive the buzzer with enough current by itself",
+"To make the code shorter",
+"To change the color",
+"To store the song"
+],
+"answerIndex": 0,
+"explain": "The transistor lets a small current from the pin control the larger current the buzzer needs."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": "https://learn-en.readthedocs.io/en/latest/microbitKit/Starter_Kit/starter_kit_case_09.html"
+},
+{
+"d": 6,
+"subject": "Related Arts",
+"title": "micro:bit Lab 4: Build a Line-Following Car and Make It Think 🚗",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — your Wonder Building Kit with the Wukong board, 2 motors, the line-following sensor, and the bricks, your micro:bit, and a strip of black tape about 2 meters long to make a track on a light floor or a big sheet of paper. Open MakeCode and the exact guide, Case 02 Line-following Cars, in the link above. Take your time: this one can take two days.\nHere's the Idea — A robot car follows a line using a feedback loop. A sensor reads what is under the car, the program decides what to do, and the motors change. Then the sensor reads again. Many real machines work this way, from thermostats to self-driving cars. If one sensor sees the line and the other does not, the car has drifted, so the program turns it back toward the line.\nSee It Done — The decision in plain words: if the left sensor sees the line, slow the left motor so the car turns left. If the right sensor sees the line, slow the right motor so it turns right. If both see the line, drive straight. Then repeat forever.\nYour Turn — 1. Read the Case 02 guide and build the car by following its pictures. Plug the motors and sensor into the ports the guide shows. 2. Make a track with the black tape: one gentle curve first. 3. Build the program from the guide and test the car on the track. Watch where it gets lost. 4. Change ONE thing at a time, like the speed or the turn amount, and test again. Write what each change did. 5. Make a harder track with a sharper curve and see if your best settings still work.\nCheck Yourself — Does your car finish a curve without leaving the line? Do you have a list of what you changed and what happened?\nShow What You Know — Show a grown-up your car on the track and explain the feedback loop: sensor, program, motors, repeat.",
+"quiz": [
+{
+"q": "What is a feedback loop in a line-following car?",
+"choices": [
+"Sensor reads, program decides, motors change, then it repeats",
+"The car drives in a circle",
+"The battery sends a loop of power",
+"A loop of tape"
+],
+"answerIndex": 0,
+"explain": "The car keeps checking the sensor and adjusting the motors."
+},
+{
+"q": "Why change only one thing at a time when testing?",
+"choices": [
+"So you know which change caused the result",
+"To save tape",
+"It is a rule about batteries",
+"So the car goes faster"
+],
+"answerIndex": 0,
+"explain": "If you change several things you cannot tell which one helped."
+},
+{
+"q": "If the car drifts off the line, what must the program do?",
+"choices": [
+"Steer back toward the line",
+"Speed up",
+"Stop forever",
+"Play a tone"
+],
+"answerIndex": 0,
+"explain": "The sensor tells the program the car has drifted, so it corrects the steering."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": "https://learn-en.readthedocs.io/en/latest/microbitKit/Wonder_Building_Kit/Case_02.html"
+},
+{
+"d": 8,
+"subject": "Related Arts",
+"title": "micro:bit Lab 5: Quick Draw Duel with Two micro:bits 🤠",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — both of your micro:bits, 2 USB cables or battery packs, MakeCode at makecode.microbit.org, and a family member to play against.\nHere's the Idea — The radio in a micro:bit lets two boards talk to each other with no wires. Boards must be in the same radio group, a number like a channel, or they will not hear each other. One board sends a number, and the other runs an \"on radio received\" block when it arrives. You can use those messages to build a two-player game.\nSee It Done — Quick Draw in blocks. On start: radio set group 7, and set ready to 0. On button B pressed: show string \"GO?\", pause (pick random 1000 to 4000), set ready to 1, show string \"!\". On button A pressed: if ready = 1, radio send number 1 and show a happy icon, and set ready to 0; else show a sad icon, because that was too early. On radio received (receivedNumber): if receivedNumber = 1, show a sad icon and set ready to 0. The first player to press A after the ! wins, and the other board shows that they lost.\nYour Turn — 1. Open MakeCode and build the Quick Draw program from the example. 2. Download the same program to BOTH micro:bits. 3. Play a round: both players press B, wait for the !, and press A as fast as possible. 4. Fix any bug you find. For example, what happens if you press A before the !? Is that fair? 5. Add one new rule, like a score that goes up for the winner, and test it.\nCheck Yourself — Do both boards use group 7? Does the winner's board show happy and the other board show sad?\nShow What You Know — Demo the duel with a family member and explain how the two boards talk to each other.",
+"quiz": [
+{
+"q": "What must be true for two micro:bits to hear each other by radio?",
+"choices": [
+"They use the same radio group",
+"They are the same color",
+"They are on the same USB port",
+"They have the same name"
+],
+"answerIndex": 0,
+"explain": "Boards only receive messages from their own radio group."
+},
+{
+"q": "What does the \"on radio received\" block do?",
+"choices": [
+"Runs its code when a message arrives",
+"Sends a message",
+"Turns off the radio",
+"Plays a song"
+],
+"answerIndex": 0,
+"explain": "It is an event block that waits for incoming messages."
+},
+{
+"q": "Why pick a random pause before showing the !?",
+"choices": [
+"So nobody can guess when to press",
+"To make the game slower",
+"To save battery",
+"To change the group"
+],
+"answerIndex": 0,
+"explain": "A random time stops players from predicting the signal."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": null
+},
+{
+"d": 10,
+"subject": "Reading",
+"title": "micro:bit Lab 6: Playtest Day and the Design Notes You Will Be Proud Of 📝",
+"xp": 15,
+"standard": "ELAGSE4W2",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — your finished game on a micro:bit (the reaction game or the Quick Draw duel), paper, a pencil, and 2 family members to playtest.\nHere's the Idea — Game designers do not only write code. They test their game with real people and fix what they find. A playtest means you watch someone play without helping. You write down what confuses them, what they enjoy, and what breaks. A bug report says what happened, what you expected, and how to make it happen again.\nSee It Done — A bug report: \"Bug: the score goes up twice for one hit. Expected: one point per hit. How to repeat: press A right when the dot lands. Fix idea: add a short pause after the score changes.\"\nYour Turn — 1. Give your game to a family member and say nothing about how it works. Watch their face and what they press. 2. Write down 3 things that confused them or surprised you. 3. Write 2 bug reports like the example. 4. Fix the top 2 problems in your code and test again. 5. Write a design note of 5 to 6 sentences: what your game does, how to play, and what you changed after the playtest and why.\nCheck Yourself — Does each bug report say what happened, what you expected, and how to repeat it?\nShow What You Know — Read your design note to a grown-up and show them one fix you made.",
+"quiz": [
+{
+"q": "What is a playtest?",
+"choices": [
+"Watching someone play your game without helping",
+"Playing your own game alone",
+"Writing the code",
+"Buying a new board"
+],
+"answerIndex": 0,
+"explain": "You learn the most by watching what a new player does on their own."
+},
+{
+"q": "What does a good bug report include?",
+"choices": [
+"What happened, what you expected, and how to repeat it",
+"Only the word broken",
+"A picture of the board",
+"Your favorite color"
+],
+"answerIndex": 0,
+"explain": "Those three parts let anyone find and fix the problem."
+},
+{
+"q": "Why should you not explain the game during a playtest?",
+"choices": [
+"Real players will not have you there to explain",
+"It saves time",
+"The rules are secret",
+"It changes the score"
+],
+"answerIndex": 0,
+"explain": "If the game needs you to explain it, the game is not clear enough yet."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": null
+},
+{
+"d": 12,
+"subject": "Independent",
+"title": "Teach-Back: Demo Your micro:bit Project to the Family 🎤",
+"xp": 15,
+"standard": "ELAGSE4W2",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — your best micro:bit project (a circuit, the car, or a game), your design notes, and an audience of family members.\nHere's the Idea — A good demo shows the project working, explains how it works in plain words, and tells one thing that went wrong and how you fixed it. Telling about a mistake and the fix shows real engineering.\nYour Turn — 1. Pick your best project. 2. Practice a 2 minute demo: what it does, how it works, one problem you solved. 3. Present it to your family and answer two questions. 4. Ask them what they liked best and one thing they would change. 5. Take a photo or a short video for your portfolio.\nCheck Yourself — Did your demo include what it does, how it works, and one problem you fixed?\nShow What You Know — Tell a grown-up what you want to build next with your micro:bit.",
+"quiz": [
+{
+"q": "What should a good demo include?",
+"choices": [
+"What it does, how it works, and a problem you solved",
+"Only the code",
+"Only the finish",
+"Only the parts"
+],
+"answerIndex": 0,
+"explain": "Those three parts show your project and your thinking."
+},
+{
+"q": "Why tell about a mistake you fixed?",
+"choices": [
+"It shows real engineering",
+"It is a secret",
+"It makes the demo longer",
+"It is required for the board"
+],
+"answerIndex": 0,
+"explain": "Real engineers talk about problems they found and solved."
+},
+{
+"q": "Why ask the audience for feedback?",
+"choices": [
+"To learn what to improve",
+"To end the demo",
+"To get a prize",
+"To change the code"
+],
+"answerIndex": 0,
+"explain": "Feedback gives you ideas for the next version."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-microbit",
+"materials": null
+}
+];
+/* Steps for the live lesson "Retro Arcade kit: polish your game ..." (it had only a title). */
+var RYAN_MICROBIT_GAMEOVER = {
+"d": 0,
+"subject": "Related Arts",
+"title": "Retro Arcade kit: polish your game",
+"xp": 15,
+"standard": "ELAGSE4RI3",
+"stage": "apply",
+"video": null,
+"passage": "Gather first — your micro:bit, its USB cable, and your reaction game from the last lesson (with the score and tone) open in MakeCode at makecode.microbit.org. If you cannot find it, open MakeCode and look under My Projects.\nHere's the Idea — A finished game tells the player when it is over and lets them play again. That needs two things: a Game Over screen that shows the score, and a restart that sets everything back to the start. A variable called misses can count mistakes, and the game ends when it reaches 3.\nSee It Done — In blocks: on start, set score to 0, set misses to 0, set playing to 1. Wherever the player misses the dot, change misses by 1, then if misses = 3 do this: set playing to 0, show string \"GAME OVER\", then show number score. On button A pressed: if playing = 0, set score to 0, set misses to 0, set playing to 1, so the game starts fresh. Also check playing = 1 before you give points.\nYour Turn — 1. Add the variables misses and playing, and set them in on start. 2. Add a miss rule: when the player misses the dot, change misses by 1. 3. Build the Game Over screen from the example: GAME OVER, then the score. 4. Add the restart: pressing A after Game Over resets score and misses and starts again. 5. Play it 3 times in a row to be sure restart works every time, then demo it to your family.\nCheck Yourself — Does the game end after 3 misses, show your score, and restart when you press A?\nShow What You Know — Demo your finished game to a family member and tell them how the restart works.",
+"quiz": [
+{
+"q": "What should happen when misses reaches 3?",
+"choices": [
+"The game ends and shows the score",
+"The score doubles",
+"The game gets faster",
+"Nothing"
+],
+"answerIndex": 0,
+"explain": "Reaching the limit triggers the Game Over screen."
+},
+{
+"q": "What does the restart need to do?",
+"choices": [
+"Set score and misses back to 0 and start playing again",
+"Delete the program",
+"Unplug the board",
+"Add 3 to the score"
+],
+"answerIndex": 0,
+"explain": "The restart puts every variable back where it was at the start."
+},
+{
+"q": "Why check that playing = 1 before giving points?",
+"choices": [
+"So points are not added after the game is over",
+"To make the dot move",
+"To play a tone",
+"To show a heart"
+],
+"answerIndex": 0,
+"explain": "Without the check, a late button press could change the score after Game Over."
+}
+],
+"crossSubjects": null,
+"skillId": "ryan-tech-lab"
+};
+function patchRyanMicrobitGameOver(){
+  if(!db) return;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid2" || a.done || a.passage || hasWork(a) || String(a.title||"").indexOf("Retro Arcade kit: polish your game")!==0) return;
+    var upd = {passage:RYAN_MICROBIT_GAMEOVER.passage, quiz:RYAN_MICROBIT_GAMEOVER.quiz, standard:RYAN_MICROBIT_GAMEOVER.standard, stage:RYAN_MICROBIT_GAMEOVER.stage};
+    Object.assign(a, upd); db.doc("assignments/"+id).update(upd);
+  });
+}
 function contentPacks(){
   return [
     {label:"Bible: Creation → Moses (Anna, 12 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
@@ -21851,6 +22247,7 @@ function contentPacks(){
     {label:"Ryan: Tech Pioneers, Cyber Lab, and Energy & the Atom (14 lessons)", kid:"kid2", items:RYAN_TECH_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_TECH_LAB); }},
     {label:"Ryan: Build-a-Machine capstone (dream PC or model reactor, 5 lessons)", kid:"kid2", items:RYAN_BUILD_MACHINE, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_BUILD_MACHINE); }},
     {label:"Anna: Regrouping, add and subtract with trading (8 lessons)", kid:"kid1", items:ANNA_REGROUPING, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_REGROUPING); }},
+    {label:"Ryan: micro:bit Lab (7 lessons: Starter Kit, Wonder Kit car, two-board game, playtest, demo)", kid:"kid2", items:RYAN_MICROBIT, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_MICROBIT); }},
     {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
@@ -23959,7 +24356,7 @@ function addPackItems(kidId, list){
   list.forEach(function(it){
     if(have.indexOf(it.title)!==-1) return;
     addSeed({kidId:kidId, date:(lightDates ? lightDates[it.title] : isoDate(addSchoolDays(start, it.d))), subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
-      standard:it.standard, stage:it.stage, passage:it.passage, video:it.video||null, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, skillId:it.skillId||null, createdAt:new Date().toISOString()});
+      standard:it.standard, stage:it.stage, passage:it.passage, video:it.video||null, materials:it.materials||null, quiz:it.quiz||null, crossSubjects:it.crossSubjects||null, skillId:it.skillId||null, createdAt:new Date().toISOString()});
   });
 }
 function addRyanVirtualPhones(kidId){
@@ -24830,7 +25227,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.14";
+var APP_BUILD = "2026-10-21.16";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
