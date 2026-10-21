@@ -11903,6 +11903,7 @@ function stableUuid(str){
 /* Adds a lesson once, whatever device or run tries it: the row id comes from the kid and title, and a second insert with the same id does nothing.
    Every "add the series" routine uses this, so a new device, a cleared browser, or two devices opening together cannot create copies. */
 function addSeed(obj){
+  if(obj && obj.kidId==="kid2"){ var cf = csTitleFix(obj.title); if(cf) obj.standard = cf; else if(obj.standard==="3-5.F") obj.standard = csStandardFor(obj); }
   return db.collection("assignments").addOnce(obj, stableUuid("lesson|"+obj.kidId+"|"+String(obj.title||"").trim()));
 }
 var annaFillSeen = {};
@@ -19373,8 +19374,39 @@ var STANDARD_STATUS = {
   "2.NR.1":"verified", "2.NR.3":"verified", "2.NR.3.1":"verified", "2.NR.3.2":"verified", "2.PAR.4":"verified", "2.PAR.4.1":"verified", "2.PAR.4.2":"verified", "2.MDR.5":"verified", "2.MDR.5.1":"verified", "2.MDR.5.2":"verified", "2.MDR.5.3":"verified", "2.MDR.5.5":"verified", "2.MDR.6":"verified", "2.MDR.6.1":"verified", "2.GSR.7":"verified", "2.GSR.7.1":"verified", "2.GSR.7.2":"verified", "2.GSR.7.3":"verified", "2.GSR.7.4":"verified", "2.NR.2.1":"verified", "2.NR.2.2":"verified", "2.NR.2.3":"verified", "2.MDR.5.4":"verified", "2.MDR.6.2":"verified",
   "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "S4P3":"verified", "S4E3":"verified", "S4E1":"exists", "S4E2":"exists", "S4P1":"exists", "4.NR.1":"verified", "4.NR.1.1":"verified", "4.NR.1.2":"verified", "4.NR.2.1":"verified", "4.NR.2.2":"verified", "4.NR.2.3":"verified", "4.NR.2.4":"verified", "4.NR.2.5":"verified",
   "4.NR.4.1":"verified", "4.NR.4.6":"verified", "4.MDR.6.1":"verified", "4.MDR.6.2":"verified", "4.MDR.6.3":"verified", "4.GSR.8.1":"verified", "4.GSR.8.2":"verified", "4.GSR.8.3":"verified",
-  "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"exists", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
+  "ELAGSE4RI1":"exists", "ELAGSE4RI2":"verified", "ELAGSE4RI3":"verified", "ELAGSE4W2":"verified", "ELAGSE2SL1":"exists", "ELAGSE2SL2":"exists", "ELAGSE2SL3":"exists", "4.PAR.3":"exists", "CSS.EL.3-5.1.1":"verified", "CSS.EL.3-5.1.2":"verified", "CSS.EL.3-5.1.3":"verified", "CSS.DC.3-5.3.1":"verified", "CSS.CT.3-5.5.2":"verified", "CSS.CT.3-5.5.3":"verified", "CSS.CT.3-5.5.4":"verified", "ELAGSE4SL4":"verified", "4.GSR.8":"exists", "4.NR.2":"exists", "4.NR.4":"exists", "4.MDR.6":"exists"
 };
+/* "3-5.F" is not a real Georgia code (checked on case.georgiastandards.org, 21 Oct 2026). Georgia's Computer Science grades 3-5 standards are CSS.<strand>.3-5.<n>.
+   Verified wording: EL.1.1 describe how internal and external parts of computing devices work as a system; EL.1.2 model how hardware and software work together;
+   DC.3.1 discuss real-world cybersecurity problems (viruses, phishing) and how personal information is protected; CT.5.2 break problems into smaller subproblems;
+   CT.5.3 test and debug a program; CT.5.4 create programs with sequences, events, loops, conditionals and variables. This picks the one that fits each lesson. */
+var CS_TITLE_FIX = [
+  ["What Is a Computer Virus?","CSS.DC.3-5.3.1"], ["Firewall and Antivirus","CSS.DC.3-5.3.1"], ["The Morris Worm","CSS.DC.3-5.3.1"], ["ILOVEYOU:","CSS.DC.3-5.3.1"], ["White Hats and Black Hats","CSS.DC.3-5.3.1"],
+  ["Cyber Lab Finale","CSS.CT.3-5.5.4"],
+  ["micro:bit Lab 1:","CSS.EL.3-5.1.2"], ["micro:bit Lab 2:","CSS.CT.3-5.5.4"], ["micro:bit Lab 3:","CSS.CT.3-5.5.4"], ["micro:bit Lab 4:","CSS.CT.3-5.5.4"], ["micro:bit Lab 5:","CSS.CT.3-5.5.4"]
+];
+function csTitleFix(title){ title = String(title||""); for(var i=0;i<CS_TITLE_FIX.length;i++){ if(title.indexOf(CS_TITLE_FIX[i][0])===0) return CS_TITLE_FIX[i][1]; } return null; }
+function csStandardFor(a){
+  var t = (String(a.title||"")+" "+String(a.passage||"")).toLowerCase(), ti = String(a.title||"").toLowerCase();
+  if(/virus|phishing|cyber|hacker|malware|antivirus|password/.test(ti)) return "CSS.DC.3-5.3.1";
+  if(/\bbug hunt\b|test and fix|debug/.test(ti)) return "CSS.CT.3-5.5.3";
+  if(/\binstall|\bupdate linux|turn on linux|set up |virtualbox/.test(ti)) return "CSS.EL.3-5.1.2";
+  if(/\bloop|if\/else|variable|input\(|print\(|python|command prompt|shell|launcher|trivia|boot screen|login screen|build app|micro:bit|makecode|scratch|code\b/.test(ti)) return "CSS.CT.3-5.5.4";
+  if(/inside a computer|hardware|autopsy|cpu|parts of|how .*computers? work/.test(ti)) return "CSS.EL.3-5.1.1";
+  return "CSS.EL.3-5.1.2";
+}
+function patchCsStandards(){
+  if(!db) return;
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid2") return;
+    var c = csTitleFix(a.title) || (a.standard==="3-5.F" ? csStandardFor(a) : null);
+    if(!c || c===a.standard) return;
+    a.standard = c; db.doc("assignments/"+id).update({standard:c}); n++;
+  });
+  if(n) console.log("patchCsStandards: retagged "+n+" lesson(s)");
+}
 var STANDARD_TAG_FIXES = {
  "Fort Friday: Build It, Read in It, Tell the Story 🏕️": "ELAGSE2RL2",
  "Candy Math Friday: Make It Fair! 🍬": "2.NR.2.3",
@@ -19586,7 +19618,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -25431,7 +25463,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.23";
+var APP_BUILD = "2026-10-21.24";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
