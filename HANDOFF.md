@@ -1,5 +1,8 @@
 # Handoff: everything a new session needs (written 14 Oct 2026)
 
+> READ FIRST: the section "CORE LEARNING PROFILES" near the end of this file is the heart of the app (who Ryan and Anna are and how they learn). Never drop it when editing.
+
+
 Read this first, then CLAUDE.md (content rules 1-22, approved videos) and OPS_NOTES.md (Supabase usage, promised work).
 
 ## Who and what
@@ -291,3 +294,27 @@ Mom is worried about overall quality and asked for a kid-eyes audit by the other
 
 ## DAYS OFF BUILT (21 Oct 2026, build .9)
 Leader > "Days off" card: list of ranges (starts with Thanksgiving week 23-27 Nov and winter break 21 Dec - 8 Jan), add/remove, and "We missed today". Stored in al_settings.family_goal.daysOff (no new column); saveFamilyGoal keeps it. isOffDate/isDayOffIso/isWeekendIso now treat off days like weekends everywhere (addSchoolDays, prevSchoolDay, packStart, nthOfDays, US History Tue/Thu, Anna daily basics and Readers ordinals, Anna SS Book Fridays skip off Fridays). Unstarted lessons on an off day move to the next school day (moveWeekendLessonsToMonday, then balanceFutureLoad, which now starts today); off-screen Friday quests stay put. Harness test: breaks empty, missed today 4 -> 0 lessons moved forward within caps. Caveat: Anna's daily Storytime missed today may be dropped by patchAnnaStorytimeFromReaders if the next day already has its own. Ryan's tracks: Minecraft World 2, Python (21), STEM Lab (16), Virtual Phones, Tablet Autopsy (auto-added), OS Museum Archive Challenge, JohnnyOS are packs; no "viruses" pack exists (ask Mom).
+
+## CORE LEARNING PROFILES (the point of the whole app; read before writing ANY lesson)
+Source: Mom's own curriculum docs ("Ryan's Digital Archaeology & Cyber Lab", "Anna's Year: Bug Lab, Kitchen & Design Studio") and the private Forge Academy Roadmap artifact (https://claude.ai/artifact/BcVFhRpTiJ7n49PrRcsDRp: compliance record incl. the Declaration of Intent number (kept there, NOT in this public repo), Momma Money wiring, the 13-world map, and the learning-science Research tab R1-R4). Keep the original docs safe in Mom's own files. Full text is not stored in this public repo on purpose (kids' details); this is the working summary.
+
+**Georgia rules:** 180 days, 4.5 hrs/day, five core subjects, Annual Progress Report, test every 3 years (private). School days in the app = hours / 4.5 (build .6).
+
+**RYAN (9-10, Grade 4): interest-led, hates generic worksheets, commits fully to what he loves.**
+- Loves: VMs, retro operating systems, hardware teardown, coding, and (carefully channeled) how viruses work; goal: nuclear engineer. Minecraft is a main build interest.
+- Method: journaling instead of grading, teach-back instead of quizzes, "prove it to the computer"; keep stakes low (CLAUDE.md rule 11). No assigned fiction with comprehension quizzes unless he chooses the book.
+- Daily rhythm: Morning Launch (journal: yesterday + today's goal, ELA) > Math in the Machine (bytes/KB/MB/GB, binary, RAM, timeline math, budgeting for parts) > Reading Block (tech history, OS manuals, computing biographies such as Woz and early Microsoft/Apple, and framed history of famous viruses) > Main Project Block (VM build/restore, hardware teardown, Cyber Lab, or energy/nuclear science) > Science/Social Studies alternating (physical science of hardware and energy; history of computing) > Show & Teach.
+- Monthly project themes: Retro OS Museum (Win 95/98/XP/7 in VMs, user guide per OS); Hardware Autopsy (teardown of donated electronics, label every part); CYBER LAB (research famous viruses/worms as history, build one harmless prank program inside an offline VM only); Energy & the Atom; Build-a-Machine (dream PC or reactor with a budget and a written reason for every part).
+- CYBER LAB SAFETY (non-negotiable): isolated offline VMs only, never family devices or network; never download real malware from anywhere; anything he builds is non-destructive and stays in the sandbox; framed as how professionals learn to defend.
+- Standards gaps his tech projects do not cover and that need dedicated reading: US History SS4H1-SS4H6 (pack built) and fiction-reading strands.
+- STATUS 21 Oct: Cyber Lab, computing biographies/virus-history reading, Energy & the Atom and Build-a-Machine are NOT built in the app yet (found by Mom's question). Plan: Cyber Lab pack (about 8 lessons ending with the sandbox prank), tech-history/biography readings for the Reading Block, Energy & the Atom (about 6), Build-a-Machine capstone. Need approved videos from Mom (Gemini prompt given).
+
+**ANNA (7, Grade 2): reads at a 3rd-grade level, chose freedom and choice, loves bugs, cooking, design and explaining what she figured out.**
+- Likes figuring things out herself first, genuinely enjoys a quiz as her way to show learning (unlike her brother), is chatty, talks things out with Alexa, loves the celebration parts of "big kid school" (Show & Celebrate).
+- Every lesson is written TO her as a script she reads herself: Here's the Idea > See It Done (one worked example) > Your Turn (numbered steps) > Check Yourself > Show What You Know (menu: Quiz Me, Teach It Back (her favorite), Make It, Prove It in the Kitchen/Studio, Field Report). Mom only sets out materials and is nearby for the last step. Never a worksheet.
+- Daily rhythm: Morning Launch > Reading Block > Math in the Kitchen or Studio > Bug Lab / Science > Design Studio / Art > Alexa Wonder Time > Show & Celebrate. She picks the order after Morning Launch.
+- Year map: month-by-month GSE 2023 scope and sequence in Mom's doc (Math: Nov regrouping 2.NR.2, Dec odd/even/arrays 2.NR.3, Jan patterns 2.PAR.4, Feb measurement/graphs 2.MDR.5, Mar time and money 2.MDR.6, then shapes/equal shares 2.GSR.7). Anna is being pulled from Connections Academy; October is built as Skill Blocks, Nov to May still to build (see "ANNA gaps" above).
+
+**Research rules behind every lesson (details in CLAUDE.md rules 2-15 and the Roadmap Research tab):** worked example before practice; spaced and interleaved review (queueSkillReview); retrieval practice, low stakes, explain on miss; dual coding (words + picture for everyone, learning styles are a myth); hands-on only if the object maps to the concept; projects reinforce, they never replace teaching; teach-back and portfolios beat tests.
+
+**Roadmap artifact facts worth keeping:** XP levels are floor(xp/100)+1, each level-up deposits $3 into Momma Money (mmDepositLevelUp, MM_MEMBERS both kids), arcade XP capped at 25/day; 13 worlds (OS Museum, Minecraft Worlds, Fake OS, Retro Tech, Creature Lab, Space, Real-World XP, Build a Game, Story Worlds, Science of Sound, Weather & Earth, Engineering & Machines, plus Microbit side module) were planned to run to May; Leader-tab profile-style picker is parked.
