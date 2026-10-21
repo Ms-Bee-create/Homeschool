@@ -387,3 +387,10 @@ OPEN / NEXT:
 4. Fix list from the week test: investigate a 7-lesson Anna day despite cap 6; trim 7-8 question quizzes (Quick and Slow Changes, April Fools' Week); add Anna science (Feb-Jun plan); give "Creek and Cherokee Boss Battle" a standard tag (SS2H2 is used by sibling lessons); thin Ryan's VM labs and add fiction reading and mixed-practice math; replace Grade 3 fillers ("Equal Parts", "Mystery Number").
 5. Build, in order: Ryan Story Worlds (first new world), then Weather and Earth, Science of Sound, Space; Anna December odd/even and arrays unit; US History gap lessons; Anna writing/grammar plan; Faith coloring-page links.
 HOW TO WORK: ship via PR to main (squash merge; if "not mergeable" or "merge conflicts" right after a push, wait a few seconds and retry). Bump APP_BUILD and version.json together. Always test in the harness (NODE_PATH=/var/tmp/sbtest/node_modules). Mom does not want updates pushed while a kid is typing, though the typing backup now protects it. Never commit the export file (kids' work).
+
+## Social Studies standards (21 Oct 2026, build .30)
+Other session read Grades 2 and 4 from the official GaDOE list. All SS2/SS4 main and lettered codes are now "verified" in STANDARD_STATUS.
+"SS4E1/SS4E2" and "SS4G1/SS4G2" were not real single codes: patchSsStandards retags budgeting lessons to SS4E2, other economics to SS4E1, map lessons to SS4G1 (seed lines fixed too).
+COVERAGE GAPS found by search (not yet built): Anna SS2H1 Jackie Robinson, Juliette Gordon Low, Jimmy Carter; SS2E4 saving vs spending is thin.
+Ryan SS4CG2 First Amendment, SS4CG3a checks and balances/federal system, SS4H1a Sons of Liberty, SS4H3b Little Bighorn, SS4G1 Great Plains/Continental Divide/Erie Canal.
+Next: math/ELA/science coverage check, then build gap lessons (only with approved videos, rule 20).
