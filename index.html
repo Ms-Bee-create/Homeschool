@@ -2464,8 +2464,85 @@ var LORE_STEPS = [
    example:"Example: The Last Message from the Blue Days.",
    fields:[{key:"title", label:"Title", ph:"The Last Message from the Blue Days"}]}
 ];
-function loreAnswers(){ try{ return JSON.parse(localStorage.getItem("al_lore_answers_kid2")||"{}"); }catch(e){ return {}; } }
+/* In-page voice recorder: one tap to start, one tap to stop. A computer has no recorder app a kid can find, so this records inside the page.
+   Browsers without it fall back to the file picker (fallback()). onRecorded(blob, type, ext, done) uploads it and calls done() when finished. */
+function makeRecorderButton(label, className, styleCss, onRecorded, fallback){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) return fallback();
+  var b = document.createElement("button"); b.type = "button"; b.className = className; if(styleCss) b.style.cssText = styleCss; b.textContent = label;
+  var rec = null, chunks = [];
+  b.onclick = function(){
+    if(rec){ rec.stop(); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+      var r = new MediaRecorder(stream); rec = r; chunks = [];
+      r.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
+      r.onstop = function(){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        rec = null;
+        var type = r.mimeType || "audio/webm", blob = new Blob(chunks, {type:type});
+        b.textContent = "Saving…";
+        onRecorded(blob, type, type.indexOf("mp4")>=0 ? "m4a" : "webm", function(){ b.textContent = label; });
+      };
+      r.start(); b.textContent = "⏹ Tap when you are done";
+    }).catch(function(){ toast("Couldn't open the microphone. Allow it in the browser, or ask a grown-up."); });
+  };
+  return b;
+}
+/* Ryan's Lore Writer: the answers he is typing are kept on this device, and also copied to the shared settings row (quietly, when he leaves a box or changes
+   step) so another device, or Mom, can pick the draft up. A finished story is saved to his work with "Save to my work". */
+function loreAnswers(){
+  var local = null;
+  try{ local = JSON.parse(localStorage.getItem("al_lore_answers_kid2")||"null"); }catch(e){}
+  if(local && Object.keys(local).length) return local;
+  var d = familyGoal().loreDraft;
+  return d && d.kid2 ? Object.assign({}, d.kid2) : {};
+}
 function loreSaveAnswers(a){ try{ localStorage.setItem("al_lore_answers_kid2", JSON.stringify(a)); }catch(e){} }
+var loreSyncTimer = null;
+function loreSyncDraft(a, now){
+  clearTimeout(loreSyncTimer);
+  var go = function(){ saveFamilyGoal(Object.assign({}, familyGoal(), {loreDraft:{kid2:a, at:new Date().toISOString()}}), true); };
+  if(now) go(); else loreSyncTimer = setTimeout(go, 800);
+}
+/* Easy ways in for a kid who does not want to type: tap an idea, roll the dice for a surprise, or talk (browsers that can listen). */
+var LORE_IDEAS = {
+  world:["The Glitchlands","Pixel Reach","The Hollow Server","Deepnether","Cloudbyte Isles"],
+  hero:["Pix","Byte","Nova","Rook","Zed"],
+  power:["talk to old machines","walk through walls for three seconds","hear what computers are thinking","build anything from memory","find hidden doors"],
+  weak:["finding the way in the dark","trusting anyone","staying calm when things glitch","remembering where they started","running out of power"],
+  artifact:["a cracked floppy disk","a glowing key made of code","a map that changes when no one looks","a music box that plays warnings","a tiny robot that cannot talk"],
+  where:["under the oldest well in the village","inside a hollow tree","behind a wall of old monitors","at the bottom of a frozen lake","in a locked chest in the sky"],
+  villain:["Static","The Archivist","The Glitch King","Null","The Last Admin"],
+  wants:["switch off every screen","erase the old world","collect every key","shut the portals forever","rewrite the rules"],
+  why:["it was left alone in the dark for a hundred years","nobody ever said thank you","it thinks the world is broken","it was told to protect the world long ago"],
+  clue:["a message that only appears at 3:07 in the morning","footprints that stop in the middle of a field","a door that was not there yesterday","every clock stopped at the same time","a sound only the hero can hear"],
+  legend:["Never trust a quiet cave.","The light always comes back.","Every door has a key.","Even code can be brave.","Ask the old machines."],
+  title:["The Last Message from the Blue Days","The Keeper of the Hollow Server","Pix and the Floppy Disk","The Day the Screens Went Dark"]
+};
+function loreIdea(f){
+  var list = f.chips || LORE_IDEAS[f.key];
+  return list && list.length ? list[Math.floor(Math.random()*list.length)] : (f.ph || "");
+}
+function loreMicButton(inp, onChange){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.title = "Talk instead of typing";
+  b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:16px;padding:6px 10px"; b.textContent = "🎤";
+  var rec = null;
+  b.onclick = function(){
+    if(rec){ rec.stop(); return; }
+    try{
+      rec = new SR(); rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 1;
+      rec.onresult = function(e){
+        var t = ""; for(var i=0;i<e.results.length;i++) t += e.results[i][0].transcript+" ";
+        t = t.trim(); if(t){ inp.value = (inp.value ? inp.value.replace(/\s+$/,"")+" " : "")+t; onChange(); }
+      };
+      rec.onerror = function(){ toast("Couldn't hear that. Allow the microphone and try again, or type it."); };
+      rec.onend = function(){ rec = null; b.textContent = "🎤"; b.style.background = ""; };
+      rec.start(); b.textContent = "⏹"; b.style.background = "var(--gold-soft)";
+    }catch(e){ rec = null; toast("Talking isn't available here. Type it instead."); }
+  };
+  return b;
+}
 function loreTidy(s){ return String(s||"").trim().replace(/[.!?\s]+$/,""); }
 function loreCap(s){ s = loreTidy(s); return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 /* Turns the answers into a finished story (mode "story") or a lore-wiki entry (mode "wiki"). */
@@ -2547,24 +2624,42 @@ function renderLoreWriter(){
     var inp = document.createElement("input"); inp.type = "text"; inp.value = ans[f.key] || ""; inp.placeholder = f.ph || "";
     inp.style.cssText = "width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px";
     inp.oninput = function(){ ans[f.key] = inp.value; loreSaveAnswers(ans); };
-    wrap.appendChild(lab); wrap.appendChild(inp);
+    inp.style.flex = "1"; inp.style.minWidth = "0";
+    inp.onblur = function(){ loreSyncDraft(ans); };
+    var line = document.createElement("div"); line.style.cssText = "display:flex;gap:6px;align-items:center";
+    line.appendChild(inp);
+    var dice = document.createElement("button"); dice.type = "button"; dice.className = "reward-skip"; dice.title = "Give me an idea";
+    dice.style.cssText = "opacity:1;border:1px solid var(--border);font-size:16px;padding:6px 10px"; dice.textContent = "🎲";
+    dice.onclick = function(){ inp.value = loreIdea(f); ans[f.key] = inp.value; loreSaveAnswers(ans); loreSyncDraft(ans); };
+    line.appendChild(dice);
+    var mic = loreMicButton(inp, function(){ ans[f.key] = inp.value; loreSaveAnswers(ans); loreSyncDraft(ans); });
+    if(mic) line.appendChild(mic);
+    wrap.appendChild(lab); wrap.appendChild(line);
     if(f.chips){
       var row = document.createElement("div"); row.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-top:6px";
       f.chips.forEach(function(ch){
         var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
         b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 9px";
-        b.textContent = ch; b.onclick = function(){ inp.value = ch; ans[f.key] = ch; loreSaveAnswers(ans); };
+        b.textContent = ch; b.onclick = function(){ inp.value = ch; ans[f.key] = ch; loreSaveAnswers(ans); loreSyncDraft(ans); };
         row.appendChild(b);
       });
       wrap.appendChild(row);
     }
     card.appendChild(wrap);
   });
+  var surprise = document.createElement("button"); surprise.type = "button"; surprise.className = "reward-skip";
+  surprise.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;margin-bottom:10px;font-weight:600";
+  surprise.textContent = "🎲 Surprise me: fill the empty boxes on this step";
+  surprise.onclick = function(){
+    st.fields.forEach(function(f){ if(!String(ans[f.key]||"").trim()) ans[f.key] = loreIdea(f); });
+    loreSaveAnswers(ans); loreSyncDraft(ans); renderView();
+  };
+  card.appendChild(surprise);
   var nav = document.createElement("div"); nav.style.cssText = "display:flex;gap:8px;justify-content:space-between";
   var prev = document.createElement("button"); prev.type = "button"; prev.className = "reward-skip"; prev.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px";
-  prev.textContent = "← Back"; prev.disabled = L.step===0; prev.onclick = function(){ L.step--; renderView(); };
+  prev.textContent = "← Back"; prev.disabled = L.step===0; prev.onclick = function(){ loreSyncDraft(ans); L.step--; renderView(); };
   var next = document.createElement("button"); next.type = "button"; next.className = "reward-skip"; next.style.cssText = "opacity:1;border:1px solid var(--gold);background:var(--gold-soft);font-weight:700;padding:8px 16px";
-  next.textContent = L.step===n-1 ? "✨ Make my story" : "Next →"; next.onclick = function(){ L.step++; renderView(); };
+  next.textContent = L.step===n-1 ? "✨ Make my story" : "Next →"; next.onclick = function(){ loreSyncDraft(ans); L.step++; renderView(); };
   nav.appendChild(prev); nav.appendChild(next); card.appendChild(nav);
   els.view.appendChild(card);
 }
@@ -2603,7 +2698,7 @@ function renderLoreResult(ans){
       workBlocks: [{type:"text", text: L.text}], submittedAt: new Date().toISOString(), createdAt: new Date().toISOString()
     });
     toast("Saved! Your lore is in your work for Mom to read.");
-    loreSaveAnswers({}); state.lore = null; goTab("home");
+    loreSaveAnswers({}); loreSyncDraft({}, true); state.lore = null; goTab("home");
   }, true);
   card.appendChild(row);
   els.view.appendChild(card);
@@ -4388,7 +4483,19 @@ function renderMorningLaunch(kidId, iso){
     lbl.appendChild(input);
     return lbl;
   }
-  mediaRow.appendChild(makeMediaBtn(cfg ? cfg.voiceLabel : "🎤 Record your goal", "audio/*", "microphone", "launchVoiceUrl"));
+  var voiceLabel = cfg ? cfg.voiceLabel : "🎤 Record your goal";
+  mediaRow.appendChild(makeRecorderButton(voiceLabel, "launch-media-btn", "", function(blob, type, ext, done){
+    if(!HOUSEHOLD_ID){ done(); return; }
+    var path = HOUSEHOLD_ID+"/morning-launch/"+kidId+"/"+iso+"-"+Date.now()+"-voice."+ext;
+    sb.storage.from("lesson-uploads").upload(path, blob, {contentType:type}).then(function(res){
+      done();
+      if(res.error){ toast("⚠️ Couldn't save the recording"+(res.error.message ? ": "+res.error.message : ". Check your connection and try again")); return; }
+      var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
+      existing = saveLaunchField(kidId, iso, existing, {launchVoiceUrl:url});
+      renderMediaPreview();
+      toast("Saved!");
+    });
+  }, function(){ return makeMediaBtn(voiceLabel, "audio/*", "microphone", "launchVoiceUrl"); }));
   if(!(cfg && cfg.noPhoto)) mediaRow.appendChild(makeMediaBtn("📸 Take a quick photo", "image/*", "environment", "launchSnapshotUrl"));
   if(!(cfg && cfg.questions)){ wrap.appendChild(mediaRow); wrap.appendChild(mediaPreview); }
 
@@ -4553,7 +4660,18 @@ function renderShowTeach(kidId, iso){
     lbl.appendChild(input);
     return lbl;
   }
-  uploadRow.appendChild(makeUploadBtn("🎙️ Audio", "audio/*", "audio"));
+  uploadRow.appendChild(makeRecorderButton("🎙️ Record", "reward-skip", "color:var(--ink);opacity:1;border:1px solid var(--border);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px", function(blob, type, ext, done){
+    if(!HOUSEHOLD_ID){ done(); return; }
+    var path = HOUSEHOLD_ID+"/show-teach/"+kidId+"/"+iso+"-"+Date.now()+"-voice."+ext;
+    setUploading(true);
+    sb.storage.from("lesson-uploads").upload(path, blob, {contentType:type}).then(function(res){
+      done(); setUploading(false);
+      if(res.error){ toast("⚠️ Couldn't save the recording"+(res.error.message ? ": "+res.error.message : ". Check your connection and try again")); return; }
+      var url = sb.storage.from("lesson-uploads").getPublicUrl(path).data.publicUrl;
+      pendingUpload = {type:"audio", url:url};
+      uploadedNote.textContent = "audio ready — tap Save to finish.";
+    });
+  }, function(){ return makeUploadBtn("🎙️ Audio", "audio/*", "audio"); }));
   uploadRow.appendChild(makeUploadBtn("📸 Photo", "image/*", "photo"));
   uploadRow.appendChild(makeUploadBtn("🎥 Video", "video/*", "video"));
 
@@ -19775,14 +19893,14 @@ function familyGoal(){
   var local = null; try{ local = JSON.parse(localStorage.getItem("al_family_goal")||"null"); }catch(e){}
   return Object.assign({}, FAMILY_GOAL_DEFAULT, local||{}, state.familyGoal||{});
 }
-function saveFamilyGoal(g){
+function saveFamilyGoal(g, quiet){
   var cur = familyGoal();
   if(g.daysOff===undefined && cur.daysOff!==undefined) g = Object.assign({}, g, {daysOff:cur.daysOff});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
   return sb.from("al_settings").upsert({household_id:HOUSEHOLD_ID, family_goal:g}, {onConflict:"household_id"}).then(function(r){
-    if(r.error){ toast("Saved on this device only. Run supabase/family_goal.sql to share it with the other devices."); return false; }
+    if(r.error){ if(!quiet) toast("Saved on this device only. Run supabase/family_goal.sql to share it with the other devices."); return false; }
     return true;
   });
 }
@@ -24712,7 +24830,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.13";
+var APP_BUILD = "2026-10-21.14";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
