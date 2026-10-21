@@ -11641,12 +11641,18 @@ function annaReadersBuild(n, i, part, parts){
 /* Moves Anna's not-yet-done Storytime days from the "pick any book" version to the Readers Collection version. */
 function patchAnnaStorytimeFromReaders(){
   if(!db) return;
-  var today = new Date(todayISO()+"T00:00:00");
-  Object.keys(state.assignments).forEach(function(id){
+  var today = new Date(todayISO()+"T00:00:00"), taken = {};
+  Object.keys(state.assignments).sort().forEach(function(id){
     var a = state.assignments[id];
     if(a.kidId!=="kid1" || a.done || a.skillId!=="anna-ela-story-elements" || String(a.title).indexOf("Storytime:")!==0) return;
     var d = new Date(a.date+"T00:00:00");
     if(d < today) return;
+    /* One Readers lesson per day: a second Storytime on the same day used to be renamed to the same title (repeats). Extra untouched ones are removed, started ones are left alone. */
+    if(taken[a.date]){
+      if(!hasWork(a)){ db.doc("assignments/"+id).delete(); delete state.assignments[id]; }
+      return;
+    }
+    taken[a.date] = true;
     var item = annaReadersItem(d);
     if(!item || (a.title===item.title && (!item.quiz || a.quiz))) return;
     a.title = item.title; a.passage = item.passage; if(item.quiz) a.quiz = item.quiz;
@@ -23325,7 +23331,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-21.3";
+var APP_BUILD = "2026-10-21.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
