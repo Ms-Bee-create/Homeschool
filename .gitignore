@@ -1,3 +1,4 @@
 .tools/.env
 .env
 node_modules/
+tools/lesson-audit/coverage.md
