@@ -400,3 +400,8 @@ tools/lesson-audit/coverage.js lists every verified Georgia code for Grade 2 (An
 
 ## Anna coin counting (22 Oct 2026, build 2026-10-22.01)
 New pack "Anna: Counting Coins, penny to quarter (4 lessons)" (ANNA_COINS, skillId anna-coins, tag 2.MDR.6.2): meet the coins (Money Song RVpcZ5obmsM), coin rubbings, count biggest first, coin shop. Real coins, no mess. Mom adds it from Content Packs. No Gemini coin video was found; swap in if one arrives. Passed the audit.
+
+## Standards check card (22 Oct 2026, build .02)
+Card now lists lesson titles under each unverified row (so "(no tag)" lessons can be identified). 3-5.F fix runs for every account, not only Ryan.
+Mom's screenshot (22 Oct): 69 unverified = no tag (Anna 22, Ryan 17, Scholar 14), Ryan "Reading strands" 4, Scholar 3-5.F 2, Anna 2.MDR.1 2, Ryan MGSE3.OA.4 2 and MGSE3.G.2 2 (Grade 3 fillers to replace), Ryan 4.NR.1.3 2 and 4.NR.1.4 1, Anna ELAGSE2RL2-RL5 1.
+Still to verify with the other session: do 4.NR.1.3, 4.NR.1.4 and 2.MDR.1 exist in Georgia math? (not in STANDARD_STATUS; do not guess.) Next: Mom reads the titles under "(no tag)" and "Reading strands" and we tag them.
