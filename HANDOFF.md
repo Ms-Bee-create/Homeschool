@@ -397,3 +397,6 @@ Next: math/ELA/science coverage check, then build gap lessons (only with approve
 
 ## Coverage tool (22 Oct 2026)
 tools/lesson-audit/coverage.js lists every verified Georgia code for Grade 2 (Anna) and Grade 4 (Ryan) with no lesson, only in an unadded pack, or only one lesson. Run with SEED=<export.json> to use the real schedule (without SEED it only sees auto-created lessons, so "NONE" is overstated). Writes coverage.md. Ask the other session to run it with Mom's export, then build gaps in order.
+
+## Anna coin counting (22 Oct 2026, build 2026-10-22.01)
+New pack "Anna: Counting Coins, penny to quarter (4 lessons)" (ANNA_COINS, skillId anna-coins, tag 2.MDR.6.2): meet the coins (Money Song RVpcZ5obmsM), coin rubbings, count biggest first, coin shop. Real coins, no mess. Mom adds it from Content Packs. No Gemini coin video was found; swap in if one arrives. Passed the audit.
