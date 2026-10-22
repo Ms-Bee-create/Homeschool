@@ -1,6 +1,6 @@
 # Lesson audit
 
-Lessons checked: 523. With problems: 25. Warnings only: 87.
+Lessons checked: 529. With problems: 25. Warnings only: 87.
 
 ## Most common
 - 25 x kid: one sentence is N words long
