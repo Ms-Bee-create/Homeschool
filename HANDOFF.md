@@ -394,3 +394,6 @@ Other session read Grades 2 and 4 from the official GaDOE list. All SS2/SS4 main
 COVERAGE GAPS found by search (not yet built): Anna SS2H1 Jackie Robinson, Juliette Gordon Low, Jimmy Carter; SS2E4 saving vs spending is thin.
 Ryan SS4CG2 First Amendment, SS4CG3a checks and balances/federal system, SS4H1a Sons of Liberty, SS4H3b Little Bighorn, SS4G1 Great Plains/Continental Divide/Erie Canal.
 Next: math/ELA/science coverage check, then build gap lessons (only with approved videos, rule 20).
+
+## Coverage tool (22 Oct 2026)
+tools/lesson-audit/coverage.js lists every verified Georgia code for Grade 2 (Anna) and Grade 4 (Ryan) with no lesson, only in an unadded pack, or only one lesson. Run with SEED=<export.json> to use the real schedule (without SEED it only sees auto-created lessons, so "NONE" is overstated). Writes coverage.md. Ask the other session to run it with Mom's export, then build gaps in order.
