@@ -2340,6 +2340,7 @@ function renderHome(){
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
   els.view.appendChild(familyGoalCard());
   var fi = fairyIntroCard(kid); if(fi) els.view.appendChild(fi);
+  var kh = kidHelperCard(kid); if(kh) els.view.appendChild(kh);
   weekendFeaturedFor(kid, iso).forEach(function(f){
     var wb = document.createElement("button");
     wb.type = "button"; wb.className = "hm-main"; wb.style.marginBottom = "10px";
@@ -4063,7 +4064,7 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
   if(state.tab==="home") els.view.appendChild(familyGoalCard()); // focus mode shows Today in place of Home
-  if(state.tab==="home"){ var fi2 = fairyIntroCard(kidId); if(fi2) els.view.appendChild(fi2); }
+  if(state.tab==="home"){ var fi2 = fairyIntroCard(kidId); if(fi2) els.view.appendChild(fi2); var kh2 = kidHelperCard(kidId); if(kh2) els.view.appendChild(kh2); }
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
   if(isWeekendIso(iso) && kidData(kidId).weekendExtrasOn){
@@ -19690,7 +19691,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -19853,7 +19854,7 @@ function helperChatsCard(){
   });
   var sum = document.createElement("summary");
   sum.style.cssText = "cursor:pointer;font-weight:700";
-  sum.textContent = "💬 Helper chats — what Ryan asked the AI helper";
+  sum.textContent = "💬 Helper chats — what the kids asked their helpers (⚠️ = look at these)";
   det.appendChild(sum);
   det.appendChild(body);
   wrap.appendChild(det);
@@ -20138,6 +20139,70 @@ function goalIconHtml(g, full, size){
   return '<span style="font-size:'+size+'px;'+(full ? '' : 'filter:grayscale(1);opacity:.28')+'">'+escapeHtml(g.emoji)+'</span>';
 }
 /* "Meet your helper" intro videos (made in HeyGen, approved by Mom, hosted in this repo under videos/). Shows on each kid's Home until they tap "Got it". */
+/* Home helper: Anna's fairy and Ryan's Clippy on the home page, for anything the kid wants to talk about (a birthday card, a gift idea, a pen pal letter).
+   Goes through the "kidhelper" Edge Function, which has the kid-safety rules. Every chat is saved for the leader (Helper chats card). The chat and the
+   half-typed message live in state so a background redraw does not lose them. */
+function kidHelperCard(kidId){
+  if(!(kidId==="kid1" || kidId==="kid2") || typeof sb==="undefined" || !sb || !sb.functions) return null;
+  var isAnna = kidId==="kid1";
+  var st = (state.homeChat = state.homeChat || {})[kidId] = (state.homeChat || {})[kidId] || {hist:[], draft:"", busy:false};
+  var det = document.createElement("details");
+  det.className = "card"; det.style.cssText = "margin-bottom:10px;padding:10px 14px";
+  var key = detailsOpenKey("homehelper", kidId, false, "main");
+  if(isDetailsOpen(key)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(key, det.open); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = isAnna ? "🧚 Ask your fairy anything" : "📎 Ask Clippy anything";
+  det.appendChild(sum);
+  var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  note.textContent = isAnna ? "I can help with a card, a gift idea, a letter to your pen pal, or something you are curious about. Mom and Dad can read our chat!"
+                            : "Ask me about a project, an idea, or something you are curious about. Mom and Dad can read our chat.";
+  det.appendChild(note);
+  var log = document.createElement("div"); log.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
+  function bubble(role, text){
+    var b = document.createElement("div");
+    b.style.cssText = "padding:8px 10px;border-radius:10px;font-size:14px;line-height:1.45;max-width:92%;white-space:pre-wrap;"+
+      (role==="user" ? "align-self:flex-end;background:var(--gold-soft)" : "align-self:flex-start;background:var(--success-soft);border:1px solid var(--success)");
+    b.textContent = text; log.appendChild(b); return b;
+  }
+  st.hist.forEach(function(m){ bubble(m.role, m.content); });
+  var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px";
+  var inp = document.createElement("input"); inp.type = "text"; inp.maxLength = 500; inp.placeholder = isAnna ? "What do you want to talk about?" : "What is on your mind?";
+  inp.value = st.draft || "";
+  inp.style.cssText = "flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px";
+  inp.addEventListener("input", function(){ st.draft = inp.value; });
+  var btnCss = "padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:14px;cursor:pointer;font-weight:600";
+  var mic = document.createElement("button"); mic.type = "button"; mic.textContent = "🎤"; mic.style.cssText = btnCss; mic.setAttribute("aria-label","Talk");
+  var send = document.createElement("button"); send.type = "button"; send.textContent = "Send"; send.style.cssText = btnCss; send.disabled = !!st.busy;
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  row.appendChild(inp); if(SR) row.appendChild(mic); row.appendChild(send);
+  det.appendChild(log); det.appendChild(row);
+  function speak(t){ try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); } }catch(e){} }
+  function ask(){
+    var q = inp.value.trim();
+    if(!q || st.busy) return;
+    inp.value = ""; st.draft = ""; bubble("user", q); st.hist.push({role:"user", content:q});
+    st.busy = true; send.disabled = true;
+    var pend = bubble("assistant", "Thinking…");
+    function fail(){ st.busy = false; send.disabled = false; st.hist.pop(); pend.textContent = "I can't reach the helper right now. Ask Mom or Dad for help."; }
+    sb.functions.invoke("kidhelper", {body:{kidId:kidId, messages:st.hist.slice(-12)}}).then(function(res){
+      if(res.error || !res.data || !res.data.reply) return fail();
+      st.busy = false; send.disabled = false; pend.textContent = res.data.reply;
+      st.hist.push({role:"assistant", content:res.data.reply}); speak(res.data.reply);
+    }).catch(fail);
+  }
+  send.onclick = ask;
+  inp.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); ask(); } });
+  mic.onclick = function(){
+    try{
+      var r = new SR(); r.lang = "en-US"; r.interimResults = false; mic.textContent = "👂";
+      r.onresult = function(ev){ inp.value = ev.results[0][0].transcript; st.draft = inp.value; ask(); };
+      r.onend = r.onerror = function(){ mic.textContent = "🎤"; };
+      r.start();
+    }catch(e){ mic.textContent = "🎤"; }
+  };
+  return det;
+}
 function fairyIntroCard(kidId){
   var isAnna = kidId!=="kid2";
   var key = isAnna ? "al_fairy_intro_seen" : "al_clippy_intro_seen";
@@ -25238,6 +25303,36 @@ var SCOOTER_TRACK = [
   "passage": "Gather first — your tools from last Friday, your test strip results, your plan, a stopwatch or phone timer, graph paper, a pencil, your scooter, a helmet, gloves, and a grown-up nearby.\nHere's the Idea — Builders use what they learned from tests to finish the job. A graph helps you see which ride was fastest, and the data answers a question: did packing the track make it better? You ask a question, gather data, and let the numbers answer it.\nSee It Done — Three rides took 12, 9, and 8 seconds. A bar graph shows the biggest drop after the first ride. The question, did packing help?, is answered by the data: yes, the ride got 4 seconds faster.\nYour Turn — 1. Use the packing method that worked best to pack the rest of your route. 2. Do not rush. Pack in sections and check for lumps and sticks. 3. Walk the track first and pick up stones and sticks. 4. Time three rides from start to end and write each time down. 5. Make a bar graph of your ride times on graph paper. 6. Write one question the graph can answer. Then write the answer. 7. Ride your track with your helmet on. A grown-up is outside the whole time. If it feels unsafe, stop and fix that spot first.\nCheck Yourself — Does your graph match your times? Does your answer come from the data?\nShow What You Know — Tell Mom or Dad two things you would change on the track and why. Take a photo of your finished track."
  }
 ];
+/* AHG Pen Pal letters for Anna (22 Oct 2026): two printed AHG sheets she fills out, a grown-up mails them later in the week. Added once, for today.
+   The lesson helper (her fairy) coaches the writing; the writing stays hers. */
+var AHG_PENPAL = [
+ {title:"Pen Pal Letter 1: Hi! This Is Me ✉️", passage:[
+  "Gather first — your AHG Pen Pal sheet that says \"October, Hi! This is me\", a pencil, and crayons or markers.",
+  "Here's the Idea — A pen pal is a friend you write to by mail. A good letter lets your friend picture YOU. Complete sentences help: they start with a capital letter and end with a period. \"I love to draw\" is better than just \"draw.\"",
+  "See It Done — Favorite hobbies: \"I like to draw unicorns and ride my scooter.\" I love AHG because: \"I love AHG because I get to make new friends and earn badges.\" Notice each one starts with a capital letter and ends with a period.",
+  "Your Turn — 1. Write your pen pal's first name on the To line. 2. Fill in My Favorite Hobbies, Foods, Song and Birthday (just the month and day). 3. Color in your three favorite colors in the boxes. 4. In the I love AHG because box, write one or two real sentences. 5. Write your prayer request on the lines, and ask a grown-up if you need help with it. 6. Sign the From line with your first name. 7. Stuck on an idea or a word? Open Ask your fairy below. She gives ideas. YOU write the words.",
+  "Check Yourself — Does each sentence start with a capital letter and end with a period? Can you read all of your writing? Did you share something real about you?",
+  "Show What You Know — Read your letter out loud to a grown-up. Then leave it on the table so a grown-up can mail it with your other letter. Never write your address or last name on the letter; a grown-up does the envelope."
+ ]},
+ {title:"Pen Pal Letter 2: How My Troop Serves Others 💌", passage:[
+  "Gather first — your AHG Pen Pal sheet that says \"September, Service\", a pencil, and crayons or markers. Keep your troop's info nearby, or ask a grown-up.",
+  "Here's the Idea — To serve means to help other people. Your pen pal wants to know how your troop helps others. You tell her with real details: what you do, who you help, and how it feels.",
+  "See It Done — \"Our troop likes to serve by making cards for people at the nursing home.\" Notice it says WHAT the troop does and WHO it helps. That is a detail your pen pal can picture.",
+  "Your Turn — 1. Write your pen pal's first name on the To line. 2. With a grown-up, fill in My Troop: how many girls, your leader's name, and the next badge you want to work on. 3. In My Troop likes to serve others by doing this, write one sentence. 4. In This is how we will serve others this month, write two or three sentences. 5. In Special event I will participate in, write the event and one sentence about why you are excited. 6. Add a prayer request on the P.S. lines and sign the From line with your first name. 7. Ask your fairy for ideas or a spelling when you are stuck. You write the words.",
+  "Check Yourself — Does every sentence start with a capital letter and end with a period? Did you tell who you help and what you do? Can a friend read your writing?",
+  "Show What You Know — Read your letter to a grown-up and tell them one way you want to serve someone this month. Leave your letter out to be mailed later this week."
+ ]}
+];
+function autoAddAhgPenPal(){
+  if(!db) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; have[a.kidId+"|"+a.title] = true; });
+  AHG_PENPAL.forEach(function(it){
+    if(have["kid1|"+it.title]) return;
+    addSeed({kidId:"kid1", date:todayISO(), subject:"ELA", title:it.title, xp:15, done:false, doneAt:null,
+      standard:"2.P.EICC.4", stage:"apply", passage:it.passage.join("\n"), crossSubjects:["Faith"], skillId:"ahg-penpal", createdAt:new Date().toISOString()});
+  });
+}
 function autoAddScooterTrack(){
   if(!db) return;
   var flag = "al_scooter_track_v1", done = false;
@@ -25616,7 +25711,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-22.03";
+var APP_BUILD = "2026-10-22.05";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
