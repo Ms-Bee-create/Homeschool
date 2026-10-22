@@ -6190,21 +6190,39 @@ function renderLessonDetail(){
     if(a.kidId==="kid1") text = text.replace(/Quick Checks?/g, "Treat Time");
     var lines = text.split("\n").filter(function(l){ return l.trim(); });
     var n = 0, out = "";
-    function row(t){
+    /* Pilot (23 Oct 2026): Anna's Math lessons get colored section labels, bigger text, one short sentence per line and colored numbers, because plain paragraphs
+       were easy for a 7-year-old to skim past. Same words, same steps, same quiz; only the layout changes. */
+    var pilot = a.kidId==="kid1" && a.subject==="Math";
+    var SEC = [[/^Watch first/i,"🎬","#475569"],[/^Gather first/i,"🧺","#c2410c"],[/^Here's the Idea/i,"💡","#6d28d9"],[/^See It Done/i,"👀","#1d4ed8"],
+               [/^Your Turn/i,"✏️","#15803d"],[/^Check Yourself/i,"✅","#0f766e"],[/^Show What You Know/i,"🌟","#be185d"]];
+    function secOf(label){ for(var k=0;k<SEC.length;k++){ if(SEC[k][0].test(label)) return SEC[k]; } return ["","📌","#475569"]; }
+    function pilotText(t, color){
+      return escapeHtml(t).replace(/(&#?\w+;)|(\d[\d,]*)/g, function(m, ent, num){ return ent ? ent : '<b style="color:'+color+';font-size:1.08em">'+num+'</b>'; });
+    }
+    function row(t, color){
       var i = n++;
+      var fs = pilot ? "17px" : "15px", lh = pilot ? "1.65" : "1.5";
       if(!tick) return '<div style="font-size:14.5px;line-height:1.5;margin-bottom:6px">'+(i+1)+'. '+escapeHtml(t)+'</div>';
       var on = false;
       try{ on = localStorage.getItem("al_chk_"+a.id+"_"+i)==="1"; }catch(e){}
-      return '<label class="arow" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:15px;line-height:1.5;cursor:pointer">'+
-        '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+escapeHtml(t)+'</span></label>';
+      return '<label class="arow" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:'+fs+';line-height:'+lh+';cursor:pointer">'+
+        '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+(pilot && color ? pilotText(t, color) : escapeHtml(t))+'</span></label>';
     }
     var labeled = lines.length>1 && lines.every(function(l){ return /^[^—]{3,40} — /.test(l); });
     lines.forEach(function(l){
       var m = l.match(/^([^—]{3,40}) — ([\s\S]*)$/);
       if(labeled && m){
-        out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
+        var sec = secOf(m[1]);
+        if(pilot) out += '<div style="margin:16px 0 6px"><span style="display:inline-block;background:'+sec[2]+';color:#fff;font-weight:800;font-size:15px;padding:4px 12px;border-radius:999px">'+sec[1]+' '+escapeHtml(m[1])+'</span></div>';
+        else out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
         var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\b\d[.)]\s+/).filter(function(x){ return x.trim(); }) : null;
-        if(steps && steps.length>1) steps.forEach(function(st){ out += row(st); });
+        if(pilot && !(steps && steps.length>1) && !/^Check Yourself/i.test(m[1])){
+          out += '<div style="border-left:5px solid '+sec[2]+';padding:2px 0 2px 12px;margin-bottom:8px">'+
+            m[2].split(/(?<=[.!?])\s+/).filter(function(x){ return x.trim(); }).map(function(sn){ return '<div style="font-size:17px;line-height:1.65;margin-bottom:6px">'+pilotText(sn, sec[2])+'</div>'; }).join("")+'</div>';
+          if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
+          return;
+        }
+        if(steps && steps.length>1) steps.forEach(function(st){ out += row(st, sec[2]); });
         else if(/^Check Yourself/i.test(m[1])) out += '<div class="chk-ans-wrap" data-text="'+escapeHtml(m[2])+'" style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
@@ -25723,7 +25741,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-22.06";
+var APP_BUILD = "2026-10-23.01";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
