@@ -19709,7 +19709,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -25353,6 +25353,63 @@ var AHG_PENPAL = [
   "Show What You Know — Read your letter to a grown-up and tell them one way you want to serve someone this month. Leave your letter out to be mailed later this week."
  ]}
 ];
+/* AHG Tenderheart Faith Award for Anna (23 Oct 2026): six short Faith-block lessons that follow the Faith pages of her AHG handbook (pages 28 to 31). The book is the source:
+   she writes her answers in the book itself, and a grown-up or her Unit Leader signs the award. The lessons never copy the book's text and keep troop details out of the repo. */
+var AHG_FAITH = [
+ {d:0, title:"Faith Award 1: My Favorite Bible Verse 📖", passage:[
+  "Gather first — your AHG handbook open to page 28, your Bible, a pencil, and crayons or colored pencils.",
+  "Here's the Idea — Each time you read your Bible you learn more about God's love and His promises. A favorite verse is one you like so much you want to remember it and share it. A verse has an address, like John 3:16: the book, then the chapter, then the verse.",
+  "See It Done — Pretend your favorite verse is Genesis 1:1. You open to the book of Genesis, find chapter 1, then find the little number 1. Then you copy the words slowly onto the lines in your book, one word at a time.",
+  "Your Turn — 1. Ask a grown-up to help you pick a favorite verse. 2. Find it in your Bible with its address. 3. On page 28, write the verse neatly on the lines, and write its address under it. 4. Draw a small picture next to it that shows what the verse is about. 5. Think of one friend or family member who would feel happy to hear this verse. 6. Ask your fairy if you are stuck on a word or how to spell it. YOU write the words.",
+  "Check Yourself — Did you copy the verse the same way it is in your Bible? Did you write its address?",
+  "Show What You Know — Read your verse out loud to a grown-up and tell them why you picked it."]},
+ {d:1, title:"Faith Award 2: My Prayer to God 🙏", passage:[
+  "Gather first — your AHG handbook open to page 29 (the Tenderheart side), a pencil, and today's date.",
+  "Here's the Idea — A prayer is talking to God. You can say thank you, you can ask for help, and you can tell Him what is on your heart. A prayer in your own words is the best kind.",
+  "See It Done — A short prayer can have three parts. Thank you: 'Thank You, God, for my family.' Ask: 'Please help my friend feel better.' End: 'Amen.' Yours will sound like YOU.",
+  "Your Turn — 1. Find My Prayer on the Tenderheart side of page 29. 2. Think of one thing you are thankful for. 3. Think of one prayer request, something you want to ask God for. 4. Write your prayer to God in the box. Include the thank you and the request. 5. Write today's date at the end, so you can look back later and see how God grows your faith. 6. If a word is hard to spell, ask your fairy. YOU write the prayer.",
+  "Check Yourself — Does your prayer have a thank you and a request? Did you write the date?",
+  "Show What You Know — Pray your prayer out loud with a grown-up."]},
+ {d:2, title:"Faith Award 3: My Character, the Fruit of the Spirit 🍎", passage:[
+  "Gather first — your AHG handbook open to page 29, your Bible, a pencil, and crayons.",
+  "Here's the Idea — God has special qualities, and the Bible lists them in Galatians chapter 5, verses 22 and 23. They are love, joy, peace, patience, kindness, goodness, faithfulness, gentleness and self-control. We can ask God to help us grow them, like a plant that grows a little every day.",
+  "See It Done — Say you pick patience. Patience means waiting calmly, even when it is hard. A picture of patience could be you waiting your turn at a game without grumbling. Then write one sentence: 'I want to be more patient when I wait for my turn.'",
+  "Your Turn — 1. Ask a grown-up to read Galatians 5:22-23 from your Bible out loud. 2. Say each of the nine words out loud. 3. Pick ONE you would like to get stronger at as a Tenderheart. 4. On page 29, under My Character, write the word you picked. 5. Write or draw one way you can show it this week. 6. Ask your fairy for ideas if you are stuck. YOU choose and write.",
+  "Check Yourself — Did you pick just one word? Can you tell a grown-up what it means in your own words?",
+  "Show What You Know — Tell a grown-up one time this week you will try to show your word."]},
+ {d:3, title:"Faith Award 4: Practicing Generosity, Share a Talent 🎁", passage:[
+  "Gather first — your AHG handbook open to page 29, a pencil, and crayons.",
+  "Here's the Idea — Generosity means giving of yourself to help others. You do not need money to be generous. You can share a skill or a talent you already have, like drawing, singing, reading, being a good friend, or making someone laugh.",
+  "See It Done — Say you are good at drawing. You could draw a card for someone who is sad. That shows God's love and uses your talent. Write it like this: 'My talent is drawing. I can draw cards to cheer people up.'",
+  "Your Turn — 1. Think about what you are good at or love to do. 2. Pick ONE talent or skill. 3. On page 29, under Practicing Generosity, write your talent. 4. Write how you can use it to share God's love with others in AHG or at home. 5. Draw a small picture of it. 6. Ask your fairy for ideas if you are stuck. YOU write it.",
+  "Check Yourself — Did you name a talent you really have? Did you write how you will use it to help someone?",
+  "Show What You Know — Tell a grown-up your talent and who you want to share it with this week."]},
+ {d:4, title:"Faith Award 5: My Creed Word and God's Love People 💛", passage:[
+  "Gather first — your AHG handbook open to page 10 (The AHG Creed) and then to the Tenderheart column of the Faith pages that come after page 29, a pencil, and crayons.",
+  "Here's the Idea — The AHG Creed is a set of words that tell how an American Heritage Girl lives. A Creed word can help your faith grow. And God shows His love through people, and we can share His love with other people too.",
+  "See It Done — Say your Creed word is one that means being kind. Write it, then write who shows you God's love, like 'my mom and my grandma,' and who you want to share God's love with, like 'my cousin.'",
+  "Your Turn — 1. Read The AHG Creed on page 10 with a grown-up. 2. Pick ONE Creed word you want to focus on to grow your faith as a Tenderheart. 3. In your book, write it in the Creed word box. 4. Write who shows you God's love. 5. Write who you want to share God's love with as a Tenderheart. 6. Ask your fairy for spelling help if you need it. YOU write your answers.",
+  "Check Yourself — Did you pick just one Creed word? Did you name real people, with their first names or like 'my mom'?",
+  "Show What You Know — Tell a grown-up why you picked your Creed word."]},
+ {d:5, title:"Faith Award 6: Sharing God's Love in My Troop 🌟", passage:[
+  "Gather first — your AHG handbook open to the Tenderheart column of the Faith pages after page 29, a pencil, and crayons.",
+  "Here's the Idea — Your Troop is a place to grow your faith with friends. You can share God's love at Troop by being kind, helping, and serving. Think about the service projects and badges you have liked best.",
+  "See It Done — Say your favorite Troop project was making cards for others. Write that in the box. Say you loved a badge about the Bible. Write the badge name in the box.",
+  "Your Turn — 1. Write ways you can share God's love in your Troop. 2. Write your favorite Troop service project as a Tenderheart. 3. Write your favorite faith-based AHG badge. 4. Look back at your pages. Did you fill in each Tenderheart box? 5. Show your pages to your Unit Leader or a grown-up. Your Unit Leader signs your Tenderheart Faith Award and the date. 6. Ask your fairy for ideas if you are stuck. YOU write your answers.",
+  "Check Yourself — Did you fill in every Tenderheart box? Did you write things you really did?",
+  "Show What You Know — Tell a grown-up one way you will share God's love at your next Troop meeting."]}
+];
+function autoAddAhgFaith(){
+  if(!db) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; have[a.kidId+"|"+a.title] = true; });
+  var start = packStart();
+  AHG_FAITH.forEach(function(it){
+    if(have["kid1|"+it.title]) return;
+    addSeed({kidId:"kid1", date:isoDate(addSchoolDays(start, it.d)), subject:"Faith", title:it.title, xp:15, done:false, doneAt:null,
+      standard:"2.P.EICC.4", stage:"apply", passage:it.passage.join("\n"), crossSubjects:["ELA"], skillId:"ahg-faith", createdAt:new Date().toISOString()});
+  });
+}
 function autoAddAhgPenPal(){
   if(!db) return;
   var have = {};
@@ -25741,7 +25798,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-23.01";
+var APP_BUILD = "2026-10-23.02";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
