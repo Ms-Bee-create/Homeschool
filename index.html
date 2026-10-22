@@ -7373,6 +7373,7 @@ function renderLeaderArea(){
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
   els.view.appendChild(whatTheyKnowCard());
+  els.view.appendChild(ahgTrackerCard());
   els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(catchUpCard());
@@ -19709,7 +19710,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics(); autoAddRyanCivics();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -20121,6 +20122,7 @@ function saveFamilyGoal(g, quiet){
   var cur = familyGoal();
   if(g.daysOff===undefined && cur.daysOff!==undefined) g = Object.assign({}, g, {daysOff:cur.daysOff});
   if(g.checkins===undefined && cur.checkins!==undefined) g = Object.assign({}, g, {checkins:cur.checkins});
+  if(g.ahg===undefined && cur.ahg!==undefined) g = Object.assign({}, g, {ahg:cur.ahg});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -22690,6 +22692,144 @@ function checkinDecide(id, decision){
   var cur = familyGoal(), map = Object.assign({}, cur.checkins||{});
   map[id] = {decision:decision, at:new Date().toISOString()};
   return saveFamilyGoal(Object.assign({}, cur, {checkins:map}), true);
+}
+/* ---------- Leader: AHG tracker (Anna, Tenderheart) ---------- */
+/* Level Award checklist, service hours with stars, and badge progress by Frontier, from her handbook's tracking pages (pp. 304-308). Kept in
+   familyGoal().ahg so it syncs like the other Leader settings. No troop numbers or names are stored here (the repo is public). */
+var AHG_FRONTIERS = ["Heritage","Family Living","Arts","Outdoor Skills","Personal Well-Being","Science & Technology"];
+var AHG_LA_ITEMS = [
+  {k:"member", t:"Active, registered Troop member"},
+  {k:"flag", t:"Flag ceremony each year", years:3},
+  {k:"leader", t:"Girl Leadership Position for at least two months"},
+  {k:"faith", t:"One year of Faith Award programming"},
+  {k:"setup", t:"Help set up a Troop or community event for one hour (once)"},
+  {k:"friend", t:"Bring a friend to a Troop meeting or social event (once)"},
+  {k:"social", t:"One AHG social event each year", years:3},
+  {k:"camp", t:"Camp one night in a tent or cabin, or an all-day hike"},
+  {k:"explorer", t:"Visit an Explorer Unit for one meeting (final year)"},
+  {k:"board", t:"Board of Review"}
+];
+var AHG_DEFAULT_BADGES = [
+  {n:"Birds", f:"Science & Technology", all:4, done:4, one:true, sign:false},
+  {n:"Dance", f:"Arts", all:3, done:0, one:false, sign:false},
+  {n:"Dawn of Our Country", f:"Heritage", all:3, done:1, one:true, sign:false},
+  {n:"Identity", f:"Personal Well-Being", all:4, done:1, one:false, sign:false},
+  {n:"Hiking", f:"Outdoor Skills", all:4, done:0, one:false, sign:false},
+  {n:"Money Management", f:"Family Living", all:4, done:0, one:false, sign:false}
+];
+function ahgData(){
+  var g = familyGoal(), a = g.ahg;
+  if(!a || typeof a!=="object") a = {la:{}, service:[], badges:JSON.parse(JSON.stringify(AHG_DEFAULT_BADGES))};
+  a.la = a.la||{}; a.service = a.service||[]; a.badges = a.badges||[];
+  return a;
+}
+function ahgSave(a){ return saveFamilyGoal(Object.assign({}, familyGoal(), {ahg:a}), true).then(function(){ renderView(); }); }
+function ahgBadgeDone(b){ return Number(b.done)>=Number(b.all) && !!b.one; }
+function ahgTrackerCard(){
+  var a = ahgData();
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var det = document.createElement("details");
+  var openKey = detailsOpenKey("leader","all",false,"ahgtracker");
+  if(isDetailsOpen(openKey)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(openKey, det.open); });
+  var mins = a.service.reduce(function(n,x){ return n+(Number(x.min)||0); }, 0), hours = mins/60, stars = Math.floor(hours/5);
+  var doneFr = AHG_FRONTIERS.filter(function(f){ return a.badges.some(function(b){ return b.f===f && ahgBadgeDone(b); }); });
+  var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
+  sum.textContent = "🏅 AHG tracker, Anna: "+doneFr.length+" of 6 Frontiers, "+(Math.round(hours*10)/10)+" service hours, "+stars+" star"+(stars===1?"":"s");
+  det.appendChild(sum);
+  var css = "padding:7px 9px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px";
+  function h(t){ var d = document.createElement("div"); d.style.cssText = "font-weight:700;margin:14px 0 6px"; d.textContent = t; return d; }
+  function note(t){ var d = document.createElement("div"); d.className = "muted"; d.style.cssText = "font-size:12.5px;margin:4px 0"; d.textContent = t; return d; }
+  function btn(t, fn){ var b = document.createElement("button"); b.type = "button"; b.textContent = t; b.style.cssText = css+";cursor:pointer;font-weight:600"; b.onclick = fn; return b; }
+  function chk(label, on, fn){
+    var l = document.createElement("label"); l.style.cssText = "display:flex;gap:8px;align-items:flex-start;margin:5px 0;font-size:13.5px;cursor:pointer";
+    var i = document.createElement("input"); i.type = "checkbox"; i.checked = !!on; i.style.cssText = "width:18px;height:18px;margin-top:2px;flex:none"; i.onchange = function(){ fn(i.checked); };
+    var s = document.createElement("span"); s.textContent = label; l.appendChild(i); l.appendChild(s); return l;
+  }
+  det.appendChild(note("From her handbook's tracking pages. Tenderheart Sacagawea Level Award: she must be in her final Tenderheart year and at least 8. Her Unit Leader signs off; this is Mom's own copy."));
+  /* Level Award checklist */
+  det.appendChild(h("Sacagawea Level Award"));
+  det.appendChild(chk("One badge from each Frontier ("+doneFr.length+" of 6 done, counted from the badges below)", doneFr.length===6, function(){}));
+  det.lastChild.querySelector("input").disabled = true;
+  det.appendChild(chk("Five hours of service each year ("+(Math.round(hours*10)/10)+" hours so far, "+stars+" star"+(stars===1?"":"s")+")", hours>=5, function(){}));
+  det.lastChild.querySelector("input").disabled = true;
+  AHG_LA_ITEMS.forEach(function(it){
+    if(it.years){
+      var row = document.createElement("div"); row.style.cssText = "margin:5px 0;font-size:13.5px";
+      var t = document.createElement("div"); t.textContent = it.t; row.appendChild(t);
+      var yr = document.createElement("div"); yr.style.cssText = "display:flex;gap:14px;margin-top:3px";
+      for(var y=1;y<=it.years;y++){ (function(y){
+        var k = it.k+"_"+y;
+        var l = document.createElement("label"); l.style.cssText = "display:flex;gap:5px;align-items:center;cursor:pointer";
+        var i = document.createElement("input"); i.type = "checkbox"; i.checked = !!a.la[k]; i.onchange = function(){ a.la[k] = i.checked; ahgSave(a); };
+        l.appendChild(i); l.appendChild(document.createTextNode(["","1st","2nd","3rd"][y]+" year")); yr.appendChild(l);
+      })(y); }
+      row.appendChild(yr); det.appendChild(row);
+    } else det.appendChild(chk(it.t, a.la[it.k], function(v){ a.la[it.k] = v; ahgSave(a); }));
+  });
+  /* Service hours */
+  det.appendChild(h("Service hours and stars (handbook p305)"));
+  det.appendChild(note("Service means helping people other than your family or Troop. A blue star for every 5 hours. Her Unit Leader decides what counts."));
+  var star = document.createElement("div"); star.style.cssText = "font-size:22px;letter-spacing:3px;margin:4px 0;color:#2563eb";
+  star.textContent = Array(9).fill(0).map(function(_,i){ return i<stars ? "★" : "☆"; }).join("");
+  det.appendChild(star);
+  var f = state.ahgForm = state.ahgForm || {date:todayISO(), act:"", min:""};
+  var fr = document.createElement("div"); fr.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin:6px 0";
+  var di = document.createElement("input"); di.type = "date"; di.value = f.date; di.style.cssText = css; di.oninput = function(){ f.date = di.value; };
+  var ai = document.createElement("input"); ai.type = "text"; ai.placeholder = "What did she do?"; ai.maxLength = 100; ai.value = f.act; ai.style.cssText = css+";flex:1;min-width:140px"; ai.oninput = function(){ f.act = ai.value; };
+  var mi = document.createElement("input"); mi.type = "number"; mi.placeholder = "Minutes"; mi.min = 1; mi.max = 600; mi.value = f.min; mi.style.cssText = css+";width:90px"; mi.oninput = function(){ f.min = mi.value; };
+  fr.appendChild(di); fr.appendChild(ai); fr.appendChild(mi);
+  fr.appendChild(btn("Add", function(){
+    var m = Number(f.min); if(!f.act.trim() || !(m>0)){ toast("Add what she did and the minutes"); return; }
+    a.service.push({date:f.date||todayISO(), act:f.act.trim(), min:Math.round(m), told:false});
+    state.ahgForm = {date:todayISO(), act:"", min:""}; ahgSave(a);
+  }));
+  det.appendChild(fr);
+  a.service.slice().sort(function(x,y){ return x.date<y.date ? 1 : -1; }).slice(0,12).forEach(function(x){
+    var i = a.service.indexOf(x);
+    var r = document.createElement("div"); r.style.cssText = "display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0;border-top:1px solid var(--border);padding-top:4px";
+    var t = document.createElement("span"); t.style.flex = "1"; t.textContent = x.date+": "+x.act+" ("+x.min+" min)"; r.appendChild(t);
+    var l = document.createElement("label"); l.style.cssText = "display:flex;gap:4px;align-items:center;font-size:12px;cursor:pointer";
+    var c = document.createElement("input"); c.type = "checkbox"; c.checked = !!x.told; c.onchange = function(){ x.told = c.checked; ahgSave(a); };
+    l.appendChild(c); l.appendChild(document.createTextNode("told Unit Leader")); r.appendChild(l);
+    r.appendChild(btn("✕", function(){ a.service.splice(i,1); ahgSave(a); }));
+    det.appendChild(r);
+  });
+  /* Badges by Frontier */
+  det.appendChild(h("Badges by Frontier (handbook pp. 306 to 308)"));
+  det.appendChild(note("Tenderheart: do every Complete All step and one Complete One step; the Unit Leader signs. Use + and - to track steps."));
+  AHG_FRONTIERS.forEach(function(fn){
+    var bs = a.badges.filter(function(b){ return b.f===fn; });
+    var ok = bs.some(ahgBadgeDone);
+    var hd = document.createElement("div"); hd.style.cssText = "font-weight:700;font-size:13.5px;margin:10px 0 3px"; hd.textContent = (ok?"✅ ":"⬜ ")+fn; det.appendChild(hd);
+    if(!bs.length){ det.appendChild(note("No badge yet.")); }
+    bs.forEach(function(b){
+      var r = document.createElement("div"); r.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;margin:4px 0 4px 6px";
+      var nm = document.createElement("span"); nm.style.cssText = "min-width:150px;font-weight:600"; nm.textContent = b.n+(ahgBadgeDone(b)?" ✓":""); r.appendChild(nm);
+      r.appendChild(btn("−", function(){ b.done = Math.max(0, Number(b.done)-1); ahgSave(a); }));
+      var cnt = document.createElement("span"); cnt.textContent = "Complete All "+b.done+"/"+b.all; r.appendChild(cnt);
+      r.appendChild(btn("+", function(){ b.done = Math.min(Number(b.all), Number(b.done)+1); ahgSave(a); }));
+      r.appendChild(chk("Complete One", b.one, function(v){ b.one = v; ahgSave(a); }));
+      r.appendChild(chk("Unit Leader signed", b.sign, function(v){ b.sign = v; ahgSave(a); }));
+      r.appendChild(btn("✕", function(){ a.badges.splice(a.badges.indexOf(b),1); ahgSave(a); }));
+      det.appendChild(r);
+    });
+  });
+  var nb = state.ahgBadge = state.ahgBadge || {n:"", f:AHG_FRONTIERS[0], all:3};
+  var br = document.createElement("div"); br.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin:10px 0";
+  var ni = document.createElement("input"); ni.type = "text"; ni.placeholder = "Badge name"; ni.maxLength = 40; ni.value = nb.n; ni.style.cssText = css+";flex:1;min-width:130px"; ni.oninput = function(){ nb.n = ni.value; };
+  var fs = document.createElement("select"); fs.style.cssText = css; AHG_FRONTIERS.forEach(function(x){ var o = document.createElement("option"); o.value = o.textContent = x; if(x===nb.f) o.selected = true; fs.appendChild(o); }); fs.onchange = function(){ nb.f = fs.value; };
+  var ti = document.createElement("input"); ti.type = "number"; ti.min = 1; ti.max = 12; ti.value = nb.all; ti.title = "Number of Complete All steps"; ti.style.cssText = css+";width:70px"; ti.oninput = function(){ nb.all = ti.value; };
+  br.appendChild(ni); br.appendChild(fs); br.appendChild(ti);
+  br.appendChild(btn("Add badge", function(){
+    if(!nb.n.trim()){ toast("Type the badge name"); return; }
+    a.badges.push({n:nb.n.trim(), f:nb.f, all:Math.max(1,Number(nb.all)||3), done:0, one:false, sign:false});
+    state.ahgBadge = {n:"", f:nb.f, all:3}; ahgSave(a);
+  }));
+  det.appendChild(br);
+  det.appendChild(note("The number box is how many Complete All steps the badge has."));
+  wrap.appendChild(det);
+  return wrap;
 }
 function whatTheyKnowCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
@@ -25426,6 +25566,17 @@ function autoAddAhgCivics(){
       standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, crossSubjects:it.crossSubjects, skillId:it.skillId, createdAt:new Date().toISOString()});
   });
 }
+var RYAN_CIVICS = [{"date": "2026-11-02", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG1", "title": "We the People: Meet the Constitution 📜", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, and a copy of the Preamble to the U.S. Constitution. A grown-up can print one or find a kid-friendly book about the Constitution at the library.\nHere's the Idea — The Constitution is the plan for how the United States government works. It was written in 1787 in Philadelphia to replace the weak Articles of Confederation. It begins with 'We the People.' That shows the government's power comes from the people, which is called the consent of the governed, or popular sovereignty. The Preamble lists six goals: form a more perfect Union, establish justice, ensure peace at home, provide for the common defense, promote the general welfare, and secure the blessings of liberty.\nSee It Done — 'Provide for the common defense' means keeping the country safe. Today that is the job of the military.\nYour Turn — 1. Read the Preamble slowly with a grown-up. 2. Draw a six-box chart. 3. In each box, write one goal in your own words. 4. Next to each goal, write one real thing today that matches it, like courts for justice. 5. Underline 'We the People' and write one sentence about why those words matter.\nCheck Yourself — Can you say what 'We the People' tells us about where power comes from? Do you have all six goals?\nShow What You Know — Teach-Back: explain the Preamble to a grown-up in your own words.", "quiz": [{"q": "Where does the government get its power, according to 'We the People'?", "choices": ["From the people", "From a king", "From the military", "From other countries"], "answerIndex": 0, "explain": "'We the People' shows that power comes from the consent of the governed, the people."}, {"q": "Which Preamble goal is about keeping the country safe?", "choices": ["Provide for the common defense", "Establish justice", "Promote the general welfare", "Form a more perfect Union"], "answerIndex": 0, "explain": "The common defense means protecting the country."}], "video": "https://www.youtube.com/watch?v=9ZJBCC_8aV4"}, {"date": "2026-11-03", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG1", "title": "Representative Democracy: Why We Vote 🗳️", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, and your family. Today is Tuesday, Election Day, when adult citizens vote for leaders.\nHere's the Idea — The United States is a republic, also called a representative democracy. Citizens do not vote on every law. Instead, they elect representatives to make laws for them. Voters can change their leaders at the next election. That keeps leaders working for the people, and it is the consent of the governed in action.\nSee It Done — In a city, voters elect a mayor and a city council. The council votes on local rules like speed limits. If voters do not like the rules, they can vote for different people next time.\nYour Turn — 1. Set up a mini republic in your family. 2. Choose a question, like what game to play for family night. 3. Each person votes for a representative. 4. The representative makes the choice for the family. 5. Talk about it. Is it fair? How is this different from everyone voting on everything? 6. Write one good thing and one hard thing about each way.\nCheck Yourself — Can you explain the difference between voting yourself and electing someone to vote for you?\nShow What You Know — Teach-Back: tell a grown-up why we vote and what a representative does.", "quiz": [{"q": "In a representative democracy, who makes laws?", "choices": ["Elected representatives", "Only one king", "Only judges", "Only the army"], "answerIndex": 0, "explain": "Citizens elect representatives to make laws for them."}, {"q": "Why do elections matter?", "choices": ["Voters can choose or change their leaders", "Leaders stay forever", "Laws never change", "Only some people count"], "answerIndex": 0, "explain": "Elections let citizens give consent and change leaders who do not serve them well."}]}, {"date": "2026-11-04", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG1", "title": "Natural Rights: Life, Liberty and the Pursuit of Happiness ✍️", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, and a printed copy of the opening of the Declaration of Independence (a grown-up can find one).\nHere's the Idea — In 1776, Thomas Jefferson wrote most of the Declaration of Independence. It says all people have natural rights, rights they are born with that no government gave them and no government should take away. It names life, liberty, and the pursuit of happiness. The Declaration was also a response to the tyranny of the king. At the time, many people, including enslaved people and women, were not treated as equal, and later Americans worked to make those words true for everyone.\nSee It Done — A natural right like liberty means you are free to make your own choices, as long as you respect others' rights.\nYour Turn — 1. Read the opening of the Declaration with a grown-up. 2. Write the three rights it names. 3. Write what each one means in your own words. 4. Write a short Declaration of Rights for your own family with three rights and one sentence about why. 5. Share it.\nCheck Yourself — Do you have the three rights? Can you say why natural rights are different from rules a government gives?\nShow What You Know — Teach-Back: explain natural rights to a grown-up.", "quiz": [{"q": "Which of these is a natural right named in the Declaration?", "choices": ["Life, liberty and the pursuit of happiness", "A free vacation", "A new car", "The right to ignore laws"], "answerIndex": 0, "explain": "The Declaration names life, liberty, and the pursuit of happiness."}, {"q": "Who wrote most of the Declaration of Independence?", "choices": ["Thomas Jefferson", "George Washington", "Abraham Lincoln", "Benjamin Franklin"], "answerIndex": 0, "explain": "Thomas Jefferson was the main writer."}]}, {"date": "2026-11-05", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG1", "title": "Federal, State and Shared Powers 🏛️", "skillId": "ryan-civics", "passage": "Gather first — paper cut into 12 cards, a pencil, and three labels: Federal, State, and Shared.\nHere's the Idea — The Constitution divides power between the national, or federal, government and the state governments. This is called federalism. Federal powers include coining money, declaring war, and running the military. State powers include running schools and issuing driver's licenses. Shared powers, which both can do, include collecting taxes, building roads, and running courts.\nSee It Done — Printing money is federal. Issuing a driver's license is a state job. Collecting taxes is shared by both.\nYour Turn — 1. Write one power on each card: print money, declare war, run the military, run public schools, issue driver's licenses, collect taxes, build roads, run courts, regulate trade between states, set up local police, make local laws, make national treaties. 2. Sort the cards under Federal, State, or Shared. 3. Check your sorting with a grown-up. 4. Write one reason why the Constitution shares power.\nCheck Yourself — Did you sort each card? Can you explain why power is divided?\nShow What You Know — Teach-Back: explain federalism with an example.", "quiz": [{"q": "Who coins money?", "choices": ["The federal government", "The state government", "A town", "A school"], "answerIndex": 0, "explain": "Coining money is a federal power."}, {"q": "Which is a shared power?", "choices": ["Collecting taxes", "Declaring war", "Printing national money", "Making treaties"], "answerIndex": 0, "explain": "Both federal and state governments collect taxes."}]}, {"date": "2026-11-09", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG3", "title": "Three Branches and Checks and Balances ⚖️", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, and three family members or stuffed animals to be the branches.\nHere's the Idea — The Constitution splits government into three branches so no one has too much power. Congress, the legislative branch, makes laws. The President, the executive branch, carries out laws. The courts, the judicial branch, explain the laws and decide if they follow the Constitution. This is called the separation of powers. Each branch can check the others. The President can veto a bill. Congress can override a veto with a two-thirds vote. The Supreme Court can strike down a law that goes against the Constitution. The Senate must approve judges.\nSee It Done — Congress passes a bill. The President vetoes it. Congress overrides with two-thirds. The law takes effect. That is a check and balance.\nYour Turn — 1. Choose a pretend law, like 'dessert after every dinner.' 2. One person is Congress and writes the law. 3. One person is the President and signs or vetoes it. 4. One person is the court and decides if it breaks a rule. 5. Draw a triangle diagram showing the three branches and the checks. 6. Write which branch checks which.\nCheck Yourself — Can you name the three branches and one check each?\nShow What You Know — Teach-Back: explain how checks and balances protect us.", "quiz": [{"q": "Which branch makes laws?", "choices": ["Congress", "The President", "The courts", "The military"], "answerIndex": 0, "explain": "Congress is the legislative branch and makes laws."}, {"q": "What can Congress do if the President vetoes a bill?", "choices": ["Override the veto with a two-thirds vote", "Ignore it", "Ask the President to sign anyway", "Wait a year"], "answerIndex": 0, "explain": "Congress can override a veto with a two-thirds vote."}]}, {"date": "2026-11-10", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG3", "title": "The Bill of Rights: Protecting You 📃", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, markers, and a kid-friendly list of the Bill of Rights from a library book or a grown-up.\nHere's the Idea — The Bill of Rights is the first ten amendments to the Constitution. It was added in 1791 because many people were afraid the new federal government could become too powerful. The Bill of Rights lists rights that protect people from government. For example, the 1st protects freedoms like speech and religion, the 4th protects against unreasonable searches, the 6th protects the right to a fair and speedy trial, and the 8th protects against cruel and unusual punishment.\nSee It Done — If the government wanted to search your home with no good reason, the 4th Amendment protects you.\nYour Turn — 1. With a grown-up, read a kid-friendly list of the ten amendments. 2. Choose four rights that matter most to you. 3. Make a poster of the four. 4. For each, write what the right protects and one sentence about why it was added. 5. Put your poster up.\nCheck Yourself — Do you know the Bill of Rights is the first ten amendments and was added in 1791? Can you explain what it limits?\nShow What You Know — Teach-Back: teach a grown-up one right and why it matters.", "quiz": [{"q": "How many amendments are in the Bill of Rights?", "choices": ["10", "5", "27", "50"], "answerIndex": 0, "explain": "The Bill of Rights is the first ten amendments."}, {"q": "What does the Bill of Rights do?", "choices": ["Limits the power of government and protects people's rights", "Sets school hours", "Chooses the President", "Prints money"], "answerIndex": 0, "explain": "It limits government power and protects individual rights."}]}, {"date": "2026-11-11", "subject": "Social Studies", "stage": "apply", "xp": 15, "standard": "SS4CG2", "title": "The First Amendment: Five Freedoms 🗣️", "skillId": "ryan-civics", "passage": "Gather first — paper, a pencil, and a grown-up.\nHere's the Idea — The First Amendment protects five freedoms: religion, speech, the press, assembly, and petition. Religion means you can follow your own faith or none. Speech means you can share your ideas. The press means newspapers and writers can report news. Assembly means you can gather peacefully. Petition means you can ask the government to fix a problem. In 1969, the Supreme Court said students keep their free speech rights at school in a case where students wore black armbands to share their views. Freedoms have limits, like not hurting others.\nSee It Done — A neighborhood meeting at a park is assembly. A newspaper story about the mayor is freedom of the press.\nYour Turn — 1. Write the five freedoms down the page. 2. Make a scenario for each, like a group gathering peacefully. 3. Trade scenarios with a grown-up and name the freedom in each. 4. Write one limit on freedom, like not putting others in danger. 5. Write one sentence on why the First Amendment is important in a republic.\nCheck Yourself — Can you name all five freedoms? Can you give an example of each?\nShow What You Know — Teach-Back: explain the First Amendment to a grown-up with examples.", "quiz": [{"q": "A group of neighbors gathers peacefully in a park to talk about a problem. Which freedom is this?", "choices": ["Assembly", "Press", "Religion", "Speech only"], "answerIndex": 0, "explain": "Gathering peacefully is freedom of assembly."}, {"q": "Which freedom lets you ask the government to fix a problem?", "choices": ["Petition", "Religion", "Press", "Speech"], "answerIndex": 0, "explain": "Petition means asking the government for change."}]}];
+function autoAddRyanCivics(){
+  if(!db) return;
+  var have = {};
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; have[a.kidId+"|"+a.title] = true; });
+  RYAN_CIVICS.forEach(function(it){
+    if(have["kid2|"+it.title]) return;
+    addSeed({kidId:"kid2", date:it.date, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
+      standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, video:it.video||null, skillId:it.skillId, createdAt:new Date().toISOString()});
+  });
+}
 function autoAddAhgFaith(){
   if(!db) return;
   var have = {};
@@ -25825,7 +25976,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-23.09";
+var APP_BUILD = "2026-10-23.11";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
