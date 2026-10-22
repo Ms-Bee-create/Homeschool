@@ -77,6 +77,10 @@ const RYAN_LINKS: [string, string][] = [
   ["https://learn-en.readthedocs.io/en/latest/microbitKit/Wonder_Building_Kit/Case_02.html", "micro:bit Wonder Building Kit, Case 2"],
 ];
 const ALLOWED = new Set(RYAN_LINKS.map((l) => l[0]));
+// Mom approved the Internet Archive (22 Oct 2026) as the ONLY place Ryan gets ISO files for his projects. The helper may build a search link in exactly this
+// shape and nothing else on archive.org (no made-up item pages): https://archive.org/search?query=windows+98+iso
+const ARCHIVE_SEARCH = /^https:\/\/archive\.org\/search\?query=[A-Za-z0-9+%._-]{1,80}(&sort=-?[a-z]{3,20})?$/;
+const linkOk = (u: string) => ALLOWED.has(u) || ARCHIVE_SEARCH.test(u);
 
 const WHO: Record<string, string> = {
   kid1: `You are a kind, playful fairy helper for Anna, a 7-year-old girl in 2nd grade. Use short, simple words and 1-3 short sentences. Be warm, cheerful and encouraging. A little sparkle is fine.`,
@@ -85,7 +89,7 @@ const WHO: Record<string, string> = {
 
 const RULES = (kidId: string) => {
   const LINKS_RULE = kidId === "kid2"
-    ? "Links for Ryan: if a video or guide below would really help, you may share ONE link, copied exactly as written, and say what it is in a few words. Only these approved links. If none fits, say you do not have a link and he can ask Mom. Never write any other link.\n" + RYAN_LINKS.map((l) => l[1] + ": " + l[0]).join("\n")
+    ? "Links for Ryan: if a video or guide below would really help, you may share ONE link, copied exactly as written, and say what it is in a few words. Only these approved links. If none fits, say you do not have a link and he can ask Mom. Never write any other link.\nDisk images (ISO files) for his virtual machine projects: Mom approved the Internet Archive (archive.org) as the ONLY place he gets them. Never send him to Google, forums, torrent or other download sites. You may give ONE search link in exactly this shape, with the words joined by plus signs: https://archive.org/search?query=windows+98+iso . Then walk him through it: pick a result whose name and year match what he needs, open it, find Download Options on the right side of the page, and choose the ISO IMAGE or the file that ends in .iso. Tell him to get a grown-up before anything downloads (the files are big), to never download anything with crack, keygen, activator, loader, patch or serial in the name, to only open the file inside the virtual machine program and never run it on the family computer, and to stop and ask Mom or Dad if a page asks him to sign in, install anything, or shows a flashing Download button that is not on the Download Options list.\n" + RYAN_LINKS.map((l) => l[1] + ": " + l[0]).join("\n")
     : "Do not share any links.";
   return `
 You are a computer helper, not a person. If the child sincerely asks whether you are real, say you are a computer helper. Their parents can read every chat.
@@ -149,7 +153,7 @@ Deno.serve(async (req) => {
     if (!resp.ok) return json({ error: "ai unavailable" }, 502);
     const out = await resp.json();
     let reply = String(out.content?.[0]?.text ?? "").trim();
-    reply = reply.replace(/https?:\/\/[^\s)>\]]+/g, (u) => (kidId === "kid2" && ALLOWED.has(u.replace(/[.,!?]+$/, "")) ? u : "(ask Mom for a link)"));
+    reply = reply.replace(/https?:\/\/[^\s)>\]]+/g, (u) => (kidId === "kid2" && linkOk(u.replace(/[.,!?]+$/, "")) ? u : "(ask Mom for a link)"));
     const tellMom = /\[\[TELL_MOM\]\]/.test(reply), blocked = /\[\[BLOCKED\]\]/.test(reply);
     reply = reply.replace(/\[\[(TELL_MOM|BLOCKED)\]\]\s*/g, "").trim() || "Hmm, I am not sure. Can you ask Mom or Dad?";
 
