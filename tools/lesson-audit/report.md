@@ -1,29 +1,27 @@
 # Lesson audit
 
-Lessons checked: 521. With problems: 25. Warnings only: 88.
+Lessons checked: 523. With problems: 25. Warnings only: 87.
 
 ## Most common
+- 25 x kid: one sentence is N words long
 - 24 x no way to check understanding (no Check Yourself, no quiz)
-- 24 x kid: one sentence is N words long
 - 24 x standard N-N.F is not verified (rule N)
 - 14 x no instructions at all (rule N)
 - 12 x standard ELAGSENRLN is not verified (rule N)
 - 7 x no standard tag (rule N)
 - 7 x lesson page shows broken text (undefined / [object])
 - 7 x no numbered steps to follow
+- 6 x kid: long (N words), may feel like a wall of text
 - 5 x standard ELAGSENRLN-RLN is not verified (rule N)
-- 4 x kid: long (N words), may feel like a wall of text
 - 4 x apply lesson without Show What You Know (rule N)
 - 4 x standard ELAGSENRIN exists but fit not confirmed (rule N)
 - 4 x kid: long (N words)
 - 4 x teaching lesson without a worked example (rule N)
 - 3 x kid: sentences average N words (hard to read)
 - 3 x standard ELAGSENSLN exists but fit not confirmed (rule N)
-- 2 x standard N.NR.N is not verified (rule N)
 - 2 x uses supplies but has no "Gather first" list
 - 1 x standard MGSEN.G.N is not verified (rule N)
 - 1 x standard MGSEN.OA.N is not verified (rule N)
-- 1 x standard N.NR.N/N.NR.N is not verified (rule N)
 
 ## Lessons with problems
 
