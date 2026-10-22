@@ -20163,7 +20163,19 @@ function kidHelperCard(kidId){
     var b = document.createElement("div");
     b.style.cssText = "padding:8px 10px;border-radius:10px;font-size:14px;line-height:1.45;max-width:92%;white-space:pre-wrap;"+
       (role==="user" ? "align-self:flex-end;background:var(--gold-soft)" : "align-self:flex-start;background:var(--success-soft);border:1px solid var(--success)");
-    b.textContent = text; log.appendChild(b); return b;
+    setBubble(b, role, text); log.appendChild(b); return b;
+  }
+  /* The helper only ever sends links Mom approved (the server removes any other), so those become tappable; everything else stays plain text. */
+  function setBubble(b, role, text){
+    b.textContent = "";
+    if(role!=="assistant"){ b.textContent = text; return; }
+    String(text).split(/(https:\/\/[^\s)]+)/).forEach(function(part, i){
+      if(i%2===1){
+        var url = part.replace(/[.,!?]+$/, ""), a = document.createElement("a");
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "▶ Open the link"; a.style.fontWeight = "700";
+        b.appendChild(a); if(part.length>url.length) b.appendChild(document.createTextNode(part.slice(url.length)));
+      } else b.appendChild(document.createTextNode(part));
+    });
   }
   st.hist.forEach(function(m){ bubble(m.role, m.content); });
   var row = document.createElement("div"); row.style.cssText = "display:flex;gap:8px";
@@ -20187,7 +20199,7 @@ function kidHelperCard(kidId){
     function fail(){ st.busy = false; send.disabled = false; st.hist.pop(); pend.textContent = "I can't reach the helper right now. Ask Mom or Dad for help."; }
     sb.functions.invoke("kidhelper", {body:{kidId:kidId, messages:st.hist.slice(-12)}}).then(function(res){
       if(res.error || !res.data || !res.data.reply) return fail();
-      st.busy = false; send.disabled = false; pend.textContent = res.data.reply;
+      st.busy = false; send.disabled = false; setBubble(pend, "assistant", res.data.reply);
       st.hist.push({role:"assistant", content:res.data.reply}); speak(res.data.reply);
     }).catch(fail);
   }
@@ -25711,7 +25723,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-22.05";
+var APP_BUILD = "2026-10-22.06";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
