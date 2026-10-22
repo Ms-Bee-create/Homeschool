@@ -19376,6 +19376,7 @@ function patchSafetyUndo(){
    checked against Georgia-aligned sources on 14 Oct 2026 (the official PDFs could not be opened from the build environment). EXISTS means the code is real
    but its exact wording or fit is not confirmed. Anything else in the Leader "Standards check" card is unverified and needs Mom's alignment table. */
 var STANDARD_STATUS = {
+  "4.NR.1.3":"verified", "4.NR.1.4":"verified",
   "SS2H1":"verified", "SS2H2":"verified", "SS2G1":"verified", "SS2G2":"verified", "SS2CG1":"verified", "SS2CG2":"verified", "SS2CG3":"verified", "SS2E1":"verified", "SS2E2":"verified", "SS2E3":"verified", "SS2E4":"verified", "SS4H1":"verified", "SS4H2":"verified", "SS4H3":"verified", "SS4H4":"verified", "SS4H5":"verified", "SS4H6":"verified", "SS4G1":"verified", "SS4G2":"verified", "SS4CG1":"verified", "SS4CG2":"verified", "SS4CG3":"verified", "SS4E1":"verified", "SS4E2":"verified", "SS2H1a":"verified", "SS2H1b":"verified", "SS2H1c":"verified", "SS2H1d":"verified", "SS2H1e":"verified", "SS2H1f":"verified", "SS2H2a":"verified", "SS2G1a":"verified", "SS2G1b":"verified", "SS2G2a":"verified", "SS2G2b":"verified", "SS2G2c":"verified", "SS2G2d":"verified", "SS2CG2a":"verified", "SS2CG2b":"verified", "SS2CG2c":"verified", "SS4H1a":"verified", "SS4H1b":"verified", "SS4H1c":"verified", "SS4H1d":"verified", "SS4H2a":"verified", "SS4H2b":"verified", "SS4H3a":"verified", "SS4H3b":"verified", "SS4H3c":"verified", "SS4H4a":"verified", "SS4H5a":"verified", "SS4H5b":"verified", "SS4H5c":"verified", "SS4H5d":"verified", "SS4H5e":"verified", "SS4H6a":"verified", "SS4H6b":"verified", "SS4H6c":"verified", "SS4H6d":"verified", "SS4G1a":"verified", "SS4G1b":"verified", "SS4G2a":"verified", "SS4G2b":"verified", "SS4CG1a":"verified", "SS4CG1b":"verified", "SS4CG1c":"verified", "SS4CG1d":"verified", "SS4CG3a":"verified", "SS4CG3b":"verified", "SS4E1a":"verified", "SS4E1b":"verified", "SS4E1c":"verified", "SS4E1d":"verified", "SS4E1e":"verified", "SS4E1f":"verified",
 
   "ELAGSE2RL2":"verified", "ELAGSE2RF3":"verified", "ELAGSE2RI1":"verified", "S2L1":"exists", "S2P1":"verified", "VA2.CR.2":"verified",
@@ -25615,7 +25616,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-22.02";
+var APP_BUILD = "2026-10-22.03";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
