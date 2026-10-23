@@ -2148,6 +2148,7 @@ function renderSchoolDone(kidId){
     '<div class="muted" style="margin-top:14px;font-size:13px">Want more learning time? Ask Mom or Dad. They can add extra time.</div>';
   els.view.appendChild(wrap);
   wrap.querySelector("#sdMore").onclick = function(){ renderSchoolDone(kidId); };
+  var khd = kidHelperCard(kidId); if(khd){ khd.style.marginTop = "12px"; els.view.appendChild(khd); }
 }
 
 /* Leader: edit the clock, add ideas, and grant extra learning time. */
@@ -6190,9 +6191,9 @@ function renderLessonDetail(){
     if(a.kidId==="kid1") text = text.replace(/Quick Checks?/g, "Treat Time");
     var lines = text.split("\n").filter(function(l){ return l.trim(); });
     var n = 0, out = "";
-    /* Pilot (23 Oct 2026): Anna's Math lessons get colored section labels, bigger text, one short sentence per line and colored numbers, because plain paragraphs
+    /* Colored layout (23 Oct 2026, tried on Math first, then Faith, now all of Anna's lessons at Mom's request): colored section labels, bigger text, one short sentence per line and colored numbers, because plain paragraphs
        were easy for a 7-year-old to skim past. Same words, same steps, same quiz; only the layout changes. */
-    var pilot = a.kidId==="kid1" && (a.subject==="Math" || a.subject==="Faith");
+    var pilot = a.kidId==="kid1";
     var SEC = [[/^Watch first/i,"🎬","#475569"],[/^Gather first/i,"🧺","#c2410c"],[/^Here's the Idea/i,"💡","#6d28d9"],[/^See It Done/i,"👀","#1d4ed8"],
                [/^Your Turn/i,"✏️","#15803d"],[/^Check Yourself/i,"✅","#0f766e"],[/^Show What You Know/i,"🌟","#be185d"]];
     function secOf(label){ for(var k=0;k<SEC.length;k++){ if(SEC[k][0].test(label)) return SEC[k]; } return ["","📌","#475569"]; }
@@ -19710,7 +19711,7 @@ function runAutoMigrations(){
     patchAnnaApprovedVideos();
     patchStandardTags();
     patchSafetyUndo();
-    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics(); autoAddRyanCivics();
+    patchRyanLessonText(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics(); autoAddRyanCivics(); patchAhgFaithSpread();
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
@@ -25577,6 +25578,22 @@ function autoAddRyanCivics(){
       standard:it.standard, stage:it.stage, passage:it.passage, quiz:it.quiz||null, video:it.video||null, skillId:it.skillId, createdAt:new Date().toISOString()});
   });
 }
+/* The six Faith Award lessons should land on six different days; the load balancer can stack two on one day. Moves a later one to the next school day. */
+function patchAhgFaithSpread(){
+  if(!db) return;
+  var list = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], m = a.kidId==="kid1" && String(a.title||"").match(/^Faith Award (\d):/);
+    if(m) list.push({id:id, n:Number(m[1]), a:a});
+  });
+  list.sort(function(x,y){ return x.n-y.n; });
+  for(var i=1;i<list.length;i++){
+    var prev = list[i-1].a.date, cur = list[i].a;
+    if(cur.done || !prev || !cur.date || cur.date>prev) continue;
+    var nd = isoDate(addSchoolDays(new Date(prev+"T00:00:00"), 1));
+    cur.date = nd; db.doc("assignments/"+list[i].id).update({date:nd});
+  }
+}
 function autoAddAhgFaith(){
   if(!db) return;
   var have = {};
@@ -25976,7 +25993,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-23.11";
+var APP_BUILD = "2026-10-23.12";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
