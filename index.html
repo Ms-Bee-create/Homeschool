@@ -4112,6 +4112,14 @@ function renderToday(){
   }
   state.lastBlockIdx[kidId] = firstIncompleteIdx;
 
+  if(kidId==="kid1" && !focusOn){
+    var nuCard = nextUpCard(blocks, tasksByBlock);
+    if(nuCard){
+      els.view.appendChild(nuCard);
+      var allLbl = document.createElement("div"); allLbl.className = "muted"; allLbl.style.cssText = "font-size:12.5px;margin:4px 2px 8px"; allLbl.textContent = "Everything today:";
+      els.view.appendChild(allLbl);
+    }
+  }
   blocks.forEach(function(block, idx){
     /* Focus Mode: show only the one block that's actually actionable right now — no
        collapsed-done trail, no preview of what's coming. */
@@ -4127,6 +4135,38 @@ function renderToday(){
     done.innerHTML = "🏁 <b>All of today's blocks complete!</b> Streak locked in.";
     els.view.appendChild(done);
   }
+}
+
+/* "Up next" card (Anna, 24 Oct 2026): one big card for the very next lesson plus how many she has finished today, so a long day
+   is never a long list to face. Her own progress only, never compared to anyone (rule 11). The full list stays underneath. */
+function nextUpCard(blocks, tasksByBlock){
+  var order = [];
+  blocks.forEach(function(b){ (tasksByBlock[b.key]||[]).forEach(function(t){ order.push(t); }); });
+  var seen = {}, units = [];
+  order.forEach(function(t){
+    if(t.choiceGroup){
+      if(seen[t.choiceGroup]) return;
+      seen[t.choiceGroup] = 1;
+      var grp = order.filter(function(x){ return x.choiceGroup===t.choiceGroup; });
+      units.push({done: grp.some(function(x){ return x.done; }), t: grp.filter(function(x){ return !x.done; })[0] || grp[0], pick: grp.length>1});
+    } else units.push({done: !!t.done, t: t, pick: false});
+  });
+  if(!units.length) return null;
+  var doneN = units.filter(function(u){ return u.done; }).length;
+  var nxt = units.filter(function(u){ return !u.done; })[0];
+  if(!nxt) return null;
+  var c = document.createElement("div");
+  c.style.cssText = "margin-bottom:12px;padding:16px;border-radius:16px;background:linear-gradient(135deg,#fdf2f8,#ede9fe);border:2px solid #a78bfa;color:#1f2937";
+  var pct = Math.round(doneN/units.length*100);
+  c.innerHTML =
+    '<div style="font-weight:800;color:#6d28d9;font-size:13.5px;letter-spacing:.04em">⭐ UP NEXT</div>'+
+    '<div style="font-size:21px;font-weight:800;line-height:1.3;margin:6px 0 4px">'+escapeHtml(displayTitle(nxt.t))+'</div>'+
+    '<div style="margin-bottom:10px">'+subjectChip(nxt.t.subject)+(nxt.pick ? ' <span class="chip" style="background:#fef3c7;color:#92400e">🎲 pick one</span>' : '')+'</div>'+
+    '<button type="button" class="nu-go" style="width:100%;padding:14px;border-radius:14px;border:none;background:#6d28d9;color:#fff;font:inherit;font-size:19px;font-weight:800;cursor:pointer">Let us go! ▶</button>'+
+    '<div style="margin-top:12px;font-weight:700;font-size:14px">'+doneN+' of '+units.length+' lessons done today</div>'+
+    '<div style="height:12px;border-radius:999px;background:rgba(109,40,217,.15);margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#f472b6,#a78bfa,#60a5fa);border-radius:999px"></div></div>';
+  c.querySelector(".nu-go").onclick = function(){ state.lessonDetailId = nxt.t.id; renderView(); };
+  return c;
 }
 
 /* Order is a suggestion, not a lock: every block is always tappable, in any order. The current
@@ -6211,7 +6251,13 @@ function renderLessonDetail(){
         '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+(pilot && color ? pilotText(t, color) : escapeHtml(t))+'</span></label>';
     }
     var labeled = lines.length>1 && lines.every(function(l){ return /^[^—]{3,40} — /.test(l); });
+    var pages = 0, paged = pilot && labeled && lines.length>1;
     lines.forEach(function(l){
+      var b0 = out.length;
+      oneLine(l);
+      if(paged) out = out.slice(0,b0)+'<div class="stp" data-s="'+(pages++)+'">'+out.slice(b0)+'</div>';
+    });
+    function oneLine(l){
       var m = l.match(/^([^—]{3,40}) — ([\s\S]*)$/);
       if(labeled && m){
         var sec = secOf(m[1]);
@@ -6231,7 +6277,21 @@ function renderLessonDetail(){
       } else {
         out += row(l);
       }
-    });
+    }
+    if(paged){
+      var bs = "padding:12px 18px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:800;cursor:pointer";
+      out += '<div class="stp-nav" data-n="'+pages+'" style="margin-top:14px">'+
+        '<div class="stp-dots" style="display:flex;gap:8px;justify-content:center;margin-bottom:12px"></div>'+
+        '<div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">'+
+          '<button type="button" class="stp-back" style="'+bs+'">◀ Back</button>'+
+          '<button type="button" class="stp-hear" style="'+bs+'">🔊 Hear this part</button>'+
+          '<button type="button" class="stp-next" style="'+bs+';background:#6d28d9;border-color:#6d28d9;color:#fff">Next ▶</button>'+
+        '</div>'+
+        '<div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;margin-top:10px">'+
+          '<button type="button" class="stp-stuck" style="'+bs+';font-size:15px">🙋 I am stuck</button>'+
+          '<button type="button" class="stp-all reward-skip" style="opacity:1;font-size:12.5px;color:var(--text-dim)">Show the whole lesson</button>'+
+        '</div></div>';
+    }
     return out;
   }
   var passageHtml = a.passage
@@ -6342,6 +6402,40 @@ function renderLessonDetail(){
     };
   });
   updateAnnaProgress();
+  /* One part of the lesson at a time (Anna, 24 Oct 2026): the lesson is cut into its parts (Gather, Idea, See It, Your Turn, Check, Show).
+     She sees one part with a big Next button, so there is never a wall of text to skim past. Her place is remembered. */
+  var stpNav = card.querySelector(".stp-nav");
+  if(stpNav){
+    var pgs = Array.prototype.slice.call(card.querySelectorAll(".stp")), sKey = "al_step_"+a.id, sCur = 0, sAll = false;
+    var sColors = ["#c2410c","#6d28d9","#1d4ed8","#15803d","#0f766e","#be185d","#475569"];
+    try{ sCur = Math.max(0, Math.min(parseInt(localStorage.getItem(sKey)||"0",10)||0, pgs.length-1)); }catch(e){}
+    var sDots = stpNav.querySelector(".stp-dots"), sBack = stpNav.querySelector(".stp-back"), sNext = stpNav.querySelector(".stp-next");
+    var sShow = function(){
+      pgs.forEach(function(pg, i){ pg.style.display = (sAll || i===sCur) ? "" : "none"; });
+      sDots.innerHTML = pgs.map(function(x, i){
+        return '<span style="width:'+(i===sCur?"34px":"14px")+';height:14px;border-radius:999px;background:'+(i<=sCur ? sColors[i%sColors.length] : "var(--border)")+'"></span>';
+      }).join("");
+      sDots.style.display = sAll ? "none" : "flex";
+      sBack.style.visibility = (sAll || sCur===0) ? "hidden" : "visible";
+      sNext.style.display = sAll ? "none" : "";
+      sNext.textContent = sCur===pgs.length-1 ? "✅ Next: the fun part" : "Next ▶";
+      stpNav.querySelector(".stp-all").textContent = sAll ? "Show one part at a time" : "Show the whole lesson";
+      try{ localStorage.setItem(sKey, String(sCur)); }catch(e){}
+    };
+    sBack.onclick = function(){ if(sCur>0){ sCur--; sShow(); stpNav.parentNode.scrollIntoView({behavior:"smooth", block:"start"}); } };
+    sNext.onclick = function(){
+      if(sCur<pgs.length-1){ sCur++; sShow(); stpNav.parentNode.scrollIntoView({behavior:"smooth", block:"start"}); }
+      else { var after = stpNav.parentNode.nextElementSibling; if(after) after.scrollIntoView({behavior:"smooth", block:"start"}); }
+    };
+    stpNav.querySelector(".stp-hear").onclick = function(){ speak(sAll ? a.passage : pgs[sCur].textContent); };
+    stpNav.querySelector(".stp-all").onclick = function(){ sAll = !sAll; sShow(); };
+    stpNav.querySelector(".stp-stuck").onclick = function(){
+      var hd = document.getElementById("lessonHelperDet");
+      if(hd){ hd.open = true; hd.scrollIntoView({behavior:"smooth", block:"center"}); var hi = hd.querySelector("input"); if(hi) setTimeout(function(){ try{ hi.focus(); }catch(e){} }, 300); }
+      else toast("Ask Mom or Dad. Asking for help is smart!");
+    };
+    sShow();
+  }
   var speakBtns = card.querySelectorAll(".speak-btn");
   if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
   if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(annaLook ? a.passage.replace(/Quick Checks?/g, "Treat Time") : a.passage); };
@@ -6480,6 +6574,7 @@ function renderLessonDetail(){
   if(!vmHelp && (a.kidId==="kid1" || a.kidId==="kid2") && typeof sb!=="undefined" && sb && sb.functions){
     var isAnna = a.kidId==="kid1";
     var hDet = document.createElement("details");
+    hDet.id = "lessonHelperDet";
     hDet.style.cssText = "margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)";
     var hKey = detailsOpenKey("lessonhelper", a.kidId, false, a.id);
     if(isDetailsOpen(hKey)) hDet.open = true;
@@ -26155,7 +26250,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-23.14";
+var APP_BUILD = "2026-10-24.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
