@@ -1,9 +1,9 @@
 # Lesson audit
 
-Lessons checked: 613. With problems: 25. Warnings only: 90.
+Lessons checked: 633. With problems: 25. Warnings only: 98.
 
 ## Most common
-- 27 x kid: one sentence is N words long
+- 35 x kid: one sentence is N words long
 - 24 x no way to check understanding (no Check Yourself, no quiz)
 - 24 x standard N-N.F is not verified (rule N)
 - 14 x no instructions at all (rule N)
