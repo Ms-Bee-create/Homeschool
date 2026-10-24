@@ -4066,6 +4066,7 @@ function renderToday(){
   els.view.appendChild(renderModeToggleRow(kidId));
   var planBar = planBarEl(kidId); if(planBar) els.view.appendChild(planBar);
   if(state.tab==="home") els.view.appendChild(familyGoalCard()); // focus mode shows Today in place of Home
+  if(kidId==="kid2"){ var rpc = ryanProjectCard(); if(rpc) els.view.appendChild(rpc); }
   if(state.tab==="home"){ var fi2 = fairyIntroCard(kidId); if(fi2) els.view.appendChild(fi2); var kh2 = kidHelperCard(kidId); if(kh2) els.view.appendChild(kh2); var sk2 = ahgKidCard(kidId) || tlKidCard(kidId); if(sk2) els.view.appendChild(sk2); }
 
   weekendFeaturedFor(kidId, iso).forEach(function(f){ els.view.appendChild(renderWeekendFeaturedCard(f)); });
@@ -4135,6 +4136,129 @@ function renderToday(){
     done.innerHTML = "🏁 <b>All of today's blocks complete!</b> Streak locked in.";
     els.view.appendChild(done);
   }
+}
+
+/* ===== Ryan's project of the week (24 Oct 2026) =====
+   Mom wants him to start a project AND finish it. Each week he picks one project from a few choices; the next lessons of that project are
+   placed on his days of the week (one a day), the other projects' lessons that week slide a week later, and the pick is locked until
+   next week. Progress is a bar, and finishing the whole week earns a trophy. Saved in family settings as familyGoal().rp = {week, id, ids, finished, wins}.
+   A project is offered only if Mom has already added its pack and it still has lessons left. */
+var RYAN_PROJECTS = [
+  {id:"johnnyos", icon:"\uD83D\uDCBB", name:"JohnnyOS", blurb:"Build a real operating system for Johnny, one piece at a time.", pack:/JohnnyOS/},
+  {id:"python", icon:"\uD83D\uDC0D", name:"Minecraft Python", blurb:"Teach Minecraft to do things with your own code.", pack:/Learn to Program with Minecraft/},
+  {id:"stem", icon:"\uD83E\uDDEA", name:"Minecraft STEM Lab", blurb:"Hands-on labs: build it, test it, see what happens.", pack:/Minecraft STEM Lab/, quota:2},
+  {id:"mcworld", icon:"\u26CF\uFE0F", name:"Minecraft World 2", blurb:"Design a build with real blueprints, maps and math.", pack:/Minecraft World 2/},
+  {id:"pioneers", icon:"\uD83C\uDF4E", name:"Tech Pioneers", blurb:"The people who invented the computers you use.", pack:/Tech Pioneers/, idx:[0,3,6,9]},
+  {id:"cyber", icon:"\uD83D\uDEE1\uFE0F", name:"Cyber Lab", blurb:"Viruses, worms and hackers, and how the good guys win.", pack:/Tech Pioneers/, idx:[1,4,7,10,12,13]},
+  {id:"energy", icon:"\u269B\uFE0F", name:"Energy and the Atom", blurb:"Where power comes from, from sparks to nuclear plants.", pack:/Tech Pioneers/, idx:[2,5,8,11]},
+  {id:"microbit", icon:"\uD83D\uDD0C", name:"micro:bit Lab", blurb:"Wire it, code it, race it.", pack:/micro:bit Lab/},
+  {id:"phones", icon:"\uD83D\uDCF1", name:"Virtual Phones Lab", blurb:"Make a virtual phone faster and design your own app.", pack:/Virtual Phones Lab/},
+  {id:"machine", icon:"\uD83D\uDDA5\uFE0F", name:"Build-a-Machine", blurb:"Plan your dream PC or reactor, on budget.", pack:/Build-a-Machine/}
+];
+function rpLessons(proj){
+  var pk = contentPacks().filter(function(p){ return p.kid==="kid2" && proj.pack.test(p.label); })[0];
+  if(!pk) return [];
+  var titles = (pk.items||[]).filter(function(it, i){ return !proj.idx || proj.idx.indexOf(i)>=0; }).map(function(it){ return String(it.title||"").trim(); });
+  var out = [];
+  titles.forEach(function(t, i){
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId==="kid2" && String(a.title||"").trim()===t) out.push({id:id, a:a, order:i});
+    });
+  });
+  return out;
+}
+function rpWeek(){
+  var d = new Date(todayISO()+"T00:00:00"), dow = d.getDay();
+  var mon = new Date(d); mon.setDate(d.getDate() - ((dow+6)%7) + ((dow===0||dow===6) ? 7 : 0));
+  var days = [], today = todayISO();
+  for(var i=0;i<5;i++){
+    var x = new Date(mon); x.setDate(mon.getDate()+i);
+    var iso = isoDate(x);
+    if(iso>=today && !isOffDate(x)) days.push(iso);
+  }
+  return {mon:isoDate(mon), days:days};
+}
+function rpPlusWeek(iso){ var d = new Date(iso+"T00:00:00"); d.setDate(d.getDate()+7); return isoDate(d); }
+function rpPick(proj){
+  var wk = rpWeek();
+  if(!db || !wk.days.length){ toast("No school days left this week. Pick on the next school day."); return; }
+  var left = rpLessons(proj).filter(function(r){ return !r.a.done; });
+  var take = left.slice(0, Math.min(proj.quota||5, wk.days.length));
+  if(!take.length){ toast("That project has no lessons left."); return; }
+  var takeIds = {};
+  take.forEach(function(r, i){
+    takeIds[r.id] = 1;
+    var iso = wk.days[Math.floor(i*wk.days.length/take.length)];
+    if(r.a.date!==iso){ state.assignments[r.id].date = iso; db.doc("assignments/"+r.id).update({date:iso}); }
+  });
+  /* The other projects' lessons that were planned for these days slide one week later, so he works on one project at a time. Done or started lessons stay. */
+  var last = wk.days[wk.days.length-1];
+  RYAN_PROJECTS.forEach(function(op){
+    rpLessons(op).forEach(function(r){
+      if(takeIds[r.id] || r.a.done || hasWork(r.a) || !r.a.date || r.a.date<wk.days[0] || r.a.date>last) return;
+      var nd = rpPlusWeek(r.a.date);
+      state.assignments[r.id].date = nd; db.doc("assignments/"+r.id).update({date:nd});
+    });
+  });
+  var g = Object.assign({}, familyGoal());
+  g.rp = {week:wk.mon, id:proj.id, ids:take.map(function(r){ return r.id; }), finished:false, wins:(g.rp && g.rp.wins) || []};
+  saveFamilyGoal(g, true);
+  toast("Locked in: "+proj.name+"! Finish it this week.");
+  renderView();
+}
+var rpFinishing = false;
+function ryanProjectCard(){
+  var wk = rpWeek(), g = familyGoal(), rp = g.rp || null, wins = (rp && rp.wins) || [];
+  var c = document.createElement("div");
+  c.style.cssText = "margin-bottom:12px;padding:14px 16px;border-radius:14px;border:2px solid var(--gold);background:var(--paper)";
+  var trophy = wins.length ? ' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">\uD83C\uDFC6 '+wins.length+' finished</span>' : '';
+  if(rp && rp.week===wk.mon){
+    var proj = RYAN_PROJECTS.filter(function(p){ return p.id===rp.id; })[0] || {icon:"\uD83D\uDEE0\uFE0F", name:"Project"};
+    var ids = (rp.ids||[]).filter(function(id){ return state.assignments[id]; });
+    var doneN = ids.filter(function(id){ return state.assignments[id].done; }).length;
+    var pct = ids.length ? Math.round(doneN/ids.length*100) : 0;
+    var all = ids.length>0 && doneN===ids.length;
+    if(all && !rp.finished && !rpFinishing){
+      rpFinishing = true;
+      var g2 = Object.assign({}, g); g2.rp = Object.assign({}, rp, {finished:true, wins:wins.concat([{week:rp.week, id:rp.id}])});
+      saveFamilyGoal(g2, true); toast("\uD83C\uDFC6 You FINISHED "+proj.name+"! That is a real trophy."); try{ celebrate(); }catch(e){}
+    }
+    c.innerHTML = '<div style="font-weight:800;font-size:13px;color:var(--gold);letter-spacing:.04em">\uD83C\uDFAF MY PROJECT THIS WEEK'+trophy+'</div>'+
+      '<div style="font-size:20px;font-weight:800;margin:4px 0">'+proj.icon+' '+escapeHtml(proj.name)+'</div>'+
+      '<div style="font-weight:700;font-size:14px">'+doneN+' of '+ids.length+' lessons done</div>'+
+      '<div style="height:12px;border-radius:999px;background:var(--border);margin:6px 0 8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--gold);border-radius:999px"></div></div>'+
+      '<div class="muted" style="font-size:13px">'+(all||rp.finished ? "Finished! You pick again next week." : "Finish all of them to earn your \uD83C\uDFC6. Start it, finish it.")+'</div>';
+    if(state.leaderUnlocked){
+      var ch = document.createElement("button"); ch.type = "button"; ch.className = "reward-skip"; ch.style.cssText = "opacity:1;margin-top:8px;font-size:12px;border:1px solid var(--border);padding:5px 9px";
+      ch.textContent = "Leader: let him pick again";
+      ch.onclick = function(){ var g3 = Object.assign({}, familyGoal()); g3.rp = {wins:(g3.rp && g3.rp.wins) || []}; saveFamilyGoal(g3, true); renderView(); };
+      c.appendChild(ch);
+    }
+    return c;
+  }
+  var pool = RYAN_PROJECTS.filter(function(p){ return rpLessons(p).some(function(r){ return !r.a.done; }); });
+  if(!pool.length) return null;
+  var wnum = Math.floor(new Date(wk.mon+"T00:00:00").getTime()/604800000) + (state.rpShift||0);
+  var shown = [];
+  for(var i=0;i<Math.min(3,pool.length);i++) shown.push(pool[(wnum+i)%pool.length]);
+  c.innerHTML = '<div style="font-weight:800;font-size:13px;color:var(--gold);letter-spacing:.04em">\uD83C\uDFAF PICK YOUR PROJECT FOR THE WEEK'+trophy+'</div>'+
+    '<div class="muted" style="font-size:13px;margin:4px 0 10px">Pick one. You stick with it all week and finish it to earn a \uD83C\uDFC6.</div>';
+  shown.forEach(function(p){
+    var left = rpLessons(p).filter(function(r){ return !r.a.done; }).length, n = Math.min(p.quota||5, left, Math.max(wk.days.length,1));
+    var b = document.createElement("button"); b.type = "button";
+    b.style.cssText = "display:block;width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;cursor:pointer";
+    b.innerHTML = '<div style="font-size:18px;font-weight:800">'+p.icon+' '+escapeHtml(p.name)+'</div><div style="font-size:13.5px;margin:2px 0">'+escapeHtml(p.blurb)+'</div><div class="muted" style="font-size:12.5px">'+n+' lesson'+(n===1?"":"s")+' this week \u00B7 '+left+' left in this project</div>';
+    b.onclick = function(){ if(window.confirm("Pick "+p.name+" for this whole week? You finish it before you pick something new.")) rpPick(p); };
+    c.appendChild(b);
+  });
+  if(pool.length>3){
+    var more = document.createElement("button"); more.type = "button"; more.className = "reward-skip"; more.style.cssText = "opacity:1;font-size:12.5px;border:1px solid var(--border);padding:6px 10px";
+    more.textContent = "\uD83D\uDD04 Show me different choices";
+    more.onclick = function(){ state.rpShift = (state.rpShift||0)+3; renderView(); };
+    c.appendChild(more);
+  }
+  return c;
 }
 
 /* "Up next" card (Anna, 24 Oct 2026): one big card for the very next lesson plus how many she has finished today, so a long day
@@ -20222,6 +20346,7 @@ function saveFamilyGoal(g, quiet){
   if(g.checkins===undefined && cur.checkins!==undefined) g = Object.assign({}, g, {checkins:cur.checkins});
   if(g.ahg===undefined && cur.ahg!==undefined) g = Object.assign({}, g, {ahg:cur.ahg});
   if(g.tl===undefined && cur.tl!==undefined) g = Object.assign({}, g, {tl:cur.tl});
+  if(g.rp===undefined && cur.rp!==undefined) g = Object.assign({}, g, {rp:cur.rp});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -26250,7 +26375,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-24.1";
+var APP_BUILD = "2026-10-24.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
