@@ -2146,6 +2146,7 @@ function renderSchoolDone(kidId){
     '<div class="ideas" style="text-align:left">'+ideas.map(function(i){ return '<div class="idea"><small>'+escapeHtml(i.tag)+'</small>'+escapeHtml(i.text)+'</div>'; }).join("")+'</div>'+
     '<button class="primary-btn" id="sdMore" type="button" style="margin-top:14px">Show me different ideas</button>'+
     '<div class="muted" style="margin-top:14px;font-size:13px">Want more learning time? Ask Mom or Dad. They can add extra time.</div>';
+  var knd = kidNotesCard(kidId); if(knd){ knd.style.marginTop = "12px"; els.view.appendChild(knd); }
   els.view.appendChild(wrap);
   wrap.querySelector("#sdMore").onclick = function(){ renderSchoolDone(kidId); };
   var khd = kidHelperCard(kidId); if(khd){ khd.style.marginTop = "12px"; els.view.appendChild(khd); }
@@ -2339,6 +2340,7 @@ function renderHome(){
     '<div class="hm-hello"><div class="hm-who">'+avatarHtml(kid, "hm-av")+'<h2 class="hm-greet">'+hello+', '+escapeHtml(kd.name||"friend")+'!</h2></div><div class="hm-bubble">'+escapeHtml(say)+'</div></div>';
   els.view.appendChild(hero);
   var pb = planBarEl(kid); if(pb) els.view.appendChild(pb);
+  var knh = kidNotesCard(kid); if(knh) els.view.appendChild(knh);
   els.view.appendChild(familyGoalCard());
   var fi = fairyIntroCard(kid); if(fi) els.view.appendChild(fi);
   var kh = kidHelperCard(kid); if(kh) els.view.appendChild(kh);
@@ -2711,7 +2713,7 @@ function renderViewCore(){
   syncTabs();
   if(state.leaderMode){ cleanupMiniGame(); return renderLeaderArea(); }
   petViewTip(state.lessonDetailId!=null ? "lesson" : (state.quiz||state.miniGame) ? "game" : state.tab);
-  if(planIsOver(state.activeKid)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
+  if(planIsOver(state.activeKid) && !(state.noteOverride && state.lessonDetailId!=null)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   if(state.lore && state.activeKid==="kid2") return renderLore();
   updateFocusModeTabVisibility();
   updateCompletedTabBadge();
@@ -4053,6 +4055,21 @@ function renderModeToggleRow(kidId){
   return row;
 }
 
+/* Mom's notes and flagged work, as a card. Shown on Today, on the Home screen, and on the "School is done" screen (24 Oct 2026: it only showed on Today, so a kid whose
+   school time was over, or who stayed on Home, never saw it). Tapping a lesson opens it even after school time (noteOverride). */
+function kidNotesCard(kidId){
+  var noted = assignmentsFor(kidId, null).filter(function(x){ return x.reviewStatus==="flagged" || (x.noteUnread && x.reviewNote); });
+  if(!noted.length) return null;
+  var nc = document.createElement("div"); nc.className = "card"; nc.style.cssText = "margin-bottom:10px;border-color:var(--gold)";
+  nc.innerHTML = '<div style="font-weight:800;margin-bottom:6px">💌 Mom left you a note on '+noted.length+' lesson'+(noted.length===1?"":"s")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:6px">You still get credit for what you did. Open one to read the note and fix it if you want.</div>';
+  noted.slice(0,5).forEach(function(x){
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "display:block;width:100%;text-align:left;opacity:1;border:1px solid var(--border);margin:4px 0;padding:8px 10px;color:var(--ink)";
+    b.textContent = (x.reviewStatus==="flagged" ? "🚩 " : "💬 ")+String(x.title||"").slice(0,70);
+    b.onclick = function(){ state.noteOverride = true; state.lessonDetailId = x.id; renderView(); };
+    nc.appendChild(b);
+  });
+  return nc;
+}
 function renderToday(){
   els.view.innerHTML = "";
   var kidId = state.activeKid;
@@ -4078,18 +4095,7 @@ function renderToday(){
     return;
   }
 
-  var noted = assignmentsFor(kidId, null).filter(function(x){ return x.reviewStatus==="flagged" || (x.noteUnread && x.reviewNote); });
-  if(noted.length){
-    var nc = document.createElement("div"); nc.className = "card"; nc.style.cssText = "margin-bottom:10px;border-color:var(--gold)";
-    nc.innerHTML = '<div style="font-weight:800;margin-bottom:6px">💌 Mom left you a note on '+noted.length+' lesson'+(noted.length===1?"":"s")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:6px">You still get credit for what you did. Open one to read the note and fix it if you want.</div>';
-    noted.slice(0,5).forEach(function(x){
-      var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "display:block;width:100%;text-align:left;opacity:1;border:1px solid var(--border);margin:4px 0;padding:8px 10px;color:var(--ink)";
-      b.textContent = (x.reviewStatus==="flagged" ? "🚩 " : "💬 ")+String(x.title||"").slice(0,70);
-      b.onclick = function(){ state.lessonDetailId = x.id; renderView(); };
-      nc.appendChild(b);
-    });
-    els.view.appendChild(nc);
-  }
+  var kn = kidNotesCard(kidId); if(kn) els.view.appendChild(kn);
   var blocks = orderedBlocksFor(kidId);
   var listOn = isListMode(kidId);
   var list = assignmentsFor(kidId, iso);
@@ -26639,7 +26645,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-24.3";
+var APP_BUILD = "2026-10-27.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
