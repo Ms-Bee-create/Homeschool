@@ -6373,6 +6373,9 @@ function renderLessonDetail(){
     function pilotText(t, color){
       return escapeHtml(t).replace(/(&#?\w+;)|(\d[\d,]*)/g, function(m, ent, num){ return ent ? ent : '<b style="color:'+color+';font-size:1.08em">'+num+'</b>'; });
     }
+    function swk(label, text){
+      return /^Show What You Know/i.test(label) ? '<div class="swk-wrap" data-text="'+escapeHtml(text)+'"></div>' : "";
+    }
     function row(t, color){
       var i = n++;
       var fs = pilot ? "17px" : "15px", lh = pilot ? "1.65" : "1.5";
@@ -6400,11 +6403,13 @@ function renderLessonDetail(){
           out += '<div style="border-left:5px solid '+sec[2]+';padding:2px 0 2px 12px;margin-bottom:8px">'+
             m[2].split(/(?<=[.!?])\s+/).filter(function(x){ return x.trim(); }).map(function(sn){ return '<div style="font-size:17px;line-height:1.65;margin-bottom:6px">'+pilotText(sn, sec[2])+'</div>'; }).join("")+'</div>';
           if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
+          out += swk(m[1], m[2]);
           return;
         }
         if(steps && steps.length>1) steps.forEach(function(st){ out += row(st, sec[2]); });
         else if(/^Check Yourself/i.test(m[1])) out += '<div class="chk-ans-wrap" data-text="'+escapeHtml(m[2])+'" style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
+        out += swk(m[1], m[2]);
         if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
       } else {
         out += row(l);
@@ -7258,23 +7263,29 @@ function renderLessonDetail(){
     savedNote.textContent = "Saved just now";
   }
 
-  /* "Check Yourself" gets answer buttons right at the question (yes / not yet, or a short answer), so a young kid does not have to notice a box far below. */
+  /* "Check Yourself" and "Show What You Know" get answer boxes right at the question. A yes or no is only offered for a plain self-check;
+     anything that says explain, why, how, tell or describe needs a real answer, typed or SAID with the microphone, because Mom needs it in the log
+     (27 Oct 2026: kids were tapping Yes, and "I told Mom" left nothing to read). "I need help" is kept for a kid who is truly stuck. */
   (function wireCheckYourself(){
-    var wraps = card.querySelectorAll(".chk-ans-wrap");
+    var wraps = card.querySelectorAll(".chk-ans-wrap, .swk-wrap");
     if(!wraps.length) return;
     function findCheck(){ for(var i=0;i<blocks.length;i++){ if(blocks[i].check) return blocks[i]; } return null; }
     function saveCheck(q, ans){
       var cb = findCheck();
       if(!cb){ cb = {type:"text", check:true, text:"", answers:{}}; blocks.push(cb); }
       cb.answers = cb.answers || {}; cb.answers[q] = ans;
-      cb.text = "Check Yourself answers:\n"+Object.keys(cb.answers).map(function(k){ return "- "+k+" -> "+cb.answers[k]; }).join("\n");
+      cb.text = "Answers:\n"+Object.keys(cb.answers).map(function(k){ return "- "+k+" -> "+cb.answers[k]; }).join("\n");
       a.workBlocks = blocks;
       if(state.assignments[a.id]) state.assignments[a.id].workBlocks = blocks;
       if(db) db.doc("assignments/"+a.id).updateQuiet({workBlocks: blocks});
     }
+    var SRc = window.SpeechRecognition || window.webkitSpeechRecognition;
     var btnCss = "min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:700;cursor:pointer";
+    function mark(btn, on){ btn.style.borderColor = on ? "var(--gold)" : "var(--border)"; btn.style.background = on ? "var(--gold-soft)" : "var(--card)"; }
     wraps.forEach(function(w){
-      var raw = w.getAttribute("data-text") || "", qs = raw.match(/[^?]+\?/g) || [raw];
+      var isSwk = w.classList.contains("swk-wrap");
+      var raw = w.getAttribute("data-text") || "";
+      var qs = isSwk ? ["Show What You Know"] : (raw.match(/[^?]+\?/g) || [raw]);
       var have = (findCheck() || {}).answers || {};
       w.innerHTML = "";
       qs.forEach(function(q0){
@@ -7282,14 +7293,16 @@ function renderLessonDetail(){
         var box = document.createElement("div");
         box.style.cssText = "margin:8px 0 10px;padding:12px 14px;border-radius:12px;background:var(--card);border:2px solid var(--gold)";
         var head = document.createElement("div"); head.style.cssText = "display:flex;gap:8px;align-items:flex-start;font-size:17px;font-weight:800;line-height:1.4";
-        var qt = document.createElement("span"); qt.style.flex = "1"; qt.textContent = q;
+        var qt = document.createElement("span"); qt.style.flex = "1"; qt.textContent = isSwk ? "\uD83C\uDF1F Write it or say it here so it is saved:" : q;
         var sp = document.createElement("button"); sp.type = "button"; sp.textContent = "\uD83D\uDD0A"; sp.title = "Read it to me"; sp.style.cssText = "border:none;background:none;font-size:20px;cursor:pointer;flex:none";
-        sp.onclick = function(){ speak(q); };
+        sp.onclick = function(){ speak(isSwk ? raw : q); };
         head.appendChild(qt); head.appendChild(sp); box.appendChild(head);
         var fb = document.createElement("div"); fb.style.cssText = "margin-top:8px;font-size:14.5px;min-height:1.3em";
         var row = document.createElement("div"); row.style.cssText = "display:flex;gap:10px;flex-wrap:wrap;margin-top:10px";
-        function mark(btn, on){ btn.style.borderColor = on ? "var(--gold)" : "var(--border)"; btn.style.background = on ? "var(--gold-soft)" : "var(--card)"; }
-        if(/^(do|did|does|can|could|is|are|was|were|will|would|have|has|should)\b/i.test(q) && !/\bor\b/i.test(q)){
+        var needsSentence = isSwk || /\b(explain|why|how|describe|retell|summarize|tell)\b/i.test(q);
+        var isYesNo = !isSwk && /^(do|did|does|can|could|is|are|was|were|will|would|have|has|should)\b/i.test(q) && !/\bor\b/i.test(q) && !needsSentence;
+        var helpTxt = "NEEDS HELP (asked for a grown-up)";
+        if(isYesNo){
           var yes = document.createElement("button"), no = document.createElement("button");
           yes.type = no.type = "button"; yes.style.cssText = no.style.cssText = btnCss; yes.style.flex = no.style.flex = "1";
           yes.textContent = "\u2705 Yes!"; no.textContent = "\uD83E\uDD14 Not yet";
@@ -7298,14 +7311,34 @@ function renderLessonDetail(){
           row.appendChild(yes); row.appendChild(no);
           if(have[q]){ mark(yes, have[q]==="Yes"); mark(no, have[q]!=="Yes"); fb.textContent = have[q]==="Yes" ? "Great job! \uD83C\uDF1F" : "That is okay! Look back at the lesson and try again. Tap Yes when it is fixed."; }
         } else {
-          var inp = document.createElement("input"); inp.type = "text"; inp.placeholder = "Type your answer here";
-          inp.style.cssText = "flex:1;min-width:180px;min-height:48px;padding:8px 12px;font:inherit;font-size:16px;border-radius:12px;border:2px solid var(--border);background:var(--paper);color:var(--text)";
+          var inp = document.createElement(needsSentence ? "textarea" : "input");
+          if(needsSentence){ inp.rows = 3; } else inp.type = "text";
+          inp.placeholder = SRc ? "Type your answer, or tap Say it" : "Type your answer here";
+          inp.style.cssText = "flex:1;min-width:200px;min-height:"+(needsSentence?"84":"48")+"px;padding:8px 12px;font:inherit;font-size:16px;border-radius:12px;border:2px solid var(--border);background:var(--paper);color:var(--text)";
           var sv = document.createElement("button"); sv.type = "button"; sv.style.cssText = btnCss; sv.textContent = "\u2705 Save";
-          var told = document.createElement("button"); told.type = "button"; told.style.cssText = btnCss; told.textContent = "\uD83D\uDDE3\uFE0F I told Mom";
-          sv.onclick = function(){ if(!inp.value.trim()){ fb.textContent = "Type your answer first, or tap I told Mom."; return; } saveCheck(q, inp.value.trim()); fb.textContent = "Saved! \uD83C\uDF1F You can change it any time."; };
-          told.onclick = function(){ saveCheck(q, "Told Mom"); fb.textContent = "Great job telling Mom! \uD83C\uDF1F"; mark(told, true); };
-          row.appendChild(inp); row.appendChild(sv); row.appendChild(told);
-          if(have[q]){ if(have[q]==="Told Mom") mark(told, true); else inp.value = have[q]; fb.textContent = "Saved \u2705"; }
+          var mic = null;
+          if(SRc){
+            mic = document.createElement("button"); mic.type = "button"; mic.style.cssText = btnCss; mic.textContent = "\uD83C\uDFA4 Say it";
+            mic.onclick = function(){
+              try{
+                var r = new SRc(); r.lang = "en-US"; r.interimResults = false;
+                mic.textContent = "\uD83D\uDC42 Listening...";
+                r.onresult = function(ev){ inp.value = (inp.value ? inp.value+" " : "")+ev.results[0][0].transcript; fb.textContent = "Read it, then tap Save."; };
+                r.onend = r.onerror = function(){ mic.textContent = "\uD83C\uDFA4 Say it"; };
+                r.start();
+              }catch(e){ mic.textContent = "\uD83C\uDFA4 Say it"; fb.textContent = "The microphone is not working. Type your answer."; }
+            };
+          }
+          var help = document.createElement("button"); help.type = "button"; help.style.cssText = btnCss+";font-size:14px"; help.textContent = "\uD83D\uDE4B I need help";
+          sv.onclick = function(){
+            var t = inp.value.trim();
+            if(!t){ fb.textContent = "Write or say your answer first."; return; }
+            if(needsSentence && t.split(/\s+/).length < 3){ fb.textContent = "Write a whole sentence. Tell me how or why."; return; }
+            saveCheck(q, t); fb.textContent = "Saved! \uD83C\uDF1F You can change it any time."; mark(help, false);
+          };
+          help.onclick = function(){ saveCheck(q, helpTxt); fb.textContent = "Okay! Ask Mom or Dad to help you with this one."; mark(help, true); };
+          row.appendChild(inp); if(mic) row.appendChild(mic); row.appendChild(sv); row.appendChild(help);
+          if(have[q]){ if(have[q]===helpTxt || have[q]==="Told Mom"){ mark(help, true); fb.textContent = "You asked for help. Ask Mom or Dad, then write your answer."; } else { inp.value = have[q]; fb.textContent = "Saved \u2705"; } }
         }
         box.appendChild(row); box.appendChild(fb); w.appendChild(box);
       });
@@ -26645,7 +26678,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-27.1";
+var APP_BUILD = "2026-10-27.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
