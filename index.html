@@ -6385,12 +6385,16 @@ function renderLessonDetail(){
       return '<label class="arow" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:'+fs+';line-height:'+lh+';cursor:pointer">'+
         '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+(pilot && color ? pilotText(t, color) : escapeHtml(t))+'</span></label>';
     }
-    var labeled = lines.length>1 && lines.every(function(l){ return /^[^—]{3,40} — /.test(l); });
+    /* A short unlabeled intro line before the first labeled section (the Handwriting "Warm-up: ..." line) no longer turns the whole lesson into plain tick rows:
+       the sections, one-part-at-a-time view and answer boxes still work, and the intro shows as plain text. */
+    var isLab = function(l){ return /^[^—]{3,40} — /.test(l); };
+    var firstLab = -1; lines.forEach(function(l, i){ if(firstLab<0 && isLab(l)) firstLab = i; });
+    var labeled = lines.length>1 && firstLab>=0 && lines.slice(firstLab).every(isLab);
     var pages = 0, paged = pilot && labeled && lines.length>1;
     lines.forEach(function(l){
       var b0 = out.length;
       oneLine(l);
-      if(paged) out = out.slice(0,b0)+'<div class="stp" data-s="'+(pages++)+'">'+out.slice(b0)+'</div>';
+      if(paged && isLab(l)) out = out.slice(0,b0)+'<div class="stp" data-s="'+(pages++)+'">'+out.slice(b0)+'</div>';
     });
     function oneLine(l){
       var m = l.match(/^([^—]{3,40}) — ([\s\S]*)$/);
@@ -6411,6 +6415,8 @@ function renderLessonDetail(){
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         out += swk(m[1], m[2]);
         if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
+      } else if(labeled){
+        out += '<div style="font-size:'+(pilot ? "16px" : "14.5px")+';line-height:1.5;margin:0 0 8px;color:var(--text-dim)">'+escapeHtml(l)+'</div>';
       } else {
         out += row(l);
       }
@@ -7302,6 +7308,20 @@ function renderLessonDetail(){
         var needsSentence = isSwk || /\b(explain|why|how|describe|retell|summarize|tell)\b/i.test(q);
         var isYesNo = !isSwk && /^(do|did|does|can|could|is|are|was|were|will|would|have|has|should)\b/i.test(q) && !/\bor\b/i.test(q) && !needsSentence;
         var helpTxt = "NEEDS HELP (asked for a grown-up)";
+        if(isSwk){
+          /* Work that is on paper or built (a line of writing, a drawing, a model) is shown by photo, so Mom can see it later. */
+          var needPhoto = /\b(show|read|walk|share|display|present|point)\b/i.test(raw) && /\b(writing|line|booklet|drawing|draw|map|model|build|built|blueprint|picture|poster|card|letter|route|paper|work|collage|craft|art|project|word|words)\b/i.test(raw);
+          var ph = document.createElement("div");
+          ph.style.cssText = "margin-top:8px;padding:10px 12px;border-radius:10px;background:var(--gold-soft);font-size:15px;line-height:1.45";
+          ph.innerHTML = needPhoto ? "<b>\uD83D\uDCF7 Take a photo of it first</b> so Mom can see it. Then write or say one sentence about it."
+                                   : "Did you write, draw, or make something? <b>\uD83D\uDCF7 Take a photo</b> so it is saved.";
+          var phBtn = document.createElement("button"); phBtn.type = "button"; phBtn.style.cssText = btnCss+";margin-top:8px;display:block"; phBtn.textContent = "\uD83D\uDCF7 Take a photo";
+          phBtn.onclick = function(){
+            if(camBtn && camBtn.onclick){ camBtn.onclick(); fb.textContent = "Take the photo. It shows up in My Work below."; }
+            else toast("Use the picture button in My Work below");
+          };
+          ph.appendChild(phBtn); box.appendChild(ph);
+        }
         if(isYesNo){
           var yes = document.createElement("button"), no = document.createElement("button");
           yes.type = no.type = "button"; yes.style.cssText = no.style.cssText = btnCss; yes.style.flex = no.style.flex = "1";
@@ -26678,7 +26698,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-27.2";
+var APP_BUILD = "2026-10-27.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
