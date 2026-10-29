@@ -6773,15 +6773,7 @@ function renderLessonDetail(){
     }
     hSend.onclick = hAsk;
     hIn.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); hAsk(); } });
-    hMic.onclick = function(){
-      try{
-        var r = new SR(); r.lang = "en-US"; r.interimResults = false;
-        hMic.textContent = "👂";
-        r.onresult = function(ev){ hIn.value = ev.results[0][0].transcript; hAsk(); };
-        r.onend = r.onerror = function(){ hMic.textContent = "🎤"; };
-        r.start();
-      }catch(e){ hMic.textContent = "🎤"; }
-    };
+    if(SR) wireLongMic(hMic, hIn, hAsk);
     card.appendChild(hDet);
   }
 
@@ -20448,6 +20440,41 @@ function goalIconHtml(g, full, size){
 /* Home helper: Anna's fairy and Ryan's Clippy on the home page, for anything the kid wants to talk about (a birthday card, a gift idea, a pen pal letter).
    Goes through the "kidhelper" Edge Function, which has the kid-safety rules. Every chat is saved for the leader (Helper chats card). The chat and the
    half-typed message live in state so a background redraw does not lose them. */
+/* Talk to a helper without it cutting in. The browser's one-shot listening ends at the first short pause, which sent Anna's message while she was still thinking
+   (29 Oct 2026). This keeps listening, shows her words as she says them, and only sends after about 4 seconds of quiet (8 seconds before she starts).
+   Tapping the button again sends right away. */
+function wireLongMic(mic, inp, onSend, onText){
+  var SRl = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var live = null;
+  mic.onclick = function(){
+    if(live){ live.finish(); return; }
+    var r, timer = null, done = false, finalText = "";
+    try{ r = new SRl(); }catch(e){ return; }
+    r.lang = "en-US"; r.continuous = true; r.interimResults = true;
+    function finish(){
+      if(done) return; done = true; clearTimeout(timer); clearTimeout(hard); live = null;
+      try{ r.stop(); }catch(e){}
+      mic.textContent = "\uD83C\uDFA4";
+      if(inp.value.trim()) onSend();
+    }
+    function bump(ms){ clearTimeout(timer); timer = setTimeout(finish, ms); }
+    var hard = setTimeout(finish, 90000);
+    r.onresult = function(ev){
+      var interim = "";
+      for(var i=ev.resultIndex;i<ev.results.length;i++){
+        var t = ev.results[i][0].transcript;
+        if(ev.results[i].isFinal) finalText += t+" "; else interim += t;
+      }
+      inp.value = (finalText+interim).trim();
+      if(onText) onText(inp.value);
+      bump(4000);
+    };
+    r.onerror = function(){ finish(); };
+    r.onend = function(){ finish(); };
+    live = {finish: finish};
+    try{ r.start(); mic.textContent = "\u23F9 Done"; bump(8000); }catch(e){ live = null; mic.textContent = "\uD83C\uDFA4"; }
+  };
+}
 function kidHelperCard(kidId){
   if(!(kidId==="kid1" || kidId==="kid2") || typeof sb==="undefined" || !sb || !sb.functions) return null;
   var isAnna = kidId==="kid1";
@@ -20511,14 +20538,7 @@ function kidHelperCard(kidId){
   }
   send.onclick = ask;
   inp.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); ask(); } });
-  mic.onclick = function(){
-    try{
-      var r = new SR(); r.lang = "en-US"; r.interimResults = false; mic.textContent = "👂";
-      r.onresult = function(ev){ inp.value = ev.results[0][0].transcript; st.draft = inp.value; ask(); };
-      r.onend = r.onerror = function(){ mic.textContent = "🎤"; };
-      r.start();
-    }catch(e){ mic.textContent = "🎤"; }
-  };
+  if(SR) wireLongMic(mic, inp, ask, function(t){ st.draft = t; });
   return det;
 }
 function fairyIntroCard(kidId){
@@ -26765,7 +26785,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-29.2";
+var APP_BUILD = "2026-10-29.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
