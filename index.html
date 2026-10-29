@@ -4152,7 +4152,7 @@ function renderToday(){
 var RYAN_PROJECTS = [
   {id:"scratchos", icon:"\uD83D\uDFE7", name:"Scratch OS", blurb:"Build your own operating system in Scratch, with a boot screen, login, windows and apps.", pack:/Scratch OS/},
   {id:"underhood", icon:"\u2699\uFE0F", name:"OS Under the Hood", blurb:"Code the real jobs of an OS in Python: scheduler, memory, files and users.", pack:/OS Under the Hood/},
-  {id:"vrlab", icon:"\uD83E\uDD7D", name:"VR Headset Lab", blurb:"Take apart how a VR headset works with your eyes and a ruler, and learn how two eyes see depth.", pack:/VR Headset Autopsy/},
+  {id:"vrlab", icon:"\uD83E\uDD7D", name:"VR Headset Lab", blurb:"Explore how a VR headset works with your eyes and a ruler (no taking it apart), and learn how two eyes see depth.", pack:/VR Headset Explorer/},
   {id:"johnnyos", icon:"\uD83D\uDCBB", name:"JohnnyOS", blurb:"Build a real operating system for Johnny, one piece at a time.", pack:/JohnnyOS/},
   {id:"python", icon:"\uD83D\uDC0D", name:"Minecraft Python", blurb:"Teach Minecraft to do things with your own code.", pack:/Learn to Program with Minecraft/},
   {id:"stem", icon:"\uD83E\uDDEA", name:"Minecraft STEM Lab", blurb:"Hands-on labs: build it, test it, see what happens.", pack:/Minecraft STEM Lab/, quota:2},
@@ -23189,23 +23189,23 @@ var RYAN_UNDER_HOOD = [
   ])
 ];
 
-/* Ryan: VR Headset Autopsy and How 3D Vision Works (28 Oct 2026). Built around Mom's real Samsung Gear VR (model SM-R322, read from her photo) and a Galaxy S7.
+/* Ryan: VR Headset Explorer and How 3D Vision Works (28 Oct 2026). Built around Mom's real Samsung Gear VR (model SM-R322, read from her photo) and a Galaxy S7.
    Observation first: the lessons ask him to look, touch, sketch and test, and never state what is inside the headset beyond what a kid can see. No links (none verified) and no videos.
    S4P1 (light and how it interacts with objects, which covers lenses bending light) was checked 28 Oct 2026. The depth-vision lesson is tagged as writing (explaining), not as a science code it does not match. */
 var RYAN_VR_LAB = [
-  osLesson(0, "Independent", "VR Headset Autopsy 1: Meet the Headset (Look, Sketch, Label) 🥽", 20, "CSS.EL.3-5.1.1", "teach", "ryan-vr-lab", {
-    g:"the Gear VR headset, paper, a pencil, and a grown-up. Do NOT open the headset or pull out the lenses unless a grown-up says so.",
-    i:"A hardware autopsy means studying a device by looking closely at every part and working out its job. You have done this with a tablet and a PC. This one is a Samsung Gear VR headset, model SM-R322, made around 2016. Every part is there for a reason. Before you touch anything, make a prediction. Safety first: lenses can focus sunlight like a magnifying glass, so never point them at the sun, and never leave the headset where sun can hit the lenses.",
+  osLesson(0, "Independent", "VR Headset Explorer 1: Meet the Headset (Look, Sketch, Label) 🥽", 20, "CSS.EL.3-5.1.1", "teach", "ryan-vr-lab", {
+    g:"the Gear VR headset, paper, a pencil, and a grown-up. This headset is NEVER taken apart: do not open it, pull out the lenses, or remove any parts. You only look, touch gently, measure, and sketch.",
+    i:"A hardware study means looking closely at every part of a device and working out its job, all without taking it apart. You have done this kind of looking with a tablet and a PC. This one is a Samsung Gear VR headset, model SM-R322, made around 2016. Every part is there for a reason. Before you touch anything, make a prediction. Safety first: lenses can focus sunlight like a magnifying glass, so never point them at the sun, and never leave the headset where sun can hit the lenses.",
     s:"A part card looks like this. PART: the foam cushion on the face side. WHERE: around the eye area. MY GUESS: it makes it comfortable and blocks light from outside. HOW I CHECKED: pressed it, held the headset to my face with no light leaking in.",
     y:"1. Write the model number and the year from the label on the headset. 2. Sketch the headset from the front, from the back (the side that touches your face), and from the side. 3. Label at least 8 parts you can see, for example lenses, foam, straps, the front panel, the plug that goes into the phone, buttons or a touch pad, vents, and any wheel or dial. 4. Make a part card for 4 of them with a guess about the job and how you checked it. 5. Circle the 2 parts you are least sure about and write a question for each.",
     c:"Does every label on your sketch match a real part you can point to on the headset?",
     w:"Take a photo of your three sketches and read your two questions to a grown-up."
   }, [
-    {q:"What is a hardware autopsy?", choices:["Studying a device by looking at its parts and what each one does","Throwing a device away","Updating its software","Charging a battery"], answerIndex:0, explain:"An autopsy means examining the parts and working out their jobs."},
+    {q:"How do you study the headset in this lesson?", choices:["Look, touch gently, measure, and sketch without opening it","Take it apart to see inside","Pull out the lenses","Charge it"], answerIndex:0, explain:"This headset is never taken apart, so you learn from what you can see and measure."},
     {q:"Why make a guess before you check a part?", choices:["It makes you think, and then you can see if you were right","Guesses are always right","It is a rule of the headset","It makes the headset faster"], answerIndex:0, explain:"A guess gives you something to test, and checking it is how you learn."},
     {q:"Why must the lenses never face the sun?", choices:["Lenses can focus sunlight and cause damage","The sun makes them cold","The sun erases the picture","Lenses only work in the dark"], answerIndex:0, explain:"A lens bends light to a point, and focused sunlight can hurt eyes or burn things."}
   ]),
-  osLesson(1, "Independent", "VR Headset Autopsy 2: The Headset and the Phone Are a Team 📱", 20, "CSS.EL.3-5.1.1", "teach", "ryan-vr-lab", {
+  osLesson(1, "Independent", "VR Headset Explorer 2: The Headset and the Phone Are a Team 📱", 20, "CSS.EL.3-5.1.1", "teach", "ryan-vr-lab", {
     g:"the headset, the Galaxy S7 phone (turned OFF), your sketches from yesterday, paper and a pencil, and a grown-up.",
     i:"This headset has no screen of its own. The phone goes in the front and its screen is the picture. The phone is also the computer that runs everything. The headset adds the lenses, the straps, and a way to hold the phone at exactly the right spot. A device that depends on another to work is called an accessory. Look at where the phone's plug and the headset's plug meet, and where the phone's screen sits behind the lenses.",
     s:"A side-view diagram looks like this. Draw your eye on the left. Draw two lens circles in front of it. Draw the phone as a flat rectangle behind the lenses, with the screen facing the lenses. Draw arrows showing light from the screen going through the lenses to your eye.",
@@ -23272,7 +23272,7 @@ function contentPacks(){
     {label:"Ryan: Trail Life Worthy Life, at home (6 Faith lessons)", kid:"kid2", items:RYAN_TL_WORTHY, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_TL_WORTHY); }},
     {label:"Ryan: Scratch OS, build an operating system in Scratch (10 lessons)", kid:"kid2", items:RYAN_SCRATCH_OS, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_SCRATCH_OS); }},
     {label:"Ryan: OS Under the Hood, build a scheduler, memory, files and users in Python (10 lessons)", kid:"kid2", items:RYAN_UNDER_HOOD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_UNDER_HOOD); }},
-    {label:"Ryan: VR Headset Autopsy and How 3D Vision Works (5 lessons, uses the Gear VR)", kid:"kid2", items:RYAN_VR_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_LAB); }},
+    {label:"Ryan: VR Headset Explorer and How 3D Vision Works (5 lessons, uses the Gear VR, never taken apart)", kid:"kid2", items:RYAN_VR_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_LAB); }},
     {label:"Anna: AHG Hiking and Money Management badges (10 after-school lessons)", kid:"kid1", items:ANNA_AHG_HIKE_MONEY, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_HIKE_MONEY); }},
     {label:"Anna: AHG Badges, intro and the Dance badge (11 after-school lessons)", kid:"kid1", items:ANNA_AHG_BADGES, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_BADGES); }},
     {label:"Anna: Counting Coins, penny to quarter (4 lessons)", kid:"kid1", items:ANNA_COINS, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_COINS); }},
@@ -26765,7 +26765,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-29.1";
+var APP_BUILD = "2026-10-29.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
