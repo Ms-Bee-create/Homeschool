@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <title>Ryan's VR Viewer</title>
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <style>
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:sans-serif;overflow:hidden}
@@ -175,10 +179,47 @@ function recenter(){
     yawOffset = Math.atan2(R[2], R[8]);   // compass direction you are facing right now
   }
 }
+/* ---- full screen, and keep the screen awake ---- */
+function goFull(){
+  var el = document.documentElement;
+  var fs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  try {
+    if (fs && !(document.fullscreenElement || document.webkitFullscreenElement)){
+      var pr = fs.call(el);
+      if (pr && pr.catch) pr.catch(function(){});
+    }
+  } catch (e) {}
+  try { window.scrollTo(0, 1); } catch (e) {}
+}
+var wakeLock = null, keepVideo = null;
+function keepAwake(){
+  try {
+    if (navigator.wakeLock && navigator.wakeLock.request){
+      navigator.wakeLock.request("screen").then(function(l){ wakeLock = l; }).catch(function(){});
+    }
+  } catch (e) {}
+  // backup for older phones: a tiny invisible video that keeps playing stops the screen from sleeping
+  try {
+    if (!keepVideo){
+      var c = document.createElement("canvas"); c.width = 2; c.height = 2;
+      var cc = c.getContext("2d");
+      setInterval(function(){ cc.fillStyle = "#" + Math.floor(Math.random()*16777215).toString(16); cc.fillRect(0,0,2,2); }, 500);
+      if (c.captureStream){
+        keepVideo = document.createElement("video");
+        keepVideo.setAttribute("playsinline", ""); keepVideo.muted = true; keepVideo.loop = true;
+        keepVideo.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none";
+        keepVideo.srcObject = c.captureStream(2);
+        document.body.appendChild(keepVideo);
+      }
+    }
+    if (keepVideo && keepVideo.play) { var p = keepVideo.play(); if (p && p.catch) p.catch(function(){}); }
+  } catch (e) {}
+}
+document.addEventListener("visibilitychange", function(){ if (!document.hidden) keepAwake(); });
+
 function begin(){
   document.getElementById("start").style.display = "none";
-  var el = document.documentElement;
-  try { (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el); } catch (e) {}
+  goFull(); keepAwake();
   try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function(){}); } catch (e) {}
   if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
     DeviceOrientationEvent.requestPermission().then(function(s){
@@ -187,7 +228,7 @@ function begin(){
   } else {
     window.addEventListener("deviceorientation", onOrient, true);
   }
-  window.addEventListener("click", recenter);
+  window.addEventListener("click", function(){ goFull(); keepAwake(); recenter(); });
   frame();
   setTimeout(recenter, 1500);
 }
