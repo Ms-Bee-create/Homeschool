@@ -43,7 +43,11 @@ var CUBES = [
 ];
 var FLOOR_COLOR = "#2a3a66";   // the grid on the ground
 var EYE_GAP = 0.064;           // distance between your eyes in meters (real: about 0.064)
-var EYE_HEIGHT = 1.4;          // how tall the viewer is in the scene
+var EYE_HEIGHT = 1.4;
+var SKY = "#050814";           // sky color
+var GRID_ON = true;            // the lines on the ground
+var STARS_ON = true;
+var SUN = null;                // a sun or moon color, or null for none          // how tall the viewer is in the scene
 /* ============================================================ */
 
 /* A scene can also come from the link (the build page makes these links). */
@@ -56,6 +60,13 @@ var AUTO_START = false;
     if (o.c && o.c.length !== undefined) CUBES = o.c;
     if (typeof o.g === "number") EYE_GAP = o.g;
     if (typeof o.h === "number") EYE_HEIGHT = o.h;
+    if (o.w){
+      if (typeof o.w.sky === "string") SKY = o.w.sky;
+      if (typeof o.w.floor === "string") FLOOR_COLOR = o.w.floor;
+      if (o.w.grid === false) GRID_ON = false;
+      if (o.w.stars === false) STARS_ON = false;
+      if (typeof o.w.sun === "string") SUN = o.w.sun;
+    }
     AUTO_START = /[#&]auto=1/.test(location.hash);
   } catch (e) {}
 })();
@@ -161,7 +172,7 @@ function drawEye(x0, w, R, eyeShift){
 
   ctx.save();
   ctx.beginPath(); ctx.rect(x0, 0, w, H); ctx.clip();
-  ctx.fillStyle = "#050814"; ctx.fillRect(x0, 0, w, H);
+  ctx.fillStyle = SKY; ctx.fillRect(x0, 0, w, H);
 
   function project(p){                  // world point -> screen point (or null if behind you)
     var dx = p[0] - eye[0], dy = p[1] - eye[1], dz = p[2] - eye[2];
@@ -179,15 +190,25 @@ function drawEye(x0, w, R, eyeShift){
   }
 
   // stars
-  ctx.fillStyle = "#cfd8ff";
-  for (var s = 0; s < stars.length; s++){
-    var ps = project(stars[s]); if (ps) ctx.fillRect(ps[0], ps[1], 2, 2);
+  if (STARS_ON){
+    ctx.fillStyle = "#cfd8ff";
+    for (var s = 0; s < stars.length; s++){
+      var ps = project(stars[s]); if (ps) ctx.fillRect(ps[0], ps[1], 2, 2);
+    }
+  }
+  // sun or moon, far away in one spot in the sky
+  if (SUN){
+    var pm = project([eye[0] + 30, eye[1] + 40, eye[2] - 60]);
+    if (pm){ ctx.fillStyle = SUN; ctx.beginPath(); ctx.arc(pm[0], pm[1], H * 0.07, 0, 6.283); ctx.fill(); }
   }
   // floor grid
   ctx.lineWidth = 1.5;
-  for (var g = -20; g <= 20; g += 2){
-    line([g, 0, -20], [g, 0, 20], FLOOR_COLOR);
-    line([-20, 0, g], [20, 0, g], FLOOR_COLOR);
+  if (GRID_ON){
+    var gx0 = Math.round(pos.x / 2) * 2, gz0 = Math.round(pos.z / 2) * 2;   // the grid follows you so the floor never ends
+    for (var g = -20; g <= 20; g += 2){
+      line([gx0 + g, 0, gz0 - 20], [gx0 + g, 0, gz0 + 20], FLOOR_COLOR);
+      line([gx0 - 20, 0, gz0 + g], [gx0 + 20, 0, gz0 + g], FLOOR_COLOR);
+    }
   }
   // cubes
   ctx.lineWidth = 2.5;
