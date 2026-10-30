@@ -20,6 +20,7 @@
   td.words{color:#aab8e8;font-size:13px}
   input[type=number]{width:62px;background:#111a33;color:#fff;border:1px solid #3a4a80;border-radius:6px;padding:6px;box-sizing:border-box}
   input[type=color]{width:44px;height:34px;border:1px solid #3a4a80;border-radius:6px;background:#111a33;padding:2px}
+  select{background:#111a33;color:#fff;border:1px solid #3a4a80;border-radius:6px;padding:8px;font-size:15px}
   input[type=text]{background:#111a33;color:#fff;border:1px solid #3a4a80;border-radius:6px;padding:6px;width:100%;box-sizing:border-box}
   textarea{width:100%;height:140px;box-sizing:border-box;background:#111a33;color:#e8f0ff;border:1px solid #3a4a80;border-radius:8px;padding:8px;font:14px monospace}
   label{display:block;margin:8px 0 2px;font-size:14px}
@@ -38,7 +39,7 @@
   <div class="steps">
     <b>How it works</b><br>
     <b>1.</b> Every row below is one cube. Change the numbers or the color and watch the preview.<br>
-    <b>2.</b> Press <b>+ Add a cube</b> to make another one.<br>
+    <b>2.</b> Press <b>+ Add a cube</b> to make another one, and pick a look for your <b>world</b> (sky, ground, stars, sun).<br>
     <b>3.</b> When you like it, press <b>Make my link</b>, then open that link on the phone and put the phone in the headset.<br>
     <span class="hint">You always start in the middle of the world, looking straight ahead. Think of the numbers as steps from where you stand.</span>
   </div>
@@ -64,6 +65,17 @@
       <input id="gap" type="number" step="0.01" value="0.064" style="width:120px">
       <label for="hgt">How tall you are in the scene (1.4 is a kid)</label>
       <input id="hgt" type="number" step="0.1" value="1.4" style="width:120px">
+
+      <h2>Your world</h2>
+      <label for="preset">Pick a look to start from</label>
+      <select id="preset"></select>
+      <label>Or choose your own</label>
+      <table style="width:auto"><tbody>
+        <tr><td>Sky</td><td><input type="color" id="wSky"></td><td>Ground lines</td><td><input type="color" id="wFloor"></td></tr>
+        <tr><td><label style="margin:0"><input type="checkbox" id="wGrid"> Ground lines</label></td>
+            <td colspan="1"><label style="margin:0"><input type="checkbox" id="wStars"> Stars</label></td>
+            <td><label style="margin:0"><input type="checkbox" id="wSunOn"> Sun or moon</label></td><td><input type="color" id="wSun"></td></tr>
+      </tbody></table>
 
       <details id="txtbox">
         <summary>Advanced: type the cubes as text</summary>
@@ -162,9 +174,32 @@ function parseText(){
 function makeUrl(auto){
   var c = readRows();
   var g = parseFloat(document.getElementById("gap").value), h = parseFloat(document.getElementById("hgt").value);
-  var o = {c: c, g: isNaN(g) ? 0.064 : g, h: isNaN(h) ? 1.4 : h};
+  var o = {c: c, g: isNaN(g) ? 0.064 : g, h: isNaN(h) ? 1.4 : h, w: readWorld()};
   return new URL("index.html", location.href).href + "#s=" + encodeURIComponent(JSON.stringify(o)) + (auto ? "&auto=1" : "");
 }
+var PRESETS = {
+  "Space": {sky:"#050814", floor:"#2a3a66", grid:true, stars:true, sun:null},
+  "Sunset": {sky:"#4a1f4f", floor:"#ff9f43", grid:true, stars:false, sun:"#ffd23f"},
+  "Ocean": {sky:"#062a4a", floor:"#3fd2ff", grid:true, stars:false, sun:"#ffffff"},
+  "Forest": {sky:"#0f2a1a", floor:"#3fa65a", grid:true, stars:true, sun:"#ffe9a0"},
+  "Snowy day": {sky:"#9ec3f0", floor:"#ffffff", grid:true, stars:false, sun:"#fffbe0"},
+  "Dark and empty": {sky:"#000000", floor:"#222222", grid:false, stars:false, sun:null}
+};
+var presetEl = document.getElementById("preset");
+Object.keys(PRESETS).forEach(function(k){ var o = document.createElement("option"); o.textContent = k; presetEl.appendChild(o); });
+function setWorld(w){
+  document.getElementById("wSky").value = hex6(w.sky); document.getElementById("wFloor").value = hex6(w.floor);
+  document.getElementById("wGrid").checked = !!w.grid; document.getElementById("wStars").checked = !!w.stars;
+  document.getElementById("wSunOn").checked = !!w.sun; document.getElementById("wSun").value = hex6(w.sun || "#ffd23f");
+}
+function readWorld(){
+  return {sky: document.getElementById("wSky").value, floor: document.getElementById("wFloor").value,
+    grid: document.getElementById("wGrid").checked, stars: document.getElementById("wStars").checked,
+    sun: document.getElementById("wSunOn").checked ? document.getElementById("wSun").value : null};
+}
+presetEl.onchange = function(){ setWorld(PRESETS[presetEl.value]); changed(); };
+["wSky","wFloor","wGrid","wStars","wSunOn","wSun"].forEach(function(id){ document.getElementById(id).oninput = changed; document.getElementById(id).onchange = changed; });
+setWorld(PRESETS["Space"]);
 var timer = null;
 function preview(){
   var f = document.getElementById("pv"), u = makeUrl(true);
