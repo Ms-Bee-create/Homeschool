@@ -46,6 +46,20 @@ var EYE_GAP = 0.064;           // distance between your eyes in meters (real: ab
 var EYE_HEIGHT = 1.4;          // how tall the viewer is in the scene
 /* ============================================================ */
 
+/* A scene can also come from the link (the build page makes these links). */
+var AUTO_START = false;
+(function(){
+  try {
+    var m = /[#&]s=([^&]*)/.exec(location.hash);
+    if (!m) return;
+    var o = JSON.parse(decodeURIComponent(m[1]));
+    if (o.c && o.c.length !== undefined) CUBES = o.c;
+    if (typeof o.g === "number") EYE_GAP = o.g;
+    if (typeof o.h === "number") EYE_HEIGHT = o.h;
+    AUTO_START = /[#&]auto=1/.test(location.hash);
+  } catch (e) {}
+})();
+
 var cv = document.getElementById("c"), ctx = cv.getContext("2d");
 var W = 0, H = 0;
 function resize(){
@@ -272,6 +286,7 @@ function begin(){
   setTimeout(recenter, 1500);
 }
 document.getElementById("go").addEventListener("click", begin);
+if (AUTO_START) begin();
 
 // computer fallback: drag to look
 var down = false, lx = 0, ly = 0;

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Build Your 3D Scene</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{margin:0;font-family:sans-serif;background:#0b1020;color:#fff}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  h1{margin:0 0 4px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .col{flex:1 1 360px;min-width:0}
+  textarea{width:100%;height:260px;box-sizing:border-box;background:#111a33;color:#e8f0ff;border:1px solid #3a4a80;border-radius:8px;padding:8px;font:14px monospace}
+  input[type=text],input[type=number]{background:#111a33;color:#fff;border:1px solid #3a4a80;border-radius:6px;padding:6px;width:100%;box-sizing:border-box}
+  label{display:block;margin:8px 0 2px;font-size:14px}
+  button{font-size:16px;padding:10px 16px;border:0;border-radius:8px;background:#ffd23f;color:#000;margin:6px 6px 0 0;cursor:pointer}
+  iframe{width:100%;height:240px;border:1px solid #3a4a80;border-radius:8px;background:#000}
+  .hint{color:#aab8e8;font-size:14px}
+  #err{color:#ff8a8a;min-height:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Build Your 3D Scene</h1>
+  <p class="hint">One cube per line: <b>x, y, z, size, color</b>. x is left/right, y is up, z is forward/back (negative is in front of you). Lines that start with # are notes. Press <b>Preview</b>, drag the picture with the mouse to look around, then press <b>Make my link</b> and open the link on the phone.</p>
+  <div class="row">
+    <div class="col">
+      <label for="cubes">Your cubes</label>
+      <textarea id="cubes" spellcheck="false"># x, y, z, size, color
+0, 0, -6, 1.5, #ffd23f
+4, 0, -8, 1.0, #3fd2ff
+-4, 1, -7, 2.0, #ff6b9d
+8, 0, 0, 1.5, #7dff6b
+-8, 0, 2, 1.5, #ff9f43
+0, 0, 7, 2.0, #c77dff</textarea>
+      <label for="gap">Eye gap in meters (real people are about 0.064)</label>
+      <input id="gap" type="number" step="0.01" value="0.064">
+      <label for="hgt">Your height in the scene, in meters</label>
+      <input id="hgt" type="number" step="0.1" value="1.4">
+      <button id="prev">Preview</button>
+      <button id="mk">Make my link</button>
+      <div id="err"></div>
+    </div>
+    <div class="col">
+      <label>Preview (drag with the mouse to look)</label>
+      <iframe id="pv" title="preview"></iframe>
+      <label for="lnk">Your link for the phone</label>
+      <input id="lnk" type="text" readonly>
+      <button id="cp">Copy link</button>
+      <p class="hint">Send the link to a grown-up's phone (text or email), or type it in. Open it on the S7, tap Start, then put the phone in the headset.</p>
+    </div>
+  </div>
+</div>
+<script>
+function parse(){
+  var lines = document.getElementById("cubes").value.split("\n"), out = [], err = "";
+  for (var i = 0; i < lines.length; i++){
+    var t = lines[i].trim();
+    if (!t || t.charAt(0) === "#") continue;   // blank lines and # notes are skipped
+    var p = t.split(",");
+    if (p.length < 5){ err = "Line " + (i + 1) + " needs 5 parts: x, y, z, size, color"; break; }
+    var n = [parseFloat(p[0]), parseFloat(p[1]), parseFloat(p[2]), parseFloat(p[3])];
+    var col = p.slice(4).join(",").trim();
+    if (isNaN(n[0]) || isNaN(n[1]) || isNaN(n[2]) || isNaN(n[3])){ err = "Line " + (i + 1) + ": the first four must be numbers"; break; }
+    if (!/^#[0-9a-fA-F]{3,6}$/.test(col) && !/^[a-zA-Z]+$/.test(col)){ err = "Line " + (i + 1) + ": the color should look like #ff8800 or a color name"; break; }
+    out.push([n[0], n[1], n[2], n[3], col]);
+  }
+  document.getElementById("err").textContent = err;
+  return err ? null : out;
+}
+function makeUrl(auto){
+  var c = parse(); if (!c) return null;
+  var g = parseFloat(document.getElementById("gap").value), h = parseFloat(document.getElementById("hgt").value);
+  var o = {c: c, g: isNaN(g) ? 0.064 : g, h: isNaN(h) ? 1.4 : h};
+  return new URL("index.html", location.href).href + "#s=" + encodeURIComponent(JSON.stringify(o)) + (auto ? "&auto=1" : "");
+}
+document.getElementById("prev").onclick = function(){
+  var u = makeUrl(true); if (!u) return;
+  var f = document.getElementById("pv"); f.src = "about:blank"; setTimeout(function(){ f.src = u; }, 30);
+};
+document.getElementById("mk").onclick = function(){
+  var u = makeUrl(false); if (u) document.getElementById("lnk").value = u;
+};
+document.getElementById("cp").onclick = function(){
+  var l = document.getElementById("lnk"); l.select();
+  try { document.execCommand("copy"); } catch (e) {}
+};
+document.getElementById("prev").click();
+</script>
+</body>
+</html>
