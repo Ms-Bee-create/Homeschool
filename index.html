@@ -6798,6 +6798,7 @@ function renderLessonDetail(){
       b.textContent = text; hLog.appendChild(b); return b;
     }
     function hSpeak(t){
+      if(isAnna){ fairySpeak(t); return; }
       try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); } }catch(e){}
     }
     function hAsk(){
@@ -20494,6 +20495,46 @@ function goalIconHtml(g, full, size){
 /* Home helper: Anna's fairy and Ryan's Clippy on the home page, for anything the kid wants to talk about (a birthday card, a gift idea, a pen pal letter).
    Goes through the "kidhelper" Edge Function, which has the kid-safety rules. Every chat is saved for the leader (Helper chats card). The chat and the
    half-typed message live in state so a background redraw does not lose them. */
+/* The fairy's voice (30 Oct 2026). The browser's default voice sounds like a robot. Pick the nicest English voice this device has (Edge's "Natural" voices sound the most
+   human, and Ana is a child voice), with a higher pitch on the plain ones, and let Mom choose a different one with the Fairy voice box in Anna's helper. */
+var FAIRY_VOICE_KEY = "al_fairy_voice";
+function fairyVoices(){ try{ return (window.speechSynthesis.getVoices() || []).filter(function(v){ return /^en/i.test(v.lang); }); }catch(e){ return []; } }
+function fairyPick(){
+  var vs = fairyVoices(), saved = null;
+  try{ saved = localStorage.getItem(FAIRY_VOICE_KEY); }catch(e){}
+  if(saved){ var sv = vs.filter(function(v){ return v.name===saved; })[0]; if(sv) return sv; }
+  var prefs = [/Ana.*Natural|Natural.*Ana/i, /(Aria|Jenny|Michelle|Sonia|Libby|Maisie|Emma|Ava).*Natural|Natural.*(Aria|Jenny|Michelle|Sonia|Libby|Maisie|Emma|Ava)/i, /Natural/i, /Zira|Samantha|Karen|Tessa|Moira|Google UK English Female|Female/i];
+  for(var i=0;i<prefs.length;i++){ var f = vs.filter(function(v){ return prefs[i].test(v.name); })[0]; if(f) return f; }
+  return vs[0] || null;
+}
+function fairySpeak(t){
+  try{
+    var ss = window.speechSynthesis; if(!ss) return;
+    ss.cancel();
+    var u = new SpeechSynthesisUtterance(t), v = fairyPick();
+    if(v){ u.voice = v; u.lang = v.lang; }
+    u.pitch = (v && /Natural|Online/i.test(v.name)) ? 1.1 : 1.45; u.rate = 1.0;
+    ss.speak(u);
+  }catch(e){}
+}
+function fairyVoiceRow(){
+  var wrap = document.createElement("div"); wrap.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px";
+  var lab = document.createElement("span"); lab.className = "muted"; lab.textContent = "\uD83E\uDDDA Fairy voice:";
+  var sel = document.createElement("select"); sel.style.cssText = "padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;max-width:240px";
+  var hear = document.createElement("button"); hear.type = "button"; hear.textContent = "\uD83D\uDD0A Hear it"; hear.style.cssText = "padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13px;cursor:pointer;font-weight:600";
+  function fill(){
+    var vs = fairyVoices(), cur = fairyPick();
+    sel.innerHTML = "";
+    vs.forEach(function(v){ var o = document.createElement("option"); o.value = v.name; o.textContent = v.name.replace(/^Microsoft /, "").replace(/ - English.*/, ""); if(cur && cur.name===v.name) o.selected = true; sel.appendChild(o); });
+    wrap.style.display = vs.length>1 ? "flex" : "none";
+  }
+  fill();
+  try{ window.speechSynthesis.addEventListener("voiceschanged", fill); }catch(e){}
+  sel.onchange = function(){ try{ localStorage.setItem(FAIRY_VOICE_KEY, sel.value); }catch(e){} fairySpeak("Hi! I am your fairy. Do you like my voice?"); };
+  hear.onclick = function(){ fairySpeak("Hi! I am your fairy. Do you like my voice?"); };
+  wrap.appendChild(lab); wrap.appendChild(sel); wrap.appendChild(hear);
+  return wrap;
+}
 /* Talk to a helper without it cutting in. The browser's one-shot listening ends at the first short pause, which sent Anna's message while she was still thinking
    (29 Oct 2026). This keeps listening, shows her words as she says them, and only sends after about 4 seconds of quiet (8 seconds before she starts).
    Tapping the button again sends right away. */
@@ -20576,7 +20617,11 @@ function kidHelperCard(kidId){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   row.appendChild(inp); if(SR) row.appendChild(mic); row.appendChild(send);
   det.appendChild(log); det.appendChild(row);
-  function speak(t){ try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); } }catch(e){} }
+  function speak(t){
+    if(isAnna){ fairySpeak(t); return; }
+    try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(t)); } }catch(e){}
+  }
+  if(isAnna) det.appendChild(fairyVoiceRow());
   function ask(){
     var q = inp.value.trim();
     if(!q || st.busy) return;
@@ -26839,7 +26884,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.1";
+var APP_BUILD = "2026-10-30.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
