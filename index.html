@@ -12322,6 +12322,11 @@ function fillAnnaDailyBasics(){
     ].forEach(function(spec){
       if(have[spec.block] || annaFillSeen[iso+"|"+spec.block]) return;
       annaFillSeen[iso+"|"+spec.block] = true;
+      /* If this day's own daily lesson was pushed to another day (and not started), bring it back instead of leaving the day empty: adding it again would do nothing because its id already exists. */
+      var movedId = stableUuid("anna-basic|"+iso+"|"+spec.block), mv = state.assignments[movedId];
+      if(mv && mv.kidId==="kid1" && mv.date!==iso && !mv.done && !hasWork(mv)){
+        mv.date = iso; db.doc("assignments/"+movedId).update({date:iso}); added++; return;
+      }
       var item = (spec.block==="reading" && annaReadersItem(d)) || spec.list[ordinal % spec.list.length];
       db.collection("assignments").addOnce({
         kidId:"kid1", date:iso, subject:spec.subject, title:item.title,
@@ -20114,6 +20119,12 @@ function balanceFutureLoad(){
     while(isoDate(d)<=maxDate && guard++<900){
       var iso = isoDate(d), list = byDate[iso]||[], room = dayCapFor(kid, iso)-(fixed[iso]||0);
       if(room<0) room = 0;
+      /* Anna always keeps one Math lesson a day (30 Oct 2026: on a Friday full of book lessons the cap pushed her Math to Monday, so she had no math). It does not count toward the cap. */
+      var mathAnchor = null;
+      if(kid==="kid1" && !((fixedBlk[iso]||{}).math)){
+        mathAnchor = list.filter(function(it){ return blockKeyFor(it.a)==="math"; })[0] || null;
+        if(mathAnchor) list = list.filter(function(it){ return it!==mathAnchor; });
+      }
       var fri = d.getDay()===5, blkCap = (BLOCK_DAY_CAP[kid]||{}), teachCap = TEACH_DAY_CAP[kid]||99;
       var overBlock = !fri && list.some(function(it){ var b = blockKeyFor(it.a); return blkCap[b] && ((fixedBlk[iso]||{})[b]||0) + list.filter(function(o){ return blockKeyFor(o.a)===b; }).length > blkCap[b]; });
       var overTeach = !fri && ((fixedTeach[iso]||0) + list.filter(function(o){ return o.a.stage==="teach"; }).length) > teachCap;
@@ -20128,7 +20139,7 @@ function balanceFutureLoad(){
           if(keep.length<room && (fri || !blkCap[b] || (blkN[b]||0)<blkCap[b]) && (fri || !isT || teachN<teachCap)){ keep.push(it); blkN[b] = (blkN[b]||0)+1; if(isT) teachN++; }
           else push.push(it);
         });
-        byDate[iso] = keep;
+        byDate[iso] = mathAnchor ? keep.concat([mathAnchor]) : keep;
         var nd = addSchoolDays(new Date(iso+"T00:00:00"), 1), nIso = isoDate(nd);
         push.forEach(function(it){ it.date = nIso; (byDate[nIso] = byDate[nIso]||[]).push(it); });
         if(nIso>maxDate) maxDate = nIso;
@@ -27020,7 +27031,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.3";
+var APP_BUILD = "2026-10-30.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
