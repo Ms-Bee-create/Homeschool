@@ -23483,9 +23483,9 @@ var RYAN_VR_BUILD = [
   ], VR_BUILD_PAGE),
   osLesson(2, "Independent", "Build Your 3D Viewer 3: Design a World with a Theme 🏙️", 30, "CSS.CT.3-5.5.4", "practice", "ryan-vr-build", {
     g:"graph paper or plain paper, a pencil, the build page (link below), the phone and headset, and the controller.",
-    i:"Real programmers plan before they type. A top-down map shows where everything goes as if you were looking down from the ceiling. On the map, left and right is x, and forward and back is z. The cubes' heights come from the y number and their size. Pick a theme so the world feels like one place: a city, a maze, a castle, a space station, or an arcade.",
+    i:"Real programmers plan before they type. A top-down map shows where everything goes as if you were looking down from the ceiling. On the map, left and right is x, and forward and back is z. The cubes' heights come from the y number and their size. Pick a theme so the world feels like one place: a city, a maze, a castle, a space station, or an arcade. Your world also has a sky and a ground, so on the build page pick a look in the Your world part (or choose your own sky color, ground lines, stars, and a sun or moon) that fits your theme.",
     s:"A worked example for a hallway. Two rows of cubes make walls. For the right wall, add cubes with x 3, y 0, size 2, and z -4, then -6, then -8. For the left wall do the same with x -3. Between the rows is a path 6 meters wide to walk down. The path is the empty space.",
-    y:"1. Choose a theme and write it at the top of the page. 2. Draw the top-down map with at least 12 cubes as squares and mark where you start. 3. Turn your map into cubes in the build page, one row for each square. Add a few at a time and watch the preview. 4. Use at least 3 different colors and 2 different sizes, and put at least one cube up high (y bigger than 0). 5. Walk through it in the headset. Is there a path to walk? Fix anything that blocks you. 6. Save your world: open the Advanced: type the cubes as text part on the build page, copy the lines into a document called My 3D World, and keep it so you can come back to it.",
+    y:"1. Choose a theme and write it at the top of the page. 2. Draw the top-down map with at least 12 cubes as squares and mark where you start. 3. Turn your map into cubes in the build page, one row for each square. Add a few at a time and watch the preview. Then set the sky, ground, stars, and sun or moon to match your theme. 4. Use at least 3 different colors and 2 different sizes, and put at least one cube up high (y bigger than 0). 5. Walk through it in the headset. Is there a path to walk? Fix anything that blocks you. 6. Save your world: open the Advanced: type the cubes as text part on the build page, copy the lines into a document called My 3D World, and keep it so you can come back to it.",
     c:"Does every square on your map match a line you typed?",
     w:"Give a grown-up a tour in the headset and tell them the story of your world."
   }, [
@@ -27636,7 +27636,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.12";
+var APP_BUILD = "2026-10-30.13";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
