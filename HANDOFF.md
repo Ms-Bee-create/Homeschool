@@ -526,3 +526,23 @@ TOOLS: sandbox can download PDFs via WebFetch (it saves the file; then pdftotext
 - Mom chose (for both kids): Math and ELA (Storytime/reading) daily; projects and design studio daily; warm-up slot daily (Anna's Handwriting; Ryan's Thought Experiments; review lessons for both); Faith Mon/Wed/Fri; Science Tue/Thu; Social Studies Wed/Thu; Friday off-screen quests stay on Fridays.
 - Code: WEEK_RHYTHM = {"Faith":[1,3,5], "Science":[2,4], "Social Studies":[3,4]} (getDay numbers, 1 = Monday), RHYTHM_EXEMPT = ahg-civics, ryan-civics, ga-heroes (election-week and Georgia heroes lessons keep their written dates), rhythmAllows(), SUBJECT_DAY_CAP now Social Studies 1, Science 1, Faith 1 per day for both kids. balanceFutureLoad slides an unstarted lesson off a day its subject is not planned for to the next day, repeatedly, until it lands on an allowed day. Done/started lessons never move. Change the days in one place (WEEK_RHYTHM).
 - Effect in the sandbox copy: Faith ends 15 Feb 2027 (was 18 Jan), Science 23 Feb, Anna's Social Studies book series runs to mid July 2027 (65 lessons at 2 a week); needs a decision from Mom on trimming or a longer year. Ryan's warm-up slot: only 7 Thought Experiment lessons exist (pack "Ryan: Thought Experiments (weekly)") plus generated review lessons, so it will often be empty; offered to write more.
+
+
+## STATE AT COMPACTION (30 Oct 2026, later, build 2026-10-30.7) - read this first
+Everything below is shipped and merged (PRs #334-#349). Newest sections above this one in HANDOFF.md explain each change in detail.
+
+What shipped since the 23 Oct state:
+- Anna: one-part-at-a-time lessons (Next/Back/Hear/"I am stuck"), Up Next card on Today, colored layout everywhere; notes card (kidNotesCard) on Home, Today and School-done; Check Yourself / Show What You Know / "Tell Mom" steps now take a typed or SPOKEN answer (mic), photo prompts for book answers (annaFriendly rewrites her lessons at display time; "with a grown-up" crutches removed except safety); fairy voice picker (fairySpeak) and a helper mic that waits ~4 s of quiet (wireLongMic); 3 multiple-choice questions on every Social Studies (24), Faith (33) and Book Adventurer (4) lesson that lacked a quiz (ANNA_CIVICS_QUIZ + patchAnnaCivicsQuizzes).
+- Ryan: weekly project pick (ryanProjectCard / RYAN_PROJECTS, pick locked, progress bar, trophy), new packs Scratch OS (10), OS Under the Hood (10, Python tested), VR Headset Explorer (5, Samsung Gear VR SM-R322 + Galaxy S7, never taken apart).
+- Schedule: balanceFutureLoad now keeps one Math a day for Anna (mathAnchor), caps Social Studies / Science / Faith at 1 a day for both kids, follows WEEK_RHYTHM (Faith Mon/Wed/Fri, Science Tue/Thu, Social Studies Wed/Thu; ELA, Math, projects, warm-up daily), exempts ahg-civics / ryan-civics / ga-heroes; fillAnnaDailyBasics pulls a moved Math/Storytime back.
+
+Open items / waiting on Mom:
+1. Page numbers for Social Studies Chapter 1 Lesson 2 ("Our Rights as Citizens") and Lesson 5 ("Our Leaders"): ask for a photo of the book table of contents; never guess.
+2. Ryan OS (boot.asm, NASM, a graphical OS in assembly seen in a phone video of his screen; video frames were too blurry to quote): Mom is getting the file text (attach boot.asm or paste), plus the nasm build command. Then build "Ryan OS: read the OS you made" from his real code. Do not repeat or use the license-key-looking tab names seen in his Notepad.
+3. Add the new packs from Leader > Content Packs: Scratch OS, OS Under the Hood, VR Headset Explorer, Trail Life Worthy Life.
+4. Decide on Anna's Social Studies book series length (65 lessons at 2 a week now runs to mid July); trim or extend.
+5. Ryan's warm-up slot has only 7 Thought Experiments; offered 20 more daily ones.
+6. S7 / Gear VR: Mom was to check Android version, Wi-Fi, apps, and what shows when the phone is in the headset; coding an app for it is unresearched (old Oculus tools may need a developer account/signature; WebVR unverified).
+7. Storytime comprehension quizzes need the book text (photos of story pages).
+8. Not tested on real devices: step-by-step lessons, mic and fairy voice (Mom said the voice works), camera photo prompts, the weekly picker on Ryan's real schedule, balancer on her real data. Anna's Planner next week is the check.
+Standing rules unchanged (CLAUDE.md 1-27): never guess links/facts/standards, parent-approved videos only, ask before HeyGen spend, no keys/PIN in files, kids' names out of video scripts, tags are not important to Mom.
