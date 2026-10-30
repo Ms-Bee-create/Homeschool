@@ -4153,6 +4153,7 @@ var RYAN_PROJECTS = [
   {id:"scratchos", icon:"\uD83D\uDFE7", name:"Scratch OS", blurb:"Build your own operating system in Scratch, with a boot screen, login, windows and apps.", pack:/Scratch OS/},
   {id:"underhood", icon:"\u2699\uFE0F", name:"OS Under the Hood", blurb:"Code the real jobs of an OS in Python: scheduler, memory, files and users.", pack:/OS Under the Hood/},
   {id:"vrlab", icon:"\uD83E\uDD7D", name:"VR Headset Lab", blurb:"Explore how a VR headset works with your eyes and a ruler (no taking it apart), and learn how two eyes see depth.", pack:/VR Headset Explorer/},
+  {id:"vrbuild", icon:"\uD83E\uDDCA", name:"Build Your 3D Viewer", blurb:"Code your own 3D world and walk through it in the Gear VR headset, with a controller.", pack:/Build Your Own 3D Viewer/},
   {id:"johnnyos", icon:"\uD83D\uDCBB", name:"JohnnyOS", blurb:"Build a real operating system for Johnny, one piece at a time.", pack:/JohnnyOS/},
   {id:"python", icon:"\uD83D\uDC0D", name:"Minecraft Python", blurb:"Teach Minecraft to do things with your own code.", pack:/Learn to Program with Minecraft/},
   {id:"stem", icon:"\uD83E\uDDEA", name:"Minecraft STEM Lab", blurb:"Hands-on labs: build it, test it, see what happens.", pack:/Minecraft STEM Lab/, quota:2},
@@ -23454,6 +23455,70 @@ var RYAN_VR_LAB = [
   ])
 ];
 
+var VR_BUILD_PAGE = "https://ms-bee-create.github.io/Homeschool/vr/build.html";
+var RYAN_VR_BUILD = [
+  osLesson(0, "Independent", "Build Your 3D Viewer 1: Make a Scene and Walk Into It 🧊", 25, "CSS.CT.3-5.5.4", "teach", "ryan-vr-build", {
+    g:"the school computer, the build page (link below), the phone and headset, the controller, paper, a pencil, and a grown-up. Pair the controller with the phone BEFORE the phone goes in the headset.",
+    i:"A program is a list of instructions a computer follows. In the 3D viewer, your list is the cubes: each line gives one cube five numbers and a color, in this order: x, y, z, size, color. x is left and right, y is up, and z is forward and back. A NEGATIVE z is in front of you. So -5 means five steps ahead. The computer draws the scene twice, once for each eye, and the phone shows the two pictures side by side. You are the programmer, and the headset is how you check your work.",
+    s:"A worked example. The line 0, 0, -5, 2, #ff0000 means: no left or right, on the ground, five steps ahead, 2 meters wide, red. Change the 0 at the start to 3 and the red cube slides to the right. Change -5 to -10 and it moves farther away and looks smaller.",
+    y:"1. Open the build page. Press Preview and drag with the mouse to look around. 2. Predict before you change anything: if you change the first number of the first cube from 0 to -3, which way will it move? Write your guess. Change it, press Preview, and check. 3. Add a new cube on a new line. Give it a size of 1 and a color you pick. Press Preview. 4. Draw a quick top-down map on paper with your cubes as squares, so you remember where they are. 5. Press Make my link and copy it. Send it to a grown-up's phone, or type it in. Open it on the S7, tap Start, slide the phone into the headset, and walk to your cubes with the left stick. 6. Short turns only, and stop right away if you feel dizzy.",
+    c:"When you changed a number, did the cube move the way you guessed?",
+    w:"Show a grown-up your scene in the headset and tell them what x, y, and z each do."
+  }, [
+    {q:"In the line 2, 0, -6, 1, #ff0000, what does the -6 do?", choices:["Puts the cube six steps in front of you","Makes the cube six meters wide","Makes the cube red","Moves it six steps up"], answerIndex:0, explain:"The third number is z, and a negative z is in front of you."},
+    {q:"Which number makes a cube move up off the ground?", choices:["The second number (y)","The first number (x)","The third number (z)","The color"], answerIndex:0, explain:"y is up and down, so a bigger y lifts the cube higher."},
+    {q:"Why make a guess before you change a number?", choices:["It shows whether you really understand what the number does","Guesses are always right","The page needs a guess to run","It makes the cube bigger"], answerIndex:0, explain:"A prediction you can check is how you find out if your idea of the code is right."}
+  ], VR_BUILD_PAGE),
+  osLesson(1, "Science", "Build Your 3D Viewer 2: The Eye Gap Experiment 👁️", 25, "CSS.CT.3-5.5.4", "practice", "ryan-vr-build", {
+    g:"the build page (link below), the phone and headset, paper, a pencil, and a grown-up. Do the headset part for no more than a minute or two at a time.",
+    i:"Your page has a number called the eye gap. It is the distance between your two eyes in the picture, in meters. A real person's gap is about 0.064, which is 6.4 centimeters. The page uses it to draw one picture for each eye from two spots that far apart. This is the thing that makes the scene look 3D. A number the program uses, like the eye gap, is called a variable, and changing one variable at a time to see what happens is how scientists run an experiment.",
+    s:"The test plan looks like this. Question: what does the eye gap do to the 3D look? Prediction: a bigger gap makes things look closer to your face. Test: use 4 gaps with the same scene and look at the two pictures. Record: write what you see for each.",
+    y:"1. Write your prediction for what happens with a gap of 0. 2. In the build page, set the gap to 0 and press Preview. Look at the left and right pictures. Are they the same or different? Write it down. 3. Do the same for 0.064, then 0.3, then 1. For each, write how different the two pictures look. 4. With a grown-up, open your link on the S7 with gap 0.064 and look for 10 seconds. Then try 0.3 for only 10 seconds. If it feels strange or uncomfortable, stop and take the headset off. 5. Make a small table: gap, how different the pictures are, how the 3D felt. 6. Write 3 sentences: what the gap does, whether your prediction was right, and why the real number is about 0.064.",
+    c:"Does your table show all four gaps and what you saw for each?",
+    w:"Explain to a grown-up why a gap of 0 makes the scene look flat."
+  }, [
+    {q:"What does the eye gap number change?", choices:["How different the left and right pictures are","The color of the cubes","The size of the phone","The floor grid"], answerIndex:0, explain:"The gap sets how far apart the two picture spots are, so it controls how different the two views look."},
+    {q:"What do you see with an eye gap of 0?", choices:["The same picture for both eyes, so it looks flat","A bigger 3D effect","Nothing at all","Red cubes"], answerIndex:0, explain:"With no gap, both eyes get the same view, and your brain has no difference to use to see depth."},
+    {q:"Why change only one variable at a time?", choices:["So you know which change caused what you saw","It is faster","The page only lets you change one","To use fewer cubes"], answerIndex:0, explain:"If you change two things at once you cannot tell which one made the difference."}
+  ], VR_BUILD_PAGE),
+  osLesson(2, "Independent", "Build Your 3D Viewer 3: Design a World with a Theme 🏙️", 30, "CSS.CT.3-5.5.4", "practice", "ryan-vr-build", {
+    g:"graph paper or plain paper, a pencil, the build page (link below), the phone and headset, and the controller.",
+    i:"Real programmers plan before they type. A top-down map shows where everything goes as if you were looking down from the ceiling. On the map, left and right is x, and forward and back is z. The cubes' heights come from the y number and their size. Pick a theme so the world feels like one place: a city, a maze, a castle, a space station, or an arcade.",
+    s:"A worked example for a hallway. Two rows of cubes make walls: 3, 0, -4, 2, #8888ff then 3, 0, -6, 2, #8888ff then 3, 0, -8, 2, #8888ff, and the same on the other side with x = -3. Between the rows is a path 6 meters wide to walk down. The path is the empty space.",
+    y:"1. Choose a theme and write it at the top of the page. 2. Draw the top-down map with at least 12 cubes as squares and mark where you start. 3. Turn your map into lines in the build page. Do a few at a time and press Preview after each group. 4. Use at least 3 different colors and 2 different sizes, and put at least one cube up high (y bigger than 0). 5. Walk through it in the headset. Is there a path to walk? Fix anything that blocks you. 6. Save your lines by copying them from the box into a document called My 3D World so you can come back to them.",
+    c:"Does every square on your map match a line you typed?",
+    w:"Give a grown-up a tour in the headset and tell them the story of your world."
+  }, [
+    {q:"Why draw a top-down map first?", choices:["You can plan where everything goes before typing","The page needs a picture to start","It makes the headset work","It changes the colors"], answerIndex:0, explain:"A plan shows the layout, so you type the numbers once instead of guessing."},
+    {q:"On a top-down map, what do left/right and forward/back match in your lines?", choices:["x and z","y and the color","The size and the color","Only y"], answerIndex:0, explain:"x is left and right, and z is forward and back. y is up, which a map from above does not show."},
+    {q:"How do you make a path to walk down in your world?", choices:["Leave empty space between rows of cubes","Add more cubes in the middle","Make every cube bigger","Set the eye gap to 0"], answerIndex:0, explain:"A path is empty space, so keep cubes out of the way."}
+  ], VR_BUILD_PAGE),
+  osLesson(3, "Independent", "Build Your 3D Viewer 4: Bug Hunt, Fix the Broken Scene 🐛", 25, "CSS.CT.3-5.5.3", "practice", "ryan-vr-build", {
+    g:"the build page (link below), paper, and a pencil.",
+    i:"A bug is a mistake in a program. Debugging means finding the bug and fixing it. Good debuggers read the error message, change one thing, and test again. The build page tells you which line has a problem. But some bugs have no error message, because the line is allowed but does the wrong thing. Those are the sneaky ones.",
+    s:"The worked example. The line 2, 0, five, 1, #ff0000 gets the message that the first four parts must be numbers. The bug is the word five, which should be the number 5 or -5. Fix: 2, 0, -5, 1, #ff0000.",
+    y:"1. Copy this broken scene into the build page box, then press Make my link to see the first error: 0, 0, -5, 2, #ff0000 then 3, 0, -5, one, #00ff00 then -3, 0, -5, 2 then 0, 3, -5, 1.5 #ffffff. 2. Fix one bug at a time. After each fix press Make my link again and read the next message. There are three bugs with messages. Write down each bug and its fix. 3. Press Preview. Now find the sneaky bug: you cannot see one of the cubes in the front view. Why? (Hint: look at the z numbers and remember which sign is in front of you.) 4. Make a deliberate bug of your own in a copy of your world, then swap with a grown-up and have them find it. 5. Write the three steps of debugging in your own words.",
+    c:"Did you fix each bug and write what was wrong?",
+    w:"Explain to a grown-up the difference between a bug with an error message and a sneaky bug."
+  }, [
+    {q:"What should you do first when the page shows an error?", choices:["Read which line it says and what is wrong","Delete everything","Change the eye gap","Restart the phone"], answerIndex:0, explain:"The message tells you where to look, which saves time."},
+    {q:"Why fix one bug at a time and test again?", choices:["So you know the fix worked and did not cause a new bug","It is a rule of the page","To make the scene darker","So the cubes get bigger"], answerIndex:0, explain:"One change at a time shows exactly what each fix did."},
+    {q:"A cube has a z of 5 and you cannot see it in front of you. Why?", choices:["Positive z is behind you","The cube is too small","The color is wrong","The eye gap is 0"], answerIndex:0, explain:"Negative z is in front of you, so positive z puts the cube behind you."}
+  ], VR_BUILD_PAGE),
+  osLesson(4, "Independent", "Teach-Back: How My 3D Viewer Works (and the Safety Card) 🎤", 30, "ELAGSE4W2", "apply", "ryan-vr-build", {
+    g:"your top-down map, your table from the eye gap experiment, the phone, headset, and controller, paper, a pencil, and a grown-up audience.",
+    i:"You built a real 3D viewer. A good teach-back explains the whole thing in simple words so someone who has never seen it understands. Use what you learned: the cubes are lines of numbers, the page draws two pictures from two spots one eye gap apart, the phone's motion sensor turns the view as your head turns, and the headset lenses make the close screen look far away. Then add a Safety Card, because anyone who borrows your headset should know how to use it comfortably.",
+    s:"An example opening. I made a 3D world out of numbers. Each line is one cube. The page draws the world two times, a little bit differently for each eye, and my brain puts them together to see depth.",
+    y:"1. Write 5 to 7 sentences explaining how your viewer works. Use the words x, y, z, eye gap, two pictures, sensor, and lenses. 2. Draw a labeled diagram with the cubes list on one side, the two pictures in the middle, and your eyes and brain on the other side. 3. Write a Safety Card with at least 4 rules, for example: short turns, stop right away if dizzy, a grown-up nearby, and sit down while wearing it. 4. Do the demo: give a grown-up a tour in the headset, and let them try the controller. 5. Ask them one question about it, and answer it.",
+    c:"Does your explanation use the words eye gap and two pictures correctly?",
+    w:"Give your teach-back and hand the grown-up your Safety Card. Take a photo of your diagram."
+  }, [
+    {q:"What makes your scene look 3D?", choices:["Two slightly different pictures, one for each eye","One big picture","A louder sound","A bigger phone"], answerIndex:0, explain:"Each eye gets a view from a slightly different spot, and the brain combines them to see depth."},
+    {q:"Which is a good safety rule for the viewer?", choices:["Stop right away if you feel dizzy","Keep going until it passes","Walk around in the real room while wearing it","Wear it for hours"], answerIndex:0, explain:"Feeling dizzy means stop and rest, and walking around blind is a trip hazard."},
+    {q:"What does the phone's motion sensor do in the viewer?", choices:["Turns the scene as you turn your head","Changes the cube colors","Makes the eye gap bigger","Saves your scene"], answerIndex:0, explain:"The sensor tells the page which way the phone points, and the page turns the view to match."}
+  ], VR_BUILD_PAGE)
+];
+
 function contentPacks(){
   return [
     {label:"Bible: Creation → Moses (Anna, 12 weeks)", kid:"kid1", items:ANNA_FAITH_WEEKS, oldPrefix:FAITH_OLD_PREFIX.kid1, load:function(){ addFaithWeeks("kid1"); }},
@@ -23473,6 +23538,7 @@ function contentPacks(){
     {label:"Ryan: Scratch OS, build an operating system in Scratch (10 lessons)", kid:"kid2", items:RYAN_SCRATCH_OS, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_SCRATCH_OS); }},
     {label:"Ryan: OS Under the Hood, build a scheduler, memory, files and users in Python (10 lessons)", kid:"kid2", items:RYAN_UNDER_HOOD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_UNDER_HOOD); }},
     {label:"Ryan: VR Headset Explorer and How 3D Vision Works (5 lessons, uses the Gear VR, never taken apart)", kid:"kid2", items:RYAN_VR_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_LAB); }},
+    {label:"Ryan: Build Your Own 3D Viewer for the Gear VR and the S7 (5 lessons, uses the build page)", kid:"kid2", items:RYAN_VR_BUILD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_BUILD); }},
     {label:"Anna: AHG Hiking and Money Management badges (10 after-school lessons)", kid:"kid1", items:ANNA_AHG_HIKE_MONEY, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_HIKE_MONEY); }},
     {label:"Anna: AHG Badges, intro and the Dance badge (11 after-school lessons)", kid:"kid1", items:ANNA_AHG_BADGES, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_BADGES); }},
     {label:"Anna: Counting Coins, penny to quarter (4 lessons)", kid:"kid1", items:ANNA_COINS, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_COINS); }},
@@ -27570,7 +27636,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.9";
+var APP_BUILD = "2026-10-30.10";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
