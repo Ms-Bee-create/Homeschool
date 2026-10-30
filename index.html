@@ -2735,7 +2735,7 @@ function escapeHtml(s){ return (s==null?"":String(s)).replace(/[&<>"']/g, functi
 function assignmentsFor(kidId, dateFilter){
   return Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); })
     .filter(function(a){
-      if(a.kidId!==kidId) return false;
+      if(a.kidId!==kidId || a.reviewStatus==="retired") return false;
       if(dateFilter==null) return true;
       if(typeof dateFilter==="function") return dateFilter(a.date);
       return a.date===dateFilter;
@@ -20051,6 +20051,7 @@ function runAutoMigrations(){
     autoAddOffScreenFridays();
     autoAddScooterTrack();
     balanceFutureLoad();
+    patchTrimAnnaSs();
   }catch(e){ console.error("auto-migration error", e); }
 }
 /* School runs Monday to Friday. Anything unfinished, with no saved work, that is dated for a coming
@@ -20087,7 +20088,7 @@ function loadCounts(){
   var c = {};
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(a.kidId && a.date && a.skillId!=="offscreen-friday"){ var k = a.kidId+"|"+a.date; c[k] = (c[k]||0)+1; }
+    if(a.kidId && a.date && a.skillId!=="offscreen-friday" && a.reviewStatus!=="retired"){ var k = a.kidId+"|"+a.date; c[k] = (c[k]||0)+1; }
   });
   return c;
 }
@@ -20111,6 +20112,45 @@ function moveWeekendLessonsToMonday(){
 }
 /* Keeps every future day within its limit. Lessons not started yet on an overfull day move to the next school day, earliest-scheduled
    lessons stay, and anything pushed along keeps its place in line, so a series stays in order. On Fridays, book and project lessons stay first. */
+/* One-time trim of Anna's Social Studies book series (30 Oct 2026). Mom: "trim it to end with our class that ended last; we can pick up whatever was left off next year."
+   Reading: the Social Studies book lessons stop on the last day any of Anna's other classes (Science, Faith, ELA, Related Arts, Live Lesson) is scheduled. Lessons after that day that are
+   not started are taken off the list (reviewStatus "retired", kept in the records, and Leader > the retired list can put them back). The cutoff is saved in family settings (ssTrim.cutoff) the first time it runs and
+   kept, and every load after that takes any extra unstarted Social Studies book lessons beyond the room left (so lessons added later are trimmed too). */
+function patchTrimAnnaSs(){
+  if(!db) return;
+  var g = familyGoal();
+  var keepSubj = {"Science":1, "Faith":1, "ELA":1, "Related Arts":1, "Live Lesson":1}, cutoff = (g.ssTrim && g.ssTrim.cutoff) || "", today = todayISO();
+  if(!cutoff){
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId==="kid1" && a.date && keepSubj[a.subject] && a.reviewStatus!=="retired" && a.date>cutoff) cutoff = a.date;
+    });
+    if(!cutoff || cutoff<=today) return;
+    var g1 = Object.assign({}, g); g1.ssTrim = {cutoff:cutoff, at:today}; saveFamilyGoal(g1, true); g = g1;
+  }
+  if(cutoff<=today) return;
+  /* How many Social Studies days are left until then (the days the weekly rhythm allows, school days only), minus the days already taken by a dated or finished Social Studies lesson.
+     Counting days instead of looking at where lessons sit now means the answer does not depend on whether the balancer has finished moving things. */
+  var takenDay = {}, books = [];
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!=="kid1" || a.subject!=="Social Studies" || !a.date || a.reviewStatus==="retired") return;
+    if(a.skillId==="anna-book-lessons" && !a.done && !hasWork(a)) books.push({id:id, a:a});
+    else if(a.date>=today) takenDay[a.date] = true;
+  });
+  var slots = 0, d = new Date(today+"T00:00:00");
+  while(isoDate(d)<=cutoff){
+    var iso = isoDate(d);
+    if(!isOffDate(d) && (WEEK_RHYTHM["Social Studies"]||[]).indexOf(d.getDay())>=0 && !takenDay[iso]) slots++;
+    d.setDate(d.getDate()+1);
+  }
+  /* Series order: by book chapter first, then by date, so what is dropped is the end of the book (the last chapters), never a middle chapter. */
+  var chap = function(t){ var m = String(t||"").match(/Chapter (\d+)/); return m ? parseInt(m[1],10) : 99; };
+  books.sort(function(x,y){ return (chap(x.a.title)-chap(y.a.title)) || (x.a.date||"").localeCompare(y.a.date||"") || String(x.a.title||"").localeCompare(String(y.a.title||"")); });
+  var gone = books.slice(slots), titles = [];
+  gone.forEach(function(x){ x.a.reviewStatus = "retired"; db.doc("assignments/"+x.id).update({reviewStatus:"retired"}); titles.push(String(x.a.title||"").slice(0,70)); });
+  if(gone.length) console.log("patchTrimAnnaSs: took "+gone.length+" Social Studies book lesson(s) off the list (room for "+slots+" until "+cutoff+"): "+titles.join(" | "));
+}
 function balanceFutureLoad(){
   if(!db) return;
   var tomorrow = todayISO(), moved = 0; /* starts today: unstarted lessons on a stacked day move on, started or finished ones stay */
@@ -20118,7 +20158,7 @@ function balanceFutureLoad(){
     var fixed = {}, fixedBlk = {}, fixedTeach = {}, fixedSubj = {}, byDate = {}, maxDate = tomorrow;
     Object.keys(state.assignments).forEach(function(id){
       var a = state.assignments[id];
-      if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || isWeekendIso(a.date)) return;
+      if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || a.reviewStatus==="retired" || isWeekendIso(a.date)) return;
       if(a.date>maxDate) maxDate = a.date;
       if(a.done || hasWork(a)){
         fixed[a.date] = (fixed[a.date]||0)+1;
@@ -23438,6 +23478,7 @@ function contentPacks(){
     {label:"Ryan: micro:bit Lab (7 lessons: Starter Kit, Wonder Kit car, two-board game, playtest, demo)", kid:"kid2", items:RYAN_MICROBIT, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_MICROBIT); }},
     {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
+    {label:"Ryan: Thought Experiments, 20 more daily warm-ups", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS_2, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_THOUGHT_EXPERIMENTS_2); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
   ].concat(checkinPackEntries());
 }
@@ -27046,6 +27087,269 @@ var RYAN_THOUGHT_EXPERIMENTS = [
   {d:30, title:"Thought Experiment: The Simulation Question",
     passage:"How would you actually know, for certain, that you're not dreaming or living inside a simulation right now?\nWhat's the difference between something being real and something just seeming completely real? Is there any test you could run to tell the difference — and if not, does it even matter?"}
 ];
+/* 20 more Thought Experiments for Ryan's daily warm-up slot (30 Oct 2026). Discussion questions with a typed or spoken answer box (Show What You Know); no right answer, no quiz. Facts checked: 8 switches = 256 patterns, sunlight takes about 8 minutes, Galileo's ship (about 400 years ago), the two-guards puzzle. */
+var RYAN_THOUGHT_EXPERIMENTS_2 = [
+ {
+  "d": 0,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Computer With Nothing On It",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A brand new computer has a screen, a keyboard, memory and a processor, but no operating system and no programs. You press the power button.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What do you think happens? What is the one thing it needs before it can do anything useful, and why? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Real computers run a tiny first program that loads the operating system. Without one, the parts are all there but nothing tells them what to do.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 1,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: Fast or Smart?",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A computer can do a billion tiny steps every second. You can only do a few. But you can understand a joke, and the computer only follows steps.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Is the fast computer smarter than you? What is the difference between doing something quickly and understanding it? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: People used to say a calculator was smart. Think about what it can do and what it can never decide on its own.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 2,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Library With Every Book",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Imagine a library that holds every book ever written, millions of them, with no signs and no catalog.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. How would you find one book about volcanoes? What would you invent to make finding things quick? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Real libraries and search engines use an index, a list that tells you where things are, so nobody has to open every book.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 3,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Truth Guard and the Liar Guard",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Two guards stand at two doors. One door leads to safety and one to danger. One guard always tells the truth and one always lies, and you do not know which is which. You may ask ONE question to ONE guard.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What one question could you ask so you will know which door is safe? Take your time and test your idea with both guards. 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: This is a famous logic puzzle. One answer is to ask what the other guard would say, then do the opposite of the answer.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 4,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Password Everyone Knows",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A school gives every student the same password, 1234, so nobody forgets it.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What could go wrong? What is the good thing about the plan, and what is the bad thing about it? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Real systems make each person use a different password, because one shared password protects no one.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 5,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Robot That Follows Orders Exactly",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — You tell a robot, 'Make me a peanut butter sandwich.' The robot does exactly what you say and nothing more. It puts the jar of peanut butter on top of the bread, closed.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What went wrong? What would you have to say for the robot to make a real sandwich? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Programmers write instructions so exact that a computer cannot misunderstand them. That is much harder than it sounds.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 6,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: A Copy of a Copy of a Copy",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A photocopy of a drawing looks a little worse than the drawing. A copy of that copy looks worse again. After 50 copies you can barely see it. A computer file can be copied 50 times and stay perfect.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Why do you think a computer copy does not get worse? What does this tell you about how computers store things? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: A computer stores a picture as numbers, and copying numbers exactly is easy. A photocopy is a new picture of a picture each time.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 7,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The One-Switch Computer",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — You are given a single switch that can be on or off. That is all you have.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. How many different messages could you send with one switch? What if you had two switches? Three? Look for a pattern and tell how many you could send with eight. 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: With eight switches there are 256 different patterns. This is why computers use binary, the on and off code.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 8,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Time Capsule File",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — You save a drawing on a computer today and put the computer in a time capsule to be opened in 100 years.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Will the file open? Think about what the future person will need: the computer, the power, the program, and the right file type. What could you do to make it last? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Old floppy disks and old file types are already hard to open today. This is why museums of old computers matter.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 9,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Museum on Fire",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A museum of old computers is on fire. You can carry out only one machine.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Which one do you save and why? Is a computer's value its parts, its history, or what it taught people? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: There is no right answer here. A good answer gives a real reason, and a good listener respects a different reason.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 10,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Spaceship Without a Window",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — You are inside a smooth spaceship with no windows, sailing at a perfectly steady speed. It feels exactly like sitting still. You drop a ball and it falls straight down.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Is there any experiment inside the ship that could prove you are moving? What does this say about moving and being still? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Galileo asked this about a ship on the sea 400 years ago. Being in steady motion feels like being still, and that is a big idea in science.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 11,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Tree in the Empty Forest",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A tree falls in a forest where no person or animal is anywhere near. Does it make a sound?\nYour Turn — 1. Read it twice and think quietly for one minute. 2. It depends on what you mean by sound. Is sound the vibration of the air, or what an ear hears? Pick a meaning and explain your answer. 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: In science, sound is a vibration that travels through air or another material. Whether a sound needs an ear to hear it is a question about words, not only about science.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 12,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: If the Sun Vanished",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Light from the Sun takes about 8 minutes to reach Earth. Suppose the Sun suddenly vanished.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What would we see for the first 8 minutes? How would we know something had happened? What does this say about the news we get from far away? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: When we look at the Sun, we see it as it was about 8 minutes ago. Everything far away is a message from the past.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 13,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: A Day With No Electricity",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Tomorrow the electricity is off for the whole day. No lights, no computers, no phones, no refrigerator.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. What would be hardest? What would be easy or even fun? What would you do with the hours you usually spend on screens? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: People lived without electricity for most of history. Thinking about it helps us notice all the work our machines do for us.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 14,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: Cut and Choose",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Two kids must share one cake. They cannot agree who gets the bigger slice. One idea: one kid cuts the cake and the other chooses which piece to take.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Why does this plan make the cut fair? What would the cutter try to do, and why? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: This old trick works because the cutter wants both pieces to be equal. It is an algorithm for fairness, a set of steps that gives a fair result.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 15,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Sure Ten or the Coin Flip",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — You can take 10 dollars for sure. Or you can flip a coin: heads you win 25 dollars, tails you win nothing.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Which would you choose? What if you could play the coin flip 100 times? Does the answer change when you can try many times? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Thinking about chance is how scientists, game designers and gamers decide things. Many tries show what usually happens.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 16,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Maze Robot",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A small robot is dropped in a maze. It cannot see the whole maze and it has no map. It can only see the wall right in front of it and the walls to its left and right.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Write a short set of rules the robot could follow to find the way out. Try your rules on a maze you draw. 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: One famous rule is to always keep one hand on the wall. Programmers call a rule like this an algorithm.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 17,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Calculator That Was Wrong Once",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — Your calculator gives a wrong answer one time. After that, it is right every time you check.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Would you trust it again? How could you check any machine or helper before you trust its answer? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Computers do exactly what they are told, so a wrong answer usually comes from a wrong instruction. Checking important answers a second way is a good habit.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 18,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: Who Built It?",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A helper program writes a whole computer game for you after you tell it what you want. You did not write any of the code.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Did you build the game? What would you need to do for it to be truly yours? How could you prove you understand how it works? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: Using a helper is not wrong, and understanding what it made is what turns it into your own learning.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ },
+ {
+  "d": 19,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: The Lock Anyone Can Open",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "passage": "Here's the Idea — A shop puts a lock on the door, but the key is hung on a hook next to the door, where anyone can reach it.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Is it still a lock? What does a lock really do? What is the difference between a lock that works and a lock that only looks like it works? 3. Give your best reason, not only your answer. 4. Think of what a person who disagrees with you would say.\nCheck Yourself — Did you give a reason for your answer? Can you say what someone who disagrees might think?\nShow What You Know — Write or say your answer and your best reason. Here is something to think about too: This is why computer security matters: protection has to work against someone who is trying to get around it, not only against honest people.",
+  "skillId": "ryan-thought-experiments",
+  "crossSubjects": [
+   "ELA"
+  ]
+ }
+];
 function addRyanThoughtExperiments(kidId){
   if(!db){ toast("Not connected yet — try again in a moment"); return; }
   var todayDate = packStart();
@@ -27243,7 +27547,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.7";
+var APP_BUILD = "2026-10-30.8";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
