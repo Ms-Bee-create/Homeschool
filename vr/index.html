@@ -104,10 +104,46 @@ var stars = [];
   }
 })();
 
+/* ---- a controller (Bluetooth Xbox pad) or keyboard walks you around ----
+   left stick / W A S D = walk,  A button / space = put a cube down,
+   B button / backspace = take the last cube away,  Y button / R = face forward */
+var pos = {x: 0, z: 0};
+var keys = {}, colorList = ["#ffd23f","#3fd2ff","#ff6b9d","#7dff6b","#ff9f43","#c77dff"], lastBtn = {}, placed = 0;
+window.addEventListener("keydown", function(e){ keys[e.key.toLowerCase()] = true;
+  if (e.key === " ") placeCube(); if (e.key === "Backspace") removeCube(); if (e.key.toLowerCase() === "r") recenter(); });
+window.addEventListener("keyup", function(e){ keys[e.key.toLowerCase()] = false; });
+function placeCube(){
+  var R = cameraMatrix(), fx = -R[2], fz = -R[8], l = Math.sqrt(fx*fx + fz*fz) || 1;
+  CUBES.push([pos.x + fx / l * 3, 0, pos.z + fz / l * 3, 1, colorList[placed++ % colorList.length]]);
+}
+function removeCube(){ if (CUBES.length > 0) CUBES.pop(); }
+function pressed(pad, i, name){
+  var now = !!(pad.buttons[i] && pad.buttons[i].pressed), was = lastBtn[name]; lastBtn[name] = now; return now && !was;
+}
+function pollControls(dt){
+  var mx = 0, mz = 0;
+  if (keys["w"]) mz += 1; if (keys["s"]) mz -= 1; if (keys["d"]) mx += 1; if (keys["a"]) mx -= 1;
+  var pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (var i = 0; i < pads.length; i++){
+    var g = pads[i]; if (!g || !g.connected) continue;
+    var ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+    if (Math.abs(ax) > 0.2) mx += ax; if (Math.abs(ay) > 0.2) mz -= ay;
+    if (pressed(g, 0, "a")) placeCube();
+    if (pressed(g, 1, "b")) removeCube();
+    if (pressed(g, 3, "y")) recenter();
+  }
+  if (mx || mz){
+    var R = cameraMatrix(), fx = -R[2], fz = -R[8], l = Math.sqrt(fx*fx + fz*fz) || 1;
+    fx /= l; fz /= l;                      // forward on the ground, ignoring up and down
+    var sp = 3 * dt;                       // 3 meters per second
+    pos.x += (fx * mz - fz * mx) * sp; pos.z += (fz * mz + fx * mx) * sp;
+  }
+}
+
 function drawEye(x0, w, R, eyeShift){
   var f = H * 0.62;                     // how zoomed in (bigger = narrower view)
   var cx = x0 + w / 2, cy = H / 2;
-  var eye = [R[0] * eyeShift, EYE_HEIGHT + R[3] * eyeShift, R[6] * eyeShift]; // eye moves left/right along camera "right"
+  var eye = [pos.x + R[0] * eyeShift, EYE_HEIGHT + R[3] * eyeShift, pos.z + R[6] * eyeShift]; // eye moves left/right along camera "right"
 
   ctx.save();
   ctx.beginPath(); ctx.rect(x0, 0, w, H); ctx.clip();
@@ -153,7 +189,10 @@ function drawEye(x0, w, R, eyeShift){
   ctx.restore();
 }
 
-function frame(){
+var lastT = 0;
+function frame(t){
+  var dt = lastT ? Math.min((t - lastT) / 1000, 0.1) : 0; lastT = t || 0;
+  pollControls(dt);
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
   var R = cameraMatrix();
   var half = W / 2;
