@@ -6283,6 +6283,38 @@ function youtubeEmbedUrl(url){
   return m ? "https://www.youtube.com/embed/"+m[1] : null;
 }
 
+/* Anna's lessons, display only (30 Oct 2026). Mom: a 7-year-old cannot always have a grown-up beside her, "tell Mom" leaves nothing to read later, and "Answer:" steps are
+   questions in her BOOK. So: (1) a "with a grown-up" crutch on plain reading is replaced by "ask your fairy"; (2) "Tell Mom ..." steps get a box to say or type the answer;
+   (3) "Answer:" steps in a book lesson say they are in the book and ask for a photo of the page. Safety cases (hot water, outside after dark, looking things up online,
+   knives, scissors) keep their grown-up. The stored lesson text is not changed. Markers [[book]] [[say]] [[photo]] are removed before showing or reading aloud. */
+function annaFriendly(text){
+  var safe = /\b(hot|stove|oven|knife|knives|scissors|outside|after dark|cook|bake|walk|online|look up|looks up|internet|thermometer|water|sunrise)\b/i;
+  var bookLesson = /Gather first — [^\n]*\bbook\b/i.test(text);
+  function step(t, mk){
+    var m;
+    if(bookLesson && (m = t.match(/^Answer:\s*(.*)$/i))) return (mk ? "[[book]]" : "")+"In your book, write your answer: "+m[1];
+    if(bookLesson && /^Finish the page with .*tell Mom what you wrote\.?$/i.test(t)) return (mk ? "[[book]]" : "")+t.replace(/\s*and tell Mom what you wrote\.?$/i, ", then take a photo of the page.");
+    if((m = t.match(/^Share your (.*?) with (?:Mom|Dad)\.?$/i))) return (mk ? "[[photo]]" : "")+"Take a photo of your "+m[1]+" so it is saved.";
+    if((m = t.match(/^Tell (?:Mom|Dad|a grown-up|your family|your Unit or family),? (?:about )?([\s\S]*)$/i)) && !safe.test(t)) return (mk ? "[[say]]" : "")+"Say or type "+m[1];
+    if((m = t.match(/^Teach (?:Mom|Dad) ([\s\S]*)$/i))) return (mk ? "[[say]]" : "")+"Teach "+m[1].replace(/\.?$/, ".")+" Then say or type what you taught.";
+    if((m = t.match(/^Talk with a grown-up about ([\s\S]*)$/i))) return (mk ? "[[say]]" : "")+"Talk with a grown-up about "+m[1].replace(/\.?$/, ".")+" Then write or say one thing you said.";
+    if(/^Read /i.test(t) && !safe.test(t)) return t.replace(/^(Read .*?)\s+with (?:Mom or Dad|Mom|Dad|a grown-up)(\.|$)/i, "$1. If a word is hard, ask your fairy.");
+    return t;
+  }
+  return String(text||"").split("\n").map(function(line){
+    var m = line.match(/^([^—]{3,40}) — ([\s\S]*)$/);
+    if(!m) return line;
+    var label = m[1], body = m[2];
+    if(/^Gather first/i.test(label) && !safe.test(body)) body = body.replace(/,?\s*(?:and )?a grown-up(?=[.,;]|$)/ig, "");
+    if(/^Your Turn/i.test(label)){
+      var parts = body.split(/\s*\b\d{1,2}[.)]\s+/).filter(function(x){ return x.trim(); });
+      if(parts.length>1) body = parts.map(function(x, i){ return (i+1)+". "+step(x.trim(), true); }).join(" ");
+      else body = step(body.trim(), false);
+    }
+    return label+" — "+body;
+  }).join("\n");
+}
+function annaSpoken(text){ return annaFriendly(text).replace(/\[\[(book|say|photo)\]\]/g, "").replace(/Quick Checks?/g, "Treat Time"); }
 function renderLessonDetail(){
   els.view.innerHTML = "";
   var a = state.assignments[state.lessonDetailId];
@@ -6362,7 +6394,7 @@ function renderLessonDetail(){
      "Here's the Idea / See It Done / Your Turn…" sections get their own headings instead of
      being numbered like steps. Trackpad-friendly: big click targets, no dragging. */
   function checklistPassageHtml(text, tick){
-    if(a.kidId==="kid1") text = text.replace(/Quick Checks?/g, "Treat Time");
+    if(a.kidId==="kid1") text = annaFriendly(text.replace(/Quick Checks?/g, "Treat Time"));
     var lines = text.split("\n").filter(function(l){ return l.trim(); });
     var n = 0, out = "";
     /* Colored layout (23 Oct 2026, tried on Math first, then Faith, now all of Anna's lessons at Mom's request): colored section labels, bigger text, one short sentence per line and colored numbers, because plain paragraphs
@@ -6378,13 +6410,18 @@ function renderLessonDetail(){
       return /^Show What You Know/i.test(label) ? '<div class="swk-wrap" data-text="'+escapeHtml(text)+'"></div>' : "";
     }
     function row(t, color){
+      var kind = "", mk = t.match(/^\[\[(book|say|photo)\]\]/);
+      if(mk){ kind = mk[1]; t = t.slice(mk[0].length); }
+      var plain = t;
+      if(kind==="book") t = "\uD83D\uDCD6 "+t; else if(kind==="photo") t = "\uD83D\uDCF7 "+t;
       var i = n++;
       var fs = pilot ? "17px" : "15px", lh = pilot ? "1.65" : "1.5";
       if(!tick) return '<div style="font-size:14.5px;line-height:1.5;margin-bottom:6px">'+(i+1)+'. '+escapeHtml(t)+'</div>';
       var on = false;
       try{ on = localStorage.getItem("al_chk_"+a.id+"_"+i)==="1"; }catch(e){}
       return '<label class="arow" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:'+fs+';line-height:'+lh+';cursor:pointer">'+
-        '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+(pilot && color ? pilotText(t, color) : escapeHtml(t))+'</span></label>';
+        '<input type="checkbox" class="chk" data-i="'+i+'"'+(on?' checked':'')+' style="width:22px;height:22px;margin-top:2px;flex:none"><span>'+(pilot && color ? pilotText(t, color) : escapeHtml(t))+'</span></label>'+
+        (kind==="say" ? '<div class="stepans-wrap" data-text="'+escapeHtml(plain)+'"></div>' : "");
     }
     /* A short unlabeled intro line before the first labeled section (the Handwriting "Warm-up: ..." line) no longer turns the whole lesson into plain tick rows:
        the sections, one-part-at-a-time view and answer boxes still work, and the intro shows as plain text. */
@@ -6411,7 +6448,15 @@ function renderLessonDetail(){
           out += swk(m[1], m[2]);
           return;
         }
-        if(steps && steps.length>1) steps.forEach(function(st){ out += row(st, sec[2]); });
+        if(steps && steps.length>1){
+          var photoMsg = "";
+          steps.forEach(function(st){
+            if(/^\[\[book\]\]/.test(st)) photoMsg = "\uD83D\uDCF7 When you have answered in your book, take a photo of the page so Mom can see it.";
+            else if(/^\[\[photo\]\]/.test(st) && !photoMsg) photoMsg = "\uD83D\uDCF7 Take a photo of it so it is saved.";
+            out += row(st, sec[2]);
+          });
+          if(photoMsg) out += '<div class="photo-wrap" data-msg="'+escapeHtml(photoMsg)+'"></div>';
+        }
         else if(/^Check Yourself/i.test(m[1])) out += '<div class="chk-ans-wrap" data-text="'+escapeHtml(m[2])+'" style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         out += swk(m[1], m[2]);
@@ -6436,7 +6481,7 @@ function renderLessonDetail(){
           '<button type="button" class="stp-all reward-skip" style="opacity:1;font-size:12.5px;color:var(--text-dim)">Show the whole lesson</button>'+
         '</div></div>';
     }
-    return out;
+    return out.replace(/\[\[(book|say|photo)\]\]/g, "");
   }
   var passageHtml = a.passage
     ? '<div style="margin-bottom:14px;padding:12px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)">'+
@@ -6571,7 +6616,7 @@ function renderLessonDetail(){
       if(sCur<pgs.length-1){ sCur++; sShow(); stpNav.parentNode.scrollIntoView({behavior:"smooth", block:"start"}); }
       else { var after = stpNav.parentNode.nextElementSibling; if(after) after.scrollIntoView({behavior:"smooth", block:"start"}); }
     };
-    stpNav.querySelector(".stp-hear").onclick = function(){ speak(sAll ? a.passage : pgs[sCur].textContent); };
+    stpNav.querySelector(".stp-hear").onclick = function(){ var pc = pgs[sCur].cloneNode(true); Array.prototype.forEach.call(pc.querySelectorAll(".stepans-wrap,.swk-wrap,.photo-wrap"), function(x){ x.remove(); }); speak(sAll ? (annaLook ? annaSpoken(a.passage) : a.passage) : pc.textContent); };
     stpNav.querySelector(".stp-all").onclick = function(){ sAll = !sAll; sShow(); };
     stpNav.querySelector(".stp-stuck").onclick = function(){
       var hd = document.getElementById("lessonHelperDet");
@@ -6582,7 +6627,7 @@ function renderLessonDetail(){
   }
   var speakBtns = card.querySelectorAll(".speak-btn");
   if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
-  if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(annaLook ? a.passage.replace(/Quick Checks?/g, "Treat Time") : a.passage); };
+  if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(annaLook ? annaSpoken(a.passage) : a.passage); };
 
   if(a.skillId==="anna-math-place-value"){
     var pvBtnWrap = document.createElement("div");
@@ -7266,7 +7311,7 @@ function renderLessonDetail(){
      anything that says explain, why, how, tell or describe needs a real answer, typed or SAID with the microphone, because Mom needs it in the log
      (27 Oct 2026: kids were tapping Yes, and "I told Mom" left nothing to read). "I need help" is kept for a kid who is truly stuck. */
   (function wireCheckYourself(){
-    var wraps = card.querySelectorAll(".chk-ans-wrap, .swk-wrap");
+    var wraps = card.querySelectorAll(".chk-ans-wrap, .swk-wrap, .stepans-wrap, .photo-wrap");
     if(!wraps.length) return;
     function findCheck(){ for(var i=0;i<blocks.length;i++){ if(blocks[i].check) return blocks[i]; } return null; }
     function saveCheck(q, ans){
@@ -7282,9 +7327,18 @@ function renderLessonDetail(){
     var btnCss = "min-height:48px;padding:10px 16px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:16px;font-weight:700;cursor:pointer";
     function mark(btn, on){ btn.style.borderColor = on ? "var(--gold)" : "var(--border)"; btn.style.background = on ? "var(--gold-soft)" : "var(--card)"; }
     wraps.forEach(function(w){
-      var isSwk = w.classList.contains("swk-wrap");
+      if(w.classList.contains("photo-wrap")){
+        w.style.cssText = "margin:8px 0 10px;padding:10px 12px;border-radius:10px;background:var(--gold-soft);font-size:15px;line-height:1.45";
+        w.innerHTML = "<b>"+escapeHtml(w.getAttribute("data-msg") || "")+"</b>";
+        var pb = document.createElement("button"); pb.type = "button"; pb.style.cssText = btnCss+";margin-top:8px;display:block"; pb.textContent = "\uD83D\uDCF7 Take a photo";
+        pb.onclick = function(){ if(camBtn && camBtn.onclick) camBtn.onclick(); else toast("Use the picture button in My Work below"); };
+        w.appendChild(pb);
+        return;
+      }
+      var isStep = w.classList.contains("stepans-wrap");
+      var isSwk = w.classList.contains("swk-wrap") || isStep;
       var raw = w.getAttribute("data-text") || "";
-      var qs = isSwk ? ["Show What You Know"] : (raw.match(/[^?]+\?/g) || [raw]);
+      var qs = isStep ? [raw] : isSwk ? ["Show What You Know"] : (raw.match(/[^?]+\?/g) || [raw]);
       var have = (findCheck() || {}).answers || {};
       w.innerHTML = "";
       qs.forEach(function(q0){
@@ -7292,7 +7346,7 @@ function renderLessonDetail(){
         var box = document.createElement("div");
         box.style.cssText = "margin:8px 0 10px;padding:12px 14px;border-radius:12px;background:var(--card);border:2px solid var(--gold)";
         var head = document.createElement("div"); head.style.cssText = "display:flex;gap:8px;align-items:flex-start;font-size:17px;font-weight:800;line-height:1.4";
-        var qt = document.createElement("span"); qt.style.flex = "1"; qt.textContent = isSwk ? "\uD83C\uDF1F Write it or say it here so it is saved:" : q;
+        var qt = document.createElement("span"); qt.style.flex = "1"; qt.textContent = isStep ? "\u270D\uFE0F Write it or say it here so it is saved:" : isSwk ? "\uD83C\uDF1F Write it or say it here so it is saved:" : q;
         var sp = document.createElement("button"); sp.type = "button"; sp.textContent = "\uD83D\uDD0A"; sp.title = "Read it to me"; sp.style.cssText = "border:none;background:none;font-size:20px;cursor:pointer;flex:none";
         sp.onclick = function(){ speak(isSwk ? raw : q); };
         head.appendChild(qt); head.appendChild(sp); box.appendChild(head);
@@ -7301,7 +7355,7 @@ function renderLessonDetail(){
         var needsSentence = isSwk || /\b(explain|why|how|describe|retell|summarize|tell)\b/i.test(q);
         var isYesNo = !isSwk && /^(do|did|does|can|could|is|are|was|were|will|would|have|has|should)\b/i.test(q) && !/\bor\b/i.test(q) && !needsSentence;
         var helpTxt = "NEEDS HELP (asked for a grown-up)";
-        if(isSwk){
+        if(isSwk && !isStep){
           /* Work that is on paper or built (a line of writing, a drawing, a model) is shown by photo, so Mom can see it later. */
           var needPhoto = /\b(show|read|walk|share|display|present|point)\b/i.test(raw) && /\b(writing|line|booklet|drawing|draw|map|model|build|built|blueprint|picture|poster|card|letter|route|paper|work|collage|craft|art|project|word|words)\b/i.test(raw);
           var ph = document.createElement("div");
@@ -26785,7 +26839,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-29.3";
+var APP_BUILD = "2026-10-30.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
