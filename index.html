@@ -20065,7 +20065,18 @@ var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
    (project = Independent, Related Arts, Live Lesson; math = 2 so a day is never all Math), and at most this many brand-new "teach" lessons in a day. Overflow moves to the next day. */
 var BLOCK_DAY_CAP = {kid1:{project:2, math:2}, kid2:{project:2, math:2}};
 /* At most this many lessons of one subject on one day (30 Oct 2026: Mom: "so much Social Studies and no other subjects"). Anna: one Social Studies lesson a day. */
-var SUBJECT_DAY_CAP = {kid1:{"Social Studies":1}};
+var SUBJECT_DAY_CAP = {kid1:{"Social Studies":1, "Science":1, "Faith":1}, kid2:{"Social Studies":1, "Science":1, "Faith":1}};
+/* The weekly rhythm Mom chose (30 Oct 2026). Math, ELA (Storytime and reading), projects and design studio, and the warm-up slot (Anna's Handwriting;
+   Ryan's Thought Experiments; review lessons for both) are every day and have no entry here. Faith is Monday, Wednesday and Friday; Science is Tuesday and Thursday;
+   Social Studies is Wednesday and Thursday (so Thursday has both). Days are getDay() numbers, 1 = Monday. The balancer moves an unstarted lesson of one of these
+   subjects to the next allowed day. The election-week civics lessons and the Georgia heroes lessons keep the dates they were written for. Change the days here, in one place. */
+var WEEK_RHYTHM = {"Faith":[1,3,5], "Science":[2,4], "Social Studies":[3,4]};
+var RHYTHM_EXEMPT = {"ahg-civics":1, "ryan-civics":1, "ga-heroes":1};
+function rhythmAllows(a, dow){
+  var days = WEEK_RHYTHM[a.subject];
+  if(!days || RHYTHM_EXEMPT[a.skillId]) return true;
+  return days.indexOf(dow)>=0;
+}
 var TEACH_DAY_CAP = {kid1:2, kid2:2};
 function dayCapFor(kidId, iso){
   var dow = new Date(iso+"T00:00:00").getDay();
@@ -20122,6 +20133,15 @@ function balanceFutureLoad(){
     while(isoDate(d)<=maxDate && guard++<900){
       var iso = isoDate(d), list = byDate[iso]||[], room = dayCapFor(kid, iso)-(fixed[iso]||0);
       if(room<0) room = 0;
+      /* Weekly rhythm: a lesson on a day its subject is not planned for slides to the next day (and keeps sliding until its day). */
+      var offDay = list.filter(function(it){ return !rhythmAllows(it.a, d.getDay()); });
+      if(offDay.length){
+        list = list.filter(function(it){ return offDay.indexOf(it)<0; });
+        byDate[iso] = list;
+        var rIso = isoDate(addSchoolDays(new Date(iso+"T00:00:00"), 1));
+        offDay.forEach(function(it){ it.date = rIso; (byDate[rIso] = byDate[rIso]||[]).push(it); });
+        if(rIso>maxDate) maxDate = rIso;
+      }
       /* Anna always keeps one Math lesson a day (30 Oct 2026: on a Friday full of book lessons the cap pushed her Math to Monday, so she had no math). It does not count toward the cap. */
       var mathAnchor = null;
       if(kid==="kid1" && !((fixedBlk[iso]||{}).math)){
@@ -27223,7 +27243,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.6";
+var APP_BUILD = "2026-10-30.7";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
