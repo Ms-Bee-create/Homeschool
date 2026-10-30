@@ -20066,7 +20066,9 @@ var FRIDAY_LESSON_CAP = {kid1:2, kid2:3};
    (project = Independent, Related Arts, Live Lesson; math = 2 so a day is never all Math), and at most this many brand-new "teach" lessons in a day. Overflow moves to the next day. */
 var BLOCK_DAY_CAP = {kid1:{project:2, math:2}, kid2:{project:2, math:2}};
 /* At most this many lessons of one subject on one day (30 Oct 2026: Mom: "so much Social Studies and no other subjects"). Anna: one Social Studies lesson a day. */
-var SUBJECT_DAY_CAP = {kid1:{"Social Studies":1, "Science":1, "Faith":1}, kid2:{"Social Studies":1, "Science":1, "Faith":1}};
+var SUBJECT_DAY_CAP = {kid1:{"Social Studies":1, "Science":1, "Faith":1, "Math":1, "ELA":1}, kid2:{"Social Studies":1, "Science":1, "Faith":1, "Math":1, "ELA":1, "Reading":1}};
+/* Pen pal letters and Book Adventurer lessons are dated on purpose, so they sit on top of the one ELA lesson a day instead of counting toward it. */
+function subjKey(a){ return (a.subject==="ELA" && /^(Pen Pal Letter|Book Adventurer)/.test(String(a.title||""))) ? "ELA-extra" : a.subject; }
 /* The weekly rhythm Mom chose (30 Oct 2026). Math, ELA (Storytime and reading), projects and design studio, and the warm-up slot (Anna's Handwriting;
    Ryan's Thought Experiments; review lessons for both) are every day and have no entry here. Faith is Monday, Wednesday and Friday; Science is Tuesday and Thursday;
    Social Studies is Wednesday and Thursday (so Thursday has both). Days are getDay() numbers, 1 = Monday. The balancer moves an unstarted lesson of one of these
@@ -20162,7 +20164,7 @@ function balanceFutureLoad(){
       if(a.date>maxDate) maxDate = a.date;
       if(a.done || hasWork(a)){
         fixed[a.date] = (fixed[a.date]||0)+1;
-        fixedSubj[a.date] = fixedSubj[a.date]||{}; fixedSubj[a.date][a.subject] = (fixedSubj[a.date][a.subject]||0)+1;
+        fixedSubj[a.date] = fixedSubj[a.date]||{}; fixedSubj[a.date][subjKey(a)] = (fixedSubj[a.date][subjKey(a)]||0)+1;
         var fb = blockKeyFor(a); fixedBlk[a.date] = fixedBlk[a.date]||{}; fixedBlk[a.date][fb] = (fixedBlk[a.date][fb]||0)+1;
         if(a.stage==="teach") fixedTeach[a.date] = (fixedTeach[a.date]||0)+1;
         return;
@@ -20192,7 +20194,7 @@ function balanceFutureLoad(){
       var overBlock = !fri && list.some(function(it){ var b = blockKeyFor(it.a); return blkCap[b] && ((fixedBlk[iso]||{})[b]||0) + list.filter(function(o){ return blockKeyFor(o.a)===b; }).length > blkCap[b]; });
       var overTeach = !fri && ((fixedTeach[iso]||0) + list.filter(function(o){ return o.a.stage==="teach"; }).length) > teachCap;
       var subjCap = SUBJECT_DAY_CAP[kid] || {};
-      var overSubj = Object.keys(subjCap).some(function(sj){ return ((fixedSubj[iso]||{})[sj]||0) + list.filter(function(o){ return o.a.subject===sj; }).length > subjCap[sj]; });
+      var overSubj = Object.keys(subjCap).some(function(sj){ return ((fixedSubj[iso]||{})[sj]||0) + (mathAnchor && subjKey(mathAnchor.a)===sj ? 1 : 0) + list.filter(function(o){ return subjKey(o.a)===sj; }).length > subjCap[sj]; });
       if(list.length>room || overBlock || overTeach || overSubj){
         list.sort(function(x,y){
           /* Order of who keeps the day: (Friday only) ELA first, then book/project/Social Studies, then the rest; then a dated civics lesson ahead of a Social Studies book lesson; then the earliest planned. */
@@ -20201,8 +20203,9 @@ function balanceFutureLoad(){
           return (rk(x)-rk(y)) || (bk(x)-bk(y)) || (x.o||"").localeCompare(y.o||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||""));
         });
         var keep = [], push = [], blkN = Object.assign({}, fixedBlk[iso]||{}), teachN = fixedTeach[iso]||0, subjN = Object.assign({}, fixedSubj[iso]||{});
+        if(mathAnchor){ var ak = subjKey(mathAnchor.a); subjN[ak] = (subjN[ak]||0)+1; }
         list.forEach(function(it){
-          var b = blockKeyFor(it.a), isT = it.a.stage==="teach", sj = it.a.subject;
+          var b = blockKeyFor(it.a), isT = it.a.stage==="teach", sj = subjKey(it.a);
           if(keep.length<room && (fri || !blkCap[b] || (blkN[b]||0)<blkCap[b]) && (fri || !isT || teachN<teachCap) && (!subjCap[sj] || (subjN[sj]||0)<subjCap[sj])){ keep.push(it); blkN[b] = (blkN[b]||0)+1; subjN[sj] = (subjN[sj]||0)+1; if(isT) teachN++; }
           else push.push(it);
         });
@@ -23478,7 +23481,7 @@ function contentPacks(){
     {label:"Ryan: micro:bit Lab (7 lessons: Starter Kit, Wonder Kit car, two-board game, playtest, demo)", kid:"kid2", items:RYAN_MICROBIT, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_MICROBIT); }},
     {label:"Ryan: US History, Revolution to Reconstruction (17 lessons, Georgia SS4H1-H6)", kid:"kid2", items:RYAN_US_HISTORY, oldPrefix:"", load:function(){ addUsHistoryPack(); }},
     {label:"Ryan: Thought Experiments (weekly)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS, oldPrefix:"", load:function(){ addRyanThoughtExperiments("kid2"); }},
-    {label:"Ryan: Thought Experiments, 20 more daily warm-ups", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS_2, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_THOUGHT_EXPERIMENTS_2); }},
+    {label:"Ryan: Thought Experiments, 22 more daily warm-ups (includes two MIT quantum light ones)", kid:"kid2", items:RYAN_THOUGHT_EXPERIMENTS_2, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_THOUGHT_EXPERIMENTS_2); }},
     {label:"Anna's October Skill Blocks", kid:"kid1", items:ANNA_OCT_SKILL_BLOCKS, oldPrefix:"", load:function(){ addAnnaOctoberSkillBlocks(); }}
   ].concat(checkinPackEntries());
 }
@@ -27087,7 +27090,7 @@ var RYAN_THOUGHT_EXPERIMENTS = [
   {d:30, title:"Thought Experiment: The Simulation Question",
     passage:"How would you actually know, for certain, that you're not dreaming or living inside a simulation right now?\nWhat's the difference between something being real and something just seeming completely real? Is there any test you could run to tell the difference — and if not, does it even matter?"}
 ];
-/* 20 more Thought Experiments for Ryan's daily warm-up slot (30 Oct 2026). Discussion questions with a typed or spoken answer box (Show What You Know); no right answer, no quiz. Facts checked: 8 switches = 256 patterns, sunlight takes about 8 minutes, Galileo's ship (about 400 years ago), the two-guards puzzle. */
+/* 20 more Thought Experiments for Ryan's daily warm-up slot (30 Oct 2026). Discussion questions with a typed or spoken answer box (Show What You Know); no right answer, no quiz. Two lessons are from MIT news that was opened and read (Nature Physics, 21 Mar 2025, and Nature, 13 Mar 2026). Facts checked: 8 switches = 256 patterns, sunlight takes about 8 minutes, Galileo's ship (about 400 years ago), the two-guards puzzle. */
 var RYAN_THOUGHT_EXPERIMENTS_2 = [
  {
   "d": 0,
@@ -27348,6 +27351,26 @@ var RYAN_THOUGHT_EXPERIMENTS_2 = [
   "crossSubjects": [
    "ELA"
   ]
+ },
+ {
+  "d": 20,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: Two Quantum Computers Talk With Half a Photon",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "materials": "https://news.mit.edu/2025/device-enables-direct-communication-among-multiple-quantum-processors-0321",
+  "passage": "Here's the Idea — Quantum computers are a brand new kind of computer. Scientists at MIT built a way for several of them to talk directly to each other. They send tiny particles of light, called photons, down a special wire that has no electrical resistance, called a superconducting wire. In their trick, they stop the photon halfway out, so half of it stays in the first computer and half travels away. When the second computer catches that half, the two computers become linked, which scientists call entangled, even though they are not touching. The wire has joints and bumps that bend the photon out of shape, so the team used a computer program that learns by trial and error to bend the signal the opposite way ahead of time, so it arrives right. This work was published in Nature Physics in March 2025.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Imagine you must send a message through a wobbly pipe that twists everything you send. How could you shape the message ahead of time so it arrives right? 3. Why would computers that are far apart need to talk to each other at all? 4. What do you think could go wrong when a message has to hop through many computers one at a time?\nCheck Yourself — Did you give a reason for your answers? Can you say in your own words why the scientists bent the signal before sending it?\nShow What You Know — Write or say your answers and your best reasons. A grown-up can read the MIT article from the link above with you if you want to see the real story, since it is written for adults."
+ },
+ {
+  "d": 21,
+  "subject": "Live Lesson",
+  "title": "Thought Experiment: Tiny Ski Jumps That Shoot Light",
+  "xp": 10,
+  "standard": "ELAGSE4SL1",
+  "stage": "discuss",
+  "materials": "https://www.eecs.mit.edu/new-photonic-device-efficiently-beams-light-into-free-space/",
+  "passage": "Here's the Idea — In March 2026, scientists from MIT and other places showed a computer chip that shoots out beams of light from thousands of tiny structures that curve up off the chip, like tiny glowing ski jumps. They made each one from two thin layers of different materials. The layers shrink by different amounts as they cool, so the whole thing bends upward, like the curly coil inside some thermostats. Switches on the chip turn each beam on and off so the beams can be aimed. They used it to project full-color pictures about half the size of a grain of table salt. One scientist said, 'We can't control a million laser beams, but we may need to control a million qubits,' because quantum computers might one day need a million tiny parts to be controlled. It was published in the journal Nature.\nYour Turn — 1. Read it twice and think quietly for one minute. 2. Why is it hard to control a million tiny things one at a time? 3. If you had thousands of tiny lights, how could you tell each one what to do without thousands of wires? 4. What would you want to build with a thousand tiny beams of light, and what could go wrong?\nCheck Yourself — Did you give a reason for your answers? Can you say how two layers that shrink by different amounts can make something curve?\nShow What You Know — Write or say your answers and your best reasons. A grown-up can read the MIT article from the link above with you, since it is written for adults."
  }
 ];
 function addRyanThoughtExperiments(kidId){
@@ -27547,7 +27570,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-30.8";
+var APP_BUILD = "2026-10-30.9";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
