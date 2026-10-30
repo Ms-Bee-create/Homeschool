@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ryan's VR Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:sans-serif;overflow:hidden}
+  canvas{display:block;width:100vw;height:100vh;background:#000}
+  #start{position:fixed;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:#0b1020;text-align:center;padding:16px;box-sizing:border-box}
+  #start button{font-size:24px;padding:16px 28px;border-radius:12px;border:0;background:#ffd23f;color:#000;margin:8px}
+  #start p{max-width:520px;font-size:16px;line-height:1.4}
+</style>
+</head>
+<body>
+<div id="start">
+  <h2>VR Viewer</h2>
+  <p>Turn the phone sideways. Tap <b>Start</b>, then slide the phone into the headset. Look around!
+  Tap the screen to face forward again. Short turns only, and take a break if you feel dizzy.</p>
+  <button id="go">Start</button>
+  <p id="msg"></p>
+</div>
+<canvas id="c"></canvas>
+<script>
+/* ============================================================
+   RYAN: THIS IS YOUR SCENE. Change the numbers and see what happens.
+   Each cube is  [x, y, z, size, color].  x = left/right, y = up/down,
+   z = forward/back (negative z is in front of you at the start).
+   ============================================================ */
+var CUBES = [
+  [ 0, 0, -6, 1.5, "#ffd23f"],
+  [ 4, 0, -8, 1.0, "#3fd2ff"],
+  [-4, 1, -7, 2.0, "#ff6b9d"],
+  [ 8, 0,  0, 1.5, "#7dff6b"],
+  [-8, 0,  2, 1.5, "#ff9f43"],
+  [ 0, 0,  7, 2.0, "#c77dff"],
+  [ 3, 3, -3, 0.6, "#ffffff"]
+];
+var FLOOR_COLOR = "#2a3a66";   // the grid on the ground
+var EYE_GAP = 0.064;           // distance between your eyes in meters (real: about 0.064)
+var EYE_HEIGHT = 1.4;          // how tall the viewer is in the scene
+/* ============================================================ */
+
+var cv = document.getElementById("c"), ctx = cv.getContext("2d");
+var W = 0, H = 0;
+function resize(){
+  var r = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.floor(W * Math.min(r, 2)); cv.height = Math.floor(H * Math.min(r, 2));
+  ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+}
+window.addEventListener("resize", resize); resize();
+
+/* ---- tiny 3x3 matrix helpers (row-major arrays of 9) ---- */
+function mul(a, b){
+  var o = [0,0,0,0,0,0,0,0,0], i, j, k;
+  for (i = 0; i < 3; i++) for (j = 0; j < 3; j++) for (k = 0; k < 3; k++) o[i*3+j] += a[i*3+k] * b[k*3+j];
+  return o;
+}
+function rx(t){ var c = Math.cos(t), s = Math.sin(t); return [1,0,0, 0,c,-s, 0,s,c]; }
+function ry(t){ var c = Math.cos(t), s = Math.sin(t); return [c,0,s, 0,1,0, -s,0,c]; }
+function rz(t){ var c = Math.cos(t), s = Math.sin(t); return [c,-s,0, s,c,0, 0,0,1]; }
+var D2R = Math.PI / 180;
+
+/* ---- where is the phone pointing? ---- */
+var orient = null;          // {alpha,beta,gamma} from the phone's sensors
+var yawOffset = 0;          // set when you tap to "face forward"
+var dragYaw = 0, dragPitch = 0;   // fallback for computers: drag with the mouse
+var haveSensor = false;
+
+function screenAngle(){
+  var a = (screen.orientation && typeof screen.orientation.angle === "number") ? screen.orientation.angle : (window.orientation || 0);
+  return a * D2R;
+}
+function cameraMatrix(){
+  var R;
+  if (haveSensor && orient){
+    // phone sensors -> a camera that looks along -z with y up (same idea as three.js)
+    R = mul(ry(orient.alpha * D2R), rx(orient.beta * D2R));
+    R = mul(R, rz(-orient.gamma * D2R));
+    R = mul(R, rx(-Math.PI / 2));
+    R = mul(R, rz(-screenAngle()));
+    R = mul(ry(-yawOffset), R);
+  } else {
+    R = mul(ry(dragYaw), rx(dragPitch));
+  }
+  return R;
+}
+
+/* ---- the shapes: lines only, so even an old phone can draw them ---- */
+var CUBE_PTS = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+var CUBE_EDGES = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+
+var stars = [];
+(function(){
+  for (var i = 0; i < 120; i++){
+    var a = Math.random() * 6.283, b = (Math.random() - 0.3) * 2.2;
+    stars.push([Math.cos(a) * 40, b * 25, Math.sin(a) * 40]);
+  }
+})();
+
+function drawEye(x0, w, R, eyeShift){
+  var f = H * 0.62;                     // how zoomed in (bigger = narrower view)
+  var cx = x0 + w / 2, cy = H / 2;
+  var eye = [R[0] * eyeShift, EYE_HEIGHT + R[3] * eyeShift, R[6] * eyeShift]; // eye moves left/right along camera "right"
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0, 0, w, H); ctx.clip();
+  ctx.fillStyle = "#050814"; ctx.fillRect(x0, 0, w, H);
+
+  function project(p){                  // world point -> screen point (or null if behind you)
+    var dx = p[0] - eye[0], dy = p[1] - eye[1], dz = p[2] - eye[2];
+    // multiply by R transposed: world -> camera
+    var X = R[0]*dx + R[3]*dy + R[6]*dz;
+    var Y = R[1]*dx + R[4]*dy + R[7]*dz;
+    var Z = R[2]*dx + R[5]*dy + R[8]*dz;
+    if (Z > -0.1) return null;
+    return [cx + f * X / -Z, cy - f * Y / -Z];
+  }
+  function line(a, b, color){
+    var pa = project(a), pb = project(b);
+    if (!pa || !pb) return;
+    ctx.strokeStyle = color; ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+  }
+
+  // stars
+  ctx.fillStyle = "#cfd8ff";
+  for (var s = 0; s < stars.length; s++){
+    var ps = project(stars[s]); if (ps) ctx.fillRect(ps[0], ps[1], 2, 2);
+  }
+  // floor grid
+  ctx.lineWidth = 1.5;
+  for (var g = -20; g <= 20; g += 2){
+    line([g, 0, -20], [g, 0, 20], FLOOR_COLOR);
+    line([-20, 0, g], [20, 0, g], FLOOR_COLOR);
+  }
+  // cubes
+  ctx.lineWidth = 2.5;
+  for (var c = 0; c < CUBES.length; c++){
+    var q = CUBES[c], half = q[3] / 2, pts = [];
+    for (var v = 0; v < 8; v++){
+      pts.push([q[0] + CUBE_PTS[v][0] * half, q[1] + half + CUBE_PTS[v][1] * half, q[2] + CUBE_PTS[v][2] * half]);
+    }
+    for (var e = 0; e < CUBE_EDGES.length; e++) line(pts[CUBE_EDGES[e][0]], pts[CUBE_EDGES[e][1]], q[4]);
+  }
+  // little center dot so you can aim
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+
+function frame(){
+  ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  var R = cameraMatrix();
+  var half = W / 2;
+  drawEye(0, half, R, -EYE_GAP / 2);     // left eye picture
+  drawEye(half, half, R, EYE_GAP / 2);   // right eye picture (a tiny bit different!)
+  ctx.fillStyle = "#000"; ctx.fillRect(half - 1, 0, 2, H);
+  requestAnimationFrame(frame);
+}
+
+/* ---- start, sensors, controls ---- */
+function onOrient(e){
+  if (e.alpha === null || e.alpha === undefined) return;
+  orient = {alpha: e.alpha, beta: e.beta, gamma: e.gamma};
+  haveSensor = true;
+}
+function recenter(){
+  if (haveSensor && orient){
+    // face forward: remember the current compass direction as "straight ahead"
+    var R = mul(ry(orient.alpha * D2R), rx(orient.beta * D2R));
+    R = mul(R, rz(-orient.gamma * D2R));
+    R = mul(R, rx(-Math.PI / 2));
+    R = mul(R, rz(-screenAngle()));
+    yawOffset = Math.atan2(R[2], R[8]);   // compass direction you are facing right now
+  }
+}
+function begin(){
+  document.getElementById("start").style.display = "none";
+  var el = document.documentElement;
+  try { (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el); } catch (e) {}
+  try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function(){}); } catch (e) {}
+  if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function"){
+    DeviceOrientationEvent.requestPermission().then(function(s){
+      if (s === "granted") window.addEventListener("deviceorientation", onOrient, true);
+    }).catch(function(){});
+  } else {
+    window.addEventListener("deviceorientation", onOrient, true);
+  }
+  window.addEventListener("click", recenter);
+  frame();
+  setTimeout(recenter, 1500);
+}
+document.getElementById("go").addEventListener("click", begin);
+
+// computer fallback: drag to look
+var down = false, lx = 0, ly = 0;
+cv.addEventListener("mousedown", function(e){ down = true; lx = e.clientX; ly = e.clientY; });
+window.addEventListener("mouseup", function(){ down = false; });
+window.addEventListener("mousemove", function(e){
+  if (!down || haveSensor) return;
+  dragYaw -= (e.clientX - lx) * 0.005; dragPitch -= (e.clientY - ly) * 0.005;
+  dragPitch = Math.max(-1.4, Math.min(1.4, dragPitch)); lx = e.clientX; ly = e.clientY;
+});
+if (!("ondeviceorientation" in window)) document.getElementById("msg").textContent = "No motion sensor found. On a computer, drag with the mouse to look around.";
+</script>
+</body>
+</html>
