@@ -616,3 +616,11 @@ Live at https://ms-bee-create.github.io/Homeschool/world/town/ (separate from th
 - Anna's version idea: same engine with her rooms as jobs (Bakery for Math, Bookshop for Story, Pet Shop for Animals, Town Hall, Faith Hall, Art Studio) and her softer look.
 - Not done: jobs paying coins for real lessons, decorating a house, mini-games, passing the real explorer in from the app, a live connection between computers, sounds, touch controls.
 - Tested in headless Chrome only (walking, gate blocks and opens, two explorers, emotes, no page errors).
+
+## Different worlds (31 Oct 2026)
+Ryan asked for different worlds you can go to; Mom says Wobbly Town is the MAIN world (both kids like it), Minecraft is a world he can travel to.
+- Forge Town (world/town/) has a purple portal just outside the lesson gate (z = FENCE+14), so reaching other worlds is a reward for finishing the day's lessons. The WORLDS list near the portal code holds name, icon and path (add more worlds there).
+- The Minecraft world (world/) has a purple arch 6 blocks in front of the spawn that goes back to the town.
+- Travelling carries the explorer in the link (#p={id,name,look,wear,unlocked}). Inside the app (iframe) the page posts {forge:"changeWorld", world:"minecraft"|"town"} to the parent instead, so the app can decide. Not wired to the app yet.
+- Tested in headless Chrome: town -> Minecraft -> town, name and look carried across, no errors.
+- Idea list for more worlds: a space world, Anna's garden world, a build-your-own-house world.

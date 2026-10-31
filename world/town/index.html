@@ -128,6 +128,24 @@ function setUnlocked(v){
 }
 addEventListener("message", function(ev){ if (ev.data && ev.data.forge === "unlock") setUnlocked(ev.data.value !== false); });
 
+/* ---------- the portal: other worlds you can travel to. It stands just outside the gate, so it opens up after the day's lessons. ---------- */
+var WORLDS = [{key:"minecraft", name:"Minecraft World", icon:"⛏️", path:"../"}];
+var PORTAL = {x:0, z:FENCE + 14, world:WORLDS[0]};
+(function(){
+  var g = new THREE.Group(); g.position.set(PORTAL.x, 0, PORTAL.z);
+  var ring = mesh(new THREE.TorusGeometry(2.4, 0.45, 12, 32), 0xa855f7, 0, 2.9, 0); g.add(ring);
+  var swirl = mesh(new THREE.CircleGeometry(2.0, 28), 0xd8b4fe, 0, 2.9, 0); swirl.material.transparent = true; swirl.material.opacity = 0.6; swirl.material.side = THREE.DoubleSide; g.add(swirl);
+  g.add(mesh(new THREE.BoxGeometry(1.2, 0.5, 1.2), 0x6b21a8, -2.4, 0.25, 0)); g.add(mesh(new THREE.BoxGeometry(1.2, 0.5, 1.2), 0x6b21a8, 2.4, 0.25, 0));
+  scene.add(g); PORTAL.swirl = swirl;
+  var sign = labelSprite(WORLDS[0].icon + " " + WORLDS[0].name, 6); sign.position.set(PORTAL.x, 6.4, PORTAL.z); scene.add(sign);
+})();
+function nearPortal(){ return Math.hypot(me.x - PORTAL.x, me.z - PORTAL.z) < 3.2; }
+function goWorld(w){
+  try { if (parent !== window){ parent.postMessage({forge:"changeWorld", world:w.key}, "*"); toast("Travelling to " + w.name + "..."); return; } } catch (e) {}
+  var hash = "#p=" + encodeURIComponent(JSON.stringify({id:ME.id, name:ME.name, look:ME.look, wear:ME.wear, unlocked:unlocked}));
+  toast("Travelling to " + w.name + "..."); setTimeout(function(){ location.href = w.path + hash; }, 500);
+}
+
 /* ---------- wobbly characters ---------- */
 function buildChar(look, wear){
   var root = new THREE.Group(), wob = new THREE.Group(); root.add(wob);
@@ -205,6 +223,7 @@ var toastT = null;
 function toast(t){ var el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(function(){ el.style.display = "none"; }, 3500); }
 function nearJob(){ for (var i = 0; i < jobSpots.length; i++){ var s = jobSpots[i]; if (Math.hypot(me.x - s.x, me.z - s.z) < 2.3) return s; } return null; }
 function useJob(){
+  if (typeof nearPortal === "function" && nearPortal()){ goWorld(PORTAL.world); return; }
   var s = nearJob(); if (!s) return;
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:s.job.key}, "*"); } catch (e) {}
   toast("In the real app, this opens the " + s.job.name + " lessons and pays coins when you finish.");
@@ -287,7 +306,9 @@ function step(dt){
   var key2 = [me.x.toFixed(1), me.y.toFixed(1), me.z.toFixed(1), me.heading.toFixed(1), me.flop].join();
   if ((key2 !== lastPos && Date.now() - lastSent > 200) || Date.now() - lastSent > 2000){ lastPos = key2; sendNow(); }
   var nj = nearJob(), pr = document.getElementById("prompt");
-  if (nj){ pr.textContent = "Press E to start: " + nj.job.icon + " " + nj.job.name; pr.style.display = "block"; }
+  PORTAL.swirl.rotation.z += dt * 1.5;
+  if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.world.icon + " " + PORTAL.world.name; pr.style.display = "block"; }
+  else if (nj){ pr.textContent = "Press E to start: " + nj.job.icon + " " + nj.job.name; pr.style.display = "block"; }
   else if (!unlocked && Math.hypot(me.x, me.z - FENCE) < 5){ pr.textContent = "🔒 The gate opens when today's lessons are done"; pr.style.display = "block"; }
   else pr.style.display = "none";
 }
