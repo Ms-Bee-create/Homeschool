@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forge Town</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+  html,body{margin:0;height:100%;background:#9fd8ff;overflow:hidden;font-family:"Trebuchet MS",Verdana,sans-serif;color:#fff}
+  canvas{display:block}
+  .pill{position:fixed;background:rgba(20,30,60,.75);border:3px solid #000;border-radius:14px;padding:5px 12px;font-size:15px}
+  #who{left:10px;top:10px}
+  #gate{right:10px;top:10px}
+  #prompt{left:50%;top:60%;transform:translateX(-50%);font-size:20px;display:none;background:rgba(0,0,0,.7)}
+  #toast{left:50%;top:12%;transform:translateX(-50%);background:#ffd23f;color:#222;font-size:18px;display:none}
+  #emotes{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);display:flex;gap:8px;background:rgba(20,30,60,.7);border:3px solid #000;border-radius:16px;padding:6px 10px}
+  #emotes button{font-size:26px;background:#fff;border:3px solid #000;border-radius:12px;cursor:pointer;padding:2px 8px}
+  #emotes button:hover{background:#ffd23f}
+  #hint{position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);font-size:14px;padding:6px 12px;text-align:center}
+  #start{position:fixed;inset:0;background:rgba(15,20,50,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
+  #start button{font-size:24px;padding:14px 30px;background:#ffd23f;border:4px solid #000;border-radius:16px;cursor:pointer;font-family:inherit;font-weight:bold;color:#222}
+  #start p{max-width:560px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="pill" id="who"></div>
+<div class="pill" id="gate"></div>
+<div class="pill" id="prompt"></div>
+<div class="pill" id="toast"></div>
+<div id="emotes"></div>
+<div id="hint">W A S D walk · mouse look (click the world first) · Space jump · E start a job · F flop · V see the whole town · press a picture to emote</div>
+<div id="start">
+  <h1>Forge Town</h1>
+  <p>Walk around town, find the jobs, and stand on a glowing circle to start one. Finish today's lessons to open the gate to the big meadow. Open this page in a second window to see another explorer. Take a break if you feel dizzy.</p>
+  <button id="go">Click to play</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   THE JOBS. Each one is a building. Each job is one kind of lesson.
+   Change the names, colors and icons to make the town yours!
+   ============================================================ */
+var JOBS = [
+  {key:"scratchos", name:"Game Studio",     icon:"🎮", wall:"#7dc95e", roof:"#2f8f3a", door:"#ffd23f"},
+  {key:"underhood", name:"Repair Shop",     icon:"🔧", wall:"#a9b0bd", roof:"#5d6678", door:"#ff9f43"},
+  {key:"viewer",    name:"Builder's Workshop", icon:"🧱", wall:"#f1d98a", roof:"#c2893a", door:"#3fb8e0"},
+  {key:"vrlab",     name:"VR Arcade",       icon:"🥽", wall:"#c88a64", roof:"#7a3f2a", door:"#ff6b9d"},
+  {key:"johnnyos",  name:"Computer Store",  icon:"💻", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b"}
+];
+/* ============================================================ */
+
+var P = {}; try { var mm = /[#&]p=([^&]*)/.exec(location.hash); if (mm) P = JSON.parse(decodeURIComponent(mm[1])); } catch (e) {}
+var ME = {id:P.id || ("p" + Math.random().toString(36).slice(2, 8)), name:P.name || "Explorer",
+  look:Object.assign({skin:"#f1c9a5", hair:"#4a2c12", style:"short", outfit:"#3f7dff"}, P.look || {}), wear:P.wear || {}};
+document.getElementById("who").textContent = "You are " + ME.name;
+var unlocked = P.unlocked === true;
+
+var scene = new THREE.Scene(); scene.background = new THREE.Color(0x9fd8ff); scene.fog = new THREE.Fog(0x9fd8ff, 60, 170);
+var camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 300);
+var renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth, innerHeight); document.body.appendChild(renderer.domElement);
+addEventListener("resize", function(){ camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+scene.add(new THREE.AmbientLight(0xffffff, 0.62)); var sun = new THREE.DirectionalLight(0xffffff, 0.42); sun.position.set(40, 80, 30); scene.add(sun);
+
+function mat(c){ return new THREE.MeshLambertMaterial({color:c}); }
+function mesh(geo, c, x, y, z){ var m = new THREE.Mesh(geo, mat(c)); m.position.set(x || 0, y || 0, z || 0); return m; }
+function hash(i){ var h = Math.imul(i + 1, 2654435761) ^ 0x9e3779b9; h = Math.imul(h ^ (h >>> 15), 2246822519); return ((h ^ (h >>> 13)) >>> 0) / 4294967295; }
+function labelSprite(text, w){
+  var c = document.createElement("canvas"); c.width = 512; c.height = 96; var g = c.getContext("2d");
+  g.fillStyle = "rgba(20,30,60,.8)"; g.fillRect(0, 0, 512, 96); g.fillStyle = "#fff"; g.font = "bold 44px Trebuchet MS, Verdana, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 256, 50);
+  var s = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthTest:false, fog:false})); s.scale.set(w, w * 96 / 512, 1); s.renderOrder = 10; return s;
+}
+function emojiSprite(e, size){
+  var c = document.createElement("canvas"); c.width = c.height = 128; var g = c.getContext("2d"); g.font = "96px serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(e, 64, 70);
+  var s = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c), transparent:true, depthTest:false, fog:false})); s.scale.set(size || 1, size || 1, 1); s.renderOrder = 11; return s;
+}
+
+/* ---------- the town ---------- */
+var colliders = [];   // circles {x, z, r} and boxes {x0, z0, x1, z1}
+var ground = mesh(new THREE.PlaneGeometry(500, 500), 0x6cc55a); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+var plaza = mesh(new THREE.CircleGeometry(9, 40), 0xd9d4c4, 0, 0.03, 0); plaza.rotation.x = -Math.PI / 2; scene.add(plaza);
+function road(x, z, w, d){ var r = mesh(new THREE.PlaneGeometry(w, d), 0x555a66, x, 0.02, z); r.rotation.x = -Math.PI / 2; scene.add(r); }
+road(0, 0, 6, 62); road(0, 0, 62, 6);
+var pond = mesh(new THREE.CircleGeometry(14, 40), 0x4db3ff, -70, 0.04, 75); pond.rotation.x = -Math.PI / 2; scene.add(pond);
+
+var jobSpots = [];
+JOBS.forEach(function(j, i){
+  var ang = i / JOBS.length * Math.PI * 2 + 0.5, bx = Math.cos(ang) * 17, bz = Math.sin(ang) * 17, face = Math.atan2(-bx, -bz);
+  var g = new THREE.Group(); g.position.set(bx, 0, bz); g.rotation.y = face;
+  g.add(mesh(new THREE.BoxGeometry(8, 5, 8), j.wall, 0, 2.5, 0));
+  var roof = mesh(new THREE.ConeGeometry(6.4, 2.6, 4), j.roof, 0, 6.3, 0); roof.rotation.y = Math.PI / 4; g.add(roof);
+  g.add(mesh(new THREE.BoxGeometry(1.8, 2.4, 0.3), j.door, 0, 1.2, 4.05));
+  g.add(mesh(new THREE.BoxGeometry(1.2, 1.2, 0.2), 0xbfe8ff, -2.6, 2.8, 4.02)); g.add(mesh(new THREE.BoxGeometry(1.2, 1.2, 0.2), 0xbfe8ff, 2.6, 2.8, 4.02));
+  scene.add(g);
+  var sign = labelSprite(j.icon + " " + j.name, 6.5); sign.position.set(bx, 8.6, bz); scene.add(sign);
+  colliders.push({x:bx, z:bz, r:5.2});
+  var mx = bx + Math.sin(face) * 6.4, mz = bz + Math.cos(face) * 6.4;
+  var ring = mesh(new THREE.RingGeometry(1.0, 1.5, 28), j.door, mx, 0.06, mz); ring.rotation.x = -Math.PI / 2; ring.material.side = THREE.DoubleSide; scene.add(ring);
+  jobSpots.push({job:j, x:mx, z:mz, ring:ring});
+});
+
+function tree(x, z, s){
+  var t = new THREE.Group(); t.position.set(x, 0, z);
+  t.add(mesh(new THREE.CylinderGeometry(0.3 * s, 0.4 * s, 2 * s, 8), 0x8a5a34, 0, s, 0));
+  t.add(mesh(new THREE.SphereGeometry(1.6 * s, 10, 8), 0x2f9a45, 0, 3 * s, 0));
+  scene.add(t); colliders.push({x:x, z:z, r:0.7 * s});
+}
+for (var i = 0; i < 140; i++){
+  var tx = (hash(i * 3) - 0.5) * 300, tz = (hash(i * 3 + 1) - 0.5) * 300, inTown = Math.abs(tx) < 36 && Math.abs(tz) < 36;
+  var nearPond = Math.hypot(tx + 70, tz - 75) < 18;
+  if (!inTown && !nearPond) tree(tx, tz, 0.9 + hash(i * 3 + 2) * 0.8);
+}
+[[-6, -6], [7, 8], [-8, 7], [8, -7]].forEach(function(p){ tree(p[0], p[1], 0.8); });
+
+/* the fence and the gate: closed until today's lessons are done */
+var FENCE = 32, GATE = 3.5;
+function fenceSeg(x0, z0, x1, z1){
+  var w = Math.max(x1 - x0, 0.5), d = Math.max(z1 - z0, 0.5);
+  var m = mesh(new THREE.BoxGeometry(w, 1.4, d), 0xc98a4b, (x0 + x1) / 2, 0.7, (z0 + z1) / 2); scene.add(m); colliders.push({x0:x0, z0:z0, x1:x1, z1:z1}); return m;
+}
+fenceSeg(-FENCE, -FENCE - 0.25, FENCE, -FENCE + 0.25); fenceSeg(-FENCE - 0.25, -FENCE, -FENCE + 0.25, FENCE); fenceSeg(FENCE - 0.25, -FENCE, FENCE + 0.25, FENCE);
+fenceSeg(-FENCE, FENCE - 0.25, -GATE, FENCE + 0.25); fenceSeg(GATE, FENCE - 0.25, FENCE, FENCE + 0.25);
+var gateMesh = mesh(new THREE.BoxGeometry(GATE * 2, 2.2, 0.4), 0xe04848, 0, 1.1, FENCE), gateBox = {x0:-GATE, z0:FENCE - 0.3, x1:GATE, z1:FENCE + 0.3, gate:true};
+scene.add(gateMesh); colliders.push(gateBox);
+var gateSign = labelSprite("🔒 Finish today's lessons to open the gate", 7); gateSign.position.set(0, 3.6, FENCE); scene.add(gateSign);
+function setUnlocked(v){
+  unlocked = !!v; gateMesh.visible = !unlocked; gateSign.visible = !unlocked; gateBox.off = unlocked;
+  document.getElementById("gate").textContent = unlocked ? "🔓 The gate is open!" : "🔒 Gate: finish today's lessons";
+  if (unlocked) toast("The gate is open! Go explore the meadow.");
+}
+addEventListener("message", function(ev){ if (ev.data && ev.data.forge === "unlock") setUnlocked(ev.data.value !== false); });
+
+/* ---------- wobbly characters ---------- */
+function buildChar(look, wear){
+  var root = new THREE.Group(), wob = new THREE.Group(); root.add(wob);
+  var L = look, W = wear || {};
+  var legs = [], arms = [];
+  [-0.17, 0.17].forEach(function(x){ var p = new THREE.Group(); p.position.set(x, 0.55, 0); p.add(mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.55, 10), "#2b3a8f", 0, -0.27, 0)); wob.add(p); legs.push(p); });
+  var body = mesh(new THREE.SphereGeometry(0.42, 14, 12), L.outfit, 0, 0.95, 0); body.scale.set(1, 1.15, 0.85); wob.add(body);
+  [-0.5, 0.5].forEach(function(x){ var p = new THREE.Group(); p.position.set(x, 1.15, 0); p.add(mesh(new THREE.SphereGeometry(0.13, 8, 8), L.skin, 0, -0.38, 0)); p.add(mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.4, 8), L.outfit, 0, -0.18, 0)); wob.add(p); arms.push(p); });
+  var head = new THREE.Group(); head.position.set(0, 1.72, 0); wob.add(head);
+  head.add(mesh(new THREE.SphereGeometry(0.36, 16, 12), L.skin, 0, 0, 0));
+  head.add(mesh(new THREE.SphereGeometry(0.05, 8, 8), "#111", -0.13, 0.04, 0.33)); head.add(mesh(new THREE.SphereGeometry(0.05, 8, 8), "#111", 0.13, 0.04, 0.33));
+  var st = L.style, hc = L.hair;
+  if (st !== "cap"){ var cap = mesh(new THREE.SphereGeometry(0.39, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hc, 0, 0.02, -0.02); head.add(cap); }
+  if (st === "long"){ head.add(mesh(new THREE.SphereGeometry(0.4, 12, 10), hc, 0, -0.2, -0.18)); }
+  if (st === "ponytail") head.add(mesh(new THREE.SphereGeometry(0.16, 8, 8), hc, 0, 0.0, -0.45));
+  if (st === "braid") head.add(mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.6, 8), hc, 0, -0.35, -0.4));
+  if (st === "spiky") [-0.2, 0, 0.2].forEach(function(x){ head.add(mesh(new THREE.ConeGeometry(0.1, 0.3, 6), hc, x, 0.42, 0)); });
+  if (st === "curly") [-0.3, 0.3, 0].forEach(function(x){ head.add(mesh(new THREE.SphereGeometry(0.16, 8, 8), hc, x, 0.28, 0)); });
+  if (st === "cap"){ head.add(mesh(new THREE.SphereGeometry(0.39, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), L.outfit, 0, 0.03, 0)); head.add(mesh(new THREE.BoxGeometry(0.4, 0.04, 0.3), L.outfit, 0, 0.05, 0.4)); }
+  if (W.hat){ head.add(mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.05, 14), "#3d1a6a", 0, 0.34, 0)); head.add(mesh(new THREE.ConeGeometry(0.3, 0.7, 12), "#5b2a9a", 0, 0.7, 0)); }
+  if (W.shades) head.add(mesh(new THREE.BoxGeometry(0.55, 0.1, 0.05), "#000", 0, 0.06, 0.34));
+  if (W.bow) head.add(mesh(new THREE.BoxGeometry(0.26, 0.14, 0.08), "#ff5fa2", 0.25, 0.36, 0.1));
+  if (W.crown) [-0.2, 0, 0.2].forEach(function(x){ head.add(mesh(new THREE.ConeGeometry(0.07, 0.2, 5), "#ffd86b", x, 0.42, 0.05)); });
+  if (W.cape) wob.add(mesh(new THREE.BoxGeometry(0.8, 1.1, 0.05), "#c8282d", 0, 1.0, -0.38));
+  if (W.pack) wob.add(mesh(new THREE.BoxGeometry(0.42, 0.5, 0.2), "#8a5a34", 0, 1.0, -0.42));
+  if (W.wings){ var a = mesh(new THREE.BoxGeometry(0.6, 0.8, 0.04), "#bfe8ff", -0.45, 1.2, -0.4); a.rotation.z = 0.35; var b = mesh(new THREE.BoxGeometry(0.6, 0.8, 0.04), "#bfe8ff", 0.45, 1.2, -0.4); b.rotation.z = -0.35; wob.add(a); wob.add(b); }
+  if (W.pick) arms[0].add(mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), "#8a5a34", 0, -0.5, 0.15));
+  if (W.laptop) arms[0].add(mesh(new THREE.BoxGeometry(0.35, 0.25, 0.04), "#3fe0e6", 0, -0.45, 0.2));
+  if (W.robot){ var r = new THREE.Group(); r.position.set(0.9, 0, 0); r.add(mesh(new THREE.BoxGeometry(0.4, 0.4, 0.35), "#9aa4b2", 0, 0.3, 0)); r.add(mesh(new THREE.BoxGeometry(0.28, 0.24, 0.26), "#c9d1e0", 0, 0.62, 0)); root.add(r); }
+  var shadow = mesh(new THREE.CircleGeometry(0.5, 16), 0x000000, 0, 0.04, 0); shadow.rotation.x = -Math.PI / 2; shadow.material.transparent = true; shadow.material.opacity = 0.25; root.add(shadow);
+  root.userData = {wob:wob, legs:legs, arms:arms, head:head, shadow:shadow, lean:{x:0, z:0, vx:0, vz:0}, phase:0, squash:0, squashV:0, flop:0};
+  return root;
+}
+/* the wobble: lean into the direction you move with a springy overshoot, swing arms and legs, squash when landing */
+function wobble(ch, speed, fwd, right, dt, landed, flopping){
+  var u = ch.userData, L = u.lean, k = 90, d = 9;
+  var tx = fwd * 0.045, tz = -right * 0.045;               // lean target: forward when moving forward, sideways when strafing
+  L.vx += ((tx - L.x) * k - L.vx * d) * dt; L.vz += ((tz - L.z) * k - L.vz * d) * dt; L.x += L.vx * dt; L.z += L.vz * dt;
+  if (landed) u.squashV = -4;
+  u.squashV += ((0 - u.squash) * 120 - u.squashV * 10) * dt; u.squash += u.squashV * dt;
+  u.phase += speed * dt * 2.2; var sw = Math.sin(u.phase) * Math.min(1, speed / 3) * 0.9;
+  u.legs[0].rotation.x = sw; u.legs[1].rotation.x = -sw; u.arms[0].rotation.x = -sw; u.arms[1].rotation.x = sw;
+  u.flop += ((flopping ? 1 : 0) - u.flop) * Math.min(1, dt * 8);
+  u.wob.rotation.x = L.x + u.flop * 1.3; u.wob.rotation.z = L.z + Math.sin(u.phase * 2) * 0.04 * Math.min(1, speed / 3);
+  u.wob.scale.set(1 - u.squash * 0.25, 1 + u.squash * 0.35, 1 - u.squash * 0.25);
+  u.wob.position.y = Math.abs(Math.sin(u.phase)) * 0.06 * Math.min(1, speed / 3) - u.flop * 0.5;
+  u.head.rotation.x = -L.x * 0.6; u.head.rotation.z = -L.z * 0.6;
+}
+
+/* ---------- me ---------- */
+var me = {x:0, y:0, z:22, vx:0, vz:0, vy:0, heading:Math.PI, yaw:0, pitch:0.35, onGround:true, bird:false, flop:false, flopUntil:0};
+var myChar = buildChar(ME.look, ME.wear), myLabel = labelSprite(ME.name, 2); myLabel.position.y = 2.7; myChar.add(myLabel); scene.add(myChar);
+var myEmote = null, keys = {}, locked = false, dragging = false, lastMouse = null;
+var EMOTES = ["👋", "🎉", "😮", "👍", "❤️", "🤔"];
+var emBar = document.getElementById("emotes");
+EMOTES.forEach(function(e, i){ var b = document.createElement("button"); b.textContent = e; b.title = "Key " + (i + 1); b.onclick = function(){ emote(e); }; emBar.appendChild(b); });
+addEventListener("keydown", function(e){
+  keys[e.code] = true; if (e.code === "Space") e.preventDefault();
+  if (e.code === "KeyE") useJob(); if (e.code === "KeyV") me.bird = !me.bird;
+  if (e.code === "KeyF"){ me.flop = true; me.flopUntil = Date.now() + 1400; }
+  if (e.code === "KeyU") setUnlocked(!unlocked);   // for testing: opens or closes the gate
+  var n = parseInt(e.key, 10); if (n >= 1 && n <= 6) emote(EMOTES[n - 1]);
+});
+addEventListener("keyup", function(e){ keys[e.code] = false; });
+renderer.domElement.addEventListener("click", function(){ try { renderer.domElement.requestPointerLock(); } catch (e) {} });
+document.addEventListener("pointerlockchange", function(){ locked = document.pointerLockElement === renderer.domElement; });
+addEventListener("mousedown", function(e){ dragging = true; lastMouse = [e.clientX, e.clientY]; });
+addEventListener("mouseup", function(){ dragging = false; });
+addEventListener("mousemove", function(e){
+  var dx = 0, dy = 0;
+  if (locked){ dx = e.movementX; dy = e.movementY; } else if (dragging && lastMouse){ dx = e.clientX - lastMouse[0]; dy = e.clientY - lastMouse[1]; lastMouse = [e.clientX, e.clientY]; }
+  me.yaw -= dx * 0.0035; me.pitch = Math.max(0.05, Math.min(1.3, me.pitch + dy * 0.003));
+});
+var toastT = null;
+function toast(t){ var el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(function(){ el.style.display = "none"; }, 3500); }
+function nearJob(){ for (var i = 0; i < jobSpots.length; i++){ var s = jobSpots[i]; if (Math.hypot(me.x - s.x, me.z - s.z) < 2.3) return s; } return null; }
+function useJob(){
+  var s = nearJob(); if (!s) return;
+  try { if (parent !== window) parent.postMessage({forge:"enterZone", key:s.job.key}, "*"); } catch (e) {}
+  toast("In the real app, this opens the " + s.job.name + " lessons and pays coins when you finish.");
+}
+function emote(e){ if (myEmote) myChar.remove(myEmote); myEmote = emojiSprite(e, 1.1); myEmote.position.y = 3.4; myChar.add(myEmote); me.emote = e; me.emoteAt = Date.now(); sendNow(); }
+
+/* ---------- other explorers: the transport is swappable (tab-to-tab now, a live connection later) ---------- */
+var others = {};
+var net = (function(){
+  var ch = null; try { ch = new BroadcastChannel("forge-town"); } catch (e) {}
+  return {send:function(m){ if (ch) ch.postMessage(m); }, onmsg:function(f){ if (ch) ch.onmessage = function(ev){ f(ev.data); }; }};
+})();
+net.onmsg(function(m){
+  if (!m || m.id === ME.id) return;
+  var o = others[m.id];
+  if (!o){
+    var c = buildChar(m.look, m.wear), lab = labelSprite(m.name || "Explorer", 2); lab.position.y = 2.7; c.add(lab); scene.add(c);
+    o = others[m.id] = {c:c, x:m.x, z:m.z, y:m.y, tx:m.x, tz:m.z, ty:m.y, heading:m.heading, seen:0, emote:null, px:m.x, pz:m.z, flop:false}; c.position.set(m.x, m.y, m.z); toast(m.name + " joined the town!");
+  }
+  o.tx = m.x; o.tz = m.z; o.ty = m.y; o.heading = m.heading; o.seen = Date.now(); o.flop = !!m.flop;
+  if (m.emote && m.emoteAt !== o.lastEmoteAt){ o.lastEmoteAt = m.emoteAt; if (o.emote) o.c.remove(o.emote); o.emote = emojiSprite(m.emote, 1.1); o.emote.position.y = 3.4; o.c.add(o.emote); o.emoteUntil = Date.now() + 3000; }
+});
+var lastSent = 0, lastPos = "";
+function sendNow(){ net.send({id:ME.id, name:ME.name, look:ME.look, wear:ME.wear, x:me.x, y:me.y, z:me.z, heading:me.heading, emote:me.emote, emoteAt:me.emoteAt, flop:me.flop}); lastSent = Date.now(); }
+
+/* ---------- the loop ---------- */
+var prev = performance.now(), started = false, R = 0.45;
+function push(c){   // keep me out of trees, buildings and the fence
+  if (c.off) return;
+  if (c.r !== undefined){ var dx = me.x - c.x, dz = me.z - c.z, d = Math.hypot(dx, dz), min = c.r + R; if (d < min && d > 0.0001){ me.x = c.x + dx / d * min; me.z = c.z + dz / d * min; } }
+  else { var cx = Math.max(c.x0, Math.min(me.x, c.x1)), cz = Math.max(c.z0, Math.min(me.z, c.z1)), ddx = me.x - cx, ddz = me.z - cz, dd = Math.hypot(ddx, ddz);
+    if (dd < R){ if (dd > 0.0001){ me.x = cx + ddx / dd * R; me.z = cz + ddz / dd * R; } else { me.z = c.z1 + R; } } }
+}
+function frame(now){
+  var dt = Math.min((now - prev) / 1000, 0.05); prev = now;
+  if (started) step(dt);
+  renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+function step(dt){
+  var pads = navigator.getGamepads ? navigator.getGamepads() : [], pad = null; for (var i = 0; i < pads.length; i++) if (pads[i]){ pad = pads[i]; break; }
+  if (keys.ArrowLeft) me.yaw += 1.8 * dt; if (keys.ArrowRight) me.yaw -= 1.8 * dt;
+  var mx = 0, mz = 0, jump = !!keys.Space;
+  if (keys.KeyW) mz += 1; if (keys.KeyS) mz -= 1; if (keys.KeyD) mx += 1; if (keys.KeyA) mx -= 1;
+  if (pad){
+    if (Math.abs(pad.axes[0]) > 0.2) mx += pad.axes[0]; if (Math.abs(pad.axes[1]) > 0.2) mz -= pad.axes[1];
+    if (Math.abs(pad.axes[2] || 0) > 0.2) me.yaw -= pad.axes[2] * 2.2 * dt; if (pad.buttons[0] && pad.buttons[0].pressed) jump = true;
+    var xd = !!(pad.buttons[2] && pad.buttons[2].pressed); if (xd && !step.xDown) useJob(); step.xDown = xd;
+  }
+  var len = Math.hypot(mx, mz), flopping = Date.now() < me.flopUntil; if (!flopping) me.flop = false;
+  var speed = 6.2, tvx = 0, tvz = 0;
+  if (len > 0 && !flopping){
+    // forward is away from the camera: the camera sits behind me at angle yaw
+    var fx = -Math.sin(me.yaw), fz = -Math.cos(me.yaw), rx = Math.cos(me.yaw), rz = -Math.sin(me.yaw);
+    tvx = (fx * mz + rx * mx) / len * speed; tvz = (fz * mz + rz * mx) / len * speed;
+    me.heading = Math.atan2(tvx, tvz);
+  }
+  var a = Math.min(1, dt * 9); me.vx += (tvx - me.vx) * a; me.vz += (tvz - me.vz) * a;
+  me.x += me.vx * dt; me.z += me.vz * dt;
+  for (var c = 0; c < colliders.length; c++) push(colliders[c]);
+  var landed = false;
+  if (jump && me.onGround && !flopping){ me.vy = 8.5; me.onGround = false; }
+  me.vy -= 22 * dt; me.y += me.vy * dt; if (me.y <= 0){ if (!me.onGround && me.vy < -3) landed = true; me.y = 0; me.vy = 0; me.onGround = true; }
+  myChar.position.set(me.x, me.y, me.z); myChar.rotation.y = me.heading;
+  wobble(myChar, Math.hypot(me.vx, me.vz), me.vx * Math.sin(me.heading) + me.vz * Math.cos(me.heading), me.vx * Math.cos(me.heading) - me.vz * Math.sin(me.heading), dt, landed, flopping);
+  if (myEmote && Date.now() - me.emoteAt > 3000){ myChar.remove(myEmote); myEmote = null; me.emote = null; }
+  // camera orbits behind me
+  var dist = me.bird ? 38 : 7.5, pit = me.bird ? 1.1 : me.pitch;
+  camera.position.set(me.x + Math.sin(me.yaw) * Math.cos(pit) * dist, me.y + 1.6 + Math.sin(pit) * dist, me.z + Math.cos(me.yaw) * Math.cos(pit) * dist);
+  camera.lookAt(me.x, me.y + 1.5, me.z);
+  // job rings pulse
+  jobSpots.forEach(function(s){ var k = 1 + Math.sin(Date.now() / 300) * 0.12; s.ring.scale.set(k, k, k); });
+  Object.keys(others).forEach(function(id){
+    var o = others[id];
+    if (Date.now() - o.seen > 6000){ scene.remove(o.c); delete others[id]; return; }
+    var k = Math.min(1, dt * 10), ox = o.x, oz = o.z; o.x += (o.tx - o.x) * k; o.z += (o.tz - o.z) * k; o.y += (o.ty - o.y) * k;
+    var ovx = (o.x - ox) / dt, ovz = (o.z - oz) / dt; o.c.position.set(o.x, o.y, o.z); o.c.rotation.y = o.heading;
+    wobble(o.c, Math.hypot(ovx, ovz), ovx * Math.sin(o.heading) + ovz * Math.cos(o.heading), ovx * Math.cos(o.heading) - ovz * Math.sin(o.heading), dt, false, o.flop);
+    if (o.emote && Date.now() > o.emoteUntil){ o.c.remove(o.emote); o.emote = null; }
+  });
+  var key2 = [me.x.toFixed(1), me.y.toFixed(1), me.z.toFixed(1), me.heading.toFixed(1), me.flop].join();
+  if ((key2 !== lastPos && Date.now() - lastSent > 200) || Date.now() - lastSent > 2000){ lastPos = key2; sendNow(); }
+  var nj = nearJob(), pr = document.getElementById("prompt");
+  if (nj){ pr.textContent = "Press E to start: " + nj.job.icon + " " + nj.job.name; pr.style.display = "block"; }
+  else if (!unlocked && Math.hypot(me.x, me.z - FENCE) < 5){ pr.textContent = "🔒 The gate opens when today's lessons are done"; pr.style.display = "block"; }
+  else pr.style.display = "none";
+}
+setUnlocked(unlocked);
+document.getElementById("go").onclick = function(){ document.getElementById("start").style.display = "none"; started = true; try { renderer.domElement.requestPointerLock(); } catch (e) {} };
+requestAnimationFrame(frame);
+window.__town = {me:me, others:others, ME:ME, setUnlocked:setUnlocked, jobSpots:jobSpots, start:function(){ started = true; }};
+</script>
+</body>
+</html>
