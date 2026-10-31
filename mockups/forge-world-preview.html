@@ -10,10 +10,14 @@
   body{margin:0;background:var(--night);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif}
   .banner{background:#ffd23f;color:#222;text-align:center;font-size:13px;padding:6px 10px}
   .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--panel);border-bottom:4px solid #0a0e1c}
-  .avatar{width:44px;height:44px;position:relative;background:#e8b88a;border:3px solid #000;image-rendering:pixelated}
-  .avatar:before{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:#4a2c12}
-  .avatar:after{content:"";position:absolute;left:8px;top:18px;width:6px;height:6px;background:#000;box-shadow:16px 0 #000}
-  .avatar.visitor:before{background:#7a3b9a}
+  .av svg{display:block;shape-rendering:crispEdges}
+  .swatches{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px}
+  .sw{width:28px;height:28px;border:3px solid #000;cursor:pointer;padding:0}
+  .sw.on{outline:3px solid var(--gold)}
+  .opt{background:#0d1222;color:var(--ink);border:3px solid #000;padding:4px 10px;cursor:pointer;font-family:inherit;font-size:13px}
+  .opt.on{border-color:var(--gold)}
+  .builder{display:flex;gap:14px;align-items:flex-start}
+  .label{font-size:12px;color:var(--mute);margin-top:4px}
   .stat{background:#0d1222;border:3px solid #000;padding:5px 10px;font-weight:bold}
   .stat b{color:var(--gold)}
   .bar{height:12px;width:140px;background:#000;border:2px solid #000;display:inline-block;vertical-align:middle}
@@ -36,7 +40,8 @@
   .stop.lock{background:#444;color:#999;cursor:not-allowed}
   @keyframes pulse{50%{transform:translateY(-4px)}}
   .trophy{font-size:22px}
-  .me,.vis{position:absolute;transition:all .8s}
+  .me,.vis{position:absolute;transition:all .9s}
+  .me{left:30px;top:150px;z-index:2}
   .vis{right:30px;bottom:24px}
   .bubble{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);background:#fff;color:#222;border:3px solid #000;padding:2px 8px;font-size:22px;white-space:nowrap;display:none}
   .side{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
@@ -59,7 +64,7 @@
 <body>
 <div class="banner">PREVIEW ONLY: nothing here is saved or connected to the real lessons yet. Click things to try them.</div>
 <div class="top">
-  <div class="avatar" title="You"></div>
+  <div class="av" id="topAv" title="You"></div>
   <div class="stat">Level 7 <span class="bar"><i></i></span></div>
   <div class="stat">🪙 <b id="coins">120</b> coins</div>
   <div class="chap"><b>Chapter 2: The Lost Boot Sector.</b> Finish the Scratch OS zone to light the bridge to the next one.</div>
@@ -84,7 +89,8 @@
       <div class="path" data-zone="VR Lab Tower" data-n="5" data-done="5"></div>
       <div class="trophy">🏆 Zone complete!</div>
     </div>
-    <div class="vis" id="vis"><div class="bubble" id="bub"></div><div class="avatar visitor" title="A visitor from your family"></div></div>
+    <div class="me" id="me"><div class="av" id="meAv"></div></div>
+    <div class="vis" id="vis"><div class="bubble" id="bub"></div><div class="av" id="visAv" title="A visitor from your family"></div></div>
   </div>
 
   <div class="side">
@@ -92,6 +98,21 @@
       <h2>📜 Today's stop</h2>
       <div class="muted" id="ltxt">Click a glowing or gold square on the map to see the lesson.</div>
       <div style="margin-top:8px"><button class="btn" id="go" disabled>Start this lesson</button></div>
+    </div>
+
+    <div class="card">
+      <h2>🧑 Your explorer</h2>
+      <div class="builder">
+        <div class="av" id="bigAv"></div>
+        <div style="flex:1;min-width:0">
+          <div class="label">Skin</div><div class="swatches" id="skinSw"></div>
+          <div class="label">Hair color</div><div class="swatches" id="hairSw"></div>
+          <div class="label">Hair style</div><div class="swatches" id="styleSw"></div>
+          <div class="label">Shirt</div><div class="swatches" id="shirtSw"></div>
+        </div>
+      </div>
+      <div class="label">Things you own (tap to wear or take off)</div>
+      <div class="swatches" id="wearSw"><span class="muted" style="font-size:13px">Buy something in the shop below</span></div>
     </div>
 
     <div class="card">
@@ -122,12 +143,64 @@ var LESSONS = {
   "VR Lab Tower": ["Meet the Headset","The Headset and Phone Are a Team","Why VR Needs Lenses","Two Eyes, Two Views","Teach-Back"]
 };
 var coins = 120, picked = null;
+/* ---- the explorer: drawn from colored blocks, all original ---- */
+var me = {skin:"#e8b88a", hair:"#4a2c12", style:"short", shirt:"#3f7dff", wear:{}};
+var visitor = {skin:"#c68a5b", hair:"#7a3b9a", style:"long", shirt:"#ff6b9d", wear:{}};
+function r(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'"/>'; }
+function avatarSvg(a, px){
+  var o = "";
+  if (a.wear.cape) o += r(2,8,12,13,"#c8282d");
+  if (a.wear.pack) o += r(11,9,5,7,"#8a5a34");
+  o += r(4,16,3,8,"#2b3a8f") + r(9,16,3,8,"#2b3a8f");                 // legs
+  o += r(3,8,10,8,a.shirt) + r(0,8,3,7,a.skin) + r(13,8,3,7,a.skin); // body and arms
+  o += r(3,0,10,8,a.skin) + r(5,4,2,2,"#111") + r(9,4,2,2,"#111") + r(7,6.5,2,1,"#a0522d"); // head, eyes, mouth
+  if (a.style === "short") o += r(3,0,10,3,a.hair);
+  if (a.style === "long") o += r(3,0,10,3,a.hair) + r(2,2,2,9,a.hair) + r(12,2,2,9,a.hair);
+  if (a.style === "spiky") o += r(3,0,10,2,a.hair) + r(3,-2,2,2,a.hair) + r(7,-3,2,3,a.hair) + r(11,-2,2,2,a.hair);
+  if (a.style === "cap") o += r(2,0,12,3,a.shirt) + r(2,3,7,1,a.shirt);
+  if (a.wear.shades) o += r(4,4,8,2,"#000");
+  if (a.wear.hat) o += '<polygon points="3,0 13,0 8,-9" fill="#5b2a9a"/>' + r(1,0,14,1.5,"#3d1a6a");
+  return '<svg width="'+(18*px)+'" height="'+(34*px)+'" viewBox="-1 -10 18 34">'+o+'</svg>';
+}
+function drawAll(){
+  document.getElementById("topAv").innerHTML = avatarSvg(me, 2);
+  document.getElementById("meAv").innerHTML = avatarSvg(me, 2.2);
+  document.getElementById("bigAv").innerHTML = avatarSvg(me, 5);
+  document.getElementById("visAv").innerHTML = avatarSvg(visitor, 2.2);
+}
+function swatchRow(id, list, key, isColor){
+  var row = document.getElementById(id);
+  list.forEach(function(v){
+    var b = document.createElement("button");
+    if (isColor){ b.className = "sw"; b.style.background = v; } else { b.className = "opt"; b.textContent = v; }
+    b.onclick = function(){ me[key] = v; Array.prototype.forEach.call(row.children, function(c){ c.classList.remove("on"); }); b.classList.add("on"); drawAll(); };
+    if (me[key] === v) b.classList.add("on");
+    row.appendChild(b);
+  });
+}
+swatchRow("skinSw", ["#f1c9a5","#e8b88a","#c68a5b","#8d5524","#5a3a22"], "skin", true);
+swatchRow("hairSw", ["#4a2c12","#111111","#d9a441","#c8282d","#7a3b9a","#3fe0e6"], "hair", true);
+swatchRow("styleSw", ["short","long","spiky","cap"], "style", false);
+swatchRow("shirtSw", ["#3f7dff","#ff6b9d","#7dff6b","#ffd23f","#c77dff","#ff9f43"], "shirt", true);
+function addWearBtn(s){
+  var w = document.getElementById("wearSw"); if (!w.querySelector(".opt")) w.innerHTML = "";
+  var b = document.createElement("button"); b.className = "opt on"; b.textContent = s[0] + " " + s[1];
+  b.onclick = function(){ me.wear[s[3]] = !me.wear[s[3]]; b.classList.toggle("on", me.wear[s[3]]); drawAll(); };
+  w.appendChild(b);
+}
+drawAll();
+// the explorer walks to the zone you click
+function walkTo(pathEl){
+  var z = pathEl.parentNode, m = document.getElementById("me");
+  m.style.left = (z.offsetLeft + 14) + "px"; m.style.top = (z.offsetTop + z.offsetHeight - 6) + "px";
+}
+
 document.querySelectorAll(".path").forEach(function(p){
   var z = p.dataset.zone, n = +p.dataset.n, d = +p.dataset.done, lk = p.dataset.locked;
   for (var i = 0; i < n; i++){
     var b = document.createElement("button"); b.className = "stop " + (lk ? "lock" : i < d ? "done" : i === d ? "now" : "lock");
     b.textContent = lk ? "🔒" : i < d ? "✓" : (i + 1);
-    (function(i, b){ b.onclick = function(){
+    (function(i, b){ b.onclick = function(){ walkTo(p);
       if (b.classList.contains("lock")) { document.getElementById("ltxt").textContent = "Locked. Finish the stops before it to open this one."; document.getElementById("go").disabled = true; return; }
       document.getElementById("ltxt").innerHTML = "<b>" + z + ", stop " + (i + 1) + "</b><br>" + LESSONS[z][i] + (b.classList.contains("done") ? "<br><span class='muted'>Done. +XP earned.</span>" : "");
       document.getElementById("go").disabled = !b.classList.contains("now");
@@ -135,7 +208,7 @@ document.querySelectorAll(".path").forEach(function(p){
     p.appendChild(b);
   }
 });
-var SHOP = [["🔦","Torch",20],["🦊","Pet fox",60],["🖼️","Poster",30],["🏠","Tiny house",90]];
+var SHOP = [["🔦","Torch",20,0],["🦊","Pet fox",60,0],["🖼️","Poster",30,0],["🏠","Tiny house",90,0],["🎩","Wizard hat",50,"hat"],["🕶️","Shades",25,"shades"],["🎒","Backpack",35,"pack"],["🦸","Cape",60,"cape"]];
 var shop = document.getElementById("shop"), room = document.getElementById("room"), owned = [];
 SHOP.forEach(function(s){
   var d = document.createElement("div"); d.className = "item";
@@ -145,7 +218,8 @@ SHOP.forEach(function(s){
     if (coins < s[2]) { alert("Not enough coins yet. Keep doing lessons!"); return; }
     coins -= s[2]; document.getElementById("coins").textContent = coins; owned.push(s[1]);
     d.classList.add("owned"); d.querySelector("button").textContent = "Owned"; d.querySelector("button").disabled = true;
-    if (owned.length === 1) room.innerHTML = "";
+    if (owned.length === 1 && !s[3]) room.innerHTML = "";
+    if (s[3]){ me.wear[s[3]] = true; addWearBtn(s); drawAll(); return; }
     var e = document.createElement("span"); e.textContent = s[0]; e.title = s[1]; room.appendChild(e);
   };
   shop.appendChild(d);
