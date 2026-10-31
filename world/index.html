@@ -63,7 +63,7 @@ document.getElementById("who").textContent = "You are " + ME.name;
 var AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, WATER = 5, WOOD = 6, LEAVES = 7, PLANK = 8, DOOR0 = 9;   // DOOR0..DOOR0+4 are the five door colors
 var BLOCK_NAME = {grass:GRASS, dirt:DIRT, stone:STONE, sand:SAND, wood:WOOD, leaves:LEAVES, plank:PLANK};
 var CELL = {grassTop:[0,0], grassSide:[1,0], dirt:[2,0], stone:[3,0], sand:[0,1], water:[1,1], woodSide:[2,1], woodTop:[3,1], leaves:[0,2], plank:[1,2]};
-var DOOR_CELLS = [[2,2],[3,2],[0,3],[1,3],[2,3]], DOOR_COLORS = ["#ffd23f", "#ff9f43", "#3fe0e6", "#ff6b9d", "#7dff6b"];
+var DOOR_CELLS = [[2,2],[3,2],[0,3],[1,3],[2,3],[3,3]], DOOR_COLORS = ["#ffd23f", "#ff9f43", "#3fe0e6", "#ff6b9d", "#7dff6b", "#a855f7"];   // the sixth one is the portal
 function faceCell(id, face){   // face: 0 top, 1 bottom, 2 side
   if (id === GRASS) return face === 0 ? CELL.grassTop : face === 1 ? CELL.dirt : CELL.grassSide;
   if (id === DIRT) return CELL.dirt; if (id === STONE) return CELL.stone; if (id === SAND) return CELL.sand;
@@ -107,6 +107,11 @@ function hash2(x, z){ var h = Math.imul(x, 374761393) ^ Math.imul(z, 668265263) 
 /* ---------- the buildings, placed into the world as plain blocks ---------- */
 var structBlocks = {};   // chunk key -> list of [x, y, z, id]
 function putStruct(x, y, z, id){ var k = Math.floor(x / SIZE) + "," + Math.floor(z / SIZE); (structBlocks[k] = structBlocks[k] || []).push([x, y, z, id]); }
+var PORTAL_BLOCK = DOOR0 + 5, PORTAL = {x:0.5, z:-5.5, name:"Forge Town", icon:"🏙️", path:"town/"};
+(function(){   // a purple arch a few steps in front of where you start
+  for (var yy = 1; yy <= 4; yy++){ putStruct(-2, SPAWN_H + yy, -6, PORTAL_BLOCK); putStruct(2, SPAWN_H + yy, -6, PORTAL_BLOCK); }
+  for (var xx = -2; xx <= 2; xx++) putStruct(xx, SPAWN_H + 5, -6, PORTAL_BLOCK);
+})();
 var doorSpots = [];
 ZONES.forEach(function(zn, i){
   var ang = i / ZONES.length * Math.PI * 2 + 0.3, cx = Math.round(Math.cos(ang) * 13), cz = Math.round(Math.sin(ang) * 13), half = 3, base = SPAWN_H + 1;
@@ -308,7 +313,14 @@ addEventListener("mousemove", function(e){
 var toastT = null;
 function toast(t){ var el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(function(){ el.style.display = "none"; }, 3500); }
 function nearDoor(){ for (var i = 0; i < doorSpots.length; i++){ var d = doorSpots[i]; if (Math.hypot(me.x - d.x, me.z - d.z) < 2.6) return d; } return null; }
+function nearPortal(){ return Math.hypot(me.x - PORTAL.x, me.z - PORTAL.z) < 3; }
+function goTown(){
+  try { if (parent !== window){ parent.postMessage({forge:"changeWorld", world:"town"}, "*"); toast("Travelling to " + PORTAL.name + "..."); return; } } catch (e) {}
+  var hash = "#p=" + encodeURIComponent(JSON.stringify({id:ME.id, name:ME.name, look:ME.look, wear:ME.wear, unlocked:true}));
+  toast("Travelling to " + PORTAL.name + "..."); setTimeout(function(){ location.href = PORTAL.path + hash; }, 500);
+}
 function useDoor(){
+  if (nearPortal()){ goTown(); return; }
   var d = nearDoor(); if (!d) return;
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:d.zone.key}, "*"); } catch (e) {}
   toast("In the real app this opens the " + d.zone.name + " lessons.");
@@ -382,7 +394,8 @@ function step(dt){
   var key2 = [me.x.toFixed(1), me.y.toFixed(1), me.z.toFixed(1), me.yaw.toFixed(1)].join();
   if ((key2 !== lastPos && Date.now() - lastSent > 200) || Date.now() - lastSent > 2000){ lastPos = key2; sendNow(); }
   var nd = nearDoor(), pr = document.getElementById("prompt");
-  if (nd){ pr.textContent = "Press E to go in: " + nd.zone.name; pr.style.display = "block"; } else pr.style.display = "none";
+  if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.icon + " " + PORTAL.name; pr.style.display = "block"; }
+  else if (nd){ pr.textContent = "Press E to go in: " + nd.zone.name; pr.style.display = "block"; } else pr.style.display = "none";
 }
 
 /* ---------- start ---------- */
@@ -392,6 +405,7 @@ img.onload = function(){
   matSolid = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true});
   matWater = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true, transparent:true, opacity:0.72, depthWrite:false});
   doorSpots.forEach(function(ds){ var s = labelSprite(ds.zone.name, 6); s.position.set(ds.sx, ds.sy, ds.sz); scene.add(s); });
+  var ps = labelSprite(PORTAL.icon + " " + PORTAL.name, 5); ps.position.set(PORTAL.x, SPAWN_H + 7.2, PORTAL.z - 0.5); scene.add(ps);
   updateChunks(0, 0, 40);                                            // the middle of the world is ready before anyone walks in
   var btn = document.getElementById("go"); btn.disabled = false; btn.textContent = "Click to play";
   btn.onclick = function(){ document.getElementById("start").style.display = "none"; started = true; try { renderer.domElement.requestPointerLock(); } catch (e) {} };
