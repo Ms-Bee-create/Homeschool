@@ -587,3 +587,12 @@ Forge World previews, round 2 (31 Oct 2026): Ryan's preview now has carry items 
 Anna preview fix: long hair looked like a beard (back hair block wider than the head, showing under the chin) and the forehead was too big. Long hair is now two side strands behind the head, and all styles got bangs that cover most of the forehead.
 Anna preview: long hair is now drawn behind the head, shoulders and arms (one rounded shape drawn before the body), per Mom.
 Anna preview: long hair width trimmed to line up with the sides of her head (Mom).
+
+## Forge World, first real build (31 Oct 2026, build 2026-10-31.2)
+Home tile "Forge World" (Ryan) / "My Garden School" (Anna) opens renderWorld() (state.world; goTab and the tab click clear it; renderViewCore routes to it just before the lesson detail check).
+- Map: Ryan = every RYAN_PROJECTS pack that is loaded, as a zone with numbered stops (done = gold check, next = teal; this week's picked project is marked). Anna = a hallway of doors by subject (Math Meadow, Story Garden, Animal Pond, Our Town, Faith Hill, Art Studio) showing finished count and her next 6 lessons. A stop opens the REAL lesson (worldOpenLesson sets lessonDetailId and noteOverride).
+- Coins/flowers = floor(xp/5) minus spent. XP, levels and Momma Money are untouched. Spending never lowers level.
+- Explorer: Ryan = blocky sprite, Anna = rounded sprite, drawn in inline SVG (original art, rule 25). Look, worn items, owned items and spent are saved per kid in familyGoal().world (settings row; saveFamilyGoal keeps it).
+- Shop: Ryan pickaxe, laptop, robot buddy, wizard hat, shades, backpack, cape. Anna bow, flower crown, fairy wings, backpack. Tap an owned item to wear or take it off.
+- NOT built yet (from the previews): family emotes (needs a tiny shared write, watch Supabase egress, OPS_NOTES.md), garden/room items, story chapters, smoother art, Hear-this in the world, avatar on the Home hero/XP bar. Existing pets (My Pets) are left alone. Only reachable during school hours (the School-done screen replaces it after, same as the rest of the app).
+- Tested in the harness (fake database) only; NOT on a real device. Preview files in mockups/ are the design reference.
