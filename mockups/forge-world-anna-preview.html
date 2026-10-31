@@ -127,13 +127,13 @@ function avatarSvg(a, px, forceNoPet){
   o += '<path d="M12 17 L5 31 L19 31 Z" fill="'+a.dress+'"/><rect x="8" y="16" width="8" height="8" rx="3" fill="'+a.dress+'"/>';
   o += '<rect x="4.5" y="17" width="3" height="8" rx="1.5" fill="'+a.skin+'"/><rect x="16.5" y="17" width="3" height="8" rx="1.5" fill="'+a.skin+'"/>';
   // back hair
-  if (a.style === "long") o += '<rect x="4" y="6" width="16" height="17" rx="7" fill="'+a.hair+'"/>';
+  if (a.style === "long") o += '<rect x="2.6" y="5" width="3.6" height="17" rx="1.8" fill="'+a.hair+'"/><rect x="17.8" y="5" width="3.6" height="17" rx="1.8" fill="'+a.hair+'"/>';
   if (a.style === "ponytail") o += '<ellipse cx="20" cy="10" rx="3" ry="6" fill="'+a.hair+'"/>';
   if (a.style === "braid") o += '<rect x="10" y="12" width="4" height="12" rx="2" fill="'+a.hair+'"/>';
   o += '<circle cx="12" cy="9" r="7.5" fill="'+a.skin+'"/>';
   // front hair
   if (a.style === "curly"){ o += '<circle cx="6" cy="6" r="3" fill="'+a.hair+'"/><circle cx="12" cy="3" r="3.4" fill="'+a.hair+'"/><circle cx="18" cy="6" r="3" fill="'+a.hair+'"/><circle cx="5" cy="11" r="2.6" fill="'+a.hair+'"/><circle cx="19" cy="11" r="2.6" fill="'+a.hair+'"/>'; }
-  else o += '<path d="M4.5 9 A7.5 7.5 0 0 1 19.5 9 L19.5 6 Q12 -1 4.5 6 Z" fill="'+a.hair+'"/>';
+  else o += '<path d="M4.5 9.5 A7.5 7.5 0 0 1 19.5 9.5 L19.5 7.2 Q12 8.6 4.5 7.2 Z" fill="'+a.hair+'"/>';
   o += '<circle cx="9.3" cy="10" r="1.1" fill="#3a2a4a"/><circle cx="14.7" cy="10" r="1.1" fill="#3a2a4a"/><path d="M9.5 13 Q12 15 14.5 13" stroke="#b5533c" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="7.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/><circle cx="16.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/>';
   if (a.wear.bow) o += '<path d="M12 2 L7 -1 L7 5 Z M12 2 L17 -1 L17 5 Z" fill="#ff5fa2"/><circle cx="12" cy="2" r="1.6" fill="#ff5fa2"/>';
   if (a.wear.crown) o += '<circle cx="5" cy="2" r="2" fill="#ffb3d1"/><circle cx="9" cy="0" r="2" fill="#fff"/><circle cx="12" cy="-1" r="2.2" fill="#ffd86b"/><circle cx="15" cy="0" r="2" fill="#fff"/><circle cx="19" cy="2" r="2" fill="#ffb3d1"/>';
