@@ -123,7 +123,7 @@ function avatarSvg(a, px, forceNoPet){
   if (a.wear.wings) o += '<ellipse cx="3" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(-20 3 14)"/><ellipse cx="21" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(20 21 14)"/>';
   if (a.wear.pack) o += '<rect x="15" y="14" width="6" height="9" rx="2" fill="#ff9f7a"/>';
   // long hair hangs BEHIND the head, shoulders and arms, so it is drawn before them
-  if (a.style === "long") o += '<rect x="2.4" y="4" width="19.2" height="21" rx="6" fill="'+a.hair+'"/>';
+  if (a.style === "long") o += '<rect x="3.8" y="4" width="16.4" height="21" rx="5.5" fill="'+a.hair+'"/>';
   // dress, legs, arms
   o += '<rect x="9" y="29" width="2.5" height="7" rx="1.2" fill="'+a.skin+'"/><rect x="13" y="29" width="2.5" height="7" rx="1.2" fill="'+a.skin+'"/>';
   o += '<path d="M12 17 L5 31 L19 31 Z" fill="'+a.dress+'"/><rect x="8" y="16" width="8" height="8" rx="3" fill="'+a.dress+'"/>';
