@@ -1434,7 +1434,7 @@ els.tabs.addEventListener("click", function(e){
   state.mathGuideOpen = false;
   state.placeValueOpen = false;
   state.leaderGuideOpen = false;
-  state.lessonDetailId = null;
+  state.lessonDetailId = null; state.world = null;
   cleanupMiniGame();
   renderView();
 });
@@ -2308,9 +2308,196 @@ function syncTabs(){
   Array.prototype.forEach.call(els.tabs.querySelectorAll(".tab"), function(t){ t.classList.toggle("active", t.dataset.tab===eff); });
 }
 function goTab(t){
-  state.tab = t; state.quiz = null; state.mathGuideOpen = false; state.placeValueOpen = false; state.leaderGuideOpen = false; state.lessonDetailId = null; state.lore = null;
+  state.tab = t; state.quiz = null; state.mathGuideOpen = false; state.placeValueOpen = false; state.leaderGuideOpen = false; state.lessonDetailId = null; state.lore = null; state.world = null;
   cleanupMiniGame(); syncTabs(); renderView();
 }
+/* ---------- Forge World (31 Oct 2026) ----------
+   A game layer on top of the real lessons, built from the previews Mom and the kids looked at.
+   Coins/flowers come from the XP a kid already earns (1 per 5 XP) minus what they spent, so nothing about XP, levels or Momma Money changes.
+   The explorer (look, things worn, things owned, coins spent) is saved per kid inside the family settings row (familyGoal().world).
+   No chat, no strangers, no real money, no ranking against anyone (rules 11 and 25: all art here is drawn in code, original). */
+var WORLD_DEFAULT = {
+  kid1:{look:{skin:"#f1c9a5", hair:"#d9a441", style:"ponytail", outfit:"#ff8fc0"}, wear:{}, owned:[], spent:0},
+  kid2:{look:{skin:"#e8b88a", hair:"#4a2c12", style:"short", outfit:"#3f7dff"}, wear:{}, owned:[], spent:0}
+};
+var WORLD_SHOP = {
+  kid1:[["🎀","Bow",15,"bow"],["🌸","Flower crown",30,"crown"],["🧚","Fairy wings",50,"wings"],["🎒","Backpack",25,"pack"]],
+  kid2:[["⛏️","Pickaxe",40,"pick"],["💻","Laptop",45,"laptop"],["🤖","Robot buddy",80,"robot"],["🎩","Wizard hat",50,"hat"],
+        ["🕶️","Shades",25,"shades"],["🎒","Backpack",35,"pack"],["🦸","Cape",60,"cape"]]
+};
+var WORLD_STYLES = {kid1:["ponytail","long","braid","curly"], kid2:["short","long","spiky","cap"]};
+var WORLD_SKIN = ["#f8d9bd","#f1c9a5","#d9a273","#a66a3f","#6b4226"];
+var WORLD_HAIR = ["#4a2c12","#111111","#d9a441","#c8282d","#7a3b9a","#3fe0e6"];
+var WORLD_OUTFIT = {kid1:["#ff8fc0","#8ee3c0","#ffd86b","#c9b6ff","#7ec8ff","#ffa07a"], kid2:["#3f7dff","#ff6b9d","#7dff6b","#ffd23f","#c77dff","#ff9f43"]};
+var worldRoomOpen = {};
+function worldData(kid){
+  var saved = (familyGoal().world || {})[kid] || {}, d = WORLD_DEFAULT[kid] || WORLD_DEFAULT.kid2;
+  return {look:Object.assign({}, d.look, saved.look||{}), wear:Object.assign({}, saved.wear||{}), owned:(saved.owned||[]).slice(), spent:saved.spent||0};
+}
+function saveWorld(kid, d){
+  var g = Object.assign({}, familyGoal()); g.world = Object.assign({}, g.world || {}); g.world[kid] = d;
+  saveFamilyGoal(g, true);
+}
+function worldCoins(kid, d){ return Math.max(0, Math.floor((kidData(kid).xp||0)/5) - (d||worldData(kid)).spent); }
+function wRect(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'"/>'; }
+/* Ryan: blocky sprite. Anna: soft rounded one. */
+function worldAvatarSvg(kid, d, px){
+  var L = d.look, W = d.wear, o = "", r = wRect;
+  if(kid==="kid1"){
+    if(W.wings) o += '<ellipse cx="3" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(-20 3 14)"/><ellipse cx="21" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(20 21 14)"/>';
+    if(W.pack) o += '<rect x="15" y="14" width="6" height="9" rx="2" fill="#ff9f7a"/>';
+    if(L.style==="long") o += '<rect x="3.8" y="4" width="16.4" height="21" rx="5.5" fill="'+L.hair+'"/>';
+    o += '<rect x="9" y="29" width="2.5" height="7" rx="1.2" fill="'+L.skin+'"/><rect x="13" y="29" width="2.5" height="7" rx="1.2" fill="'+L.skin+'"/>';
+    o += '<path d="M12 17 L5 31 L19 31 Z" fill="'+L.outfit+'"/><rect x="8" y="16" width="8" height="8" rx="3" fill="'+L.outfit+'"/>';
+    o += '<rect x="4.5" y="17" width="3" height="8" rx="1.5" fill="'+L.skin+'"/><rect x="16.5" y="17" width="3" height="8" rx="1.5" fill="'+L.skin+'"/>';
+    if(L.style==="ponytail") o += '<ellipse cx="20" cy="10" rx="3" ry="6" fill="'+L.hair+'"/>';
+    if(L.style==="braid") o += '<rect x="10" y="12" width="4" height="12" rx="2" fill="'+L.hair+'"/>';
+    o += '<circle cx="12" cy="9" r="7.5" fill="'+L.skin+'"/>';
+    if(L.style==="curly") o += '<circle cx="6" cy="6" r="3" fill="'+L.hair+'"/><circle cx="12" cy="3" r="3.4" fill="'+L.hair+'"/><circle cx="18" cy="6" r="3" fill="'+L.hair+'"/><circle cx="5" cy="11" r="2.6" fill="'+L.hair+'"/><circle cx="19" cy="11" r="2.6" fill="'+L.hair+'"/>';
+    else o += '<path d="M4.5 9.5 A7.5 7.5 0 0 1 19.5 9.5 L19.5 7.2 Q12 8.6 4.5 7.2 Z" fill="'+L.hair+'"/>';
+    o += '<circle cx="9.3" cy="10" r="1.1" fill="#3a2a4a"/><circle cx="14.7" cy="10" r="1.1" fill="#3a2a4a"/><path d="M9.5 13 Q12 15 14.5 13" stroke="#b5533c" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="7.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/><circle cx="16.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/>';
+    if(W.bow) o += '<path d="M12 2 L7 -1 L7 5 Z M12 2 L17 -1 L17 5 Z" fill="#ff5fa2"/><circle cx="12" cy="2" r="1.6" fill="#ff5fa2"/>';
+    if(W.crown) o += '<circle cx="5" cy="2" r="2" fill="#ffb3d1"/><circle cx="9" cy="0" r="2" fill="#fff"/><circle cx="12" cy="-1" r="2.2" fill="#ffd86b"/><circle cx="15" cy="0" r="2" fill="#fff"/><circle cx="19" cy="2" r="2" fill="#ffb3d1"/>';
+    return '<svg width="'+(33*px)+'" height="'+(40*px)+'" viewBox="-2 -4 33 40" aria-hidden="true">'+o+'</svg>';
+  }
+  if(W.cape) o += r(2,8,12,13,"#c8282d");
+  if(W.pack) o += r(11,9,5,7,"#8a5a34");
+  o += r(4,16,3,8,"#2b3a8f") + r(9,16,3,8,"#2b3a8f") + r(3,8,10,8,L.outfit) + r(0,8,3,7,L.skin) + r(13,8,3,7,L.skin);
+  o += r(3,0,10,8,L.skin) + r(5,4,2,2,"#111") + r(9,4,2,2,"#111") + r(7,6.5,2,1,"#a0522d");
+  if(L.style==="short") o += r(3,0,10,3,L.hair);
+  if(L.style==="long") o += r(3,0,10,3,L.hair) + r(2,2,2,9,L.hair) + r(12,2,2,9,L.hair);
+  if(L.style==="spiky") o += r(3,0,10,2,L.hair) + r(3,-2,2,2,L.hair) + r(7,-3,2,3,L.hair) + r(11,-2,2,2,L.hair);
+  if(L.style==="cap") o += r(2,0,12,3,L.outfit) + r(2,3,7,1,L.outfit);
+  if(W.pick) o += '<polygon points="15,14 16.2,14 16.2,25 15,25" fill="#8a5a34"/><polygon points="11,13 20,13 20,15 11,15" fill="#9aa4b2"/>';
+  if(W.laptop) o += r(12,13,6,4,"#c9d1e0") + r(12.6,13.6,4.8,2.6,"#3fe0e6") + r(11.5,17,7,1,"#8a93a8");
+  if(W.robot) o += r(19,15,6,5,"#9aa4b2") + r(20,13,4,3,"#c9d1e0") + r(21,14,1,1,"#c8282d") + r(23,14,1,1,"#c8282d") + r(21,20,1.5,4,"#6b7280") + r(23,20,1.5,4,"#6b7280") + r(21.8,11.5,.8,1.5,"#6b7280");
+  if(W.shades) o += r(4,4,8,2,"#000");
+  if(W.hat) o += '<polygon points="3,0 13,0 8,-9" fill="#5b2a9a"/>' + r(1,0,14,1.5,"#3d1a6a");
+  return '<svg width="'+(27*px)+'" height="'+(34*px)+'" viewBox="-1 -10 27 34" style="shape-rendering:crispEdges" aria-hidden="true">'+o+'</svg>';
+}
+/* The lesson a stop opens is the real lesson, not a copy. */
+function worldOpenLesson(id){ state.world = null; state.noteOverride = true; state.lessonDetailId = id; renderView(); }
+function worldZones(kid){
+  var out = [];
+  if(kid==="kid2"){
+    var pick = (familyGoal().rp || {}).id;
+    RYAN_PROJECTS.forEach(function(p){
+      var ls = rpLessons(p).filter(function(x){ return x.a.reviewStatus!=="retired"; }).sort(function(a,b){ return a.order-b.order; });
+      if(ls.length) out.push({key:p.id, icon:p.icon, name:p.name, blurb:p.blurb, lessons:ls.map(function(x){ return {id:x.id, title:x.a.title, done:!!x.a.done}; }), pick:p.id===pick});
+    });
+    return out;
+  }
+  var rooms = [["math","🔢","Math Meadow","#ff8fc0",["Math"]],["story","📖","Story Garden","#8ee3c0",["ELA","Reading"]],["sci","🐸","Animal Pond","#7ec8ff",["Science"]],
+    ["ss","🏛️","Our Town","#ffb454",["Social Studies"]],["faith","✨","Faith Hill","#c9b6ff",["Faith"]],["art","🎨","Art Studio","#ffd86b",["Related Arts","Independent","Live Lesson"]]];
+  var all = assignmentsFor(kid, null);
+  rooms.forEach(function(r){
+    var mine = all.filter(function(a){ return r[4].indexOf(a.subject)>=0; });
+    var done = mine.filter(function(a){ return a.done; }), next = mine.filter(function(a){ return !a.done; }).slice(0, 6);
+    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:next.map(function(a){ return {id:a.id, title:a.title, done:false}; })});
+  });
+  return out;
+}
+function renderWorld(){
+  var kid = state.activeKid, anna = kid==="kid1", d = worldData(kid), kd = kidData(kid);
+  var cur = anna ? "🌸 flowers" : "🪙 coins";
+  els.view.innerHTML = "";
+  var back = document.createElement("button"); back.type = "button"; back.className = "reward-skip";
+  back.style.cssText = "opacity:1;border:1px solid var(--border);font-size:13px;padding:6px 12px;margin-bottom:10px";
+  back.textContent = "← Back to Home"; back.onclick = function(){ goTab("home"); };
+  els.view.appendChild(back);
+
+  function card(html, extra){ var c = document.createElement("div"); c.className = "card"; c.style.cssText = "margin-bottom:12px;"+(extra||""); c.innerHTML = html; els.view.appendChild(c); return c; }
+  function rerender(){ renderWorld(); }
+
+  var head = card('<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div id="wAv"></div><div><div style="font-size:20px;font-weight:800">'+(anna ? "My Garden School" : "Forge World")+'</div>'+
+    '<div style="font-weight:700;margin-top:4px">Level '+levelFor(kd.xp||0)+' · <span id="wCoins">'+worldCoins(kid, d)+'</span> '+cur+'</div>'+
+    '<div class="muted" style="font-size:12.5px;margin-top:4px">'+(anna ? "You get flowers when you finish lessons." : "You earn coins from the XP you already get. Spending coins never takes away your level.")+'</div></div></div>');
+  head.querySelector("#wAv").innerHTML = worldAvatarSvg(kid, d, anna ? 3.4 : 3.8);
+
+  /* the map: real lessons */
+  var zones = worldZones(kid), mapHtml = anna ? "🚪 Pick a door" : "🗺️ The map: every project is a zone";
+  var map = card('<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+mapHtml+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Tap a stop to open the real lesson. ⭐ means finished, the bright one is next.</div><div id="wZones"></div>');
+  var zwrap = map.querySelector("#wZones");
+  if(anna){
+    var doors = document.createElement("div"); doors.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"; zwrap.appendChild(doors);
+    var room = document.createElement("div"); zwrap.appendChild(room);
+    var openKey = worldRoomOpen[kid] || zones[0].key;
+    zones.forEach(function(z){
+      var b = document.createElement("button"); b.type = "button";
+      b.style.cssText = "width:92px;height:120px;border:none;border-radius:46px 46px 8px 8px;background:"+z.color+";color:#fff;font:inherit;font-weight:800;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding:6px 3px;"+(z.key===openKey ? "outline:4px solid var(--gold);" : "");
+      b.innerHTML = '<span style="font-size:32px">'+z.icon+'</span>'+escapeHtml(z.name);
+      b.onclick = function(){ worldRoomOpen[kid] = z.key; rerender(); };
+      doors.appendChild(b);
+    });
+    var z0 = zones.filter(function(z){ return z.key===openKey; })[0];
+    room.innerHTML = '<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+z0.icon+' '+escapeHtml(z0.name)+' <span class="muted" style="font-size:13px;font-weight:600">⭐ '+z0.doneCount+' finished</span></div>';
+    if(!z0.lessons.length) room.innerHTML += '<div class="muted">Nothing coming up here right now.</div>';
+    z0.lessons.forEach(function(l, i){
+      var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
+      b.style.cssText = "display:block;width:100%;text-align:left;opacity:1;border:2px solid "+(i===0 ? "var(--gold)" : "var(--border)")+";border-radius:14px;margin:6px 0;padding:10px 12px;color:var(--ink);font-size:15px";
+      b.textContent = (i===0 ? "🌸 " : "○ ")+String(l.title||"").slice(0,80);
+      b.onclick = function(){ worldOpenLesson(l.id); };
+      room.appendChild(b);
+    });
+  } else {
+    zones.forEach(function(z){
+      var doneN = z.lessons.filter(function(l){ return l.done; }).length, nowIdx = -1;
+      for(var i=0;i<z.lessons.length;i++){ if(!z.lessons[i].done){ nowIdx = i; break; } }
+      var zc = document.createElement("div");
+      zc.style.cssText = "border:3px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card);"+(z.pick ? "border-color:var(--gold);" : "");
+      zc.innerHTML = '<div style="font-weight:800;font-size:15px">'+z.icon+' '+escapeHtml(z.name)+(z.pick ? ' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">🎯 this week\'s project</span>' : '')+(doneN===z.lessons.length ? ' 🏆' : '')+'</div>'+
+        '<div class="muted" style="font-size:12.5px;margin:2px 0 8px">'+escapeHtml(z.blurb||"")+' ('+doneN+' of '+z.lessons.length+' done)</div>';
+      var row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
+      z.lessons.forEach(function(l, i){
+        var b = document.createElement("button"); b.type = "button"; b.title = l.title;
+        var st = l.done ? "background:var(--gold);color:#222" : i===nowIdx ? "background:var(--teal);color:#012" : "background:var(--border);color:var(--ink)";
+        b.style.cssText = "width:38px;height:38px;border:3px solid #000;font-weight:800;font-size:13px;cursor:pointer;"+st;
+        b.textContent = l.done ? "✓" : (i+1);
+        b.onclick = function(){ worldOpenLesson(l.id); };
+        row.appendChild(b);
+      });
+      zc.appendChild(row); zwrap.appendChild(zc);
+    });
+    if(!zones.length) zwrap.innerHTML = '<div class="muted">No projects are loaded yet. Mom can add them in Leader, then Content Packs.</div>';
+  }
+
+  /* make your explorer */
+  var mk = card('<div style="font-weight:800;font-size:16px;margin-bottom:6px">🧑 Make your explorer</div><div id="wRows"></div>');
+  var rows = mk.querySelector("#wRows");
+  function swatches(label, key, list, isColor){
+    var wrap = document.createElement("div"); wrap.style.margin = "4px 0 8px";
+    wrap.innerHTML = '<div class="muted" style="font-size:12.5px">'+label+'</div>';
+    var row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:3px"; wrap.appendChild(row);
+    list.forEach(function(v){
+      var b = document.createElement("button"); b.type = "button";
+      if(isColor) b.style.cssText = "width:30px;height:30px;border-radius:"+(anna ? "50%" : "3px")+";border:3px solid "+(d.look[key]===v ? "var(--gold)" : "#000")+";background:"+v+";cursor:pointer;padding:0";
+      else { b.className = "reward-skip"; b.style.cssText = "opacity:1;border:2px solid "+(d.look[key]===v ? "var(--gold)" : "var(--border)")+";padding:5px 10px;font-size:13px;color:var(--ink)"; b.textContent = v; }
+      b.onclick = function(){ d.look[key] = v; saveWorld(kid, d); rerender(); };
+      row.appendChild(b);
+    });
+    rows.appendChild(wrap);
+  }
+  swatches("Skin", "skin", WORLD_SKIN, true); swatches("Hair color", "hair", WORLD_HAIR, true);
+  swatches("Hair style", "style", WORLD_STYLES[kid], false); swatches(anna ? "Dress" : "Shirt", "outfit", WORLD_OUTFIT[kid], true);
+
+  /* shop */
+  var sh = card('<div style="font-weight:800;font-size:16px;margin-bottom:4px">'+(anna ? "🌸 Spend your flowers" : "🪙 Spend your coins")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Tap what you own to wear it or take it off.</div><div id="wShop" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>');
+  var shopEl = sh.querySelector("#wShop");
+  WORLD_SHOP[kid].forEach(function(s){
+    var has = d.owned.indexOf(s[3])>=0, worn = !!d.wear[s[3]];
+    var b = document.createElement("button"); b.type = "button";
+    b.style.cssText = "border:3px solid "+(worn ? "var(--gold)" : "var(--border)")+";border-radius:"+(anna ? "16px" : "6px")+";background:var(--card);color:var(--ink);padding:10px 6px;font:inherit;cursor:pointer;text-align:center";
+    b.innerHTML = '<div style="font-size:28px">'+s[0]+'</div><div style="font-weight:700;font-size:14px">'+s[1]+'</div><div class="muted" style="font-size:12.5px">'+(has ? (worn ? "Wearing" : "Yours: tap to wear") : s[2]+" "+(anna ? "flowers" : "coins"))+'</div>';
+    b.onclick = function(){
+      if(has){ d.wear[s[3]] = !d.wear[s[3]]; saveWorld(kid, d); rerender(); return; }
+      if(worldCoins(kid, d) < s[2]){ toast("Not enough "+(anna ? "flowers" : "coins")+" yet. Finish lessons to earn more!"); return; }
+      d.spent += s[2]; d.owned.push(s[3]); d.wear[s[3]] = true; saveWorld(kid, d);
+      toast("You got the "+s[1]+"!"); rerender();
+    };
+    shopEl.appendChild(b);
+  });
+}
+
 function renderHome(){
   els.view.innerHTML = "";
   var kid = state.activeKid, kd = kidData(kid), iso = todayISO(), anna = kid==="kid1";
@@ -2365,6 +2552,7 @@ function renderHome(){
   var mmSub = mm ? "$"+mm.bal.toFixed(2)+(mm.min>0 ? " · "+mm.min+" min screen time" : "") : "Open the shop";
   var unread = countUnreadNotes(kid);
   var tiles = [
+    {ic:anna ? "🚪" : "🗺️", t:anna ? "My Garden School" : "Forge World", s:anna ? "Doors, flowers and your explorer" : "Your map, coins and explorer", go:function(){ state.world = true; renderView(); }},
     {ic:"🐾", t:"My Pets", s:"Switch pets, wear accessories", go:function(){ renderPetPanel(); }},
     {ic:"💰", t:"Momma Money", s:mmSub, go:function(){ window.open(MM_URL, "_blank", "noopener"); }},
     {ic:"🎮", t:"Games", s:"Quizzes and arcade", go:function(){ goTab("arena"); }},
@@ -2389,7 +2577,7 @@ function decorateRetroView(){
   var name = state.lessonDetailId!=null ? null
     : planIsOver(state.activeKid) ? "GOODBYE.EXE"
     : state.quiz ? "QUIZ.EXE" : state.miniGame ? "ARCADE.EXE"
-    : state.mathGuideOpen ? "MATHGUIDE.EXE" : state.placeValueOpen ? "PLACEVALUE.EXE" : state.lore ? "LORE.EXE"
+    : state.mathGuideOpen ? "MATHGUIDE.EXE" : state.placeValueOpen ? "PLACEVALUE.EXE" : state.lore ? "LORE.EXE" : state.world ? "WORLD.EXE"
     : ({home:"DESKTOP.EXE", today:"TODAY.EXE", week:"PLANNER.EXE", library:"ARCHIVE.EXE", arena:"ARENA.EXE", completed:"COMPLETED\\"})[state.tab];
   if(!name) return;
   var bar = document.createElement("div"); bar.className = "r-bar";
@@ -2715,6 +2903,7 @@ function renderViewCore(){
   petViewTip(state.lessonDetailId!=null ? "lesson" : (state.quiz||state.miniGame) ? "game" : state.tab);
   if(planIsOver(state.activeKid) && !(state.noteOverride && state.lessonDetailId!=null)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   if(state.lore && state.activeKid==="kid2") return renderLore();
+  if(state.world && state.lessonDetailId==null) return renderWorld();
   updateFocusModeTabVisibility();
   updateCompletedTabBadge();
   if(state.placeValueOpen) return renderPlaceValueTool();
@@ -20538,6 +20727,7 @@ function saveFamilyGoal(g, quiet){
   if(g.ahg===undefined && cur.ahg!==undefined) g = Object.assign({}, g, {ahg:cur.ahg});
   if(g.tl===undefined && cur.tl!==undefined) g = Object.assign({}, g, {tl:cur.tl});
   if(g.rp===undefined && cur.rp!==undefined) g = Object.assign({}, g, {rp:cur.rp});
+  if(g.world===undefined && cur.world!==undefined) g = Object.assign({}, g, {world:cur.world});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -27636,7 +27826,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-31.1";
+var APP_BUILD = "2026-10-31.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
