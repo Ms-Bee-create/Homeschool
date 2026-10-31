@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forge World Preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--grass:#5fae3a;--grass2:#4c9230;--dirt:#8a5a34;--stone:#7c8088;--stone2:#5d6168;--gold:#ffd23f;--dia:#3fe0e6;--night:#0f1424;--panel:#1a2238;--ink:#f3f6ff;--mute:#a9b6dc}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--night);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif}
+  .banner{background:#ffd23f;color:#222;text-align:center;font-size:13px;padding:6px 10px}
+  .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:var(--panel);border-bottom:4px solid #0a0e1c}
+  .avatar{width:44px;height:44px;position:relative;background:#e8b88a;border:3px solid #000;image-rendering:pixelated}
+  .avatar:before{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:#4a2c12}
+  .avatar:after{content:"";position:absolute;left:8px;top:18px;width:6px;height:6px;background:#000;box-shadow:16px 0 #000}
+  .avatar.visitor:before{background:#7a3b9a}
+  .stat{background:#0d1222;border:3px solid #000;padding:5px 10px;font-weight:bold}
+  .stat b{color:var(--gold)}
+  .bar{height:12px;width:140px;background:#000;border:2px solid #000;display:inline-block;vertical-align:middle}
+  .bar i{display:block;height:100%;width:60%;background:linear-gradient(90deg,#7dff6b,#3fe0e6)}
+  .chap{flex:1 1 280px;font-size:14px;color:var(--mute)}
+  .chap b{color:var(--ink)}
+  .main{display:flex;gap:14px;flex-wrap:wrap;padding:14px}
+  .map{flex:2 1 560px;min-width:0;border:4px solid #000;background:#2a7f9e;padding:14px;position:relative}
+  .zone{display:inline-block;vertical-align:top;margin:8px;padding:10px 12px;border:4px solid #000;min-width:210px;position:relative}
+  .zone h3{margin:0 0 2px;font-size:15px;color:#fff;text-shadow:1px 1px 0 #000}
+  .zone small{display:block;color:#f0f4ff;text-shadow:1px 1px 0 #000;margin-bottom:8px;font-size:12px}
+  .grass{background:repeating-linear-gradient(0deg,var(--grass) 0 12px,var(--grass2) 12px 24px)}
+  .stone{background:repeating-linear-gradient(90deg,var(--stone) 0 20px,var(--stone2) 20px 40px)}
+  .dirt{background:repeating-linear-gradient(0deg,#9a6a40 0 12px,var(--dirt) 12px 24px)}
+  .sand{background:repeating-linear-gradient(0deg,#e8d28a 0 12px,#d8c176 12px 24px)}
+  .path{display:flex;gap:8px;align-items:center}
+  .stop{width:34px;height:34px;border:3px solid #000;background:#555;color:#fff;font-weight:bold;cursor:pointer;font-size:13px}
+  .stop.done{background:var(--gold);color:#222}
+  .stop.now{background:var(--dia);color:#012;animation:pulse 1.2s infinite}
+  .stop.lock{background:#444;color:#999;cursor:not-allowed}
+  @keyframes pulse{50%{transform:translateY(-4px)}}
+  .trophy{font-size:22px}
+  .me,.vis{position:absolute;transition:all .8s}
+  .vis{right:30px;bottom:24px}
+  .bubble{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);background:#fff;color:#222;border:3px solid #000;padding:2px 8px;font-size:22px;white-space:nowrap;display:none}
+  .side{flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--panel);border:4px solid #000;padding:12px 14px}
+  .card h2{margin:0 0 6px;font-size:16px}
+  .muted{color:var(--mute);font-size:13px}
+  button.btn{background:var(--gold);color:#222;border:3px solid #000;padding:8px 14px;font-weight:bold;cursor:pointer;font-family:inherit}
+  button.btn:disabled{background:#666;color:#aaa;cursor:not-allowed}
+  .shop{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .item{background:#0d1222;border:3px solid #000;padding:8px;text-align:center;font-size:13px}
+  .item .ic{font-size:26px}
+  .item.owned{border-color:var(--gold)}
+  .room{display:flex;gap:6px;flex-wrap:wrap;min-height:46px;background:#0d1222;border:3px dashed #3a4a80;padding:8px;font-size:26px}
+  .emotes{display:flex;gap:8px;flex-wrap:wrap}
+  .emotes button{font-size:24px;background:#0d1222;border:3px solid #000;padding:6px 10px;cursor:pointer}
+  .emotes button:hover{border-color:var(--gold)}
+  .rules{font-size:13px;color:var(--mute);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="banner">PREVIEW ONLY: nothing here is saved or connected to the real lessons yet. Click things to try them.</div>
+<div class="top">
+  <div class="avatar" title="You"></div>
+  <div class="stat">Level 7 <span class="bar"><i></i></span></div>
+  <div class="stat">🪙 <b id="coins">120</b> coins</div>
+  <div class="chap"><b>Chapter 2: The Lost Boot Sector.</b> Finish the Scratch OS zone to light the bridge to the next one.</div>
+</div>
+
+<div class="main">
+  <div class="map" id="map">
+    <div class="zone grass">
+      <h3>🟩 Scratch OS Town</h3><small>Build an operating system in Scratch</small>
+      <div class="path" data-zone="Scratch OS Town" data-n="10" data-done="4"></div>
+    </div>
+    <div class="zone stone">
+      <h3>⛏️ Under the Hood Caves</h3><small>Scheduler, memory, files and users in Python</small>
+      <div class="path" data-zone="Under the Hood Caves" data-n="10" data-done="0" data-locked="1"></div>
+    </div>
+    <div class="zone sand">
+      <h3>🧊 3D Viewer Workshop</h3><small>Code a world and walk through it in the headset</small>
+      <div class="path" data-zone="3D Viewer Workshop" data-n="5" data-done="2"></div>
+    </div>
+    <div class="zone dirt">
+      <h3>🥽 VR Lab Tower</h3><small>How two eyes see depth</small>
+      <div class="path" data-zone="VR Lab Tower" data-n="5" data-done="5"></div>
+      <div class="trophy">🏆 Zone complete!</div>
+    </div>
+    <div class="vis" id="vis"><div class="bubble" id="bub"></div><div class="avatar visitor" title="A visitor from your family"></div></div>
+  </div>
+
+  <div class="side">
+    <div class="card" id="lesson">
+      <h2>📜 Today's stop</h2>
+      <div class="muted" id="ltxt">Click a glowing or gold square on the map to see the lesson.</div>
+      <div style="margin-top:8px"><button class="btn" id="go" disabled>Start this lesson</button></div>
+    </div>
+
+    <div class="card">
+      <h2>🪙 Spend your coins</h2>
+      <div class="muted" style="margin-bottom:6px">You earn coins from the XP you already earn doing lessons. Items are for your own room.</div>
+      <div class="shop" id="shop"></div>
+      <h2 style="margin-top:10px">🏠 Your room</h2>
+      <div class="room" id="room"><span class="muted" style="font-size:13px">Empty so far</span></div>
+    </div>
+
+    <div class="card">
+      <h2>👋 Say hi to a family member</h2>
+      <div class="muted" style="margin-bottom:6px">Pick one. Nobody can type. Only the people in your own family can see them.</div>
+      <div class="emotes" id="em"></div>
+    </div>
+
+    <div class="card rules">
+      <b>Always true:</b> no chat, no strangers, no real money, no ranking against other kids. The lessons are the same real Georgia lessons. This is just a map and a game around them.
+    </div>
+  </div>
+</div>
+
+<script>
+var LESSONS = {
+  "Scratch OS Town": ["Plan Your Operating System on Paper","Make the Boot Screen with a Loading Bar","Login Screen","The Desktop","Windows and Apps","A Calculator App","Notes App","A Shutdown Screen","Test and Fix","Show It Off"],
+  "Under the Hood Caves": ["The Scheduler","Memory","Files","Users","Permissions","A Shell","Logs","Boot Loader","Fix the Bug","Show It Off"],
+  "3D Viewer Workshop": ["Make a Scene and Walk Into It","The Eye Gap Experiment","Design a World with a Theme","Bug Hunt","Teach-Back"],
+  "VR Lab Tower": ["Meet the Headset","The Headset and Phone Are a Team","Why VR Needs Lenses","Two Eyes, Two Views","Teach-Back"]
+};
+var coins = 120, picked = null;
+document.querySelectorAll(".path").forEach(function(p){
+  var z = p.dataset.zone, n = +p.dataset.n, d = +p.dataset.done, lk = p.dataset.locked;
+  for (var i = 0; i < n; i++){
+    var b = document.createElement("button"); b.className = "stop " + (lk ? "lock" : i < d ? "done" : i === d ? "now" : "lock");
+    b.textContent = lk ? "🔒" : i < d ? "✓" : (i + 1);
+    (function(i, b){ b.onclick = function(){
+      if (b.classList.contains("lock")) { document.getElementById("ltxt").textContent = "Locked. Finish the stops before it to open this one."; document.getElementById("go").disabled = true; return; }
+      document.getElementById("ltxt").innerHTML = "<b>" + z + ", stop " + (i + 1) + "</b><br>" + LESSONS[z][i] + (b.classList.contains("done") ? "<br><span class='muted'>Done. +XP earned.</span>" : "");
+      document.getElementById("go").disabled = !b.classList.contains("now");
+    }; })(i, b);
+    p.appendChild(b);
+  }
+});
+var SHOP = [["🔦","Torch",20],["🦊","Pet fox",60],["🖼️","Poster",30],["🏠","Tiny house",90]];
+var shop = document.getElementById("shop"), room = document.getElementById("room"), owned = [];
+SHOP.forEach(function(s){
+  var d = document.createElement("div"); d.className = "item";
+  d.innerHTML = '<div class="ic">' + s[0] + '</div>' + s[1] + '<br><button class="btn" style="margin-top:4px;padding:4px 10px">🪙 ' + s[2] + '</button>';
+  d.querySelector("button").onclick = function(){
+    if (owned.indexOf(s[1]) >= 0) return;
+    if (coins < s[2]) { alert("Not enough coins yet. Keep doing lessons!"); return; }
+    coins -= s[2]; document.getElementById("coins").textContent = coins; owned.push(s[1]);
+    d.classList.add("owned"); d.querySelector("button").textContent = "Owned"; d.querySelector("button").disabled = true;
+    if (owned.length === 1) room.innerHTML = "";
+    var e = document.createElement("span"); e.textContent = s[0]; e.title = s[1]; room.appendChild(e);
+  };
+  shop.appendChild(d);
+});
+var EM = [["👋","Hi!"],["🎉","Yay!"],["😮","Wow!"],["👍","Nice!"],["❤️","Love it"],["🤔","Hmm"]];
+var bub = document.getElementById("bub"), t = null;
+EM.forEach(function(e){
+  var b = document.createElement("button"); b.textContent = e[0]; b.title = e[1];
+  b.onclick = function(){ bub.textContent = e[0]; bub.style.display = "block"; clearTimeout(t); t = setTimeout(function(){ bub.style.display = "none"; }, 2500); };
+  document.getElementById("em").appendChild(b);
+});
+setInterval(function(){
+  var v = document.getElementById("vis"), m = document.getElementById("map");
+  v.style.right = (20 + Math.random() * (m.clientWidth - 120)) + "px"; v.style.bottom = (10 + Math.random() * 60) + "px";
+}, 4000);
+</script>
+</body>
+</html>
