@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forge World Preview for Anna</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--sky:#fff4fb;--ink:#3a2a4a;--pink:#ff8fc0;--mint:#8ee3c0;--sun:#ffd86b;--lav:#c9b6ff;--card:#ffffff;--mute:#7a6a8a}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(#fff4fb,#e9f7ff);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;font-size:18px}
+  .banner{background:var(--sun);text-align:center;font-size:14px;padding:6px 10px}
+  .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 16px}
+  .pill{background:var(--card);border-radius:999px;padding:8px 16px;box-shadow:0 2px 0 #e6d6f5;font-weight:bold}
+  .main{display:flex;gap:16px;flex-wrap:wrap;padding:8px 16px 24px}
+  .hall{flex:2 1 520px;min-width:0;background:var(--card);border-radius:28px;padding:16px;box-shadow:0 3px 0 #e6d6f5}
+  h2{margin:0 0 8px;font-size:20px}
+  .doors{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;border-bottom:8px solid #d9c3a8;padding-bottom:0;margin-bottom:8px;background:linear-gradient(#fff,#fdf3ff);border-radius:20px 20px 0 0}
+  .door{width:96px;height:140px;border-radius:48px 48px 8px 8px;border:none;cursor:pointer;color:#fff;font-size:15px;font-weight:bold;padding:8px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,.12);font-family:inherit}
+  .door .e{font-size:34px}
+  .door.on{outline:5px solid var(--sun)}
+  .stand{position:relative;height:90px}
+  .stand .me{position:absolute;bottom:0;transition:left .8s}
+  .stand .pet{position:absolute;bottom:0;font-size:34px;transition:left .8s}
+  .room h3{margin:6px 0}
+  .stones{display:flex;gap:12px;flex-wrap:wrap}
+  .stone{width:56px;height:56px;border-radius:50%;border:none;background:#e9e2f2;font-size:22px;font-weight:bold;cursor:pointer;color:var(--ink)}
+  .stone.done{background:var(--sun)}
+  .stone.now{background:var(--pink);color:#fff;animation:bob 1.2s infinite}
+  .stone.lock{opacity:.5;cursor:not-allowed}
+  @keyframes bob{50%{transform:translateY(-6px)}}
+  .side{flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--card);border-radius:24px;padding:14px 16px;box-shadow:0 3px 0 #e6d6f5}
+  .muted{color:var(--mute);font-size:15px}
+  button.big{background:var(--pink);color:#fff;border:none;border-radius:999px;padding:12px 22px;font-size:18px;font-weight:bold;cursor:pointer;font-family:inherit}
+  button.big.alt{background:var(--mint);color:#134}
+  button.big:disabled{opacity:.4;cursor:not-allowed}
+  .sw{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #e6d6f5;cursor:pointer;padding:0}
+  .sw.on{box-shadow:0 0 0 4px var(--sun)}
+  .opt{background:#f5eefc;border:none;border-radius:999px;padding:8px 14px;font-size:16px;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .opt.on{background:var(--sun)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
+  .label{font-size:14px;color:var(--mute);margin-top:4px}
+  .builder{display:flex;gap:12px;align-items:flex-start}
+  .shop{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .item{background:#fbf7ff;border-radius:18px;padding:10px;text-align:center;font-size:15px}
+  .item .ic{font-size:30px}
+  .em{display:flex;gap:8px;flex-wrap:wrap}
+  .em button{font-size:28px;background:#f5eefc;border:none;border-radius:16px;padding:6px 12px;cursor:pointer}
+  .bubble{position:absolute;bottom:80px;background:#fff;border-radius:16px;padding:2px 10px;font-size:26px;display:none;box-shadow:0 2px 0 #e6d6f5}
+  svg{display:block}
+</style>
+</head>
+<body>
+<div class="banner">PREVIEW ONLY for Mom and Anna to look at. Nothing is saved or connected to the real lessons yet. Try clicking things!</div>
+<div class="top">
+  <div id="topAv"></div>
+  <div class="pill">🌸 <b id="flw">60</b> flowers</div>
+  <div class="pill">⭐ Level 3</div>
+  <div class="muted" style="flex:1 1 240px"><b>Story: The Garden School.</b> Open a door to find today's lesson.</div>
+</div>
+
+<div class="main">
+  <div class="hall">
+    <h2>🚪 The Hallway. Pick a door!</h2>
+    <div class="doors" id="doors"></div>
+    <div class="stand" id="stand">
+      <div class="me" id="meBox"></div>
+      <div class="pet" id="petBox"></div>
+      <div class="bubble" id="bub"></div>
+    </div>
+    <div class="room card" id="room" style="box-shadow:none;background:#fbf7ff">
+      <h3 id="rname">Pick a door above</h3>
+      <div class="stones" id="stones"></div>
+      <div class="muted" id="ltxt" style="margin-top:10px"></div>
+      <div style="margin-top:10px"><button class="big alt" id="hear" disabled>🔊 Hear this</button> <button class="big" id="go" disabled>Start</button></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h2>🧚 Make your explorer</h2>
+      <div class="builder">
+        <div id="bigAv"></div>
+        <div style="flex:1;min-width:0">
+          <div class="label">Skin</div><div class="row" id="skinSw"></div>
+          <div class="label">Hair color</div><div class="row" id="hairSw"></div>
+          <div class="label">Hair style</div><div class="row" id="styleSw"></div>
+          <div class="label">Dress</div><div class="row" id="dressSw"></div>
+        </div>
+      </div>
+      <div class="label">Things you have (tap to wear)</div>
+      <div class="row" id="wearSw"><span class="muted">Buy something below</span></div>
+      <div class="label">Your pet (tap to pick)</div>
+      <div class="row" id="petSw"><span class="muted">Adopt a pet below</span></div>
+    </div>
+
+    <div class="card">
+      <h2>🌸 Spend your flowers</h2>
+      <div class="muted" style="margin-bottom:8px">You get flowers when you finish lessons.</div>
+      <div class="shop" id="shop"></div>
+    </div>
+
+    <div class="card">
+      <h2>🏡 Your garden</h2>
+      <div class="muted">Things you plant show up here.</div>
+      <div id="garden" style="font-size:32px;min-height:44px;margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <h2>👋 Say hi to your brother</h2>
+      <div class="muted" style="margin-bottom:6px">Pick a picture. Nobody can type. Only your family sees it.</div>
+      <div class="em" id="em"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var flowers = 60;
+var me = {skin:"#f1c9a5", hair:"#d9a441", style:"ponytail", dress:"#ff8fc0", wear:{}, pet:null};
+function c(tag, a, inner){ return '<'+tag+' '+a+'>'+(inner||'')+'</'+tag+'>'; }
+function avatarSvg(a, px, forceNoPet){
+  var o = "";
+  if (a.wear.wings) o += '<ellipse cx="3" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(-20 3 14)"/><ellipse cx="21" cy="14" rx="5" ry="8" fill="#bfe8ff" opacity=".8" transform="rotate(20 21 14)"/>';
+  if (a.wear.pack) o += '<rect x="15" y="14" width="6" height="9" rx="2" fill="#ff9f7a"/>';
+  // dress, legs, arms
+  o += '<rect x="9" y="29" width="2.5" height="7" rx="1.2" fill="'+a.skin+'"/><rect x="13" y="29" width="2.5" height="7" rx="1.2" fill="'+a.skin+'"/>';
+  o += '<path d="M12 17 L5 31 L19 31 Z" fill="'+a.dress+'"/><rect x="8" y="16" width="8" height="8" rx="3" fill="'+a.dress+'"/>';
+  o += '<rect x="4.5" y="17" width="3" height="8" rx="1.5" fill="'+a.skin+'"/><rect x="16.5" y="17" width="3" height="8" rx="1.5" fill="'+a.skin+'"/>';
+  // back hair
+  if (a.style === "long") o += '<rect x="4" y="6" width="16" height="17" rx="7" fill="'+a.hair+'"/>';
+  if (a.style === "ponytail") o += '<ellipse cx="20" cy="10" rx="3" ry="6" fill="'+a.hair+'"/>';
+  if (a.style === "braid") o += '<rect x="10" y="12" width="4" height="12" rx="2" fill="'+a.hair+'"/>';
+  o += '<circle cx="12" cy="9" r="7.5" fill="'+a.skin+'"/>';
+  // front hair
+  if (a.style === "curly"){ o += '<circle cx="6" cy="6" r="3" fill="'+a.hair+'"/><circle cx="12" cy="3" r="3.4" fill="'+a.hair+'"/><circle cx="18" cy="6" r="3" fill="'+a.hair+'"/><circle cx="5" cy="11" r="2.6" fill="'+a.hair+'"/><circle cx="19" cy="11" r="2.6" fill="'+a.hair+'"/>'; }
+  else o += '<path d="M4.5 9 A7.5 7.5 0 0 1 19.5 9 L19.5 6 Q12 -1 4.5 6 Z" fill="'+a.hair+'"/>';
+  o += '<circle cx="9.3" cy="10" r="1.1" fill="#3a2a4a"/><circle cx="14.7" cy="10" r="1.1" fill="#3a2a4a"/><path d="M9.5 13 Q12 15 14.5 13" stroke="#b5533c" stroke-width="1" fill="none" stroke-linecap="round"/><circle cx="7.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/><circle cx="16.5" cy="12.5" r="1.3" fill="#ff9fb0" opacity=".6"/>';
+  if (a.wear.bow) o += '<path d="M12 2 L7 -1 L7 5 Z M12 2 L17 -1 L17 5 Z" fill="#ff5fa2"/><circle cx="12" cy="2" r="1.6" fill="#ff5fa2"/>';
+  if (a.wear.crown) o += '<circle cx="5" cy="2" r="2" fill="#ffb3d1"/><circle cx="9" cy="0" r="2" fill="#fff"/><circle cx="12" cy="-1" r="2.2" fill="#ffd86b"/><circle cx="15" cy="0" r="2" fill="#fff"/><circle cx="19" cy="2" r="2" fill="#ffb3d1"/>';
+  var pet = (!forceNoPet && a.pet) ? '<text x="25" y="35" font-size="11">'+a.pet+'</text>' : "";
+  return '<svg width="'+(33*px)+'" height="'+(40*px)+'" viewBox="-2 -4 33 40">'+o+pet+'</svg>';
+}
+function drawAll(){
+  document.getElementById("topAv").innerHTML = avatarSvg(me, 2, true);
+  document.getElementById("meBox").innerHTML = avatarSvg(me, 2.4, true);
+  document.getElementById("bigAv").innerHTML = avatarSvg(me, 4.4, true);
+  document.getElementById("petBox").textContent = me.pet || "";
+}
+function swatchRow(id, list, key, isColor){
+  var row = document.getElementById(id);
+  list.forEach(function(v){
+    var b = document.createElement("button");
+    if (isColor){ b.className = "sw"; b.style.background = v; } else { b.className = "opt"; b.textContent = v; }
+    b.onclick = function(){ me[key] = v; Array.prototype.forEach.call(row.children, function(x){ x.classList.remove("on"); }); b.classList.add("on"); drawAll(); };
+    if (me[key] === v) b.classList.add("on");
+    row.appendChild(b);
+  });
+}
+swatchRow("skinSw", ["#f8d9bd","#f1c9a5","#d9a273","#a66a3f","#6b4226"], "skin", true);
+swatchRow("hairSw", ["#4a2c12","#111111","#d9a441","#c8282d","#a77bff","#52d6c4"], "hair", true);
+swatchRow("styleSw", ["ponytail","long","braid","curly"], "style", false);
+swatchRow("dressSw", ["#ff8fc0","#8ee3c0","#ffd86b","#c9b6ff","#7ec8ff","#ffa07a"], "dress", true);
+
+var SHOP = [["🎀","Bow",15,"bow"],["🌸","Flower crown",30,"crown"],["🧚","Fairy wings",50,"wings"],["🎒","Backpack",25,"pack"],
+            ["🐱","Kitten",40,"pet"],["🐰","Bunny",40,"pet"],["🐶","Puppy",50,"pet"],["🦊","Fox",60,"pet"],
+            ["🌷","Tulip",10,"garden"],["🦋","Butterfly",20,"garden"],["🌳","Tree",30,"garden"],["🏡","Cottage",70,"garden"]];
+var owned = [];
+var shop = document.getElementById("shop");
+SHOP.forEach(function(s){
+  var d = document.createElement("div"); d.className = "item";
+  d.innerHTML = '<div class="ic">'+s[0]+'</div>'+s[1]+'<br><button class="big" style="padding:4px 14px;font-size:15px;margin-top:4px">🌸 '+s[2]+'</button>';
+  var btn = d.querySelector("button");
+  btn.onclick = function(){
+    if (flowers < s[2]){ alert("Not enough flowers yet. Keep doing lessons!"); return; }
+    flowers -= s[2]; document.getElementById("flw").textContent = flowers; btn.textContent = "Yours!"; btn.disabled = true;
+    if (s[3] === "garden") { document.getElementById("garden").textContent += s[0] + " "; return; }
+    var w = document.getElementById(s[3] === "pet" ? "petSw" : "wearSw"); if (!w.querySelector(".opt")) w.innerHTML = "";
+    var b = document.createElement("button"); b.className = "opt on"; b.textContent = s[0] + " " + s[1];
+    if (s[3] === "pet"){ me.pet = s[0]; Array.prototype.forEach.call(w.children, function(x){ x.classList.remove("on"); }); b.classList.add("on");
+      b.onclick = function(){ me.pet = s[0]; Array.prototype.forEach.call(w.children, function(x){ x.classList.remove("on"); }); b.classList.add("on"); drawAll(); }; }
+    else { me.wear[s[3]] = true; b.onclick = function(){ me.wear[s[3]] = !me.wear[s[3]]; b.classList.toggle("on", me.wear[s[3]]); drawAll(); }; }
+    w.appendChild(b); drawAll();
+  };
+  shop.appendChild(d);
+});
+
+var ROOMS = [
+  {n:"Math Meadow", e:"🔢", col:"#ff8fc0", done:3, t:["Count by 5s","Place value with buttons","Add with regrouping","Even and odd","Telling time"]},
+  {n:"Story Garden", e:"📖", col:"#8ee3c0", done:2, t:["Beginning, middle, end","Story elements","Who is talking?","Rhyme time","Write a pen pal letter"]},
+  {n:"Animal Pond", e:"🐸", col:"#7ec8ff", done:1, t:["What animals need","Where animals live","Baby animals","Food chains","Animal helpers"]},
+  {n:"Our Town", e:"🏛️", col:"#ffb454", done:0, t:["Our rights as citizens","Our leaders","Maps and directions","Goods and services","Georgia heroes"]},
+  {n:"Faith Hill", e:"✨", col:"#c9b6ff", done:4, t:["In the beginning","Day and night","Sky and sea","Plants and trees","Sun, moon and stars"]}
+];
+var doors = document.getElementById("doors"), cur = null, doorEls = [];
+ROOMS.forEach(function(r, i){
+  var b = document.createElement("button"); b.className = "door"; b.style.background = r.col;
+  b.innerHTML = '<span class="e">'+r.e+'</span>'+r.n;
+  b.onclick = function(){ openRoom(i); };
+  doors.appendChild(b); doorEls.push(b);
+});
+function openRoom(i){
+  cur = i; var r = ROOMS[i];
+  doorEls.forEach(function(d, k){ d.classList.toggle("on", k === i); });
+  document.getElementById("rname").textContent = r.e + " " + r.n;
+  var st = document.getElementById("stones"); st.innerHTML = "";
+  r.t.forEach(function(t, k){
+    var b = document.createElement("button"); b.className = "stone " + (k < r.done ? "done" : k === r.done ? "now" : "lock");
+    b.textContent = k < r.done ? "⭐" : k === r.done ? "🌸" : "🔒";
+    b.onclick = function(){
+      var lock = b.classList.contains("lock");
+      document.getElementById("ltxt").innerHTML = lock ? "This one is locked. Finish the one before it first!" : "<b>"+t+"</b>" + (k < r.done ? "<br>You finished this one! ⭐" : "<br>Ready when you are.");
+      document.getElementById("hear").disabled = lock; document.getElementById("go").disabled = (k !== r.done);
+    };
+    st.appendChild(b);
+  });
+  document.getElementById("ltxt").textContent = "Tap a stone to see the lesson.";
+  document.getElementById("hear").disabled = true; document.getElementById("go").disabled = true;
+  var d = doorEls[i], box = document.getElementById("stand");
+  var left = d.offsetLeft - doors.offsetLeft + d.offsetWidth / 2 - 40;
+  document.getElementById("meBox").style.left = Math.max(0, left) + "px";
+  document.getElementById("petBox").style.left = Math.max(0, left + 76) + "px";
+}
+document.getElementById("hear").onclick = function(){
+  try { var u = new SpeechSynthesisUtterance(document.getElementById("ltxt").innerText); u.rate = .9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+};
+var EM = [["👋","Hi!"],["🎉","Yay!"],["😮","Wow!"],["👍","Nice!"],["❤️","Love it"],["😄","Ha ha"]];
+var bub = document.getElementById("bub"), t = null;
+EM.forEach(function(e){
+  var b = document.createElement("button"); b.textContent = e[0]; b.title = e[1];
+  b.onclick = function(){ bub.textContent = e[0]; bub.style.left = (parseFloat(document.getElementById("meBox").style.left) || 0) + 30 + "px"; bub.style.display = "block"; clearTimeout(t); t = setTimeout(function(){ bub.style.display = "none"; }, 2500); };
+  document.getElementById("em").appendChild(b);
+});
+drawAll(); openRoom(0);
+</script>
+</body>
+</html>
