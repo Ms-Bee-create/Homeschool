@@ -596,3 +596,13 @@ Home tile "Forge World" (Ryan) / "My Garden School" (Anna) opens renderWorld() (
 - Shop: Ryan pickaxe, laptop, robot buddy, wizard hat, shades, backpack, cape. Anna bow, flower crown, fairy wings, backpack. Tap an owned item to wear or take it off.
 - NOT built yet (from the previews): family emotes (needs a tiny shared write, watch Supabase egress, OPS_NOTES.md), garden/room items, story chapters, smoother art, Hear-this in the world, avatar on the Home hero/XP bar. Existing pets (My Pets) are left alone. Only reachable during school hours (the School-done screen replaces it after, same as the rest of the app).
 - Tested in the harness (fake database) only; NOT on a real device. Preview files in mockups/ are the design reference.
+
+## Forge World 3D (31 Oct 2026): walkable Minecraft-style world, standalone page world/index.html
+Live at https://ms-bee-create.github.io/Homeschool/world/ (separate page; the app's Forge World menu, previews and everything else are untouched).
+- Terrain recipe ported from Mom's Godot project (repo Ms-Bee-create/world-code, read-only, 800 lines GDScript, no networking): simplex FBM noise (4 octaves, base height 40, amplitude 20), water level 32, beaches, dirt depth 4, 2% trees, 16x72x16 chunks, chunk meshes with hidden faces. Spawn area is flat so five buildings (one per project) sit on level ground. Mom said that code may be used freely and she wants it to be useful.
+- Block pictures: Kenney Voxel Pack, CC0 (world/block_atlas.png, world/KENNEY_LICENSE.txt). A few extra tiles (planks, five door colors) are drawn in code onto the atlas.
+- Doors: walk up and press E; inside an iframe it posts {forge:"enterZone", key} to the parent (not wired to the app yet; standalone it only shows a note).
+- Explorers: blocky boxes with the same looks and wearables as the Forge World shop; they come in through the link (#p={name,id,look,wear}). Emotes 1-6.
+- Together: net is a swappable transport. Right now it is BroadcastChannel (two windows of the same browser only). NEXT: a live transport over Supabase Realtime broadcast on one family channel, 4 messages per second only while moving, only in the world, with an off switch. Supabase is shared with Momma Money and went over its free egress in Oct 2026 (OPS_NOTES.md), so ask Mom before turning it on. Free plan limits per docs: 100 messages per second, 200 connections.
+- Not done: wiring the doors to the real lessons, passing the real explorer from the app, building and breaking blocks, saving builds, day and night, sounds, touch controls.
+- Tested only in headless Chrome with software 3D (works, about 1.3 s to load); not on the kids' computers. The 3D rendering library (three.js r128) loads from cdnjs.
