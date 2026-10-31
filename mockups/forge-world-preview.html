@@ -101,7 +101,7 @@
     </div>
 
     <div class="card">
-      <h2>🧑 Your explorer</h2>
+      <h2>🧑 Your explorer <span class="muted" style="font-size:12px">(smoother, rounder art comes later)</span></h2>
       <div class="builder">
         <div class="av" id="bigAv"></div>
         <div style="flex:1;min-width:0">
@@ -159,8 +159,11 @@ function avatarSvg(a, px){
   if (a.style === "spiky") o += r(3,0,10,2,a.hair) + r(3,-2,2,2,a.hair) + r(7,-3,2,3,a.hair) + r(11,-2,2,2,a.hair);
   if (a.style === "cap") o += r(2,0,12,3,a.shirt) + r(2,3,7,1,a.shirt);
   if (a.wear.shades) o += r(4,4,8,2,"#000");
+  if (a.wear.pick) o += '<polygon points="15,14 16.2,14 16.2,25 15,25" fill="#8a5a34"/>' + '<polygon points="11,13 20,13 20,15 11,15" fill="#9aa4b2"/>';
+  if (a.wear.laptop) o += r(12,13,6,4,"#c9d1e0") + r(12.6,13.6,4.8,2.6,"#3fe0e6") + r(11.5,17,7,1,"#8a93a8");
+  if (a.wear.robot) o += r(19,15,6,5,"#9aa4b2") + r(20,13,4,3,"#c9d1e0") + r(21,14,1,1,"#c8282d") + r(23,14,1,1,"#c8282d") + r(21,20,1.5,4,"#6b7280") + r(23,20,1.5,4,"#6b7280") + r(21.8,11.5,.8,1.5,"#6b7280");
   if (a.wear.hat) o += '<polygon points="3,0 13,0 8,-9" fill="#5b2a9a"/>' + r(1,0,14,1.5,"#3d1a6a");
-  return '<svg width="'+(18*px)+'" height="'+(34*px)+'" viewBox="-1 -10 18 34">'+o+'</svg>';
+  return '<svg width="'+(27*px)+'" height="'+(34*px)+'" viewBox="-1 -10 27 34">'+o+'</svg>';
 }
 function drawAll(){
   document.getElementById("topAv").innerHTML = avatarSvg(me, 2);
@@ -208,7 +211,7 @@ document.querySelectorAll(".path").forEach(function(p){
     p.appendChild(b);
   }
 });
-var SHOP = [["🔦","Torch",20,0],["🦊","Pet fox",60,0],["🖼️","Poster",30,0],["🏠","Tiny house",90,0],["🎩","Wizard hat",50,"hat"],["🕶️","Shades",25,"shades"],["🎒","Backpack",35,"pack"],["🦸","Cape",60,"cape"]];
+var SHOP = [["🔦","Torch",20,0],["🦊","Pet fox",60,0],["🖼️","Poster",30,0],["🏠","Tiny house",90,0],["🎩","Wizard hat",50,"hat"],["🕶️","Shades",25,"shades"],["🎒","Backpack",35,"pack"],["🦸","Cape",60,"cape"],["⛏️","Pickaxe",40,"pick"],["💻","Laptop",45,"laptop"],["🤖","Robot buddy",80,"robot"]];
 var shop = document.getElementById("shop"), room = document.getElementById("room"), owned = [];
 SHOP.forEach(function(s){
   var d = document.createElement("div"); d.className = "item";
