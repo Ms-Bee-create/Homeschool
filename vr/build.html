@@ -100,6 +100,8 @@ var START = [
   [0, 0, -6, 1.5, "#ffd23f"], [4, 0, -8, 1, "#3fd2ff", "pyramid"], [-4, 1, -7, 2, "#ff6b9d", "diamond"],
   [8, 0, 0, 1.5, "#7dff6b", "tower"], [-8, 0, 2, 1.5, "#ff9f43", "ball"], [0, 0, 7, 2, "#c77dff", "wall"]
 ];
+// bump this whenever the viewer changes, so phones and browsers load the new viewer instead of a saved copy
+var VIEWER_VERSION = "2026-10-31.2";
 var SHAPE_LIST = ["cube", "pyramid", "tower", "wall", "diamond", "ball"];
 var SHAPE_OPTS = SHAPE_LIST.map(function(n){ return '<option value="' + n + '">' + n + '</option>'; }).join("");
 var rowsEl = document.getElementById("rows"), errEl = document.getElementById("err");
@@ -181,7 +183,7 @@ function makeUrl(auto){
   var c = readRows();
   var g = parseFloat(document.getElementById("gap").value), h = parseFloat(document.getElementById("hgt").value);
   var o = {c: c, g: isNaN(g) ? 0.064 : g, h: isNaN(h) ? 1.4 : h, w: readWorld()};
-  return new URL("index.html", location.href).href + "#s=" + encodeURIComponent(JSON.stringify(o)) + (auto ? "&auto=1" : "");
+  return new URL("index.html", location.href).href + "?v=" + VIEWER_VERSION + "#s=" + encodeURIComponent(JSON.stringify(o)) + (auto ? "&auto=1" : "");
 }
 var PRESETS = {
   "Space": {sky:"#050814", floor:"#2a3a66", grid:true, stars:true, sun:null},
