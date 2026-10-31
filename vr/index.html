@@ -29,7 +29,7 @@
 <script>
 /* ============================================================
    RYAN: THIS IS YOUR SCENE. Change the numbers and see what happens.
-   Each cube is  [x, y, z, size, color].  x = left/right, y = up/down,
+   Each cube is  [x, y, z, size, color, shape]  (shape is optional: cube, pyramid, tower, wall, diamond, ball).  x = left/right, y = up/down,
    z = forward/back (negative z is in front of you at the start).
    ============================================================ */
 var CUBES = [
@@ -117,9 +117,32 @@ function cameraMatrix(){
   return R;
 }
 
-/* ---- the shapes: lines only, so even an old phone can draw them ---- */
-var CUBE_PTS = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-var CUBE_EDGES = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+/* ---- the shapes. Each one is a list of corner points and the lines between them.
+   Points go from -1 to 1 and the shape sits on the ground. Add your own shape here! ---- */
+function makeBall(){
+  var pts = [], edges = [], n = 16, k, r;
+  for (r = 0; r < 3; r++){
+    for (k = 0; k < n; k++){
+      var a = k / n * 6.283185, c = Math.cos(a), s2 = Math.sin(a);
+      pts.push(r === 0 ? [c, s2, 0] : r === 1 ? [c, 0, s2] : [0, c, s2]);
+      edges.push([r * n + k, r * n + (k + 1) % n]);
+    }
+  }
+  return {pts: pts, edges: edges};
+}
+var SHAPES = {
+  cube: {pts: [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],
+         edges: [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]},
+  pyramid: {pts: [[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],[0,1,0]],
+            edges: [[0,1],[1,2],[2,3],[3,0],[0,4],[1,4],[2,4],[3,4]]},
+  tower: {pts: [[-0.5,-1,-0.5],[0.5,-1,-0.5],[0.5,-1,0.5],[-0.5,-1,0.5],[-0.5,3,-0.5],[0.5,3,-0.5],[0.5,3,0.5],[-0.5,3,0.5]],
+          edges: [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]},
+  wall: {pts: [[-2,-1,-0.15],[2,-1,-0.15],[2,1,-0.15],[-2,1,-0.15],[-2,-1,0.15],[2,-1,0.15],[2,1,0.15],[-2,1,0.15]],
+         edges: [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]]},
+  diamond: {pts: [[1,0,0],[-1,0,0],[0,1.4,0],[0,-1.4,0],[0,0,1],[0,0,-1]],
+            edges: [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]]},
+  ball: makeBall()
+};
 
 var stars = [];
 (function(){
@@ -213,11 +236,12 @@ function drawEye(x0, w, R, eyeShift){
   // cubes
   ctx.lineWidth = 2.5;
   for (var c = 0; c < CUBES.length; c++){
-    var q = CUBES[c], half = q[3] / 2, pts = [];
-    for (var v = 0; v < 8; v++){
-      pts.push([q[0] + CUBE_PTS[v][0] * half, q[1] + half + CUBE_PTS[v][1] * half, q[2] + CUBE_PTS[v][2] * half]);
+    var q = CUBES[c], half = q[3] / 2, pts = [], sh = SHAPES[q[5]] || SHAPES.cube, low = 0, v;
+    for (v = 0; v < sh.pts.length; v++) if (sh.pts[v][1] < low) low = sh.pts[v][1];
+    for (v = 0; v < sh.pts.length; v++){
+      pts.push([q[0] + sh.pts[v][0] * half, q[1] - low * half + sh.pts[v][1] * half, q[2] + sh.pts[v][2] * half]);
     }
-    for (var e = 0; e < CUBE_EDGES.length; e++) line(pts[CUBE_EDGES[e][0]], pts[CUBE_EDGES[e][1]], q[4]);
+    for (var e = 0; e < sh.edges.length; e++) line(pts[sh.edges[e][0]], pts[sh.edges[e][1]], q[4]);
   }
   // little center dot so you can aim
   ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 6.283); ctx.fill();
