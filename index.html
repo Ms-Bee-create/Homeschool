@@ -2417,12 +2417,55 @@ function worldJobsFor(kid){
     {key:"vrlab", name:"VR Arcade", icon:"\uD83E\uDD7D", wall:"#c88a64", roof:"#7a3f2a", door:"#ff6b9d", bw:"wood", br:"stone", bd:3},
     {key:"johnnyos", name:"Computer Store", icon:"\uD83D\uDCBB", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b", bw:"plank", br:"sand", bd:4}];
 }
+/* Live "walk together" (1 Nov 2026, Mom said yes). The app opens ONE broadcast channel for the household and relays the worlds' messages over it.
+   Supabase counts a broadcast as 1 message sent plus 1 per client that receives it (free plan: 2 million a month, shared with Momma Money's live push).
+   Budget: at most 4 messages a second, 400 a minute, 6000 a day per kid on this device, nothing while the tab is hidden, and the world pages only
+   send position updates when someone else is in the world. Leader can switch it off (familyGoal().liveWorld === false). See OPS_NOTES.md. */
+var WORLD_LIVE_DAILY_MSGS = 6000, WORLD_LIVE_MINUTE_MSGS = 400;
+function worldLiveOn(){ return familyGoal().liveWorld !== false; }
+function worldSay(text){ try{ if(worldGame) worldGame.frame.contentWindow.postMessage({forge:"say", text:text}, "*"); }catch(e){} }
+function worldLiveStart(){
+  var g = worldGame; if(!g || !worldLiveOn() || !sb || !HOUSEHOLD_ID) return;
+  try{
+    var ch = sb.channel("forge-world:"+HOUSEHOLD_ID, {config:{broadcast:{self:false}}});
+    ch.on("broadcast", {event:"p"}, function(pl){
+      if(!worldGame || worldGame.ch!==ch) return;
+      try{ worldGame.frame.contentWindow.postMessage({forge:"peer", msg:pl.payload}, "*"); }catch(e){}
+    });
+    g.ch = ch; g.ready = false; g.minute = {t:Date.now(), n:0};
+    ch.subscribe(function(status){
+      if(!worldGame || worldGame.ch!==ch) return;
+      if(status==="SUBSCRIBED"){ worldGame.ready = true; }
+      else if(status==="CHANNEL_ERROR" || status==="TIMED_OUT"){ worldGame.ready = false; if(!worldGame.errSaid){ worldGame.errSaid = true; worldSay("Playing on your own right now. The live link did not connect."); } }
+    });
+  }catch(e){ console.error("live world error", e); }
+}
+function worldLiveSend(msg){
+  var g = worldGame; if(!g || !g.ch || !g.ready || document.hidden || !msg) return;
+  var now = Date.now();
+  if(now-(g.lastSend||0) < 250) return;                                   // at most 4 a second
+  if(now-g.minute.t > 60000) g.minute = {t:now, n:0};
+  if(g.minute.n >= WORLD_LIVE_MINUTE_MSGS) return;                        // a runaway page can never flood the channel
+  var key = "al_world_live_"+g.kid+"_"+todayISO(), n = 0; try{ n = parseInt(localStorage.getItem(key)||"0", 10) || 0; }catch(e){}
+  if(n >= WORLD_LIVE_DAILY_MSGS){ if(!g.capSaid){ g.capSaid = true; worldSay("Live time is used up for today. You can still explore on your own!"); } return; }
+  g.lastSend = now; g.minute.n++; try{ localStorage.setItem(key, String(n+1)); }catch(e){}
+  try{ g.ch.send({type:"broadcast", event:"p", payload:msg}); }catch(e){}
+}
+function liveWorldCard(){
+  var on = worldLiveOn(), c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
+  c.innerHTML = '<div style="font-weight:700">\uD83C\uDF0D Walk together in the worlds: <span style="color:'+(on ? 'var(--green,#2a9d5c)' : 'var(--muted,#888)')+'">'+(on ? "ON" : "OFF")+'</span></div>'+
+    '<div class="muted" style="font-size:12.5px;margin:6px 0">When on, Anna and Ryan can see each other in the town or the Minecraft world, even on different computers. It uses Supabase live messages (free plan: 2 million a month, shared with Momma Money). It sends nothing unless both are in a world, at most 4 a second, and stops at 6000 a day per kid. Turn it off here if Supabase usage climbs.</div>';
+  var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;color:var(--ink)";
+  b.textContent = on ? "Turn it off" : "Turn it on";
+  b.onclick = function(){ var g = Object.assign({}, familyGoal(), {liveWorld:!on}); saveFamilyGoal(g, true); renderLeaderArea(); };
+  c.appendChild(b); return c;
+}
 function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
 function worldFrameUrl(kid, which){
   var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid)};
   return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
 }
-function closeWorldGame(){ if(!worldGame) return; clearInterval(worldGame.timer); if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
+function closeWorldGame(){ if(!worldGame) return; clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
 function openWorldGame(kid, which){
   closeWorldGame();
   var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#000;display:flex;flex-direction:column";
@@ -2435,6 +2478,7 @@ function openWorldGame(kid, which){
   var fr = document.createElement("iframe"); fr.style.cssText = "flex:1;border:0;width:100%;background:#000"; fr.setAttribute("allow", "gamepad; fullscreen; autoplay"); fr.src = worldFrameUrl(kid, which); ov.appendChild(fr);
   document.body.appendChild(ov);
   worldGame = {kid:kid, which:which, frame:fr, overlay:ov, last:worldUnlocked(kid)};
+  worldLiveStart();
   worldGame.timer = setInterval(function(){   // watch for the last lesson being finished, no network involved
     if(!worldGame) return; var u = worldUnlocked(worldGame.kid);
     if(u!==worldGame.last){ worldGame.last = u; try{ worldGame.frame.contentWindow.postMessage({forge:"unlock", value:u}, "*"); }catch(e){} }
@@ -2444,6 +2488,7 @@ window.addEventListener("message", function(ev){
   if(!worldGame || ev.source!==worldGame.frame.contentWindow) return;
   var m = ev.data || {};
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
+  else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="enterZone"){
     var z = worldZones(worldGame.kid).filter(function(zz){ return zz.key===m.key; })[0];
     var next = z && z.lessons.filter(function(l){ return !l.done; })[0];
@@ -7954,6 +7999,7 @@ function renderLeaderArea(){
   els.view.appendChild(tlTrackerCard());
   els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
+  els.view.appendChild(liveWorldCard());
   els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
@@ -20785,6 +20831,7 @@ function saveFamilyGoal(g, quiet){
   if(g.tl===undefined && cur.tl!==undefined) g = Object.assign({}, g, {tl:cur.tl});
   if(g.rp===undefined && cur.rp!==undefined) g = Object.assign({}, g, {rp:cur.rp});
   if(g.world===undefined && cur.world!==undefined) g = Object.assign({}, g, {world:cur.world});
+  if(g.liveWorld===undefined && cur.liveWorld!==undefined) g = Object.assign({}, g, {liveWorld:cur.liveWorld});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -27883,7 +27930,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-01.1";
+var APP_BUILD = "2026-11-01.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }

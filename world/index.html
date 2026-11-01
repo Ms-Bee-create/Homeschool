@@ -327,38 +327,55 @@ function useDoor(){
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:d.zone.key}, "*"); } catch (e) {}
   toast("In the real app this opens the " + d.zone.name + " lessons.");
 }
-function emote(e){ if (myEmote) myAvatar.remove(myEmote); myEmote = emojiSprite(e); myEmote.position.y = 2.9; myAvatar.add(myEmote); me.emote = e; me.emoteAt = Date.now(); sendNow(); }
+function emote(e){ if (myEmote) myAvatar.remove(myEmote); myEmote = emojiSprite(e); myEmote.position.y = 2.9; myAvatar.add(myEmote); me.emote = e; me.emoteAt = Date.now(); sendFull(); }
 
 /* ---------- other explorers: the transport is swappable (a local tab-to-tab channel now, a live connection later) ---------- */
 var others = {};
-var net = (function(){
-  var ch = null; try { ch = new BroadcastChannel("forge-world"); } catch (e) {}
-  return {send:function(m){ if (ch) ch.postMessage(m); }, onmsg:function(f){ if (ch) ch.onmessage = function(ev){ f(ev.data); }; }};
-})();
+/* Messages travel two ways: tab to tab in one browser (BroadcastChannel), and, when this page is inside the app, through the app, which
+   relays them over the family's live channel. The app counts and caps what it sends. To keep the traffic small:
+   a FULL message (name, look, wear, position) is sent when you join, when you use an emote, and every 4 seconds with company or 10 seconds alone;
+   a tiny COMPACT message (position only) goes out at most 3 times a second, and only while someone else is here and you actually moved. */
+var embedded = false; try { embedded = parent !== window; } catch (e) {}
+var netHandler = null, localCh = null; try { localCh = new BroadcastChannel("forge-world"); } catch (e) {}
+var net = {
+  send:function(m){ if (localCh) localCh.postMessage(m); if (embedded){ try { parent.postMessage({forge:"send", msg:m}, "*"); } catch (e) {} } },
+  onmsg:function(f){ netHandler = f; if (localCh) localCh.onmessage = function(ev){ f(ev.data); }; }
+};
+addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge === "peer" && netHandler) netHandler(m.msg); });
+function r1(v){ return Math.round(v * 10) / 10; }
+function r2(v){ return Math.round(v * 100) / 100; }
+var lastSent = 0, lastFull = 0, lastPos = "";
+function baseMsg(t){ return {w:"mc", t:t, id:ME.id, x:r1(me.x), y:r1(me.y), z:r1(me.z), yaw:r2(me.yaw), emote:me.emote, emoteAt:me.emoteAt}; }
+function sendFull(){ var m = baseMsg("f"); m.name = ME.name; m.look = ME.look; m.wear = ME.wear; net.send(m); lastFull = lastSent = Date.now(); }
+function netTick(){
+  var now = Date.now(), peers = Object.keys(others).length;
+  var key2 = [r1(me.x), r1(me.y), r1(me.z), r2(me.yaw)].join();
+  if (peers && key2 !== lastPos && now - lastSent > 330){ lastPos = key2; net.send(baseMsg("c")); lastSent = now; }
+  if (now - lastFull > (peers ? 4000 : 10000)) sendFull();
+}
 net.onmsg(function(m){
-  if (!m || m.id === ME.id) return;
+  if (!m || m.w !== "mc" || m.id === ME.id) return;
   var o = others[m.id];
   if (!o){
+    if (m.t !== "f") return;                                  // wait for a full message that carries the look
     var g = buildAvatar(m.look, m.wear), lab = labelSprite(m.name || "Explorer", 1.6, "rgba(0,0,0,.5)"); lab.position.y = 2.5; g.add(lab); scene.add(g);
-    o = others[m.id] = {g:g, tx:m.x, ty:m.y, tz:m.z, yaw:m.yaw, seen:0, emote:null}; g.position.set(m.x, m.y, m.z); toast(m.name + " joined the world!");
+    o = others[m.id] = {g:g, tx:m.x, ty:m.y, tz:m.z, yaw:m.yaw, seen:0, emote:null}; g.position.set(m.x, m.y, m.z); toast((m.name || "Someone") + " joined the world!"); sendFull();
   }
   o.tx = m.x; o.ty = m.y; o.tz = m.z; o.yaw = m.yaw; o.seen = Date.now();
   if (m.emote && m.emoteAt !== o.lastEmoteAt){ o.lastEmoteAt = m.emoteAt; if (o.emote) o.g.remove(o.emote); o.emote = emojiSprite(m.emote); o.emote.position.y = 2.9; o.g.add(o.emote); o.emoteUntil = Date.now() + 3000; }
 });
-var lastSent = 0, lastPos = "";
-function sendNow(){ net.send({id:ME.id, name:ME.name, look:ME.look, wear:ME.wear, x:me.x, y:me.y, z:me.z, yaw:me.yaw, emote:me.emote, emoteAt:me.emoteAt}); lastSent = Date.now(); }
 
 /* ---------- the loop ---------- */
 var prev = performance.now(), started = false;
 function frame(now){
   var dt = Math.min((now - prev) / 1000, 0.05); prev = now;
-  if (started) step(dt);
+  if (started){ try { step(dt); } catch (e) { console.error(e); } }
   updateChunks(me.x, me.z, started ? 2 : 4);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 function step(dt){
-  var pads = navigator.getGamepads ? navigator.getGamepads() : [], pad = null; for (var i = 0; i < pads.length; i++) if (pads[i]){ pad = pads[i]; break; }
+  var pads = [], pad = null; try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) {}   // a browser can refuse gamepads inside a frame: never let that stop the game for (var i = 0; i < pads.length; i++) if (pads[i]){ pad = pads[i]; break; }
   if (keys.ArrowLeft) me.yaw += 1.8 * dt; if (keys.ArrowRight) me.yaw -= 1.8 * dt;
   if (keys.ArrowUp) me.pitch = Math.min(1.4, me.pitch + 1.2 * dt); if (keys.ArrowDown) me.pitch = Math.max(-1.4, me.pitch - 1.2 * dt);
   var mx = 0, mz = 0, jump = !!keys.Space;
@@ -389,12 +406,11 @@ function step(dt){
 
   Object.keys(others).forEach(function(id){
     var o = others[id];
-    if (Date.now() - o.seen > 6000){ scene.remove(o.g); delete others[id]; return; }
+    if (Date.now() - o.seen > 15000){ scene.remove(o.g); delete others[id]; return; }
     var k = Math.min(1, dt * 10); o.g.position.x += (o.tx - o.g.position.x) * k; o.g.position.y += (o.ty - o.g.position.y) * k; o.g.position.z += (o.tz - o.g.position.z) * k; o.g.rotation.y = o.yaw;
     if (o.emote && Date.now() > o.emoteUntil){ o.g.remove(o.emote); o.emote = null; }
   });
-  var key2 = [me.x.toFixed(1), me.y.toFixed(1), me.z.toFixed(1), me.yaw.toFixed(1)].join();
-  if ((key2 !== lastPos && Date.now() - lastSent > 200) || Date.now() - lastSent > 2000){ lastPos = key2; sendNow(); }
+  netTick();
   var nd = nearDoor(), pr = document.getElementById("prompt");
   if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.icon + " " + PORTAL.name; pr.style.display = "block"; }
   else if (nd){ pr.textContent = "Press E to go in: " + nd.zone.name; pr.style.display = "block"; } else pr.style.display = "none";
@@ -410,7 +426,7 @@ img.onload = function(){
   var ps = labelSprite(PORTAL.icon + " " + PORTAL.name, 5); ps.position.set(PORTAL.x, SPAWN_H + 7.2, PORTAL.z - 0.5); scene.add(ps);
   updateChunks(0, 0, 40);                                            // the middle of the world is ready before anyone walks in
   var btn = document.getElementById("go"); btn.disabled = false; btn.textContent = "Click to play";
-  btn.onclick = function(){ document.getElementById("start").style.display = "none"; started = true; try { renderer.domElement.requestPointerLock(); } catch (e) {} };
+  btn.onclick = function(){ document.getElementById("start").style.display = "none"; started = true; sendFull(); try { renderer.domElement.requestPointerLock(); } catch (e) {} };
   requestAnimationFrame(frame);
 };
 img.onerror = function(){ document.getElementById("go").textContent = "Could not load the block pictures"; };
