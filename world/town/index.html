@@ -52,6 +52,7 @@ var P = {}; try { var mm = /[#&]p=([^&]*)/.exec(location.hash); if (mm) P = JSON
 var ME = {id:P.id || ("p" + Math.random().toString(36).slice(2, 8)), name:P.name || "Explorer",
   look:Object.assign({skin:"#f1c9a5", hair:"#4a2c12", style:"short", outfit:"#3f7dff"}, P.look || {}), wear:P.wear || {}};
 document.getElementById("who").textContent = "You are " + ME.name;
+if (P.jobs && P.jobs.length) JOBS = P.jobs;   // the app sends this kid's own jobs
 var unlocked = P.unlocked === true;
 
 var scene = new THREE.Scene(); scene.background = new THREE.Color(0x9fd8ff); scene.fog = new THREE.Fog(0x9fd8ff, 60, 170);
@@ -126,10 +127,14 @@ function setUnlocked(v){
   document.getElementById("gate").textContent = unlocked ? "🔓 The gate is open!" : "🔒 Gate: finish today's lessons";
   if (unlocked) toast("The gate is open! Go explore the meadow.");
 }
-addEventListener("message", function(ev){ if (ev.data && ev.data.forge === "unlock") setUnlocked(ev.data.value !== false); });
+addEventListener("message", function(ev){
+  var m = ev.data || {};
+  if (m.forge === "unlock") setUnlocked(m.value !== false);
+  if (m.forge === "say") toast(m.text);
+});
 
 /* ---------- the portal: other worlds you can travel to. It stands just outside the gate, so it opens up after the day's lessons. ---------- */
-var WORLDS = [{key:"minecraft", name:"Minecraft World", icon:"⛏️", path:"../"}];
+var WORLDS = [{key:"minecraft", name:"Minecraft World", icon:"⛏️", path:"../index.html"}];
 var PORTAL = {x:0, z:FENCE + 14, world:WORLDS[0]};
 (function(){
   var g = new THREE.Group(); g.position.set(PORTAL.x, 0, PORTAL.z);

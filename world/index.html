@@ -58,6 +58,7 @@ var ME = {
   wear: P.wear || {}
 };
 document.getElementById("who").textContent = "You are " + ME.name;
+if (P.jobs && P.jobs.length) ZONES = P.jobs.map(function(j, i){ return {key:j.key, name:j.name, wall:j.bw || "plank", roof:j.br || "grass", door:(j.bd != null ? j.bd : i % 5)}; });   // the app sends this kid's own jobs
 
 /* ---------- block types and which picture each face uses (same layout as our Godot project) ---------- */
 var AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, WATER = 5, WOOD = 6, LEAVES = 7, PLANK = 8, DOOR0 = 9;   // DOOR0..DOOR0+4 are the five door colors
@@ -107,7 +108,7 @@ function hash2(x, z){ var h = Math.imul(x, 374761393) ^ Math.imul(z, 668265263) 
 /* ---------- the buildings, placed into the world as plain blocks ---------- */
 var structBlocks = {};   // chunk key -> list of [x, y, z, id]
 function putStruct(x, y, z, id){ var k = Math.floor(x / SIZE) + "," + Math.floor(z / SIZE); (structBlocks[k] = structBlocks[k] || []).push([x, y, z, id]); }
-var PORTAL_BLOCK = DOOR0 + 5, PORTAL = {x:0.5, z:-5.5, name:"Forge Town", icon:"🏙️", path:"town/"};
+var PORTAL_BLOCK = DOOR0 + 5, PORTAL = {x:0.5, z:-5.5, name:"Forge Town", icon:"🏙️", path:"town/index.html"};
 (function(){   // a purple arch a few steps in front of where you start
   for (var yy = 1; yy <= 4; yy++){ putStruct(-2, SPAWN_H + yy, -6, PORTAL_BLOCK); putStruct(2, SPAWN_H + yy, -6, PORTAL_BLOCK); }
   for (var xx = -2; xx <= 2; xx++) putStruct(xx, SPAWN_H + 5, -6, PORTAL_BLOCK);
@@ -283,6 +284,7 @@ function buildAvatar(look, wear){
   return g;
 }
 
+addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge === "say") toast(m.text); });
 /* ---------- me ---------- */
 var me = {x:0.5, y:SPAWN_H + 2, z:0.5, vx:0, vy:0, vz:0, yaw:0, pitch:0, onGround:false, third:false, inWater:false};
 var myAvatar = buildAvatar(ME.look, ME.wear), myLabel = labelSprite(ME.name, 1.6, "rgba(0,0,0,.5)"), myEmote = null;
