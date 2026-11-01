@@ -133,6 +133,65 @@ addEventListener("message", function(ev){
   if (m.forge === "say") toast(m.text);
 });
 
+/* ---------- my house: a small furnished room, the same one the kid decorated in the app. The inside is built far away (x = 300) and the door teleports you there. ---------- */
+var HOUSE = P.house || {items:[]}, HOUSE_SPOT = {x:-23, z:23}, IN = {x:300, z:0}, CELL_SIZE = 1.5, HCOLS = 8, HROWS = 6;
+var houseDoor = null, houseFace = Math.atan2(-HOUSE_SPOT.x, -HOUSE_SPOT.z), houseExitSpot = {x:IN.x, z:IN.z + HROWS * CELL_SIZE / 2 - 0.9};
+function mb(w, h, d, c, x, y, z){ return mesh(new THREE.BoxGeometry(w, h, d), c, x, y, z); }
+function itemModel(id){
+  var g = new THREE.Group();
+  if (id === "bed"){ g.add(mb(1.3, 0.35, 1.2, "#8b5a3c", 0, 0.18, 0)); g.add(mb(1.2, 0.2, 1.1, "#ffffff", 0, 0.45, 0)); g.add(mb(0.5, 0.15, 0.35, "#ffb3c9", 0, 0.62, -0.35)); g.add(mb(1.2, 0.15, 0.5, "#5b8def", 0, 0.55, 0.25)); }
+  else if (id === "sofa"){ g.add(mb(1.3, 0.5, 0.7, "#6b8fe8", 0, 0.25, 0)); g.add(mb(1.3, 0.6, 0.2, "#587bd6", 0, 0.6, -0.3)); g.add(mb(0.2, 0.45, 0.7, "#587bd6", -0.65, 0.4, 0)); g.add(mb(0.2, 0.45, 0.7, "#587bd6", 0.65, 0.4, 0)); }
+  else if (id === "table"){ g.add(mb(1.1, 0.1, 1.1, "#a06a3a", 0, 0.7, 0)); [[-0.45, -0.45], [0.45, -0.45], [-0.45, 0.45], [0.45, 0.45]].forEach(function(q){ g.add(mb(0.1, 0.7, 0.1, "#7a4a26", q[0], 0.35, q[1])); }); g.add(mb(0.4, 0.15, 0.4, "#ffffff", 0, 0.82, 0)); }
+  else if (id === "rug"){ g.add(mb(1.4, 0.04, 1.4, "#d9534f", 0, 0.03, 0)); g.add(mb(0.9, 0.05, 0.9, "#f2c94c", 0, 0.05, 0)); }
+  else if (id === "plant"){ g.add(mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.35, 10), "#b5651d", 0, 0.18, 0)); g.add(mesh(new THREE.SphereGeometry(0.4, 10, 8), "#2f9a45", 0, 0.7, 0)); }
+  else if (id === "lamp"){ g.add(mb(0.08, 1.3, 0.08, "#555555", 0, 0.65, 0)); g.add(mesh(new THREE.ConeGeometry(0.35, 0.4, 10), "#ffe08a", 0, 1.45, 0)); g.add(mb(0.3, 0.05, 0.3, "#555555", 0, 0.03, 0)); }
+  else if (id === "tv"){ g.add(mb(1.1, 0.5, 0.5, "#6b4a2a", 0, 0.25, 0)); g.add(mb(1.0, 0.7, 0.1, "#111111", 0, 0.85, 0)); g.add(mb(0.9, 0.6, 0.05, "#5fd2ff", 0, 0.85, 0.06)); }
+  else if (id === "shelf"){ g.add(mb(1.2, 1.6, 0.4, "#8a5a34", 0, 0.8, 0)); [0.3, 0.75, 1.2].forEach(function(y){ ["#e74c3c", "#3498db", "#f1c40f", "#2ecc71"].forEach(function(c, k){ g.add(mb(0.2, 0.3, 0.25, c, -0.45 + k * 0.3, y + 0.1, 0.05)); }); }); }
+  else if (id === "easel"){ g.add(mb(0.9, 0.7, 0.06, "#ffffff", 0, 1.0, 0)); g.add(mb(0.75, 0.55, 0.07, "#7ec8ff", 0, 1.0, 0.02)); g.add(mb(0.4, 0.3, 0.08, "#ffd23f", 0.1, 0.95, 0.04)); g.add(mb(0.08, 0.8, 0.08, "#8a5a34", -0.4, 0.4, 0.1)); g.add(mb(0.08, 0.8, 0.08, "#8a5a34", 0.4, 0.4, 0.1)); }
+  else if (id === "computer"){ g.add(mb(1.2, 0.1, 0.7, "#8a8f99", 0, 0.7, 0)); g.add(mb(0.1, 0.7, 0.6, "#555555", -0.55, 0.35, 0)); g.add(mb(0.1, 0.7, 0.6, "#555555", 0.55, 0.35, 0)); g.add(mb(0.6, 0.4, 0.05, "#111111", 0, 1.05, -0.1)); g.add(mb(0.52, 0.32, 0.04, "#3fe0e6", 0, 1.05, -0.07)); g.add(mb(0.5, 0.04, 0.2, "#cccccc", 0, 0.77, 0.15)); }
+  else if (id === "petbed"){ g.add(mesh(new THREE.CylinderGeometry(0.45, 0.5, 0.2, 14), "#e0a96d", 0, 0.1, 0)); g.add(mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.22, 14), "#fff1d6", 0, 0.13, 0)); }
+  else if (id === "chest"){ g.add(mb(0.9, 0.5, 0.6, "#8a5a34", 0, 0.25, 0)); g.add(mb(0.92, 0.12, 0.62, "#6b4423", 0, 0.56, 0)); g.add(mb(0.15, 0.2, 0.05, "#ffd23f", 0, 0.4, 0.32)); }
+  else if (id === "fish"){ var gl = mb(1.0, 0.7, 0.5, "#9fd8ff", 0, 0.75, 0); gl.material.transparent = true; gl.material.opacity = 0.45; g.add(mb(1.1, 0.4, 0.6, "#6b4a2a", 0, 0.2, 0)); g.add(gl); g.add(mesh(new THREE.SphereGeometry(0.1, 8, 8), "#ff9f43", -0.1, 0.8, 0)); g.add(mesh(new THREE.SphereGeometry(0.08, 8, 8), "#ff6b9d", 0.2, 0.65, 0.1)); }
+  else if (id === "trophy"){ g.add(mb(0.4, 0.15, 0.4, "#6b4423", 0, 0.08, 0)); g.add(mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8), "#ffd23f", 0, 0.35, 0)); g.add(mesh(new THREE.CylinderGeometry(0.28, 0.12, 0.35, 10), "#ffd23f", 0, 0.7, 0)); }
+  else return null;
+  return g;
+}
+(function(){
+  // outside: a little cottage by the fence, door facing the plaza
+  var g = new THREE.Group(); g.position.set(HOUSE_SPOT.x, 0, HOUSE_SPOT.z); g.rotation.y = houseFace;
+  g.add(mb(6, 3.6, 5, "#f4e6c8", 0, 1.8, 0));
+  var rf = mesh(new THREE.ConeGeometry(5, 2.4, 4), HOUSE.roof || "#c8564f", 0, 4.8, 0); rf.rotation.y = Math.PI / 4; g.add(rf);
+  g.add(mb(1.4, 2.2, 0.3, "#8a5a34", 0, 1.1, 2.55)); g.add(mb(1.0, 1.0, 0.2, "#bfe8ff", -2.0, 2.2, 2.52)); g.add(mb(1.0, 1.0, 0.2, "#bfe8ff", 2.0, 2.2, 2.52));
+  scene.add(g);
+  var sign = labelSprite("🏠 My House", 4.5); sign.position.set(HOUSE_SPOT.x, 7.2, HOUSE_SPOT.z); scene.add(sign);
+  colliders.push({x:HOUSE_SPOT.x, z:HOUSE_SPOT.z, r:3.9});
+  houseDoor = {x:HOUSE_SPOT.x + Math.sin(houseFace) * 4.6, z:HOUSE_SPOT.z + Math.cos(houseFace) * 4.6};
+  var ring = mesh(new THREE.RingGeometry(0.9, 1.3, 28), 0xffffff, houseDoor.x, 0.06, houseDoor.z); ring.rotation.x = -Math.PI / 2; ring.material.side = THREE.DoubleSide; scene.add(ring);
+  // inside: a floor and low walls (so the camera can see in), with a doorway in the front
+  var W = HCOLS * CELL_SIZE, D = HROWS * CELL_SIZE;
+  scene.add(mesh(new THREE.BoxGeometry(W + 0.6, 0.2, D + 0.6), HOUSE.floor || "#c9a36b", IN.x, -0.1, IN.z));
+  function wall(x0, z0, x1, z1){ scene.add(mesh(new THREE.BoxGeometry(x1 - x0, 1.5, z1 - z0), "#f4e6c8", (x0 + x1) / 2, 0.75, (z0 + z1) / 2)); colliders.push({x0:x0, z0:z0, x1:x1, z1:z1}); }
+  wall(IN.x - W / 2 - 0.3, IN.z - D / 2 - 0.3, IN.x + W / 2 + 0.3, IN.z - D / 2);
+  wall(IN.x - W / 2 - 0.3, IN.z - D / 2, IN.x - W / 2, IN.z + D / 2);
+  wall(IN.x + W / 2, IN.z - D / 2, IN.x + W / 2 + 0.3, IN.z + D / 2);
+  wall(IN.x - W / 2 - 0.3, IN.z + D / 2, IN.x - 1.6, IN.z + D / 2 + 0.3);
+  wall(IN.x + 1.6, IN.z + D / 2, IN.x + W / 2 + 0.3, IN.z + D / 2 + 0.3);
+  var er = mesh(new THREE.RingGeometry(0.9, 1.3, 28), 0xffffff, houseExitSpot.x, 0.06, houseExitSpot.z); er.rotation.x = -Math.PI / 2; er.material.side = THREE.DoubleSide; scene.add(er);
+  (HOUSE.items || []).forEach(function(it){
+    var m = itemModel(it.i); if (!m) return;
+    var lx = IN.x + (it.x - (HCOLS - 1) / 2) * CELL_SIZE, lz = IN.z + (it.y - (HROWS - 1) / 2) * CELL_SIZE;
+    m.position.set(lx, 0, lz); scene.add(m);
+    if (it.i !== "rug" && it.i !== "easel") colliders.push({x:lx, z:lz, r:0.5});
+  });
+})();
+function nearHouseDoor(){ return Math.hypot(me.x - houseDoor.x, me.z - houseDoor.z) < 2.3; }
+function nearHouseExit(){ return Math.hypot(me.x - houseExitSpot.x, me.z - houseExitSpot.z) < 2.0; }
+function useHouse(){
+  if (nearHouseExit()){ me.x = houseDoor.x; me.z = houseDoor.z; me.heading = houseFace; me.yaw = houseFace + Math.PI; me.vx = me.vz = 0; return true; }
+  if (nearHouseDoor()){ me.x = IN.x; me.z = IN.z + HROWS * CELL_SIZE / 2 - 2.6; me.heading = Math.PI; me.yaw = 0; me.vx = me.vz = 0; toast("Welcome home!"); return true; }
+  return false;
+}
+
 /* ---------- the portal: other worlds you can travel to. It stands just outside the gate, so it opens up after the day's lessons. ---------- */
 var WORLDS = [{key:"minecraft", name:"Minecraft World", icon:"⛏️", path:"../index.html"}];
 var PORTAL = {x:0, z:FENCE + 14, world:WORLDS[0]};
@@ -228,6 +287,7 @@ var toastT = null;
 function toast(t){ var el = document.getElementById("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(function(){ el.style.display = "none"; }, 3500); }
 function nearJob(){ for (var i = 0; i < jobSpots.length; i++){ var s = jobSpots[i]; if (Math.hypot(me.x - s.x, me.z - s.z) < 2.3) return s; } return null; }
 function useJob(){
+  if (useHouse()) return;
   if (typeof nearPortal === "function" && nearPortal()){ goWorld(PORTAL.world); return; }
   var s = nearJob(); if (!s) return;
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:s.job.key}, "*"); } catch (e) {}
@@ -329,7 +389,9 @@ function step(dt){
   netTick();
   var nj = nearJob(), pr = document.getElementById("prompt");
   PORTAL.swirl.rotation.z += dt * 1.5;
-  if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.world.icon + " " + PORTAL.world.name; pr.style.display = "block"; }
+  if (nearHouseExit()){ pr.textContent = "Press E to go outside"; pr.style.display = "block"; }
+  else if (nearHouseDoor()){ pr.textContent = "Press E to go into your house"; pr.style.display = "block"; }
+  else if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.world.icon + " " + PORTAL.world.name; pr.style.display = "block"; }
   else if (nj){ pr.textContent = "Press E to start: " + nj.job.icon + " " + nj.job.name; pr.style.display = "block"; }
   else if (!unlocked && Math.hypot(me.x, me.z - FENCE) < 5){ pr.textContent = "🔒 The gate opens when today's lessons are done"; pr.style.display = "block"; }
   else pr.style.display = "none";
