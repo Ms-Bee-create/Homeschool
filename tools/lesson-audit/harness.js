@@ -75,7 +75,7 @@ exports.open = async function(){
   const hook = 'window.state = state;';
   if(src.split(hook).length!==2) throw new Error('hook line "window.state = state;" not found exactly once');
   const tmp = path.resolve(__dirname,'.audit-copy.html');
-  fs.writeFileSync(tmp, src.replace(hook, hook+' window.__fa = {renderView:renderView, renderLessonDetail:renderLessonDetail, els:els, STANDARD_STATUS:STANDARD_STATUS, runAutoMigrations:runAutoMigrations, daysOffApply:daysOffApply, contentPacks:contentPacks, isDayOffIso:isDayOffIso, addSchoolDays:addSchoolDays, EXPLAINER_CARDS:EXPLAINER_CARDS};'));
+  fs.writeFileSync(tmp, src.replace(hook, hook+' window.__fa = {sb:sb, renderView:renderView, renderLessonDetail:renderLessonDetail, els:els, STANDARD_STATUS:STANDARD_STATUS, runAutoMigrations:runAutoMigrations, daysOffApply:daysOffApply, contentPacks:contentPacks, isDayOffIso:isDayOffIso, addSchoolDays:addSchoolDays, EXPLAINER_CARDS:EXPLAINER_CARDS};'));
   await page.goto('file://'+tmp);
   return {browser:b, page, store, errors};
 };
