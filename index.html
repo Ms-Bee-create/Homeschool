@@ -2332,13 +2332,32 @@ var WORLD_OUTFIT = {kid1:["#ff8fc0","#8ee3c0","#ffd86b","#c9b6ff","#7ec8ff","#ff
 var worldRoomOpen = {};
 function worldData(kid){
   var saved = (familyGoal().world || {})[kid] || {}, d = WORLD_DEFAULT[kid] || WORLD_DEFAULT.kid2;
-  return {look:Object.assign({}, d.look, saved.look||{}), wear:Object.assign({}, saved.wear||{}), owned:(saved.owned||[]).slice(), spent:saved.spent||0};
+  var sh = saved.house || {};
+  return {look:Object.assign({}, d.look, saved.look||{}), wear:Object.assign({}, saved.wear||{}), owned:(saved.owned||[]).slice(), spent:saved.spent||0,
+    house:{own:Object.assign({}, sh.own||{}), items:(sh.items||[]).slice(0, 48)}};
 }
 function saveWorld(kid, d){
   var g = Object.assign({}, familyGoal()); g.world = Object.assign({}, g.world || {}); g.world[kid] = d;
   saveFamilyGoal(g, true);
 }
-function worldCoins(kid, d){ return Math.max(0, Math.floor((kidData(kid).xp||0)/5) - (d||worldData(kid)).spent); }
+var WORLD_BONUS_FROM = "2026-11-01", WORLD_JOB_BONUS = 5;
+/* Jobs pay extra: every real lesson finished since the worlds launched pays WORLD_JOB_BONUS on top of the coins from XP.
+   It is counted from lessons already marked done (doneAt), so nothing new is stored and it can never be paid twice. */
+function worldJobBonus(kid){
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId===kid && a.done && a.doneAt && String(a.doneAt)>=WORLD_BONUS_FROM && a.reviewStatus!=="retired") n++; });
+  return n * WORLD_JOB_BONUS;
+}
+function worldCoins(kid, d){ return Math.max(0, Math.floor((kidData(kid).xp||0)/5) + worldJobBonus(kid) - (d||worldData(kid)).spent); }
+/* The house: a small room on a grid. Furniture is bought with coins, owned in counts, and placed on squares. The town shows the same room in 3D. */
+var HOUSE_COLS = 8, HOUSE_ROWS = 6, worldHouseTool = null;
+var HOUSE_ITEMS = [
+  {id:"bed", e:"\uD83D\uDECF\uFE0F", n:"Bed", p:40}, {id:"sofa", e:"\uD83D\uDECB\uFE0F", n:"Sofa", p:35}, {id:"table", e:"\uD83C\uDF7D\uFE0F", n:"Table", p:20},
+  {id:"rug", e:"\uD83E\uDDF6", n:"Rug", p:15}, {id:"plant", e:"\uD83C\uDF3F", n:"Plant", p:10}, {id:"lamp", e:"\uD83D\uDCA1", n:"Lamp", p:12},
+  {id:"tv", e:"\uD83D\uDCFA", n:"TV", p:45}, {id:"shelf", e:"\uD83D\uDCDA", n:"Bookshelf", p:30}, {id:"easel", e:"\uD83D\uDDBC\uFE0F", n:"Painting", p:8},
+  {id:"computer", e:"\uD83D\uDDA5\uFE0F", n:"Computer", p:50}, {id:"petbed", e:"\uD83D\uDC3E", n:"Pet bed", p:18}, {id:"chest", e:"\uD83E\uDDF0", n:"Chest", p:25},
+  {id:"fish", e:"\uD83D\uDC20", n:"Fish tank", p:40}, {id:"trophy", e:"\uD83C\uDFC6", n:"Trophy", p:30}
+];
 function wRect(x,y,w,h,c){ return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+c+'"/>'; }
 /* Ryan: blocky sprite. Anna: soft rounded one. */
 function worldAvatarSvg(kid, d, px){
@@ -2462,7 +2481,8 @@ function liveWorldCard(){
 }
 function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
 function worldFrameUrl(kid, which){
-  var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid)};
+  var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid),
+    house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}};
   return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
 }
 function closeWorldGame(){ if(!worldGame) return; clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
@@ -2510,7 +2530,7 @@ function renderWorld(){
 
   var head = card('<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div id="wAv"></div><div><div style="font-size:20px;font-weight:800">'+(anna ? "My Garden School" : "Forge World")+'</div>'+
     '<div style="font-weight:700;margin-top:4px">Level '+levelFor(kd.xp||0)+' · <span id="wCoins">'+worldCoins(kid, d)+'</span> '+cur+'</div>'+
-    '<div class="muted" style="font-size:12.5px;margin-top:4px">'+(anna ? "You get flowers when you finish lessons." : "You earn coins from the XP you already get. Spending coins never takes away your level.")+'</div></div></div>');
+    '<div class="muted" style="font-size:12.5px;margin-top:4px">'+(anna ? "You get flowers when you finish lessons, and +"+WORLD_JOB_BONUS+" extra for every lesson you finish." : "You earn coins from your XP, and +"+WORLD_JOB_BONUS+" extra for every lesson you finish. Spending coins never takes away your level.")+(worldJobBonus(kid) ? ' <b>Job bonus so far: '+worldJobBonus(kid)+'</b>' : '')+'</div></div></div>');
   head.querySelector("#wAv").innerHTML = worldAvatarSvg(kid, d, anna ? 3.4 : 3.8);
   var walk = card('<div style="font-weight:800;font-size:16px;margin-bottom:4px">'+(anna ? "\uD83C\uDF1F Walk around town" : "\uD83C\uDF0D Walk around")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">'+(anna ? "Visit the shops. Each shop opens your real lessons. The gate opens when today's lessons are done." : "Walk through the town. Each job opens your real lessons. The gate opens when today's lessons are done, and then you can travel to other worlds.")+'</div><div id="wWalk"></div>', "border-color:var(--gold)");
   var wb = document.createElement("button"); wb.type = "button"; wb.className = "reward-skip"; wb.style.cssText = "opacity:1;border:3px solid #000;background:var(--gold);color:#222;font-weight:800;font-size:16px;padding:10px 18px";
@@ -2598,6 +2618,44 @@ function renderWorld(){
     };
     shopEl.appendChild(b);
   });
+
+  /* house */
+  var hc = card('<div style="font-weight:800;font-size:16px;margin-bottom:4px">\uD83C\uDFE0 My house</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Buy something below, tap it, then tap a square to put it down. Use Pick up to take something away. Walk into your house in the town to see your room for real.</div><div id="wHouse"></div><div id="wHousePal" style="margin-top:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>');
+  var house = d.house, cname = anna ? "flowers" : "coins";
+  function placedN(id){ return house.items.filter(function(it){ return it.i===id; }).length; }
+  var grid = hc.querySelector("#wHouse"); grid.style.cssText = "display:grid;grid-template-columns:repeat("+HOUSE_COLS+",1fr);gap:3px;max-width:420px;padding:6px;border-radius:10px;background:"+(anna ? "#f6cfe0" : "#c9a36b");
+  for(var rr=0; rr<HOUSE_ROWS; rr++) for(var cc=0; cc<HOUSE_COLS; cc++){ (function(r2, c2){
+    var it = house.items.filter(function(x){ return x.x===c2 && x.y===r2; })[0], def = it && HOUSE_ITEMS.filter(function(h){ return h.id===it.i; })[0];
+    var b = document.createElement("button"); b.type = "button"; b.style.cssText = "aspect-ratio:1/1;border:2px solid rgba(0,0,0,.25);border-radius:6px;background:rgba(255,255,255,.35);font-size:24px;cursor:pointer;padding:0";
+    b.textContent = def ? def.e : ""; b.title = def ? def.n : "";
+    b.onclick = function(){
+      var tool = worldHouseTool;
+      if(tool==="erase"){ if(!it) return; house.items = house.items.filter(function(x){ return x!==it; }); }
+      else if(tool){
+        var rest = house.items.filter(function(x){ return !(x.x===c2 && x.y===r2); });
+        if(rest.filter(function(x){ return x.i===tool; }).length >= (house.own[tool]||0)){ toast("You need to buy another one first."); return; }
+        rest.push({i:tool, x:c2, y:r2}); house.items = rest;
+      } else { toast("Pick something below first."); return; }
+      saveWorld(kid, d); rerender();
+    };
+    grid.appendChild(b); })(rr, cc); }
+  var pal = hc.querySelector("#wHousePal");
+  HOUSE_ITEMS.forEach(function(h){
+    var own = house.own[h.id]||0, free = own - placedN(h.id);
+    var b = document.createElement("button"); b.type = "button";
+    b.style.cssText = "border:3px solid "+(worldHouseTool===h.id ? "var(--gold)" : "var(--border)")+";border-radius:"+(anna ? "14px" : "6px")+";background:var(--card);color:var(--ink);padding:8px 4px;font:inherit;cursor:pointer;text-align:center";
+    b.innerHTML = '<div style="font-size:26px">'+h.e+'</div><div style="font-weight:700;font-size:13.5px">'+h.n+'</div><div class="muted" style="font-size:12px">'+(free>0 ? "Tap, then tap a square ("+free+" left)" : own>0 ? "Buy another: "+h.p+" "+cname : h.p+" "+cname)+'</div>';
+    b.onclick = function(){
+      if(free>0){ worldHouseTool = h.id; rerender(); return; }
+      if(worldCoins(kid, d) < h.p){ toast("Not enough "+cname+" yet. Finish lessons to earn more!"); return; }
+      d.spent += h.p; house.own[h.id] = own + 1; worldHouseTool = h.id; saveWorld(kid, d); toast("You bought a "+h.n+"! Tap a square to put it down."); rerender();
+    };
+    pal.appendChild(b);
+  });
+  var pk = document.createElement("button"); pk.type = "button";
+  pk.style.cssText = "border:3px solid "+(worldHouseTool==="erase" ? "var(--gold)" : "var(--border)")+";border-radius:"+(anna ? "14px" : "6px")+";background:var(--card);color:var(--ink);padding:8px 4px;font:inherit;cursor:pointer;text-align:center";
+  pk.innerHTML = '<div style="font-size:26px">\u270B</div><div style="font-weight:700;font-size:13.5px">Pick up</div><div class="muted" style="font-size:12px">Tap, then tap a thing</div>';
+  pk.onclick = function(){ worldHouseTool = "erase"; rerender(); }; pal.appendChild(pk);
 }
 
 function renderHome(){
@@ -27930,7 +27988,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-01.2";
+var APP_BUILD = "2026-11-01.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
