@@ -2397,6 +2397,60 @@ function worldZones(kid){
   });
   return out;
 }
+/* The walkable worlds (world/town and world/) open inside the app on top of everything, as a full-screen frame.
+   The app tells the world who you are and which jobs you have; the world tells the app when you walk into a job.
+   Walking into a job opens that job's next real lesson. The town's gate opens when today's lessons are all done (or there are none).
+   Only the explorer's look and the gate state cross over: no lesson text, no chat. */
+var worldGame = null;
+function worldJobsFor(kid){
+  if(kid==="kid1"){
+    return [{key:"math", name:"Bakery", icon:"\uD83E\uDD50", wall:"#ffb3c9", roof:"#ff6b9d", door:"#ffd23f", bw:"sand", br:"plank", bd:3},
+      {key:"story", name:"Bookshop", icon:"\uD83D\uDCDA", wall:"#b9e8d2", roof:"#3fa888", door:"#ff9f43", bw:"plank", br:"grass", bd:1},
+      {key:"sci", name:"Pet Shop", icon:"\uD83D\uDC3E", wall:"#bfe0ff", roof:"#4a90d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:2},
+      {key:"ss", name:"Town Hall", icon:"\uD83C\uDFDB\uFE0F", wall:"#ffe0b0", roof:"#d98a2b", door:"#3fb8e0", bw:"stone", br:"plank", bd:0},
+      {key:"faith", name:"Faith Hall", icon:"\u2728", wall:"#e0d4ff", roof:"#8a63d9", door:"#ffd23f", bw:"wood", br:"stone", bd:4},
+      {key:"art", name:"Art Studio", icon:"\uD83C\uDFA8", wall:"#fff0a8", roof:"#e0b020", door:"#ff6b9d", bw:"plank", br:"sand", bd:3}];
+  }
+  return [{key:"scratchos", name:"Game Studio", icon:"\uD83C\uDFAE", wall:"#7dc95e", roof:"#2f8f3a", door:"#ffd23f", bw:"plank", br:"grass", bd:0},
+    {key:"underhood", name:"Repair Shop", icon:"\uD83D\uDD27", wall:"#a9b0bd", roof:"#5d6678", door:"#ff9f43", bw:"stone", br:"dirt", bd:1},
+    {key:"vrbuild", name:"Builder's Workshop", icon:"\uD83E\uDDF1", wall:"#f1d98a", roof:"#c2893a", door:"#3fb8e0", bw:"sand", br:"plank", bd:2},
+    {key:"vrlab", name:"VR Arcade", icon:"\uD83E\uDD7D", wall:"#c88a64", roof:"#7a3f2a", door:"#ff6b9d", bw:"wood", br:"stone", bd:3},
+    {key:"johnnyos", name:"Computer Store", icon:"\uD83D\uDCBB", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b", bw:"plank", br:"sand", bd:4}];
+}
+function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
+function worldFrameUrl(kid, which){
+  var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid)};
+  return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
+}
+function closeWorldGame(){ if(!worldGame) return; clearInterval(worldGame.timer); if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
+function openWorldGame(kid, which){
+  closeWorldGame();
+  var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#000;display:flex;flex-direction:column";
+  var bar = document.createElement("div"); bar.style.cssText = "display:flex;gap:12px;align-items:center;padding:6px 10px;background:#111a33;color:#fff;font-size:14px;flex-wrap:wrap";
+  var back = document.createElement("button"); back.type = "button"; back.textContent = "\u2190 Back to my lessons";
+  back.style.cssText = "background:#ffd23f;color:#222;border:3px solid #000;border-radius:10px;padding:5px 12px;font-weight:800;cursor:pointer;font-family:inherit";
+  back.onclick = function(){ closeWorldGame(); renderView(); };
+  var tip = document.createElement("span"); tip.textContent = "Walk up to a job and press E. Finish today's lessons to open the gate.";
+  bar.appendChild(back); bar.appendChild(tip); ov.appendChild(bar);
+  var fr = document.createElement("iframe"); fr.style.cssText = "flex:1;border:0;width:100%;background:#000"; fr.setAttribute("allow", "gamepad; fullscreen; autoplay"); fr.src = worldFrameUrl(kid, which); ov.appendChild(fr);
+  document.body.appendChild(ov);
+  worldGame = {kid:kid, which:which, frame:fr, overlay:ov, last:worldUnlocked(kid)};
+  worldGame.timer = setInterval(function(){   // watch for the last lesson being finished, no network involved
+    if(!worldGame) return; var u = worldUnlocked(worldGame.kid);
+    if(u!==worldGame.last){ worldGame.last = u; try{ worldGame.frame.contentWindow.postMessage({forge:"unlock", value:u}, "*"); }catch(e){} }
+  }, 3000);
+}
+window.addEventListener("message", function(ev){
+  if(!worldGame || ev.source!==worldGame.frame.contentWindow) return;
+  var m = ev.data || {};
+  if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
+  else if(m.forge==="enterZone"){
+    var z = worldZones(worldGame.kid).filter(function(zz){ return zz.key===m.key; })[0];
+    var next = z && z.lessons.filter(function(l){ return !l.done; })[0];
+    if(!next){ try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:(z ? "You finished everything here! \uD83C\uDFC6" : "Nothing to do here yet.")}, "*"); }catch(e){} return; }
+    closeWorldGame(); worldOpenLesson(next.id);
+  }
+});
 function renderWorld(){
   var kid = state.activeKid, anna = kid==="kid1", d = worldData(kid), kd = kidData(kid);
   var cur = anna ? "🌸 flowers" : "🪙 coins";
@@ -2413,6 +2467,9 @@ function renderWorld(){
     '<div style="font-weight:700;margin-top:4px">Level '+levelFor(kd.xp||0)+' · <span id="wCoins">'+worldCoins(kid, d)+'</span> '+cur+'</div>'+
     '<div class="muted" style="font-size:12.5px;margin-top:4px">'+(anna ? "You get flowers when you finish lessons." : "You earn coins from the XP you already get. Spending coins never takes away your level.")+'</div></div></div>');
   head.querySelector("#wAv").innerHTML = worldAvatarSvg(kid, d, anna ? 3.4 : 3.8);
+  var walk = card('<div style="font-weight:800;font-size:16px;margin-bottom:4px">'+(anna ? "\uD83C\uDF1F Walk around town" : "\uD83C\uDF0D Walk around")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">'+(anna ? "Visit the shops. Each shop opens your real lessons. The gate opens when today's lessons are done." : "Walk through the town. Each job opens your real lessons. The gate opens when today's lessons are done, and then you can travel to other worlds.")+'</div><div id="wWalk"></div>', "border-color:var(--gold)");
+  var wb = document.createElement("button"); wb.type = "button"; wb.className = "reward-skip"; wb.style.cssText = "opacity:1;border:3px solid #000;background:var(--gold);color:#222;font-weight:800;font-size:16px;padding:10px 18px";
+  wb.textContent = anna ? "Let's go!" : "Enter Forge Town"; wb.onclick = function(){ openWorldGame(kid, "town"); }; walk.querySelector("#wWalk").appendChild(wb);
 
   /* the map: real lessons */
   var zones = worldZones(kid), mapHtml = anna ? "🚪 Pick a door" : "🗺️ The map: every project is a zone";
@@ -27826,7 +27883,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-10-31.2";
+var APP_BUILD = "2026-11-01.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
