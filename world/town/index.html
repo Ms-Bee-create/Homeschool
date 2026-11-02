@@ -25,6 +25,7 @@
 <div class="pill" id="who"></div>
 <div class="pill" id="gate"></div>
 <div class="pill" id="prompt"></div>
+<div class="pill" id="deliv" style="left:50%;top:10px;transform:translateX(-50%);display:none;font-weight:700;text-align:center"></div>
 <div class="pill" id="toast"></div>
 <div id="emotes"></div>
 <div id="hint">W A S D walk · mouse look (click the world first) · Space jump · E start a job · F flop · V see the whole town · press a picture to emote</div>
@@ -131,6 +132,7 @@ addEventListener("message", function(ev){
   var m = ev.data || {};
   if (m.forge === "unlock") setUnlocked(m.value !== false);
   if (m.forge === "say") toast(m.text);
+  if (m.forge === "deliveryState" && typeof m.left === "number") DELIV_LEFT = m.left;
 });
 
 /* ---------- my house: a small furnished room, the same one the kid decorated in the app. The inside is built far away (x = 300) and the door teleports you there. ---------- */
@@ -210,6 +212,51 @@ function goWorld(w){
   toast("Travelling to " + w.name + "..."); setTimeout(function(){ location.href = w.path + hash; }, 500);
 }
 
+/* ---------- the delivery job: pick up a package at the depot (outside the gate), carry it to a building or your house. Small coins, a few a day. ---------- */
+var DEPOT = {x:-12, z:FENCE + 14}, DELIV_LEFT = (P.deliv && typeof P.deliv.left === "number") ? P.deliv.left : 5, DELIV_TIME = 75, DELIV_FAST = 35;
+var delivery = null, carryBox = null, beam = null, lastTarget = -1;
+(function(){
+  var g = new THREE.Group(); g.position.set(DEPOT.x, 0, DEPOT.z);
+  g.add(mesh(new THREE.BoxGeometry(4.5, 3, 3.2), 0xc89a5a, 0, 1.5, -2)); var roof = mesh(new THREE.BoxGeometry(5, 0.4, 3.8), 0x8a5a34, 0, 3.2, -2); g.add(roof);
+  g.add(mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), 0xd9a45c, -2.6, 0.6, 0.8)); g.add(mesh(new THREE.BoxGeometry(1.0, 1.0, 1.0), 0xd9a45c, -1.5, 0.5, 1.2)); g.add(mesh(new THREE.BoxGeometry(1.0, 1.0, 1.0), 0xe0b070, -2.5, 1.7, 0.8));
+  scene.add(g);
+  var sign = labelSprite("📦 Delivery Depot", 5); sign.position.set(DEPOT.x, 5.4, DEPOT.z - 2); scene.add(sign);
+  var ring = mesh(new THREE.RingGeometry(0.9, 1.3, 28), 0xffd23f, DEPOT.x, 0.06, DEPOT.z + 1.2); ring.rotation.x = -Math.PI / 2; ring.material.side = THREE.DoubleSide; scene.add(ring);
+  colliders.push({x:DEPOT.x, z:DEPOT.z - 2, r:2.8});
+  beam = mesh(new THREE.CylinderGeometry(0.7, 0.7, 60, 12), 0xffd23f, 0, 30, 0); beam.material.transparent = true; beam.material.opacity = 0.35; beam.visible = false; scene.add(beam);
+})();
+function delivTargets(){
+  var t = jobSpots.map(function(sp){ return {x:sp.x, z:sp.z, label:sp.job.icon + " " + sp.job.name}; });
+  t.push({x:houseDoor.x, z:houseDoor.z, label:"🏠 My House"}); return t;
+}
+function nearDepot(){ return Math.hypot(me.x - DEPOT.x, me.z - (DEPOT.z + 1.2)) < 2.4; }
+function fmtTime(sec){ sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ":" + ("0" + (sec % 60)).slice(-2); }
+function useDelivery(){
+  if (!nearDepot()) return false;
+  if (delivery){ toast("You are already carrying a package. Deliver it first!"); return true; }
+  if (!unlocked){ toast("Finish today's lessons first, then you can take deliveries."); return true; }
+  if (DELIV_LEFT <= 0){ toast("No more deliveries today. Great work! Come back tomorrow."); return true; }
+  var all = delivTargets(), i = Math.floor(Math.random() * all.length); if (all.length > 1 && i === lastTarget) i = (i + 1) % all.length; lastTarget = i;
+  delivery = {t:all[i], at:Date.now()};
+  carryBox = mb(0.5, 0.4, 0.5, "#d9a45c", 0, 1.15, 0.5); myChar.add(carryBox);
+  beam.position.set(all[i].x, 30, all[i].z); beam.visible = true;
+  toast("📦 Package picked up! Deliver it to " + all[i].label);
+  return true;
+}
+function endDelivery(){ delivery = null; if (carryBox){ myChar.remove(carryBox); carryBox = null; } beam.visible = false; document.getElementById("deliv").style.display = "none"; }
+function deliveryTick(){
+  var el = document.getElementById("deliv");
+  if (!delivery) return;
+  var secs = (Date.now() - delivery.at) / 1000, left = DELIV_TIME - secs, d = Math.hypot(me.x - delivery.t.x, me.z - delivery.t.z);
+  beam.material.opacity = 0.3 + Math.sin(Date.now() / 250) * 0.1;
+  var rel = Math.atan2(delivery.t.x - me.x, delivery.t.z - me.z) - (me.yaw + Math.PI);
+  el.innerHTML = '<span style="display:inline-block;transform:rotate(' + (-rel * 180 / Math.PI).toFixed(0) + 'deg)">⬆️</span> 📦 To ' + delivery.t.label + ' · ' + Math.round(d) + ' m · ' + fmtTime(left); el.style.display = "block";
+  if (d < 2.6){
+    var fast = secs <= DELIV_FAST; endDelivery(); DELIV_LEFT = Math.max(0, DELIV_LEFT - 1);
+    toast(fast ? "📦 Delivered, and fast!" : "📦 Delivered!");
+    try { if (parent !== window) parent.postMessage({forge:"delivery", fast:fast}, "*"); } catch (e) {}
+  } else if (left <= 0){ endDelivery(); toast("⏰ Time is up! Pick up another package at the depot."); }
+}
 /* ---------- wobbly characters ---------- */
 function buildChar(look, wear){
   var root = new THREE.Group(), wob = new THREE.Group(); root.add(wob);
@@ -288,6 +335,7 @@ function toast(t){ var el = document.getElementById("toast"); el.textContent = t
 function nearJob(){ for (var i = 0; i < jobSpots.length; i++){ var s = jobSpots[i]; if (Math.hypot(me.x - s.x, me.z - s.z) < 2.3) return s; } return null; }
 function useJob(){
   if (useHouse()) return;
+  if (useDelivery()) return;
   if (typeof nearPortal === "function" && nearPortal()){ goWorld(PORTAL.world); return; }
   var s = nearJob(); if (!s) return;
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:s.job.key}, "*"); } catch (e) {}
@@ -386,10 +434,12 @@ function step(dt){
     wobble(o.c, Math.hypot(ovx, ovz), ovx * Math.sin(o.heading) + ovz * Math.cos(o.heading), ovx * Math.cos(o.heading) - ovz * Math.sin(o.heading), dt, false, o.flop);
     if (o.emote && Date.now() > o.emoteUntil){ o.c.remove(o.emote); o.emote = null; }
   });
+  deliveryTick();
   netTick();
   var nj = nearJob(), pr = document.getElementById("prompt");
   PORTAL.swirl.rotation.z += dt * 1.5;
-  if (nearHouseExit()){ pr.textContent = "Press E to go outside"; pr.style.display = "block"; }
+  if (nearDepot() && !delivery){ pr.textContent = !unlocked ? "📦 Finish today's lessons to take deliveries" : DELIV_LEFT <= 0 ? "📦 No more deliveries today" : "Press E to pick up a package (" + DELIV_LEFT + " left today)"; pr.style.display = "block"; }
+  else if (nearHouseExit()){ pr.textContent = "Press E to go outside"; pr.style.display = "block"; }
   else if (nearHouseDoor()){ pr.textContent = "Press E to go into your house"; pr.style.display = "block"; }
   else if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.world.icon + " " + PORTAL.world.name; pr.style.display = "block"; }
   else if (nj){ pr.textContent = "Press E to start: " + nj.job.icon + " " + nj.job.name; pr.style.display = "block"; }
