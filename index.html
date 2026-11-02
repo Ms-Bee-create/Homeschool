@@ -2397,23 +2397,32 @@ function worldAvatarSvg(kid, d, px){
 /* The lesson a stop opens is the real lesson, not a copy. */
 function worldOpenLesson(id){ state.world = null; state.noteOverride = true; state.lessonDetailId = id; renderView(); }
 function worldZones(kid){
-  var out = [];
+  /* A job opens the lessons that are on TODAY's list, the same ones the Today screen shows. Lessons dated later show as "coming up" and cannot be opened from here;
+     old overdue lessons live in Leader's catch-up card, not here. "Study Hall" holds everything on today's list, so every lesson has a door. */
+  var out = [], today = todayISO();
+  function mk(a){ return {id:a.id, title:a.title, done:!!a.done, today:a.date===today, date:a.date}; }
+  var todayAll = assignmentsFor(kid, today);
+  var hall = {key:"today", icon:(kid==="kid1" ? "\u270F\uFE0F" : "\uD83D\uDCD3"), name:(kid==="kid1" ? "School Desk" : "Study Hall"), color:"#ffd86b", blurb:"Everything on today's list", pick:false,
+    doneCount:todayAll.filter(function(a){ return a.done; }).length, lessons:todayAll.map(mk)};
   if(kid==="kid2"){
     var pick = (familyGoal().rp || {}).id;
+    out.push(hall);
     RYAN_PROJECTS.forEach(function(p){
       var ls = rpLessons(p).filter(function(x){ return x.a.reviewStatus!=="retired"; }).sort(function(a,b){ return a.order-b.order; });
-      if(ls.length) out.push({key:p.id, icon:p.icon, name:p.name, blurb:p.blurb, lessons:ls.map(function(x){ return {id:x.id, title:x.a.title, done:!!x.a.done}; }), pick:p.id===pick});
+      if(ls.length) out.push({key:p.id, icon:p.icon, name:p.name, blurb:p.blurb, lessons:ls.map(function(x){ return mk(Object.assign({id:x.id}, x.a)); }), pick:p.id===pick});
     });
     return out;
   }
-  var rooms = [["math","🔢","Math Meadow","#ff8fc0",["Math"]],["story","📖","Story Garden","#8ee3c0",["ELA","Reading"]],["sci","🐸","Animal Pond","#7ec8ff",["Science"]],
-    ["ss","🏛️","Our Town","#ffb454",["Social Studies"]],["faith","✨","Faith Hill","#c9b6ff",["Faith"]],["art","🎨","Art Studio","#ffd86b",["Related Arts","Independent","Live Lesson"]]];
+  var rooms = [["math","\uD83D\uDD22","Math Meadow","#ff8fc0",["Math"]],["story","\uD83D\uDCD6","Story Garden","#8ee3c0",["ELA","Reading"]],["sci","\uD83D\uDC38","Animal Pond","#7ec8ff",["Science"]],
+    ["ss","\uD83C\uDFDB\uFE0F","Our Town","#ffb454",["Social Studies"]],["faith","\u2728","Faith Hill","#c9b6ff",["Faith"]],["art","\uD83C\uDFA8","Art Studio","#ffd86b",["Related Arts","Independent","Live Lesson"]]];
   var all = assignmentsFor(kid, null);
   rooms.forEach(function(r){
     var mine = all.filter(function(a){ return r[4].indexOf(a.subject)>=0; });
-    var done = mine.filter(function(a){ return a.done; }), next = mine.filter(function(a){ return !a.done; }).slice(0, 6);
-    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:next.map(function(a){ return {id:a.id, title:a.title, done:false}; })});
+    var done = mine.filter(function(a){ return a.done; });
+    var todays = mine.filter(function(a){ return a.date===today; }), later = mine.filter(function(a){ return !a.done && a.date>today; }).slice(0, 4);
+    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:todays.map(mk).concat(later.map(mk))});
   });
+  out.push(hall);
   return out;
 }
 /* The walkable worlds (world/town and world/) open inside the app on top of everything, as a full-screen frame.
@@ -2428,13 +2437,15 @@ function worldJobsFor(kid){
       {key:"sci", name:"Pet Shop", icon:"\uD83D\uDC3E", wall:"#bfe0ff", roof:"#4a90d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:2},
       {key:"ss", name:"Town Hall", icon:"\uD83C\uDFDB\uFE0F", wall:"#ffe0b0", roof:"#d98a2b", door:"#3fb8e0", bw:"stone", br:"plank", bd:0},
       {key:"faith", name:"Faith Hall", icon:"\u2728", wall:"#e0d4ff", roof:"#8a63d9", door:"#ffd23f", bw:"wood", br:"stone", bd:4},
-      {key:"art", name:"Art Studio", icon:"\uD83C\uDFA8", wall:"#fff0a8", roof:"#e0b020", door:"#ff6b9d", bw:"plank", br:"sand", bd:3}];
+      {key:"art", name:"Art Studio", icon:"\uD83C\uDFA8", wall:"#fff0a8", roof:"#e0b020", door:"#ff6b9d", bw:"plank", br:"sand", bd:3},
+      {key:"today", name:"School Desk", icon:"\u270F\uFE0F", wall:"#fff0f5", roof:"#c9a3d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:3}];
   }
   return [{key:"scratchos", name:"Game Studio", icon:"\uD83C\uDFAE", wall:"#7dc95e", roof:"#2f8f3a", door:"#ffd23f", bw:"plank", br:"grass", bd:0},
     {key:"underhood", name:"Repair Shop", icon:"\uD83D\uDD27", wall:"#a9b0bd", roof:"#5d6678", door:"#ff9f43", bw:"stone", br:"dirt", bd:1},
     {key:"vrbuild", name:"Builder's Workshop", icon:"\uD83E\uDDF1", wall:"#f1d98a", roof:"#c2893a", door:"#3fb8e0", bw:"sand", br:"plank", bd:2},
     {key:"vrlab", name:"VR Arcade", icon:"\uD83E\uDD7D", wall:"#c88a64", roof:"#7a3f2a", door:"#ff6b9d", bw:"wood", br:"stone", bd:3},
-    {key:"johnnyos", name:"Computer Store", icon:"\uD83D\uDCBB", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b", bw:"plank", br:"sand", bd:4}];
+    {key:"johnnyos", name:"Computer Store", icon:"\uD83D\uDCBB", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b", bw:"plank", br:"sand", bd:4},
+    {key:"today", name:"Study Hall", icon:"\uD83D\uDCD3", wall:"#d9d4c4", roof:"#8a8f99", door:"#ffd23f", bw:"stone", br:"plank", bd:0}];
 }
 /* Live "walk together" (1 Nov 2026, Mom said yes). The app opens ONE broadcast channel for the household and relays the worlds' messages over it.
    Supabase counts a broadcast as 1 message sent plus 1 per client that receives it (free plan: 2 million a month, shared with Momma Money's live push).
@@ -2511,8 +2522,12 @@ window.addEventListener("message", function(ev){
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="enterZone"){
     var z = worldZones(worldGame.kid).filter(function(zz){ return zz.key===m.key; })[0];
-    var next = z && z.lessons.filter(function(l){ return !l.done; })[0];
-    if(!next){ try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:(z ? "You finished everything here! \uD83C\uDFC6" : "Nothing to do here yet.")}, "*"); }catch(e){} return; }
+    var next = z && z.lessons.filter(function(l){ return l.today && !l.done; })[0];
+    if(!next){
+      var finishedToday = z && z.lessons.some(function(l){ return l.today && l.done; });
+      try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:(finishedToday ? "You finished everything here for today! \uD83C\uDFC6" : z ? "Nothing here for today. Your Today list has what is next!" : "Nothing to do here yet.")}, "*"); }catch(e){}
+      return;
+    }
     closeWorldGame(); worldOpenLesson(next.id);
   }
 });
@@ -2538,7 +2553,7 @@ function renderWorld(){
 
   /* the map: real lessons */
   var zones = worldZones(kid), mapHtml = anna ? "🚪 Pick a door" : "🗺️ The map: every project is a zone";
-  var map = card('<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+mapHtml+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Tap a stop to open the real lesson. ⭐ means finished, the bright one is next.</div><div id="wZones"></div>');
+  var map = card('<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+mapHtml+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Tap a stop to open the real lesson. These are the lessons on your list for today. ⭐ means finished, the bright one is next, and faded ones are for another day.</div><div id="wZones"></div>');
   var zwrap = map.querySelector("#wZones");
   if(anna){
     var doors = document.createElement("div"); doors.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"; zwrap.appendChild(doors);
@@ -2553,18 +2568,20 @@ function renderWorld(){
     });
     var z0 = zones.filter(function(z){ return z.key===openKey; })[0];
     room.innerHTML = '<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+z0.icon+' '+escapeHtml(z0.name)+' <span class="muted" style="font-size:13px;font-weight:600">⭐ '+z0.doneCount+' finished</span></div>';
-    if(!z0.lessons.length) room.innerHTML += '<div class="muted">Nothing coming up here right now.</div>';
+    if(!z0.lessons.length) room.innerHTML += '<div class="muted">Nothing here today. Check your Today list!</div>';
+    var firstNow = -1; for(var qi=0; qi<z0.lessons.length; qi++){ if(z0.lessons[qi].today && !z0.lessons[qi].done){ firstNow = qi; break; } }
     z0.lessons.forEach(function(l, i){
       var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
-      b.style.cssText = "display:block;width:100%;text-align:left;opacity:1;border:2px solid "+(i===0 ? "var(--gold)" : "var(--border)")+";border-radius:14px;margin:6px 0;padding:10px 12px;color:var(--ink);font-size:15px";
-      b.textContent = (i===0 ? "🌸 " : "○ ")+String(l.title||"").slice(0,80);
-      b.onclick = function(){ worldOpenLesson(l.id); };
+      var live = l.today && !l.done;
+      b.style.cssText = "display:block;width:100%;text-align:left;opacity:"+(l.today ? 1 : 0.55)+";border:2px solid "+(i===firstNow ? "var(--gold)" : "var(--border)")+";border-radius:14px;margin:6px 0;padding:10px 12px;color:var(--ink);font-size:15px";
+      b.textContent = (l.done && l.today ? "\u2B50 " : i===firstNow ? "\uD83C\uDF38 " : l.today ? "\u25CB " : "Later: ")+String(l.title||"").slice(0,80);
+      b.onclick = function(){ if(live) worldOpenLesson(l.id); else toast(l.done ? "You finished that one today! \u2B50" : "That one is for another day. Your Today list says what to do now."); };
       room.appendChild(b);
     });
   } else {
     zones.forEach(function(z){
       var doneN = z.lessons.filter(function(l){ return l.done; }).length, nowIdx = -1;
-      for(var i=0;i<z.lessons.length;i++){ if(!z.lessons[i].done){ nowIdx = i; break; } }
+      for(var i=0;i<z.lessons.length;i++){ if(!z.lessons[i].done && z.lessons[i].today){ nowIdx = i; break; } }
       var zc = document.createElement("div");
       zc.style.cssText = "border:3px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card);"+(z.pick ? "border-color:var(--gold);" : "");
       zc.innerHTML = '<div style="font-weight:800;font-size:15px">'+z.icon+' '+escapeHtml(z.name)+(z.pick ? ' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">🎯 this week\'s project</span>' : '')+(doneN===z.lessons.length ? ' 🏆' : '')+'</div>'+
@@ -2573,9 +2590,9 @@ function renderWorld(){
       z.lessons.forEach(function(l, i){
         var b = document.createElement("button"); b.type = "button"; b.title = l.title;
         var st = l.done ? "background:var(--gold);color:#222" : i===nowIdx ? "background:var(--teal);color:#012" : "background:var(--border);color:var(--ink)";
-        b.style.cssText = "width:38px;height:38px;border:3px solid #000;font-weight:800;font-size:13px;cursor:pointer;"+st;
+        b.style.cssText = "width:38px;height:38px;border:3px solid #000;font-weight:800;font-size:13px;cursor:pointer;opacity:"+(l.done || l.today ? 1 : 0.5)+";"+st;
         b.textContent = l.done ? "✓" : (i+1);
-        b.onclick = function(){ worldOpenLesson(l.id); };
+        b.onclick = function(){ if(l.today && !l.done) worldOpenLesson(l.id); else toast(l.done ? "You finished that one! \u2B50" : "That one is for another day. Your Today list says what to do now."); };
         row.appendChild(b);
       });
       zc.appendChild(row); zwrap.appendChild(zc);
@@ -27988,7 +28005,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-01.3";
+var APP_BUILD = "2026-11-02.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
