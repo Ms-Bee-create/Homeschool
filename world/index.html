@@ -13,6 +13,13 @@
   #prompt{position:fixed;left:50%;top:58%;transform:translateX(-50%);background:rgba(0,0,0,.65);border:3px solid #000;padding:8px 16px;font-size:20px;display:none}
   #hint{position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);font-size:14px;padding:6px 12px;text-align:center}
   #who{position:fixed;left:10px;top:10px;background:rgba(0,0,0,.55);padding:4px 10px;font-size:14px;border:3px solid #000}
+  #hotbar{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:6px;background:rgba(0,0,0,.55);border:3px solid #000;padding:5px}
+  .slot{width:48px;height:48px;position:relative;border:3px solid #333;background:#222;cursor:pointer}
+  .slot.sel{border-color:#ffd23f}
+  .slot canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+  .slot b{position:absolute;right:3px;bottom:0;font-size:15px;text-shadow:1px 1px 2px #000}
+  #mineBar{position:fixed;left:50%;top:55%;width:80px;height:8px;margin-left:-40px;background:rgba(0,0,0,.6);border:2px solid #000;display:none}
+  #mineBar i{display:block;height:100%;width:0;background:#ffd23f}
   #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#ffd23f;color:#222;border:3px solid #000;padding:8px 16px;font-size:18px;display:none}
   #start{position:fixed;inset:0;background:rgba(15,20,36,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
   #start button{font-size:24px;padding:14px 30px;background:#ffd23f;border:4px solid #000;cursor:pointer;font-family:inherit;font-weight:bold;color:#222}
@@ -26,7 +33,9 @@
 <div id="cross"></div>
 <div id="prompt"></div>
 <div id="toast"></div>
-<div id="hint">W A S D move · mouse look (click the world first) · Space jump, swim or hop out of water · R back to the start · E go in a door · 1-6 emotes · V see yourself</div>
+<div id="mineBar"><i></i></div>
+<div id="hotbar"></div>
+<div id="hint">W A S D move · mouse look (click the world first) · hold left click to mine · right click to place · 1-7 or the wheel picks a block · Space jump or swim · R back to the start · E go in a door · Shift+1-6 emotes · V see yourself</div>
 <div id="start">
   <h1>Forge World</h1>
   <p>Walk around, find the buildings, and walk up to a door to go in. Open this page in a second window to see another explorer. Take a break if you feel dizzy.</p>
@@ -135,6 +144,24 @@ ZONES.forEach(function(zn, i){
   doorSpots.push({zone:zn, x:cx + sx * (half + 1.5) + 0.5, z:cz + sz * (half + 1.5) + 0.5, sx:cx + 0.5, sy:base + 5.4, sz:cz + 0.5});
 });
 
+/* ---------- mining and building: the changes you make and what you carry are saved on this computer (not shared yet) ---------- */
+var EDIT_KEY = "al_forge_edits_" + ME.id, INV_KEY = "al_forge_inv_" + ME.id;
+var editIndex = {};   // chunk key -> {"x,y,z": [x, y, z, id]}
+var inv = {};         // block id -> how many you carry
+function addEdit(x, y, z, id){ var k = Math.floor(x / SIZE) + "," + Math.floor(z / SIZE); (editIndex[k] = editIndex[k] || {})[x + "," + y + "," + z] = [x, y, z, id]; }
+(function(){ try { JSON.parse(localStorage.getItem(EDIT_KEY) || "[]").forEach(function(r){ addEdit(r[0], r[1], r[2], r[3]); }); inv = JSON.parse(localStorage.getItem(INV_KEY) || "{}") || {}; } catch (err) {} })();
+var saveT = null;
+function saveSoon(){
+  clearTimeout(saveT);
+  saveT = setTimeout(function(){
+    try {
+      var all = []; Object.keys(editIndex).forEach(function(k){ Object.keys(editIndex[k]).forEach(function(q){ all.push(editIndex[k][q]); }); });
+      if (all.length > 20000) all = all.slice(-20000);
+      localStorage.setItem(EDIT_KEY, JSON.stringify(all)); localStorage.setItem(INV_KEY, JSON.stringify(inv));
+    } catch (err) {}
+  }, 800);
+}
+
 /* ---------- chunks ---------- */
 var chunks = {};   // key -> {cx, cz, data}
 function chunkAt(cx, cz){
@@ -166,6 +193,7 @@ function chunkAt(cx, cz){
     data[x + z * SIZE + (top + 1) * SIZE * SIZE] = LEAVES;
   }
   (structBlocks[k] || []).forEach(function(s){ data[(s[0] - ox) + (s[2] - oz) * SIZE + s[1] * SIZE * SIZE] = s[3]; });
+  var ei = editIndex[k]; if (ei) Object.keys(ei).forEach(function(q){ var r = ei[q]; data[(r[0] - ox) + (r[2] - oz) * SIZE + r[1] * SIZE * SIZE] = r[3]; });   // the blocks you changed
   c = chunks[k] = {cx:cx, cz:cz, data:data, mesh:null, water:null};
   return c;
 }
@@ -173,6 +201,16 @@ function getBlock(x, y, z){
   if (y < 0) return STONE; if (y >= SIZE_Y) return AIR;
   var cx = Math.floor(x / SIZE), cz = Math.floor(z / SIZE), c = chunkAt(cx, cz);
   return c.data[(x - cx * SIZE) + (z - cz * SIZE) * SIZE + y * SIZE * SIZE];
+}
+function setBlock(x, y, z, id){   // change one block, keep it, and redraw the chunk (and a neighbour if it is on the edge)
+  if (y < 1 || y >= SIZE_Y) return false;
+  var cx = Math.floor(x / SIZE), cz = Math.floor(z / SIZE), c = chunkAt(cx, cz), lx = x - cx * SIZE, lz = z - cz * SIZE;
+  c.data[lx + lz * SIZE + y * SIZE * SIZE] = id; addEdit(x, y, z, id); saveSoon();
+  if (c.meshed) buildMesh(c);
+  [[lx === 0, -1, 0], [lx === SIZE - 1, 1, 0], [lz === 0, 0, -1], [lz === SIZE - 1, 0, 1]].forEach(function(n){
+    if (n[0]){ var nc = chunks[(cx + n[1]) + "," + (cz + n[2])]; if (nc && nc.meshed) buildMesh(nc); }
+  });
+  return true;
 }
 
 /* ---------- three.js ---------- */
@@ -239,6 +277,7 @@ function makeAtlas(img){
   function tile(cell, base, draw){ var x = cell[0] * 128, y = cell[1] * 128; g.fillStyle = base; g.fillRect(x, y, 128, 128); draw(x, y); }
   tile(CELL.plank, "#b8844d", function(x, y){ g.fillStyle = "#8f6236"; for (var r = 0; r < 4; r++){ g.fillRect(x, y + r * 32, 128, 3); g.fillRect(x + ((r * 47) % 100) + 12, y + r * 32, 3, 32); } });
   DOOR_CELLS.forEach(function(cell, i){ tile(cell, DOOR_COLORS[i], function(x, y){ g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 8; g.strokeRect(x + 4, y + 4, 120, 120); g.fillStyle = "rgba(255,255,255,.3)"; g.fillRect(x + 20, y + 20, 36, 36); }); });
+  ATLAS_CANVAS = cv;
   var t = new THREE.CanvasTexture(cv); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t;
 }
 function labelSprite(text, w, bg){
@@ -285,6 +324,66 @@ function buildAvatar(look, wear){
 }
 
 addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge === "say") toast(m.text); });
+/* ---------- the hotbar, mining and placing ---------- */
+var SLOT_IDS = [GRASS, DIRT, STONE, SAND, WOOD, LEAVES, PLANK], sel = 0, slotEls = [], ATLAS_CANVAS = null;
+function buildHotbar(){
+  var hb = document.getElementById("hotbar"); hb.innerHTML = ""; slotEls = [];
+  SLOT_IDS.forEach(function(id, i){
+    var d = document.createElement("div"), cv2 = document.createElement("canvas"); d.className = "slot"; cv2.width = cv2.height = 40; d.appendChild(cv2);
+    var cell = faceCell(id, 2), g2 = cv2.getContext("2d"); g2.imageSmoothingEnabled = false;
+    if (ATLAS_CANVAS) g2.drawImage(ATLAS_CANVAS, cell[0] * 128, cell[1] * 128, 128, 128, 0, 0, 40, 40);
+    var n = document.createElement("b"), k = document.createElement("span"); d.appendChild(n); k.textContent = i + 1; k.style.cssText = "position:absolute;left:3px;top:0;font-size:11px;color:#ddd;text-shadow:1px 1px 2px #000"; d.appendChild(k);
+    d.onclick = function(){ selectSlot(i); }; hb.appendChild(d); slotEls.push(d);
+  });
+  refreshHotbar();
+}
+function refreshHotbar(){ slotEls.forEach(function(d, i){ var have = inv[SLOT_IDS[i]] || 0; d.className = "slot" + (i === sel ? " sel" : ""); d.querySelector("b").textContent = have || ""; d.style.opacity = have > 0 ? 1 : 0.55; }); }
+function selectSlot(i){ sel = Math.max(0, Math.min(SLOT_IDS.length - 1, i)); refreshHotbar(); }
+var BREAK_TIME = {}; BREAK_TIME[GRASS] = 0.35; BREAK_TIME[DIRT] = 0.3; BREAK_TIME[SAND] = 0.25; BREAK_TIME[LEAVES] = 0.2; BREAK_TIME[WOOD] = 0.7; BREAK_TIME[PLANK] = 0.55; BREAK_TIME[STONE] = 0.9;
+function breakable(id){ return BREAK_TIME[id] !== undefined; }   // water, the colored doors and the portal arch can not be broken
+var mouseL = false, mining = null, hl = null, target = null;
+function raycast(maxD){   // which block am I looking at? (steps through the grid along the look direction)
+  var ox = me.x, oy = me.y + 1.6, oz = me.z;
+  var dx = -Math.sin(me.yaw) * Math.cos(me.pitch), dy = Math.sin(me.pitch), dz = -Math.cos(me.yaw) * Math.cos(me.pitch);
+  var x = Math.floor(ox), y = Math.floor(oy), z = Math.floor(oz), sx = dx > 0 ? 1 : -1, sy = dy > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+  var tdx = dx !== 0 ? Math.abs(1 / dx) : 1e9, tdy = dy !== 0 ? Math.abs(1 / dy) : 1e9, tdz = dz !== 0 ? Math.abs(1 / dz) : 1e9;
+  var tmx = dx !== 0 ? (dx > 0 ? x + 1 - ox : ox - x) * tdx : 1e9, tmy = dy !== 0 ? (dy > 0 ? y + 1 - oy : oy - y) * tdy : 1e9, tmz = dz !== 0 ? (dz > 0 ? z + 1 - oz : oz - z) * tdz : 1e9;
+  var px = x, py = y, pz = z;
+  for (var i = 0; i < 40; i++){
+    var b = getBlock(x, y, z);
+    if (b !== AIR && b !== WATER) return {x:x, y:y, z:z, id:b, px:px, py:py, pz:pz};
+    px = x; py = y; pz = z;
+    if (tmx < tmy && tmx < tmz){ if (tmx > maxD) break; x += sx; tmx += tdx; }
+    else if (tmy < tmz){ if (tmy > maxD) break; y += sy; tmy += tdy; }
+    else { if (tmz > maxD) break; z += sz; tmz += tdz; }
+  }
+  return null;
+}
+function mineTick(dt){
+  target = raycast(5.5);
+  if (!hl){ hl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.01, 1.01, 1.01)), new THREE.LineBasicMaterial({color:0x000000})); scene.add(hl); }
+  hl.visible = !!target; if (target) hl.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5);
+  var bar = document.getElementById("mineBar");
+  if (mouseL && target && breakable(target.id) && target.y >= 1){
+    if (!mining || mining.x !== target.x || mining.y !== target.y || mining.z !== target.z) mining = {x:target.x, y:target.y, z:target.z, t:0};
+    mining.t += dt / BREAK_TIME[target.id];
+    bar.style.display = "block"; bar.firstChild.style.width = Math.min(100, mining.t * 100) + "%";
+    if (mining.t >= 1){
+      var id = target.id;
+      if (setBlock(target.x, target.y, target.z, AIR)){ inv[id] = (inv[id] || 0) + 1; refreshHotbar(); }
+      mining = null; bar.style.display = "none";
+    }
+  } else { mining = null; bar.style.display = "none"; }
+}
+function placeBlock(){
+  if (!target) return;
+  var id = SLOT_IDS[sel]; if (!(inv[id] > 0)){ toast("You have none of that. Mine some first!"); return; }
+  var x = target.px, y = target.py, z = target.pz, cur = getBlock(x, y, z);
+  if (cur !== AIR && cur !== WATER) return;
+  if (x + 1 > me.x - 0.3 && x < me.x + 0.3 && z + 1 > me.z - 0.3 && z < me.z + 0.3 && y + 1 > me.y && y < me.y + 1.8) return;   // not inside yourself
+  if (setBlock(x, y, z, id)){ inv[id]--; refreshHotbar(); }
+}
+
 /* ---------- me ---------- */
 var me = {x:0.5, y:SPAWN_H + 2, z:0.5, vx:0, vy:0, vz:0, yaw:0, pitch:0, onGround:false, third:false, inWater:false};
 var myAvatar = buildAvatar(ME.look, ME.wear), myLabel = labelSprite(ME.name, 1.6, "rgba(0,0,0,.5)"), myEmote = null;
@@ -300,13 +399,16 @@ var keys = {}, locked = false, dragging = false, lastMouse = null, EMOTES = ["�
 addEventListener("keydown", function(e){
   keys[e.code] = true; if (e.code === "Space") e.preventDefault();
   if (e.code === "KeyE") useDoor(); if (e.code === "KeyV") me.third = !me.third; if (e.code === "KeyR") rescue();
-  var n = parseInt(e.key, 10); if (n >= 1 && n <= 6) emote(EMOTES[n - 1]);
+  var dn = /^Digit([1-9])$/.exec(e.code);   // 1-7 pick a block, Shift + 1-6 are the emotes
+  if (dn){ var n = +dn[1]; if (e.shiftKey){ if (n <= 6) emote(EMOTES[n - 1]); } else selectSlot(n - 1); }
 });
 addEventListener("keyup", function(e){ keys[e.code] = false; });
 renderer.domElement.addEventListener("click", function(){ try { renderer.domElement.requestPointerLock(); } catch (e) {} });
 document.addEventListener("pointerlockchange", function(){ locked = document.pointerLockElement === renderer.domElement; });
-addEventListener("mousedown", function(e){ dragging = true; lastMouse = [e.clientX, e.clientY]; });
-addEventListener("mouseup", function(){ dragging = false; });
+addEventListener("mousedown", function(e){ if (e.button === 0){ mouseL = true; dragging = true; lastMouse = [e.clientX, e.clientY]; } else if (e.button === 2) placeBlock(); });
+addEventListener("mouseup", function(e){ if (e.button === 0){ mouseL = false; dragging = false; } });
+addEventListener("contextmenu", function(e){ e.preventDefault(); });
+addEventListener("wheel", function(e){ if (locked) selectSlot((sel + (e.deltaY > 0 ? 1 : SLOT_IDS.length - 1)) % SLOT_IDS.length); }, {passive:true});
 addEventListener("mousemove", function(e){
   var dx = 0, dy = 0;
   if (locked){ dx = e.movementX; dy = e.movementY; } else if (dragging && lastMouse){ dx = e.clientX - lastMouse[0]; dy = e.clientY - lastMouse[1]; lastMouse = [e.clientX, e.clientY]; }
@@ -424,6 +526,7 @@ function step(dt){
     var k = Math.min(1, dt * 10); o.g.position.x += (o.tx - o.g.position.x) * k; o.g.position.y += (o.ty - o.g.position.y) * k; o.g.position.z += (o.tz - o.g.position.z) * k; o.g.rotation.y = o.yaw;
     if (o.emote && Date.now() > o.emoteUntil){ o.g.remove(o.emote); o.emote = null; }
   });
+  mineTick(dt);
   netTick();
   var nd = nearDoor(), pr = document.getElementById("prompt");
   if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.icon + " " + PORTAL.name; pr.style.display = "block"; }
@@ -436,6 +539,7 @@ img.onload = function(){
   atlasTex = makeAtlas(img);
   matSolid = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true});
   matWater = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true, transparent:true, opacity:0.72, depthWrite:false});
+  buildHotbar();
   doorSpots.forEach(function(ds){ var s = labelSprite(ds.zone.name, 6); s.position.set(ds.sx, ds.sy, ds.sz); scene.add(s); });
   var ps = labelSprite(PORTAL.icon + " " + PORTAL.name, 5); ps.position.set(PORTAL.x, SPAWN_H + 7.2, PORTAL.z - 0.5); scene.add(ps);
   updateChunks(0, 0, 40);                                            // the middle of the world is ready before anyone walks in
@@ -445,7 +549,7 @@ img.onload = function(){
 };
 img.onerror = function(){ document.getElementById("go").textContent = "Could not load the block pictures"; };
 img.src = "block_atlas.png";
-window.__world = {me:me, others:others, ME:ME, doorSpots:doorSpots, chunks:chunks, SPAWN_H:SPAWN_H, getBlock:getBlock, setStarted:function(){ started = true; }};
+window.__world = {setBlock:setBlock, getInv:function(){ return inv; }, selectSlot:selectSlot, raycast:raycast, me:me, others:others, ME:ME, doorSpots:doorSpots, chunks:chunks, SPAWN_H:SPAWN_H, getBlock:getBlock, setStarted:function(){ started = true; }};
 </script>
 </body>
 </html>
