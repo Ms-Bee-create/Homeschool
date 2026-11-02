@@ -2396,14 +2396,38 @@ function worldAvatarSvg(kid, d, px){
 }
 /* The lesson a stop opens is the real lesson, not a copy. */
 function worldOpenLesson(id){ state.world = null; state.noteOverride = true; state.lessonDetailId = id; renderView(); }
+/* The town copies the Today tab exactly: the same lessons for today, in the same block order, and a block only opens when every block before it is complete
+   (Morning Launch first). This is the very same rule renderToday() uses (orderedBlocksFor, blockKeyFor, blockComplete). */
+function worldTodayPlan(kid){
+  var iso = todayISO(), blocks = orderedBlocksFor(kid), list = assignmentsFor(kid, iso), by = {};
+  list.forEach(function(a){ var k = blockKeyFor(a); (by[k] = by[k] || []).push(a); });
+  var first = blocks.length;
+  for(var i=0;i<blocks.length;i++){ if(!blockComplete(blocks[i].key, kid, iso, by)){ first = i; break; } }
+  return {blocks:blocks, by:by, first:first, cur:blocks[first] || null, list:list};
+}
+function worldWhy(kid, l){
+  if(l.done) return "You finished that one! \u2B50";
+  if(!l.today) return "That one is for another day. Your Today list says what to do now.";
+  var cur = worldTodayPlan(kid).cur;
+  if(!cur) return "All of today's blocks are done! \uD83C\uDFC1";
+  if(cur.key==="morning") return "Start with your Morning Launch on the Today tab first.";
+  if(cur.key==="showTeach") return "Time for Show & Teach! Open the Today tab.";
+  return "Finish "+cur.label+" first, like on your Today list.";
+}
 function worldZones(kid){
-  /* A job opens the lessons that are on TODAY's list, the same ones the Today screen shows. Lessons dated later show as "coming up" and cannot be opened from here;
-     old overdue lessons live in Leader's catch-up card, not here. "Study Hall" holds everything on today's list, so every lesson has a door. */
-  var out = [], today = todayISO();
-  function mk(a){ return {id:a.id, title:a.title, done:!!a.done, today:a.date===today, date:a.date}; }
-  var todayAll = assignmentsFor(kid, today);
-  var hall = {key:"today", icon:(kid==="kid1" ? "\u270F\uFE0F" : "\uD83D\uDCD3"), name:(kid==="kid1" ? "School Desk" : "Study Hall"), color:"#ffd86b", blurb:"Everything on today's list", pick:false,
-    doneCount:todayAll.filter(function(a){ return a.done; }).length, lessons:todayAll.map(mk)};
+  /* A job opens a lesson from TODAY's list, in Today's order. Lessons dated later show as "coming up". Old overdue lessons live in Leader's catch-up card.
+     lesson.open = Today would let you start it right now. "Study Hall" holds the whole list in Today's order, so every lesson has a door. */
+  var out = [], today = todayISO(), plan = worldTodayPlan(kid), curKey = plan.cur ? plan.cur.key : null, blockIdx = {};
+  plan.blocks.forEach(function(bk, i){ blockIdx[bk.key] = i; });
+  function mk(a){
+    var k = blockKeyFor(a), group = plan.by[k] || [], at = -1; for(var q=0;q<group.length;q++){ if(group[q].id===a.id){ at = q; break; } }
+    var isToday = a.date===today;
+    return {id:a.id, title:a.title, done:!!a.done, today:isToday, date:a.date, open:isToday && !a.done && k===curKey, rank:(blockIdx[k]==null ? 99 : blockIdx[k])*1000 + (at<0 ? 999 : at)};
+  }
+  function byRank(x, y){ return x.rank - y.rank; }
+  var hallLessons = []; plan.blocks.forEach(function(bk){ (plan.by[bk.key] || []).forEach(function(a){ hallLessons.push(mk(a)); }); });
+  var hall = {key:"today", icon:(kid==="kid1" ? "\u270F\uFE0F" : "\uD83D\uDCD3"), name:(kid==="kid1" ? "School Desk" : "Study Hall"), color:"#ffd86b", blurb:"Everything on today's list, in order", pick:false,
+    doneCount:plan.list.filter(function(a){ return a.done; }).length, lessons:hallLessons};
   if(kid==="kid2"){
     var pick = (familyGoal().rp || {}).id;
     out.push(hall);
@@ -2419,8 +2443,8 @@ function worldZones(kid){
   rooms.forEach(function(r){
     var mine = all.filter(function(a){ return r[4].indexOf(a.subject)>=0; });
     var done = mine.filter(function(a){ return a.done; });
-    var todays = mine.filter(function(a){ return a.date===today; }), later = mine.filter(function(a){ return !a.done && a.date>today; }).slice(0, 4);
-    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:todays.map(mk).concat(later.map(mk))});
+    var todays = mine.filter(function(a){ return a.date===today; }).map(mk).sort(byRank), later = mine.filter(function(a){ return !a.done && a.date>today; }).slice(0, 4).map(mk);
+    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:todays.concat(later)});
   });
   out.push(hall);
   return out;
@@ -2522,10 +2546,11 @@ window.addEventListener("message", function(ev){
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="enterZone"){
     var z = worldZones(worldGame.kid).filter(function(zz){ return zz.key===m.key; })[0];
-    var next = z && z.lessons.filter(function(l){ return l.today && !l.done; })[0];
+    var next = z && z.lessons.filter(function(l){ return l.open; })[0];
     if(!next){
-      var finishedToday = z && z.lessons.some(function(l){ return l.today && l.done; });
-      try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:(finishedToday ? "You finished everything here for today! \uD83C\uDFC6" : z ? "Nothing here for today. Your Today list has what is next!" : "Nothing to do here yet.")}, "*"); }catch(e){}
+      var waiting = z && z.lessons.filter(function(l){ return l.today && !l.done; })[0], finishedToday = z && z.lessons.some(function(l){ return l.today && l.done; });
+      var say = waiting ? worldWhy(worldGame.kid, waiting) : finishedToday ? "You finished everything here for today! \uD83C\uDFC6" : z ? "Nothing here for today. Your Today list has what is next!" : "Nothing to do here yet.";
+      try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:say}, "*"); }catch(e){}
       return;
     }
     closeWorldGame(); worldOpenLesson(next.id);
@@ -2569,19 +2594,19 @@ function renderWorld(){
     var z0 = zones.filter(function(z){ return z.key===openKey; })[0];
     room.innerHTML = '<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+z0.icon+' '+escapeHtml(z0.name)+' <span class="muted" style="font-size:13px;font-weight:600">⭐ '+z0.doneCount+' finished</span></div>';
     if(!z0.lessons.length) room.innerHTML += '<div class="muted">Nothing here today. Check your Today list!</div>';
-    var firstNow = -1; for(var qi=0; qi<z0.lessons.length; qi++){ if(z0.lessons[qi].today && !z0.lessons[qi].done){ firstNow = qi; break; } }
+    var firstNow = -1; for(var qi=0; qi<z0.lessons.length; qi++){ if(z0.lessons[qi].open){ firstNow = qi; break; } }
     z0.lessons.forEach(function(l, i){
       var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
-      var live = l.today && !l.done;
-      b.style.cssText = "display:block;width:100%;text-align:left;opacity:"+(l.today ? 1 : 0.55)+";border:2px solid "+(i===firstNow ? "var(--gold)" : "var(--border)")+";border-radius:14px;margin:6px 0;padding:10px 12px;color:var(--ink);font-size:15px";
+      var live = !!l.open;
+      b.style.cssText = "display:block;width:100%;text-align:left;opacity:"+(l.open || l.done ? 1 : 0.55)+";border:2px solid "+(i===firstNow ? "var(--gold)" : "var(--border)")+";border-radius:14px;margin:6px 0;padding:10px 12px;color:var(--ink);font-size:15px";
       b.textContent = (l.done && l.today ? "\u2B50 " : i===firstNow ? "\uD83C\uDF38 " : l.today ? "\u25CB " : "Later: ")+String(l.title||"").slice(0,80);
-      b.onclick = function(){ if(live) worldOpenLesson(l.id); else toast(l.done ? "You finished that one today! \u2B50" : "That one is for another day. Your Today list says what to do now."); };
+      b.onclick = function(){ if(live) worldOpenLesson(l.id); else toast(worldWhy(kid, l)); };
       room.appendChild(b);
     });
   } else {
     zones.forEach(function(z){
       var doneN = z.lessons.filter(function(l){ return l.done; }).length, nowIdx = -1;
-      for(var i=0;i<z.lessons.length;i++){ if(!z.lessons[i].done && z.lessons[i].today){ nowIdx = i; break; } }
+      for(var i=0;i<z.lessons.length;i++){ if(z.lessons[i].open){ nowIdx = i; break; } }
       var zc = document.createElement("div");
       zc.style.cssText = "border:3px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card);"+(z.pick ? "border-color:var(--gold);" : "");
       zc.innerHTML = '<div style="font-weight:800;font-size:15px">'+z.icon+' '+escapeHtml(z.name)+(z.pick ? ' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">🎯 this week\'s project</span>' : '')+(doneN===z.lessons.length ? ' 🏆' : '')+'</div>'+
@@ -2590,9 +2615,9 @@ function renderWorld(){
       z.lessons.forEach(function(l, i){
         var b = document.createElement("button"); b.type = "button"; b.title = l.title;
         var st = l.done ? "background:var(--gold);color:#222" : i===nowIdx ? "background:var(--teal);color:#012" : "background:var(--border);color:var(--ink)";
-        b.style.cssText = "width:38px;height:38px;border:3px solid #000;font-weight:800;font-size:13px;cursor:pointer;opacity:"+(l.done || l.today ? 1 : 0.5)+";"+st;
+        b.style.cssText = "width:38px;height:38px;border:3px solid #000;font-weight:800;font-size:13px;cursor:pointer;opacity:"+(l.done || l.open ? 1 : 0.5)+";"+st;
         b.textContent = l.done ? "✓" : (i+1);
-        b.onclick = function(){ if(l.today && !l.done) worldOpenLesson(l.id); else toast(l.done ? "You finished that one! \u2B50" : "That one is for another day. Your Today list says what to do now."); };
+        b.onclick = function(){ if(l.open) worldOpenLesson(l.id); else toast(worldWhy(kid, l)); };
         row.appendChild(b);
       });
       zc.appendChild(row); zwrap.appendChild(zc);
@@ -28005,7 +28030,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-02.1";
+var APP_BUILD = "2026-11-02.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
