@@ -2379,8 +2379,14 @@ function worldQuestionPool(kid){
   return out;
 }
 function worldBrainLeft(d){ return d.brain.day===todayISO() ? Math.max(0, WORLD_BRAIN_DAILY - d.brain.c) : WORLD_BRAIN_DAILY; }
-function worldBrainDone(kid, right){
+function worldBrainDone(kid, right, skip){
   var d = worldData(kid), today = todayISO();
+  if(skip){   // a skip costs 1 coin (never below zero); the town asks the same question again in a minute
+    var paid = worldCoins(kid, d) >= 1;
+    if(paid){ d.spent += 1; saveWorld(kid, d); }
+    worldSay(paid ? "Skipped: -1 coin. The question will come back in a minute." : "Skipped. The question will come back in a minute.");
+    return;
+  }
   if(d.brain.day!==today) d.brain = {day:today, c:0};
   if(right && d.brain.c<WORLD_BRAIN_DAILY){ d.brain.c++; d.earned++; saveWorld(kid, d); worldSay("\u26A1 Brain Boost! +1 coin ("+worldBrainLeft(d)+" left today)"); }
   else if(!right) worldSay("Good try! Every question helps your brain grow.");
@@ -2582,7 +2588,7 @@ window.addEventListener("message", function(ev){
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="delivery"){ worldDeliveryDone(worldGame.kid, !!m.fast); }
-  else if(m.forge==="brain"){ worldBrainDone(worldGame.kid, !!m.right); }
+  else if(m.forge==="brain"){ worldBrainDone(worldGame.kid, !!m.right, !!m.skip); }
   else if(m.forge==="enterZone"){
     var wk0 = worldGame.kid;
     if(m.key==="morning" || m.key==="showTeach"){ closeWorldGame(); goTab("today"); toast(m.key==="morning" ? "Start your day here, then the town opens up!" : "Time to share what you learned!"); return; }
@@ -28086,7 +28092,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-02.5";
+var APP_BUILD = "2026-11-02.6";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
