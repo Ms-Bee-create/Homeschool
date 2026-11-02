@@ -20,6 +20,15 @@
   .slot b{position:absolute;right:3px;bottom:0;font-size:15px;text-shadow:1px 1px 2px #000}
   #mineBar{position:fixed;left:50%;top:55%;width:80px;height:8px;margin-left:-40px;background:rgba(0,0,0,.6);border:2px solid #000;display:none}
   #mineBar i{display:block;height:100%;width:0;background:#ffd23f}
+  #quiz{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(10,15,40,.8);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+  .qcard{max-width:560px;width:100%;background:#fff;color:#222;border:4px solid #000;border-radius:16px;padding:16px;font-family:"Trebuchet MS",Verdana,sans-serif;max-height:92vh;overflow:auto}
+  .qtitle{font-weight:800;color:#b8860b;margin-bottom:6px}.qtext{font-size:20px;font-weight:700;margin-bottom:8px}
+  .qopt{display:block;width:100%;text-align:left;font-size:17px;padding:10px 12px;margin:6px 0;border:3px solid #333;border-radius:10px;background:#f4f6ff;cursor:pointer;font-family:inherit;color:#222}
+  .qopt.good{background:#c9f5d2;border-color:#2a9d5c}.qopt.bad{background:#ffd9d9;border-color:#c0392b;opacity:.7}
+  .qhear,.qgo,.qskip{font-family:inherit;font-size:15px;padding:8px 14px;border:3px solid #000;border-radius:10px;background:#ffd23f;cursor:pointer;margin:4px 6px 4px 0;color:#222}
+  .qskip{background:#e6e6e6}.qfb{min-height:22px;margin-top:8px;font-size:15px}
+  #energy{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(0,0,0,.6);border:3px solid #000;padding:3px 10px;font-size:14px;display:none;min-width:150px;text-align:center}
+  #energy i{display:block;height:6px;margin-top:3px;background:#ffd23f}
   #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#ffd23f;color:#222;border:3px solid #000;padding:8px 16px;font-size:18px;display:none}
   #start{position:fixed;inset:0;background:rgba(15,20,36,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
   #start button{font-size:24px;padding:14px 30px;background:#ffd23f;border:4px solid #000;cursor:pointer;font-family:inherit;font-weight:bold;color:#222}
@@ -35,6 +44,8 @@
 <div id="toast"></div>
 <div id="mineBar"><i></i></div>
 <div id="hotbar"></div>
+<div id="energy"><span></span><i></i></div>
+<div id="quiz"></div>
 <div id="hint">W A S D move · mouse look (click the world first) · hold left click to mine · right click to place · 1-7 or the wheel picks a block · Space jump or swim · R back to the start · E go in a door · Shift+1-6 emotes · V see yourself</div>
 <div id="start">
   <h1>Forge World</h1>
@@ -365,12 +376,13 @@ function mineTick(dt){
   hl.visible = !!target; if (target) hl.position.set(target.x + 0.5, target.y + 0.5, target.z + 0.5);
   var bar = document.getElementById("mineBar");
   if (mouseL && target && breakable(target.id) && target.y >= 1){
+    if (QS.length && energy <= 0 && !quizOpen){ askQuestion("⚡ Out of energy! Answer to recharge", false, function(ok){ energy = ok ? ENERGY_MAX : 10; refreshEnergy(); }); return; }
     if (!mining || mining.x !== target.x || mining.y !== target.y || mining.z !== target.z) mining = {x:target.x, y:target.y, z:target.z, t:0};
     mining.t += dt / BREAK_TIME[target.id];
     bar.style.display = "block"; bar.firstChild.style.width = Math.min(100, mining.t * 100) + "%";
     if (mining.t >= 1){
       var id = target.id;
-      if (setBlock(target.x, target.y, target.z, AIR)){ inv[id] = (inv[id] || 0) + 1; refreshHotbar(); }
+      if (setBlock(target.x, target.y, target.z, AIR)){ inv[id] = (inv[id] || 0) + 1; refreshHotbar(); if (QS.length){ energy = Math.max(0, energy - 1); refreshEnergy(); } }
       mining = null; bar.style.display = "none";
     }
   } else { mining = null; bar.style.display = "none"; }
@@ -470,11 +482,50 @@ net.onmsg(function(m){
   if (m.emote && m.emoteAt !== o.lastEmoteAt){ o.lastEmoteAt = m.emoteAt; if (o.emote) o.g.remove(o.emote); o.emote = emojiSprite(m.emote); o.emote.position.y = 2.9; o.g.add(o.emote); o.emoteUntil = Date.now() + 3000; }
 });
 
+/* ---------- quick questions (Gimkit style): the app sends a few questions taken from lessons this kid has ALREADY finished (spaced review, mixed subjects).
+   Low stakes: a wrong answer shows why and allows one retry, then play simply goes on. No scores, no ranking. ---------- */
+var QS = (P.qs || []).filter(function(q){ return q && q.q && q.c && q.c.length >= 2 && typeof q.a === "number"; }), qPos = Math.floor(Math.random() * Math.max(1, QS.length)), quizOpen = false;
+function speakText(t){ try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.rate = 0.95; speechSynthesis.speak(u); } catch (e) {} }
+function askQuestion(title, allowSkip, done){
+  if (!QS.length || quizOpen){ if (done) done(null); return; }
+  var q = QS[qPos % QS.length]; qPos++;
+  quizOpen = true; try { document.exitPointerLock(); } catch (e) {}
+  if (typeof mouseL !== "undefined") mouseL = false;
+  var box = document.getElementById("quiz"); box.innerHTML = ""; box.style.display = "flex";
+  var card = document.createElement("div"); card.className = "qcard"; box.appendChild(card);
+  function mkdiv(cls, txt){ var d = document.createElement("div"); d.className = cls; d.textContent = txt; card.appendChild(d); return d; }
+  mkdiv("qtitle", title); mkdiv("qtext", q.q);
+  var hear = document.createElement("button"); hear.className = "qhear"; hear.textContent = "🔊 Hear it"; hear.onclick = function(){ speakText(q.q + ". " + q.c.join(". ")); }; card.appendChild(hear);
+  var order = q.c.map(function(_, i){ return i; }).sort(function(){ return Math.random() - 0.5; }), tries = 0, finished = false, btns = [], fb = document.createElement("div"); fb.className = "qfb";
+  function keyHandler(e){ var n = parseInt(e.key, 10); if (n >= 1 && n <= btns.length) btns[n - 1].click(); e.stopPropagation(); }
+  function finish(ok){ if (finished) return; finished = true; box.style.display = "none"; box.innerHTML = ""; quizOpen = false; document.removeEventListener("keydown", keyHandler, true); if (done) done(ok); }
+  function pick(i, b){
+    if (finished || b.disabled) return;
+    if (i === q.a){ b.className += " good"; fb.textContent = "✅ Yes! " + (q.e || ""); btns.forEach(function(x){ x.disabled = true; }); setTimeout(function(){ finish(true); }, 1100); return; }
+    tries++; b.className += " bad"; b.disabled = true;
+    if (tries === 1){ fb.textContent = "Not yet. " + (q.e || "") + " Try again!"; return; }
+    btns.forEach(function(x, k){ x.disabled = true; if (order[k] === q.a) x.className += " good"; });
+    fb.textContent = "The answer was: " + q.c[q.a] + ". " + (q.e || "");
+    var cont = document.createElement("button"); cont.className = "qgo"; cont.textContent = "Keep playing"; cont.onclick = function(){ finish(false); }; card.appendChild(cont);
+  }
+  order.forEach(function(oi, k){ var b = document.createElement("button"); b.className = "qopt"; b.textContent = (k + 1) + ". " + q.c[oi]; b.onclick = function(){ pick(oi, b); }; btns.push(b); card.appendChild(b); });
+  card.appendChild(fb);
+  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = "Skip for now"; sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
+  document.addEventListener("keydown", keyHandler, true);
+}
+
+/* Energy: with questions available, each block you mine costs 1 energy. At 0 a question pops up: a right answer refills you, a wrong one still gives a little so play goes on. */
+var ENERGY_MAX = 30, energy = ENERGY_MAX, energyT = 0;
+function refreshEnergy(){
+  var el = document.getElementById("energy"); if (!QS.length){ el.style.display = "none"; return; }
+  el.style.display = "block"; el.firstChild.textContent = "⚡ " + energy + " / " + ENERGY_MAX; el.lastChild.style.width = Math.round(energy / ENERGY_MAX * 100) + "%";
+}
+function energyTick(dt){ if (!QS.length) return; energyT += dt; if (!mouseL && energy < ENERGY_MAX && energyT > 3){ energy++; energyT = 0; refreshEnergy(); } }
 /* ---------- the loop ---------- */
 var prev = performance.now(), started = false;
 function frame(now){
   var dt = Math.min((now - prev) / 1000, 0.05); prev = now;
-  if (started){ try { step(dt); } catch (e) { console.error(e); } }
+  if (started){ if (quizOpen) netTick(); else { try { step(dt); } catch (e) { console.error(e); } } }
   updateChunks(me.x, me.z, started ? 2 : 4);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -527,6 +578,7 @@ function step(dt){
     if (o.emote && Date.now() > o.emoteUntil){ o.g.remove(o.emote); o.emote = null; }
   });
   mineTick(dt);
+  energyTick(dt);
   netTick();
   var nd = nearDoor(), pr = document.getElementById("prompt");
   if (nearPortal()){ pr.textContent = "Press E to travel: " + PORTAL.icon + " " + PORTAL.name; pr.style.display = "block"; }
@@ -539,7 +591,7 @@ img.onload = function(){
   atlasTex = makeAtlas(img);
   matSolid = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true});
   matWater = new THREE.MeshBasicMaterial({map:atlasTex, vertexColors:true, transparent:true, opacity:0.72, depthWrite:false});
-  buildHotbar();
+  buildHotbar(); refreshEnergy();
   doorSpots.forEach(function(ds){ var s = labelSprite(ds.zone.name, 6); s.position.set(ds.sx, ds.sy, ds.sz); scene.add(s); });
   var ps = labelSprite(PORTAL.icon + " " + PORTAL.name, 5); ps.position.set(PORTAL.x, SPAWN_H + 7.2, PORTAL.z - 0.5); scene.add(ps);
   updateChunks(0, 0, 40);                                            // the middle of the world is ready before anyone walks in
@@ -549,7 +601,7 @@ img.onload = function(){
 };
 img.onerror = function(){ document.getElementById("go").textContent = "Could not load the block pictures"; };
 img.src = "block_atlas.png";
-window.__world = {setBlock:setBlock, getInv:function(){ return inv; }, selectSlot:selectSlot, raycast:raycast, me:me, others:others, ME:ME, doorSpots:doorSpots, chunks:chunks, SPAWN_H:SPAWN_H, getBlock:getBlock, setStarted:function(){ started = true; }};
+window.__world = {setEnergy:function(n){ energy = n; refreshEnergy(); }, getEnergy:function(){ return energy; }, setBlock:setBlock, getInv:function(){ return inv; }, selectSlot:selectSlot, raycast:raycast, me:me, others:others, ME:ME, doorSpots:doorSpots, chunks:chunks, SPAWN_H:SPAWN_H, getBlock:getBlock, setStarted:function(){ started = true; }};
 </script>
 </body>
 </html>
