@@ -16,6 +16,13 @@
   #emotes button{font-size:26px;background:#fff;border:3px solid #000;border-radius:12px;cursor:pointer;padding:2px 8px}
   #emotes button:hover{background:#ffd23f}
   #hint{position:fixed;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);font-size:14px;padding:6px 12px;text-align:center}
+  #quiz{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(10,15,40,.8);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+  .qcard{max-width:560px;width:100%;background:#fff;color:#222;border:4px solid #000;border-radius:16px;padding:16px;font-family:"Trebuchet MS",Verdana,sans-serif;max-height:92vh;overflow:auto}
+  .qtitle{font-weight:800;color:#b8860b;margin-bottom:6px}.qtext{font-size:20px;font-weight:700;margin-bottom:8px}
+  .qopt{display:block;width:100%;text-align:left;font-size:17px;padding:10px 12px;margin:6px 0;border:3px solid #333;border-radius:10px;background:#f4f6ff;cursor:pointer;font-family:inherit;color:#222}
+  .qopt.good{background:#c9f5d2;border-color:#2a9d5c}.qopt.bad{background:#ffd9d9;border-color:#c0392b;opacity:.7}
+  .qhear,.qgo,.qskip{font-family:inherit;font-size:15px;padding:8px 14px;border:3px solid #000;border-radius:10px;background:#ffd23f;cursor:pointer;margin:4px 6px 4px 0;color:#222}
+  .qskip{background:#e6e6e6}.qfb{min-height:22px;margin-top:8px;font-size:15px}
   #start{position:fixed;inset:0;background:rgba(15,20,50,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
   #start button{font-size:24px;padding:14px 30px;background:#ffd23f;border:4px solid #000;border-radius:16px;cursor:pointer;font-family:inherit;font-weight:bold;color:#222}
   #start p{max-width:560px;line-height:1.5}
@@ -28,6 +35,7 @@
 <div class="pill" id="deliv" style="left:50%;top:10px;transform:translateX(-50%);display:none;font-weight:700;text-align:center"></div>
 <div class="pill" id="toast"></div>
 <div id="emotes"></div>
+<div id="quiz"></div>
 <div id="hint">W A S D walk · mouse look (click the world first) · Space jump · E start a job · F flop · V see the whole town · press a picture to emote</div>
 <div id="start">
   <h1>Forge Town</h1>
@@ -133,6 +141,7 @@ addEventListener("message", function(ev){
   if (m.forge === "unlock") setUnlocked(m.value !== false);
   if (m.forge === "say") toast(m.text);
   if (m.forge === "deliveryState" && typeof m.left === "number") DELIV_LEFT = m.left;
+  if (m.forge === "brainState" && typeof m.left === "number") BRAIN_LEFT = m.left;
 });
 
 /* ---------- my house: a small furnished room, the same one the kid decorated in the app. The inside is built far away (x = 300) and the door teleports you there. ---------- */
@@ -380,6 +389,49 @@ net.onmsg(function(m){
   if (m.emote && m.emoteAt !== o.lastEmoteAt){ o.lastEmoteAt = m.emoteAt; if (o.emote) o.c.remove(o.emote); o.emote = emojiSprite(m.emote, 1.1); o.emote.position.y = 3.4; o.c.add(o.emote); o.emoteUntil = Date.now() + 3000; }
 });
 
+/* ---------- quick questions (Gimkit style): the app sends a few questions taken from lessons this kid has ALREADY finished (spaced review, mixed subjects).
+   Low stakes: a wrong answer shows why and allows one retry, then play simply goes on. No scores, no ranking. ---------- */
+var QS = (P.qs || []).filter(function(q){ return q && q.q && q.c && q.c.length >= 2 && typeof q.a === "number"; }), qPos = Math.floor(Math.random() * Math.max(1, QS.length)), quizOpen = false;
+function speakText(t){ try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.rate = 0.95; speechSynthesis.speak(u); } catch (e) {} }
+function askQuestion(title, allowSkip, done){
+  if (!QS.length || quizOpen){ if (done) done(null); return; }
+  var q = QS[qPos % QS.length]; qPos++;
+  quizOpen = true; try { document.exitPointerLock(); } catch (e) {}
+  if (typeof mouseL !== "undefined") mouseL = false;
+  var box = document.getElementById("quiz"); box.innerHTML = ""; box.style.display = "flex";
+  var card = document.createElement("div"); card.className = "qcard"; box.appendChild(card);
+  function mkdiv(cls, txt){ var d = document.createElement("div"); d.className = cls; d.textContent = txt; card.appendChild(d); return d; }
+  mkdiv("qtitle", title); mkdiv("qtext", q.q);
+  var hear = document.createElement("button"); hear.className = "qhear"; hear.textContent = "🔊 Hear it"; hear.onclick = function(){ speakText(q.q + ". " + q.c.join(". ")); }; card.appendChild(hear);
+  var order = q.c.map(function(_, i){ return i; }).sort(function(){ return Math.random() - 0.5; }), tries = 0, finished = false, btns = [], fb = document.createElement("div"); fb.className = "qfb";
+  function keyHandler(e){ var n = parseInt(e.key, 10); if (n >= 1 && n <= btns.length) btns[n - 1].click(); e.stopPropagation(); }
+  function finish(ok){ if (finished) return; finished = true; box.style.display = "none"; box.innerHTML = ""; quizOpen = false; document.removeEventListener("keydown", keyHandler, true); if (done) done(ok); }
+  function pick(i, b){
+    if (finished || b.disabled) return;
+    if (i === q.a){ b.className += " good"; fb.textContent = "✅ Yes! " + (q.e || ""); btns.forEach(function(x){ x.disabled = true; }); setTimeout(function(){ finish(true); }, 1100); return; }
+    tries++; b.className += " bad"; b.disabled = true;
+    if (tries === 1){ fb.textContent = "Not yet. " + (q.e || "") + " Try again!"; return; }
+    btns.forEach(function(x, k){ x.disabled = true; if (order[k] === q.a) x.className += " good"; });
+    fb.textContent = "The answer was: " + q.c[q.a] + ". " + (q.e || "");
+    var cont = document.createElement("button"); cont.className = "qgo"; cont.textContent = "Keep playing"; cont.onclick = function(){ finish(false); }; card.appendChild(cont);
+  }
+  order.forEach(function(oi, k){ var b = document.createElement("button"); b.className = "qopt"; b.textContent = (k + 1) + ". " + q.c[oi]; b.onclick = function(){ pick(oi, b); }; btns.push(b); card.appendChild(b); });
+  card.appendChild(fb);
+  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = "Skip for now"; sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
+  document.addEventListener("keydown", keyHandler, true);
+}
+
+/* Brain Boost: every few minutes a question pops up. A right answer earns 1 coin (the app pays it and keeps the daily cap). It can be skipped, no penalty. */
+var BRAIN_LEFT = (P.brain && typeof P.brain.left === "number") ? P.brain.left : 5, brainAt = Date.now() + 90000;
+function brainTick(){
+  if (!QS.length || quizOpen || !started || BRAIN_LEFT <= 0 || Date.now() < brainAt) return;
+  if (delivery){ brainAt = Date.now() + 60000; return; }
+  brainAt = Date.now() + 240000;
+  askQuestion("⚡ Brain Boost! A right answer earns 1 coin", true, function(ok){
+    if (ok === null) return;
+    try { if (parent !== window) parent.postMessage({forge:"brain", right:!!ok}, "*"); } catch (e) {}
+  });
+}
 /* ---------- the loop ---------- */
 var prev = performance.now(), started = false, R = 0.45;
 function push(c){   // keep me out of trees, buildings and the fence
@@ -390,7 +442,7 @@ function push(c){   // keep me out of trees, buildings and the fence
 }
 function frame(now){
   var dt = Math.min((now - prev) / 1000, 0.05); prev = now;
-  if (started){ try { step(dt); } catch (e) { console.error(e); } }
+  if (started){ if (quizOpen) netTick(); else { try { step(dt); } catch (e) { console.error(e); } } }
   renderer.render(scene, camera); requestAnimationFrame(frame);
 }
 function step(dt){
@@ -435,6 +487,7 @@ function step(dt){
     if (o.emote && Date.now() > o.emoteUntil){ o.c.remove(o.emote); o.emote = null; }
   });
   deliveryTick();
+  brainTick();
   netTick();
   var nj = nearJob(), pr = document.getElementById("prompt");
   PORTAL.swirl.rotation.z += dt * 1.5;

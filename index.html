@@ -2334,7 +2334,8 @@ function worldData(kid){
   var saved = (familyGoal().world || {})[kid] || {}, d = WORLD_DEFAULT[kid] || WORLD_DEFAULT.kid2;
   var sh = saved.house || {};
   var dv = saved.deliv || {};
-  return {look:Object.assign({}, d.look, saved.look||{}), wear:Object.assign({}, saved.wear||{}), owned:(saved.owned||[]).slice(), spent:saved.spent||0, earned:saved.earned||0, deliv:{day:dv.day||"", n:dv.n||0},
+  var br = saved.brain || {};
+  return {look:Object.assign({}, d.look, saved.look||{}), wear:Object.assign({}, saved.wear||{}), owned:(saved.owned||[]).slice(), spent:saved.spent||0, earned:saved.earned||0, deliv:{day:dv.day||"", n:dv.n||0}, brain:{day:br.day||"", c:br.c||0},
     house:{own:Object.assign({}, sh.own||{}), items:(sh.items||[]).slice(0, 48)}};
 }
 function saveWorld(kid, d){
@@ -2360,6 +2361,30 @@ function worldDeliveryDone(kid, fast){
   d.deliv.n++; d.earned += pay; saveWorld(kid, d);
   worldSay("\uD83D\uDCE6 Delivered! +"+pay+" coins ("+worldDeliveriesLeft(d)+" deliveries left today)");
   try{ worldGame.frame.contentWindow.postMessage({forge:"deliveryState", left:worldDeliveriesLeft(d)}, "*"); }catch(e){}
+}
+/* Quick questions in the worlds (Gimkit style). The pool is built from lessons this kid has already finished (spaced review, one subject after another),
+   sent with the link. Brain Boost in the town pays 1 coin per right answer, at most WORLD_BRAIN_DAILY a day; a wrong answer or a skip costs nothing. */
+var WORLD_BRAIN_DAILY = 5;
+function worldQuestionPool(kid){
+  var bySubj = {}, out = [], keys, i = 0;
+  Object.keys(state.assignments).map(function(id){ return state.assignments[id]; })
+    .filter(function(a){ return a.kidId===kid && a.done && a.reviewStatus!=="retired" && Array.isArray(a.quiz) && a.quiz.length; })
+    .sort(function(x, y){ return String(y.doneAt||"").localeCompare(String(x.doneAt||"")); }).slice(0, 60)
+    .forEach(function(a){ a.quiz.forEach(function(q){
+      if(q && q.q && Array.isArray(q.choices) && q.choices.length>=2 && typeof q.answerIndex==="number" && String(q.q).length<220 && q.choices.join("").length<360)
+        (bySubj[a.subject] = bySubj[a.subject] || []).push({q:String(q.q), c:q.choices.map(String), a:q.answerIndex, e:String(q.explain||""), s:a.subject});
+    }); });
+  keys = Object.keys(bySubj); keys.forEach(function(k){ bySubj[k].sort(function(){ return Math.random()-0.5; }); });
+  while(out.length<24 && keys.some(function(k){ return bySubj[k].length; })){ var k2 = keys[i%keys.length]; i++; if(bySubj[k2].length) out.push(bySubj[k2].shift()); }
+  return out;
+}
+function worldBrainLeft(d){ return d.brain.day===todayISO() ? Math.max(0, WORLD_BRAIN_DAILY - d.brain.c) : WORLD_BRAIN_DAILY; }
+function worldBrainDone(kid, right){
+  var d = worldData(kid), today = todayISO();
+  if(d.brain.day!==today) d.brain = {day:today, c:0};
+  if(right && d.brain.c<WORLD_BRAIN_DAILY){ d.brain.c++; d.earned++; saveWorld(kid, d); worldSay("\u26A1 Brain Boost! +1 coin ("+worldBrainLeft(d)+" left today)"); }
+  else if(!right) worldSay("Good try! Every question helps your brain grow.");
+  try{ worldGame.frame.contentWindow.postMessage({forge:"brainState", left:worldBrainLeft(d)}, "*"); }catch(e){}
 }
 function worldCoins(kid, d){ var dd = d || worldData(kid); return Math.max(0, Math.floor((kidData(kid).xp||0)/5) + worldJobBonus(kid) + (dd.earned||0) - dd.spent); }
 /* The house: a small room on a grid. Furniture is bought with coins, owned in counts, and placed on squares. The town shows the same room in 3D. */
@@ -2511,7 +2536,7 @@ function liveWorldCard(){
 function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
 function worldFrameUrl(kid, which){
   var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid),
-    house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:worldDeliveriesLeft(d)}};
+    house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:worldDeliveriesLeft(d)}, brain:{left:worldBrainLeft(d)}, qs:worldQuestionPool(kid)};
   return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
 }
 function closeWorldGame(){ if(!worldGame) return; if(worldGame.modal && worldGame.modal.parentNode) worldGame.modal.parentNode.removeChild(worldGame.modal); clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
@@ -2557,6 +2582,7 @@ window.addEventListener("message", function(ev){
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="delivery"){ worldDeliveryDone(worldGame.kid, !!m.fast); }
+  else if(m.forge==="brain"){ worldBrainDone(worldGame.kid, !!m.right); }
   else if(m.forge==="enterZone"){
     var wk0 = worldGame.kid;
     if(m.key==="morning" || m.key==="showTeach"){ closeWorldGame(); goTab("today"); toast(m.key==="morning" ? "Start your day here, then the town opens up!" : "Time to share what you learned!"); return; }
@@ -28060,7 +28086,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-02.4";
+var APP_BUILD = "2026-11-02.5";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
