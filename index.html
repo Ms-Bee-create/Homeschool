@@ -2414,40 +2414,32 @@ function worldWhy(kid, l){
   if(cur.key==="showTeach") return "Time for Show & Teach! Open the Today tab.";
   return "Finish "+cur.label+" first, like on your Today list.";
 }
+var WORLD_BLOCK_STYLE = {
+  morning:{wall:"#ffe9a8", roof:"#e0a020", door:"#ffd23f", bw:"sand", br:"plank", bd:0},
+  math:{wall:"#ffb3c9", roof:"#ff6b9d", door:"#3fe0e6", bw:"plank", br:"stone", bd:2},
+  reading:{wall:"#b9e8d2", roof:"#3fa888", door:"#ff9f43", bw:"plank", br:"grass", bd:1},
+  project:{wall:"#c88a64", roof:"#7a3f2a", door:"#ffd23f", bw:"wood", br:"stone", bd:0},
+  sciSocial:{wall:"#bfe0ff", roof:"#4a90d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:3},
+  faith:{wall:"#e0d4ff", roof:"#8a63d9", door:"#ffd23f", bw:"plank", br:"sand", bd:4},
+  showTeach:{wall:"#ffd1dc", roof:"#d94a7a", door:"#7dff6b", bw:"stone", br:"plank", bd:4}
+};
+function worldBlockName(kid, b){ return (kid==="kid2" && b.key==="project") ? "Project House" : b.label; }
 function worldZones(kid){
-  /* A job opens a lesson from TODAY's list, in Today's order. Lessons dated later show as "coming up". Old overdue lessons live in Leader's catch-up card.
-     lesson.open = Today would let you start it right now. "Study Hall" holds the whole list in Today's order, so every lesson has a door. */
-  var out = [], today = todayISO(), plan = worldTodayPlan(kid), curKey = plan.cur ? plan.cur.key : null, blockIdx = {};
+  /* One zone per block of the kid's day, in Today's order and with Today's own names. A zone holds today's lessons for that block.
+     lesson.open = Today would let you start it right now. Morning Launch and Show & Teach are not lessons: they send you to the Today tab.
+     Ryan's "Project House" is his Main Project block: his weekly project choice lives there. */
+  var today = todayISO(), plan = worldTodayPlan(kid), curKey = plan.cur ? plan.cur.key : null, blockIdx = {};
   plan.blocks.forEach(function(bk, i){ blockIdx[bk.key] = i; });
   function mk(a){
     var k = blockKeyFor(a), group = plan.by[k] || [], at = -1; for(var q=0;q<group.length;q++){ if(group[q].id===a.id){ at = q; break; } }
     var isToday = a.date===today;
     return {id:a.id, title:a.title, done:!!a.done, today:isToday, date:a.date, open:isToday && !a.done && k===curKey, rank:(blockIdx[k]==null ? 99 : blockIdx[k])*1000 + (at<0 ? 999 : at)};
   }
-  function byRank(x, y){ return x.rank - y.rank; }
-  var hallLessons = []; plan.blocks.forEach(function(bk){ (plan.by[bk.key] || []).forEach(function(a){ hallLessons.push(mk(a)); }); });
-  var hall = {key:"today", icon:(kid==="kid1" ? "\u270F\uFE0F" : "\uD83D\uDCD3"), name:(kid==="kid1" ? "School Desk" : "Study Hall"), color:"#ffd86b", blurb:"Everything on today's list, in order", pick:false,
-    doneCount:plan.list.filter(function(a){ return a.done; }).length, lessons:hallLessons};
-  if(kid==="kid2"){
-    var pick = (familyGoal().rp || {}).id;
-    out.push(hall);
-    RYAN_PROJECTS.forEach(function(p){
-      var ls = rpLessons(p).filter(function(x){ return x.a.reviewStatus!=="retired"; }).sort(function(a,b){ return a.order-b.order; });
-      if(ls.length) out.push({key:p.id, icon:p.icon, name:p.name, blurb:p.blurb, lessons:ls.map(function(x){ return mk(Object.assign({id:x.id}, x.a)); }), pick:p.id===pick});
-    });
-    return out;
-  }
-  var rooms = [["math","\uD83D\uDD22","Math Meadow","#ff8fc0",["Math"]],["story","\uD83D\uDCD6","Story Garden","#8ee3c0",["ELA","Reading"]],["sci","\uD83D\uDC38","Animal Pond","#7ec8ff",["Science"]],
-    ["ss","\uD83C\uDFDB\uFE0F","Our Town","#ffb454",["Social Studies"]],["faith","\u2728","Faith Hill","#c9b6ff",["Faith"]],["art","\uD83C\uDFA8","Art Studio","#ffd86b",["Related Arts","Independent","Live Lesson"]]];
-  var all = assignmentsFor(kid, null);
-  rooms.forEach(function(r){
-    var mine = all.filter(function(a){ return r[4].indexOf(a.subject)>=0; });
-    var done = mine.filter(function(a){ return a.done; });
-    var todays = mine.filter(function(a){ return a.date===today; }).map(mk).sort(byRank), later = mine.filter(function(a){ return !a.done && a.date>today; }).slice(0, 4).map(mk);
-    out.push({key:r[0], icon:r[1], name:r[2], color:r[3], doneCount:done.length, lessons:todays.concat(later)});
+  return plan.blocks.map(function(bk){
+    var st = WORLD_BLOCK_STYLE[bk.key] || WORLD_BLOCK_STYLE.project, tasks = plan.by[bk.key] || [], special = (bk.key==="morning" || bk.key==="showTeach");
+    return {key:bk.key, icon:bk.icon, name:worldBlockName(kid, bk), color:st.door, special:special, current:bk.key===curKey, blurb:"",
+      blockDone:blockComplete(bk.key, kid, today, plan.by), doneCount:tasks.filter(function(a){ return a.done; }).length, lessons:tasks.map(mk)};
   });
-  out.push(hall);
-  return out;
 }
 /* The walkable worlds (world/town and world/) open inside the app on top of everything, as a full-screen frame.
    The app tells the world who you are and which jobs you have; the world tells the app when you walk into a job.
@@ -2455,21 +2447,10 @@ function worldZones(kid){
    Only the explorer's look and the gate state cross over: no lesson text, no chat. */
 var worldGame = null;
 function worldJobsFor(kid){
-  if(kid==="kid1"){
-    return [{key:"math", name:"Bakery", icon:"\uD83E\uDD50", wall:"#ffb3c9", roof:"#ff6b9d", door:"#ffd23f", bw:"sand", br:"plank", bd:3},
-      {key:"story", name:"Bookshop", icon:"\uD83D\uDCDA", wall:"#b9e8d2", roof:"#3fa888", door:"#ff9f43", bw:"plank", br:"grass", bd:1},
-      {key:"sci", name:"Pet Shop", icon:"\uD83D\uDC3E", wall:"#bfe0ff", roof:"#4a90d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:2},
-      {key:"ss", name:"Town Hall", icon:"\uD83C\uDFDB\uFE0F", wall:"#ffe0b0", roof:"#d98a2b", door:"#3fb8e0", bw:"stone", br:"plank", bd:0},
-      {key:"faith", name:"Faith Hall", icon:"\u2728", wall:"#e0d4ff", roof:"#8a63d9", door:"#ffd23f", bw:"wood", br:"stone", bd:4},
-      {key:"art", name:"Art Studio", icon:"\uD83C\uDFA8", wall:"#fff0a8", roof:"#e0b020", door:"#ff6b9d", bw:"plank", br:"sand", bd:3},
-      {key:"today", name:"School Desk", icon:"\u270F\uFE0F", wall:"#fff0f5", roof:"#c9a3d9", door:"#ff6b9d", bw:"sand", br:"stone", bd:3}];
-  }
-  return [{key:"scratchos", name:"Game Studio", icon:"\uD83C\uDFAE", wall:"#7dc95e", roof:"#2f8f3a", door:"#ffd23f", bw:"plank", br:"grass", bd:0},
-    {key:"underhood", name:"Repair Shop", icon:"\uD83D\uDD27", wall:"#a9b0bd", roof:"#5d6678", door:"#ff9f43", bw:"stone", br:"dirt", bd:1},
-    {key:"vrbuild", name:"Builder's Workshop", icon:"\uD83E\uDDF1", wall:"#f1d98a", roof:"#c2893a", door:"#3fb8e0", bw:"sand", br:"plank", bd:2},
-    {key:"vrlab", name:"VR Arcade", icon:"\uD83E\uDD7D", wall:"#c88a64", roof:"#7a3f2a", door:"#ff6b9d", bw:"wood", br:"stone", bd:3},
-    {key:"johnnyos", name:"Computer Store", icon:"\uD83D\uDCBB", wall:"#7f9fe8", roof:"#3f56b0", door:"#7dff6b", bw:"plank", br:"sand", bd:4},
-    {key:"today", name:"Study Hall", icon:"\uD83D\uDCD3", wall:"#d9d4c4", roof:"#8a8f99", door:"#ffd23f", bw:"stone", br:"plank", bd:0}];
+  return orderedBlocksFor(kid).map(function(b){
+    var st = WORLD_BLOCK_STYLE[b.key] || WORLD_BLOCK_STYLE.project;
+    return {key:b.key, name:worldBlockName(kid, b), icon:b.icon, wall:st.wall, roof:st.roof, door:st.door, bw:st.bw, br:st.br, bd:st.bd};
+  });
 }
 /* Live "walk together" (1 Nov 2026, Mom said yes). The app opens ONE broadcast channel for the household and relays the worlds' messages over it.
    Supabase counts a broadcast as 1 message sent plus 1 per client that receives it (free plan: 2 million a month, shared with Momma Money's live push).
@@ -2520,7 +2501,7 @@ function worldFrameUrl(kid, which){
     house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}};
   return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
 }
-function closeWorldGame(){ if(!worldGame) return; clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
+function closeWorldGame(){ if(!worldGame) return; if(worldGame.modal && worldGame.modal.parentNode) worldGame.modal.parentNode.removeChild(worldGame.modal); clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
 function openWorldGame(kid, which){
   closeWorldGame();
   var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#000;display:flex;flex-direction:column";
@@ -2539,18 +2520,43 @@ function openWorldGame(kid, which){
     if(u!==worldGame.last){ worldGame.last = u; try{ worldGame.frame.contentWindow.postMessage({forge:"unlock", value:u}, "*"); }catch(e){} }
   }, 3000);
 }
+/* Ryan's Project House: the weekly project choice (the same card as on his Home screen: pick once, locked all week, trophy) shown on top of the town. */
+function worldProjectModal(){
+  if(!worldGame) return;
+  if(worldGame.modal && worldGame.modal.parentNode) worldGame.modal.parentNode.removeChild(worldGame.modal);
+  var wrap = document.createElement("div"); wrap.style.cssText = "position:absolute;left:0;top:44px;right:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:2;overflow:auto;padding:12px";
+  var box = document.createElement("div"); box.style.cssText = "max-width:540px;width:100%;background:var(--card,#fff);color:var(--ink,#222);border-radius:16px;padding:14px";
+  box.innerHTML = '<div style="font-weight:800;font-size:18px;margin-bottom:8px">\uD83C\uDFE0 Project House</div>';
+  var card = ryanProjectCard();
+  if(card) box.appendChild(card); else box.appendChild(document.createTextNode("No projects are loaded yet. Mom can add them in Leader, then Content Packs."));
+  var close = document.createElement("button"); close.type = "button"; close.textContent = "\u2190 Back to the town";
+  close.style.cssText = "margin-top:10px;background:#ffd23f;color:#222;border:3px solid #000;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;font-family:inherit";
+  close.onclick = function(){ if(wrap.parentNode) wrap.parentNode.removeChild(wrap); if(worldGame) worldGame.modal = null; };
+  box.appendChild(close); wrap.appendChild(box); worldGame.overlay.appendChild(wrap); worldGame.modal = wrap;
+  box.addEventListener("click", function(e){   // after picking a project the card should show the new state
+    var btn = e.target.closest && e.target.closest("button");
+    if(btn && btn!==close) setTimeout(function(){ if(worldGame && worldGame.modal===wrap) worldProjectModal(); }, 600);
+  });
+}
 window.addEventListener("message", function(ev){
   if(!worldGame || ev.source!==worldGame.frame.contentWindow) return;
   var m = ev.data || {};
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="enterZone"){
+    var wk0 = worldGame.kid;
+    if(m.key==="morning" || m.key==="showTeach"){ closeWorldGame(); goTab("today"); toast(m.key==="morning" ? "Start your day here, then the town opens up!" : "Time to share what you learned!"); return; }
+    if(m.key==="project" && wk0==="kid2"){
+      var rp0 = familyGoal().rp, picked0 = rp0 && rp0.week===rpWeek().mon;
+      if(!picked0){ worldProjectModal(); return; }
+    }
     var z = worldZones(worldGame.kid).filter(function(zz){ return zz.key===m.key; })[0];
     var next = z && z.lessons.filter(function(l){ return l.open; })[0];
     if(!next){
       var waiting = z && z.lessons.filter(function(l){ return l.today && !l.done; })[0], finishedToday = z && z.lessons.some(function(l){ return l.today && l.done; });
       var say = waiting ? worldWhy(worldGame.kid, waiting) : finishedToday ? "You finished everything here for today! \uD83C\uDFC6" : z ? "Nothing here for today. Your Today list has what is next!" : "Nothing to do here yet.";
       try{ worldGame.frame.contentWindow.postMessage({forge:"say", text:say}, "*"); }catch(e){}
+      if(m.key==="project" && wk0==="kid2" && !waiting) worldProjectModal();   // nothing for the project today: show his project card (progress)
       return;
     }
     closeWorldGame(); worldOpenLesson(next.id);
@@ -2575,15 +2581,16 @@ function renderWorld(){
   var walk = card('<div style="font-weight:800;font-size:16px;margin-bottom:4px">'+(anna ? "\uD83C\uDF1F Walk around town" : "\uD83C\uDF0D Walk around")+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">'+(anna ? "Visit the shops. Each shop opens your real lessons. The gate opens when today's lessons are done." : "Walk through the town. Each job opens your real lessons. The gate opens when today's lessons are done, and then you can travel to other worlds.")+'</div><div id="wWalk"></div>', "border-color:var(--gold)");
   var wb = document.createElement("button"); wb.type = "button"; wb.className = "reward-skip"; wb.style.cssText = "opacity:1;border:3px solid #000;background:var(--gold);color:#222;font-weight:800;font-size:16px;padding:10px 18px";
   wb.textContent = anna ? "Let's go!" : "Enter Forge Town"; wb.onclick = function(){ openWorldGame(kid, "town"); }; walk.querySelector("#wWalk").appendChild(wb);
+  if(kid==="kid2"){ var rpc0 = ryanProjectCard(); if(rpc0) els.view.appendChild(rpc0); }
 
   /* the map: real lessons */
-  var zones = worldZones(kid), mapHtml = anna ? "🚪 Pick a door" : "🗺️ The map: every project is a zone";
+  var zones = worldZones(kid), mapHtml = anna ? "🚪 Pick a door" : "🗺️ Today's map: your day, block by block";
   var map = card('<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+mapHtml+'</div><div class="muted" style="font-size:12.5px;margin-bottom:8px">Tap a stop to open the real lesson. These are the lessons on your list for today. ⭐ means finished, the bright one is next, and faded ones are for another day.</div><div id="wZones"></div>');
   var zwrap = map.querySelector("#wZones");
   if(anna){
     var doors = document.createElement("div"); doors.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"; zwrap.appendChild(doors);
     var room = document.createElement("div"); zwrap.appendChild(room);
-    var openKey = worldRoomOpen[kid] || zones[0].key;
+    var curZ0 = zones.filter(function(z){ return z.current; })[0], openKey = worldRoomOpen[kid] || (curZ0 || zones[0]).key;
     zones.forEach(function(z){
       var b = document.createElement("button"); b.type = "button";
       b.style.cssText = "width:92px;height:120px;border:none;border-radius:46px 46px 8px 8px;background:"+z.color+";color:#fff;font:inherit;font-weight:800;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding:6px 3px;"+(z.key===openKey ? "outline:4px solid var(--gold);" : "");
@@ -2593,7 +2600,12 @@ function renderWorld(){
     });
     var z0 = zones.filter(function(z){ return z.key===openKey; })[0];
     room.innerHTML = '<div style="font-weight:800;font-size:16px;margin-bottom:6px">'+z0.icon+' '+escapeHtml(z0.name)+' <span class="muted" style="font-size:13px;font-weight:600">⭐ '+z0.doneCount+' finished</span></div>';
-    if(!z0.lessons.length) room.innerHTML += '<div class="muted">Nothing here today. Check your Today list!</div>';
+    if(z0.special){
+      var tb = document.createElement("button"); tb.type = "button"; tb.className = "reward-skip";
+      tb.style.cssText = "opacity:1;border:2px solid var(--gold);border-radius:14px;padding:10px 14px;color:var(--ink);font-size:15px;margin-top:6px";
+      tb.textContent = (z0.blockDone ? "\u2B50 Done! " : "\uD83C\uDF38 ")+"Open it on my Today tab"; tb.onclick = function(){ goTab("today"); }; room.appendChild(tb);
+    }
+    if(!z0.lessons.length && !z0.special) room.innerHTML += '<div class="muted">Nothing here today. Check your Today list!</div>';
     var firstNow = -1; for(var qi=0; qi<z0.lessons.length; qi++){ if(z0.lessons[qi].open){ firstNow = qi; break; } }
     z0.lessons.forEach(function(l, i){
       var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
@@ -2611,6 +2623,10 @@ function renderWorld(){
       zc.style.cssText = "border:3px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card);"+(z.pick ? "border-color:var(--gold);" : "");
       zc.innerHTML = '<div style="font-weight:800;font-size:15px">'+z.icon+' '+escapeHtml(z.name)+(z.pick ? ' <span class="chip" style="background:var(--gold-soft);color:var(--gold)">🎯 this week\'s project</span>' : '')+(doneN===z.lessons.length ? ' 🏆' : '')+'</div>'+
         '<div class="muted" style="font-size:12.5px;margin:2px 0 8px">'+escapeHtml(z.blurb||"")+' ('+doneN+' of '+z.lessons.length+' done)</div>';
+      if(z.special){
+        var tb2 = document.createElement("button"); tb2.type = "button"; tb2.className = "reward-skip"; tb2.style.cssText = "opacity:1;border:3px solid #000;background:"+(z.current ? "var(--gold)" : "var(--card)")+";color:#222;font-weight:800;padding:8px 14px";
+        tb2.textContent = (z.blockDone ? "\u2713 Done. " : "")+"Open it on my Today tab"; tb2.onclick = function(){ goTab("today"); }; zc.appendChild(tb2); zwrap.appendChild(zc); return;
+      }
       var row = document.createElement("div"); row.style.cssText = "display:flex;gap:6px;flex-wrap:wrap";
       z.lessons.forEach(function(l, i){
         var b = document.createElement("button"); b.type = "button"; b.title = l.title;
@@ -28030,7 +28046,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-02.2";
+var APP_BUILD = "2026-11-02.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
