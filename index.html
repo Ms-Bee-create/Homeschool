@@ -2509,6 +2509,7 @@ function worldLiveStart(){
     var ch = sb.channel("forge-world:"+HOUSEHOLD_ID, {config:{broadcast:{self:false}}});
     ch.on("broadcast", {event:"p"}, function(pl){
       if(!worldGame || worldGame.ch!==ch) return;
+      if(worldGame.spectate) worldRosterNote(pl.payload);
       try{ worldGame.frame.contentWindow.postMessage({forge:"peer", msg:pl.payload}, "*"); }catch(e){}
     });
     g.ch = ch; g.ready = false; g.minute = {t:Date.now(), n:0};
@@ -2544,6 +2545,71 @@ function worldFrameUrl(kid, which){
   var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid),
     house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:worldDeliveriesLeft(d)}, brain:{left:worldBrainLeft(d)}, qs:worldQuestionPool(kid)};
   return (which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
+}
+/* Leader spectate (3 Nov 2026): an invisible observer. Opens the town or the Minecraft world with no avatar, sends only a tiny "watching" hello every 4 s,
+   and follows whoever is playing (or flies free). Needs the "Walk together" switch ON, because it listens on the same live channel. */
+function worldRosterNote(m){
+  var g = worldGame; if(!g || !g.spectate || !m || !m.id || !m.w) return;
+  if(m.t==="f" || !g.roster[m.id]) g.roster[m.id] = {id:m.id, name:m.name || (g.roster[m.id] && g.roster[m.id].name) || "Explorer", w:m.w, seen:Date.now()};
+  else { g.roster[m.id].seen = Date.now(); g.roster[m.id].w = m.w; }
+  worldRosterDraw();
+}
+function worldRosterDraw(){
+  var g = worldGame; if(!g || !g.spectate) return;
+  var now = Date.now(), list = Object.keys(g.roster).map(function(k){ return g.roster[k]; }).filter(function(r){ return now-r.seen < 40000; });
+  g.rosterEl.innerHTML = "";
+  if(!list.length){ g.rosterEl.textContent = "Nobody is playing right now. Fly around with W A S D."; return; }
+  list.forEach(function(r){
+    var b = document.createElement("button"); b.type = "button";
+    b.style.cssText = "background:#2a3a6a;color:#fff;border:2px solid #ffd23f;border-radius:8px;padding:3px 9px;margin-right:6px;font-weight:700;cursor:pointer;font-family:inherit";
+    b.textContent = "\uD83D\uDC40 "+r.name+" ("+(r.w==="mc" ? "Minecraft" : "Town")+")";
+    b.onclick = function(){
+      var want = r.w==="mc" ? "minecraft" : "town";
+      if(g.which!==want){ g.which = want; g.follow = r.id; g.frame.src = worldSpectateUrl(g); }
+      else { try{ g.frame.contentWindow.postMessage({forge:"follow", id:r.id}, "*"); }catch(e){} }
+    };
+    g.rosterEl.appendChild(b);
+  });
+}
+function worldSpectateUrl(g){
+  var kid = g.viewKid, d = worldData(kid);
+  var p = {id:g.specId, name:"Leader", spectate:true, look:d.look, wear:d.wear, unlocked:true, jobs:worldJobsFor(kid), house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:0}, brain:{left:0}, qs:[]};
+  return (g.which==="minecraft" ? "world/index.html" : "world/town/index.html")+"#p="+encodeURIComponent(JSON.stringify(p));
+}
+function openWorldSpectate(viewKid, which){
+  if(!worldLiveOn()){ toast("Turn on \u201CWalk together in the worlds\u201D first. Watching uses the same live link."); return; }
+  closeWorldGame();
+  var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#000;display:flex;flex-direction:column";
+  var bar = document.createElement("div"); bar.style.cssText = "display:flex;gap:10px;align-items:center;padding:6px 10px;background:#111a33;color:#fff;font-size:14px;flex-wrap:wrap";
+  var back = document.createElement("button"); back.type = "button"; back.textContent = "\u2190 Stop watching";
+  back.style.cssText = "background:#ffd23f;color:#222;border:3px solid #000;border-radius:10px;padding:5px 12px;font-weight:800;cursor:pointer;font-family:inherit";
+  back.onclick = function(){ closeWorldGame(); renderView(); };
+  var tog = document.createElement("button"); tog.type = "button"; tog.style.cssText = back.style.cssText.replace("#ffd23f","#fff");
+  var tip = document.createElement("span"); tip.style.cssText = "font-size:12.5px;opacity:.85"; tip.textContent = "View only. Tab = next explorer, W A S D Space C Shift = fly, drag = look.";
+  var roster = document.createElement("span");
+  bar.appendChild(back); bar.appendChild(tog); bar.appendChild(roster); bar.appendChild(tip); ov.appendChild(bar);
+  var fr = document.createElement("iframe"); fr.style.cssText = "flex:1;border:0;width:100%;background:#000"; fr.setAttribute("allow", "fullscreen"); ov.appendChild(fr);
+  document.body.appendChild(ov);
+  worldGame = {spectate:true, kid:"leader", viewKid:viewKid, which:which, frame:fr, overlay:ov, rosterEl:roster, roster:{}, specId:"leader-"+Math.random().toString(36).slice(2,7), last:true};
+  var g = worldGame;
+  function label(){ tog.textContent = g.which==="minecraft" ? "Go to Forge Town" : "Go to Minecraft world"; }
+  tog.onclick = function(){ g.which = g.which==="minecraft" ? "town" : "minecraft"; g.follow = null; label(); fr.src = worldSpectateUrl(g); };
+  fr.onload = function(){ if(g.follow){ try{ fr.contentWindow.postMessage({forge:"follow", id:g.follow}, "*"); }catch(e){} } };
+  label(); fr.src = worldSpectateUrl(g);
+  worldLiveStart();
+  g.timer = setInterval(function(){ worldRosterDraw(); }, 5000);
+  worldRosterDraw();
+}
+function spectateCard(){
+  var c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
+  c.innerHTML = '<div style="font-weight:700">\uD83D\uDC40 Watch them play</div><div class="muted" style="font-size:12.5px;margin:6px 0">Join the town or the Minecraft world as an invisible watcher. You follow whoever is playing (or fly around), and cannot change anything. Needs \u201CWalk together\u201D ON.</div>';
+  [["kid2","town"],["kid2","minecraft"],["kid1","town"]].forEach(function(p){
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;color:var(--ink);margin-right:6px";
+    b.textContent = "Watch "+(kidData(p[0]).name || "kid")+"'s "+(p[1]==="minecraft" ? "Minecraft world" : "town");
+    b.onclick = function(){ openWorldSpectate(p[0], p[1]); };
+    c.appendChild(b);
+  });
+  return c;
 }
 function closeWorldGame(){ if(!worldGame) return; if(worldGame.modal && worldGame.modal.parentNode) worldGame.modal.parentNode.removeChild(worldGame.modal); clearInterval(worldGame.timer); try{ if(worldGame.ch) sb.removeChannel(worldGame.ch); }catch(e){} if(worldGame.overlay.parentNode) worldGame.overlay.parentNode.removeChild(worldGame.overlay); worldGame = null; }
 function openWorldGame(kid, which){
@@ -2585,6 +2651,7 @@ function worldProjectModal(){
 window.addEventListener("message", function(ev){
   if(!worldGame || ev.source!==worldGame.frame.contentWindow) return;
   var m = ev.data || {};
+  if(worldGame.spectate){ if(m.forge==="send") worldLiveSend(m.msg); return; }   // the Leader only watches: just the "I am watching" hello goes out
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="delivery"){ worldDeliveryDone(worldGame.kid, !!m.fast); }
@@ -8165,6 +8232,7 @@ function renderLeaderArea(){
   els.view.appendChild(weekReportCard());
   els.view.appendChild(weekCheckCard());
   els.view.appendChild(liveWorldCard());
+  els.view.appendChild(spectateCard());
   els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
@@ -28183,7 +28251,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-03.1";
+var APP_BUILD = "2026-11-03.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }

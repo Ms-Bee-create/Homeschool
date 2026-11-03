@@ -30,6 +30,7 @@
   #energy{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(0,0,0,.6);border:3px solid #000;padding:3px 10px;font-size:14px;display:none;min-width:150px;text-align:center}
   #energy i{display:block;height:6px;margin-top:3px;background:#ffd23f}
   #toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);background:#ffd23f;color:#222;border:3px solid #000;padding:8px 16px;font-size:18px;display:none}
+  body.spec #emotes, body.spec #deliv, body.spec #prompt, body.spec #gate, body.spec #quiz, body.spec #hotbar, body.spec #energy, body.spec #mineBar, body.spec #cross, body.spec #hint{display:none!important}
   #start{position:fixed;inset:0;background:rgba(15,20,36,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px}
   #start button{font-size:24px;padding:14px 30px;background:#ffd23f;border:4px solid #000;cursor:pointer;font-family:inherit;font-weight:bold;color:#222}
   #start button:disabled{opacity:.5}
@@ -71,13 +72,14 @@ var ZONES = [
 
 var P = {};   // who am I (the app can pass this in the link: #p=<json>)
 try { var mm = /[#&]p=([^&]*)/.exec(location.hash); if (mm) P = JSON.parse(decodeURIComponent(mm[1])); } catch (e) {}
+var SPEC = P.spectate === true; if (SPEC) document.body.classList.add("spec");   // the Leader watching: no avatar, no controls, view only
 var ME = {
   id: P.id || ("p" + Math.random().toString(36).slice(2, 8)),
   name: P.name || "Explorer",
   look: Object.assign({skin:"#e8b88a", hair:"#4a2c12", style:"short", outfit:"#3f7dff"}, P.look || {}),
   wear: P.wear || {}
 };
-document.getElementById("who").textContent = "You are " + ME.name;
+document.getElementById("who").textContent = SPEC ? "👀 Leader is watching" : "You are " + ME.name;
 if (P.jobs && P.jobs.length) ZONES = P.jobs.map(function(j, i){ return {key:j.key, name:j.name, wall:j.bw || "plank", roof:j.br || "grass", door:(j.bd != null ? j.bd : i % 5)}; });   // the app sends this kid's own jobs
 
 /* ---------- block types and which picture each face uses (same layout as our Godot project) ---------- */
@@ -334,7 +336,7 @@ function buildAvatar(look, wear){
   return g;
 }
 
-addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge === "say") toast(m.text); });
+addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge === "say") toast(m.text); if (m.forge === "follow") follow = m.id || null; });
 /* ---------- the hotbar, mining and placing ---------- */
 var SLOT_IDS = [GRASS, DIRT, STONE, SAND, WOOD, LEAVES, PLANK], sel = 0, slotEls = [], ATLAS_CANVAS = null;
 function buildHotbar(){
@@ -410,6 +412,7 @@ function collides(px, py, pz){
 var keys = {}, locked = false, dragging = false, lastMouse = null, EMOTES = ["👋", "🎉", "😮", "👍", "❤️", "🤔"];
 addEventListener("keydown", function(e){
   keys[e.code] = true; if (e.code === "Space") e.preventDefault();
+  if (SPEC && e.code === "Tab"){ e.preventDefault(); cycleFollow(); }
   if (e.code === "KeyE") useDoor(); if (e.code === "KeyV") me.third = !me.third; if (e.code === "KeyR") rescue();
   var dn = /^Digit([1-9])$/.exec(e.code);   // 1-7 pick a block, Shift + 1-6 are the emotes
   if (dn){ var n = +dn[1]; if (e.shiftKey){ if (n <= 6) emote(EMOTES[n - 1]); } else selectSlot(n - 1); }
@@ -444,7 +447,7 @@ function useDoor(){
   try { if (parent !== window) parent.postMessage({forge:"enterZone", key:d.zone.key}, "*"); } catch (e) {}
   toast("In the real app this opens the " + d.zone.name + " lessons.");
 }
-function emote(e){ if (myEmote) myAvatar.remove(myEmote); myEmote = emojiSprite(e); myEmote.position.y = 2.9; myAvatar.add(myEmote); me.emote = e; me.emoteAt = Date.now(); sendFull(); }
+function emote(e){ if (SPEC) return; if (myEmote) myAvatar.remove(myEmote); myEmote = emojiSprite(e); myEmote.position.y = 2.9; myAvatar.add(myEmote); me.emote = e; me.emoteAt = Date.now(); sendFull(); }
 
 /* ---------- other explorers: the transport is swappable (a local tab-to-tab channel now, a live connection later) ---------- */
 var others = {};
@@ -462,15 +465,19 @@ addEventListener("message", function(ev){ var m = ev.data || {}; if (m.forge ===
 function r1(v){ return Math.round(v * 10) / 10; }
 function r2(v){ return Math.round(v * 100) / 100; }
 var lastSent = 0, lastFull = 0, lastPos = "";
+var watchers = {};   // a Leader who is watching counts as company, so the positions start flowing
+function watcherCount(){ var n = 0, now = Date.now(); Object.keys(watchers).forEach(function(id){ if (now - watchers[id] < 12000) n++; else delete watchers[id]; }); return n; }
+function specNet(){ var now = Date.now(); if (now - lastSent > 4000){ lastSent = now; net.send({w:"mc", t:"w", id:ME.id}); } }   // "I am watching": tiny, every 4 seconds
 function baseMsg(t){ return {w:"mc", t:t, id:ME.id, x:r1(me.x), y:r1(me.y), z:r1(me.z), yaw:r2(me.yaw), emote:me.emote, emoteAt:me.emoteAt}; }
-function sendFull(){ var m = baseMsg("f"); m.name = ME.name; m.look = ME.look; m.wear = ME.wear; net.send(m); lastFull = lastSent = Date.now(); }
+function sendFull(){ if (SPEC) return; var m = baseMsg("f"); m.name = ME.name; m.look = ME.look; m.wear = ME.wear; net.send(m); lastFull = lastSent = Date.now(); }
 function netTick(){
-  var now = Date.now(), peers = Object.keys(others).length;
+  var now = Date.now(), peers = Object.keys(others).length + watcherCount();
   var key2 = [r1(me.x), r1(me.y), r1(me.z), r2(me.yaw)].join();
   if (peers && key2 !== lastPos && now - lastSent > 330){ lastPos = key2; net.send(baseMsg("c")); lastSent = now; }
   if (now - lastFull > (peers ? 4000 : 10000)) sendFull();
 }
 net.onmsg(function(m){
+  if (m && m.w === "mc" && m.t === "w" && m.id !== ME.id){ var firstW = !watchers[m.id]; watchers[m.id] = Date.now(); if (firstW) sendFull(); return; }   // a Leader is watching: speak up at once
   if (!m || m.w !== "mc" || m.id === ME.id) return;
   var o = others[m.id];
   if (!o){
@@ -530,7 +537,35 @@ function frame(now){
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
+/* Spectator camera: follow one explorer (Tab or the Leader's list picks who) or fly freely (W A S D, Space up, C down, Shift fast, drag to look). */
+var follow = null;
+function cycleFollow(){ var ids = Object.keys(others); if (!ids.length){ follow = null; return; } follow = ids[(ids.indexOf(follow) + 1) % ids.length]; }
+function specFrame(dt){
+  var o = follow && others[follow];
+  camera.rotation.order = "YXZ"; camera.rotation.set(me.pitch, me.yaw, 0);
+  if (o){
+    var dist = 7;
+    me.x = o.g.position.x; me.z = o.g.position.z;   // the world around the explorer you watch gets drawn
+    camera.position.set(o.g.position.x + Math.sin(me.yaw) * dist * Math.cos(me.pitch), o.g.position.y + 1.6 - Math.sin(me.pitch) * dist, o.g.position.z + Math.cos(me.yaw) * dist * Math.cos(me.pitch));
+  } else {
+    var sp = ((keys.ShiftLeft || keys.ShiftRight) ? 24 : 10) * dt;
+    var fx = -Math.sin(me.yaw) * Math.cos(me.pitch), fy = Math.sin(me.pitch), fz = -Math.cos(me.yaw) * Math.cos(me.pitch), rx = Math.cos(me.yaw), rz = -Math.sin(me.yaw);
+    var mz = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), mx = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0), my = (keys.Space ? 1 : 0) - (keys.KeyC ? 1 : 0);
+    me.x += (fx * mz + rx * mx) * sp; me.y = Math.max(2, me.y + (fy * mz + my) * sp); me.z += (fz * mz + rz * mx) * sp;
+    camera.position.set(me.x, me.y, me.z);
+  }
+  updateOthers(dt); specNet();
+}
+function updateOthers(dt){
+  Object.keys(others).forEach(function(id){
+    var o = others[id];
+    if (Date.now() - o.seen > 15000){ scene.remove(o.g); delete others[id]; return; }
+    var k = Math.min(1, dt * 10); o.g.position.x += (o.tx - o.g.position.x) * k; o.g.position.y += (o.ty - o.g.position.y) * k; o.g.position.z += (o.tz - o.g.position.z) * k; o.g.rotation.y = o.yaw;
+    if (o.emote && Date.now() > o.emoteUntil){ o.g.remove(o.emote); o.emote = null; }
+  });
+}
 function step(dt){
+  if (SPEC){ specFrame(dt); return; }
   var pads = [], pad = null; try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) {}   // a browser can refuse gamepads inside a frame: never let that stop the game for (var i = 0; i < pads.length; i++) if (pads[i]){ pad = pads[i]; break; }
   if (keys.ArrowLeft) me.yaw += 1.8 * dt; if (keys.ArrowRight) me.yaw -= 1.8 * dt;
   if (keys.ArrowUp) me.pitch = Math.min(1.4, me.pitch + 1.2 * dt); if (keys.ArrowDown) me.pitch = Math.max(-1.4, me.pitch - 1.2 * dt);
@@ -571,12 +606,7 @@ function step(dt){
   camera.rotation.order = "YXZ"; camera.rotation.set(me.pitch, me.yaw, 0);
   if (me.third) camera.position.set(ex + Math.sin(me.yaw) * 3.6, ey + 0.8, ez + Math.cos(me.yaw) * 3.6); else camera.position.set(ex, ey, ez);
 
-  Object.keys(others).forEach(function(id){
-    var o = others[id];
-    if (Date.now() - o.seen > 15000){ scene.remove(o.g); delete others[id]; return; }
-    var k = Math.min(1, dt * 10); o.g.position.x += (o.tx - o.g.position.x) * k; o.g.position.y += (o.ty - o.g.position.y) * k; o.g.position.z += (o.tz - o.g.position.z) * k; o.g.rotation.y = o.yaw;
-    if (o.emote && Date.now() > o.emoteUntil){ o.g.remove(o.emote); o.emote = null; }
-  });
+  updateOthers(dt);
   mineTick(dt);
   energyTick(dt);
   netTick();
@@ -596,6 +626,7 @@ img.onload = function(){
   var ps = labelSprite(PORTAL.icon + " " + PORTAL.name, 5); ps.position.set(PORTAL.x, SPAWN_H + 7.2, PORTAL.z - 0.5); scene.add(ps);
   updateChunks(0, 0, 40);                                            // the middle of the world is ready before anyone walks in
   var btn = document.getElementById("go"); btn.disabled = false; btn.textContent = "Click to play";
+  if (SPEC){ document.getElementById("start").style.display = "none"; started = true; me.x = 0.5; me.y = SPAWN_H + 28; me.z = 26; me.yaw = 0; me.pitch = -0.6; }
   btn.onclick = function(){ document.getElementById("start").style.display = "none"; started = true; sendFull(); try { renderer.domElement.requestPointerLock(); } catch (e) {} };
   requestAnimationFrame(frame);
 };
