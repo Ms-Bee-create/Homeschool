@@ -2379,8 +2379,14 @@ function worldQuestionPool(kid){
   return out;
 }
 function worldBrainLeft(d){ return d.brain.day===todayISO() ? Math.max(0, WORLD_BRAIN_DAILY - d.brain.c) : WORLD_BRAIN_DAILY; }
-function worldBrainDone(kid, right){
+function worldBrainDone(kid, right, skip){
   var d = worldData(kid), today = todayISO();
+  if(skip){   // a skip costs 1 coin (never below zero); the town asks the same question again in a minute
+    var paid = worldCoins(kid, d) >= 1;
+    if(paid){ d.spent += 1; saveWorld(kid, d); }
+    worldSay(paid ? "Skipped: -1 coin. The question will come back in a minute." : "Skipped. The question will come back in a minute.");
+    return;
+  }
   if(d.brain.day!==today) d.brain = {day:today, c:0};
   if(right && d.brain.c<WORLD_BRAIN_DAILY){ d.brain.c++; d.earned++; saveWorld(kid, d); worldSay("\u26A1 Brain Boost! +1 coin ("+worldBrainLeft(d)+" left today)"); }
   else if(!right) worldSay("Good try! Every question helps your brain grow.");
@@ -2582,7 +2588,7 @@ window.addEventListener("message", function(ev){
   if(m.forge==="changeWorld"){ worldGame.which = m.world==="minecraft" ? "minecraft" : "town"; worldGame.frame.src = worldFrameUrl(worldGame.kid, worldGame.which); }
   else if(m.forge==="send"){ worldLiveSend(m.msg); }
   else if(m.forge==="delivery"){ worldDeliveryDone(worldGame.kid, !!m.fast); }
-  else if(m.forge==="brain"){ worldBrainDone(worldGame.kid, !!m.right); }
+  else if(m.forge==="brain"){ worldBrainDone(worldGame.kid, !!m.right, !!m.skip); }
   else if(m.forge==="enterZone"){
     var wk0 = worldGame.kid;
     if(m.key==="morning" || m.key==="showTeach"){ closeWorldGame(); goTab("today"); toast(m.key==="morning" ? "Start your day here, then the town opens up!" : "Time to share what you learned!"); return; }
@@ -4654,6 +4660,7 @@ function rpPick(proj){
   RYAN_PROJECTS.forEach(function(op){
     rpLessons(op).forEach(function(r){
       if(takeIds[r.id] || r.a.done || hasWork(r.a) || !r.a.date || r.a.date<wk.days[0] || r.a.date>last) return;
+      if(blockKeyFor(r.a)!=="project") return;   // Math, Reading, Science, Social Studies and Faith lessons inside a project pack stay on their days (3 Nov 2026: picking a project used to push them a week later and left Ryan with 2 lessons)
       var nd = rpPlusWeek(r.a.date);
       state.assignments[r.id].date = nd; db.doc("assignments/"+r.id).update({date:nd});
     });
@@ -4661,6 +4668,7 @@ function rpPick(proj){
   var g = Object.assign({}, familyGoal());
   g.rp = {week:wk.mon, id:proj.id, ids:take.map(function(r){ return r.id; }), finished:false, wins:(g.rp && g.rp.wins) || []};
   saveFamilyGoal(g, true);
+  try{ balanceFutureLoad(); fillThinDays("kid2"); }catch(e){ console.error(e); }   // re-check the limits and full days right away, not at the next app open
   toast("Locked in: "+proj.name+"! Finish it this week.");
   renderView();
 }
@@ -8155,6 +8163,7 @@ function renderLeaderArea(){
   els.view.appendChild(tlTrackerCard());
   els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
+  els.view.appendChild(weekCheckCard());
   els.view.appendChild(liveWorldCard());
   els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
@@ -20500,6 +20509,7 @@ function runAutoMigrations(){
     autoAddOffScreenFridays();
     autoAddScooterTrack();
     balanceFutureLoad();
+    fillThinDays();
     patchTrimAnnaSs();
   }catch(e){ console.error("auto-migration error", e); }
 }
@@ -20601,6 +20611,93 @@ function patchTrimAnnaSs(){
   var gone = books.slice(slots), titles = [];
   gone.forEach(function(x){ x.a.reviewStatus = "retired"; db.doc("assignments/"+x.id).update({reviewStatus:"retired"}); titles.push(String(x.a.title||"").slice(0,70)); });
   if(gone.length) console.log("patchTrimAnnaSs: took "+gone.length+" Social Studies book lesson(s) off the list (room for "+slots+" until "+cutoff+"): "+titles.join(" | "));
+}
+/* "Full day" guarantee (3 Nov 2026). Mom: Ryan had 2 lessons and was done by 10:20, and she must be able to trust a school week without adjusting it.
+   The balancer only holds days DOWN to their limits. This tops thin days UP: any school day (today and the next 10 school days) with fewer lessons than
+   MIN_DAY_LESSONS gets the earliest unstarted lesson from a LATER day that the weekly rhythm allows on that weekday and that fits the day's limits (subject, block, teaching, daily).
+   Missing core subjects (Math, ELA or Reading, and the rhythm subjects of that weekday) come first. Only everyday subjects and warm-ups are pulled, never another project's lessons.
+   Done, started and exempt (dated civics and heroes) lessons never move. Ryan only for now: Anna has her own basics filler and a trimmed Social Studies series. */
+var MIN_DAY_LESSONS = {kid2:{weekday:4, friday:3}};
+function fillThinDays(kidFilter){
+  if(!db) return 0;
+  var moved = 0, log = [];
+  ["kid2"].forEach(function(kid){
+    if(kidFilter && kidFilter!==kid) return;
+    var minCfg = MIN_DAY_LESSONS[kid]; if(!minCfg) return;
+    var today = todayISO(), byDate = {}, future = [];
+    Object.keys(state.assignments).forEach(function(id){
+      var a = state.assignments[id];
+      if(a.kidId!==kid || !a.date || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
+      (byDate[a.date] = byDate[a.date]||[]).push({id:id, a:a});
+      if(a.date>today && !a.done && !hasWork(a) && !RHYTHM_EXEMPT[a.skillId] && !isWeekendIso(a.date) && (blockKeyFor(a)!=="project" || a.subject==="Live Lesson")) future.push({id:id, a:a});
+    });
+    future.sort(function(x, y){ return x.a.date.localeCompare(y.a.date) || String(x.a.title||"").localeCompare(String(y.a.title||"")); });
+    var d = new Date(today+"T00:00:00"), n = 0, guard = 0;
+    while(n<10 && guard++<40){
+      var iso = isoDate(d);
+      if(!isOffDate(d)){
+        n++;
+        var dow = d.getDay(), fri = dow===5, list = byDate[iso] || [], min = fri ? minCfg.friday : minCfg.weekday, cap = dayCapFor(kid, iso);
+        var subjN = {}, blkN = {}, teachN = 0;
+        list.forEach(function(it){ var sj = subjKey(it.a), b = blockKeyFor(it.a); subjN[sj] = (subjN[sj]||0)+1; blkN[b] = (blkN[b]||0)+1; if(it.a.stage==="teach") teachN++; });
+        var subjCap = SUBJECT_DAY_CAP[kid] || {}, blkCap = BLOCK_DAY_CAP[kid] || {}, teachCap = TEACH_DAY_CAP[kid] || 99;
+        var needSubj = ["Math","ELA","Reading"].concat(Object.keys(WEEK_RHYTHM).filter(function(sb){ return WEEK_RHYTHM[sb].indexOf(dow)>=0; }));
+        while(list.length<min && list.length<cap){
+          var pickIdx = -1;
+          for(var i=0;i<future.length;i++){
+            var a2 = future[i].a;
+            if(a2.date<=iso || !rhythmAllows(a2, dow)) continue;
+            var sj2 = subjKey(a2), b2 = blockKeyFor(a2);
+            if(subjCap[sj2] && (subjN[sj2]||0)>=subjCap[sj2]) continue;
+            if(!fri && blkCap[b2] && (blkN[b2]||0)>=blkCap[b2]) continue;
+            if(!fri && a2.stage==="teach" && teachN>=teachCap) continue;
+            if(needSubj.indexOf(a2.subject)>=0 && !subjN[sj2]){ pickIdx = i; break; }   // a missing core subject wins at once
+            if(pickIdx<0) pickIdx = i;
+          }
+          if(pickIdx<0) break;
+          var chosen = future.splice(pickIdx, 1)[0], from = chosen.a.date;
+          chosen.a.date = iso; db.doc("assignments/"+chosen.id).update({date:iso}); moved++;
+          byDate[from] = (byDate[from]||[]).filter(function(it){ return it.id!==chosen.id; });   // it has left that day, so that day can be topped up in this same pass
+          list.push(chosen); byDate[iso] = list;
+          var sj3 = subjKey(chosen.a), b3 = blockKeyFor(chosen.a); subjN[sj3] = (subjN[sj3]||0)+1; blkN[b3] = (blkN[b3]||0)+1; if(chosen.a.stage==="teach") teachN++;
+          log.push({title:chosen.a.title, from:from, to:iso, kid:kid});
+        }
+      }
+      d.setDate(d.getDate()+1);
+    }
+  });
+  if(moved){ state.fillLog = (state.fillLog||[]).concat(log).slice(-30); console.log("fillThinDays: moved "+moved+" lesson(s) into thin days"); }
+  return moved;
+}
+/* Leader: a glance at the next school days for both kids. Thin days are flagged, and one tap tops them up. */
+function weekCheckCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var today = todayISO(), thin = 0, rows = "";
+  ["kid1","kid2"].forEach(function(kid){
+    var name = kidData(kid).name || (kid==="kid1" ? "Anna" : "Ryan"), d = new Date(today+"T00:00:00"), shown = 0, guard = 0, cells = "";
+    while(shown<5 && guard++<30){
+      if(!isOffDate(d)){
+        shown++; var iso = isoDate(d), fri = d.getDay()===5;
+        var list = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kid && a.date===iso && a.reviewStatus!=="retired" && a.skillId!=="offscreen-friday"; });
+        var min = kid==="kid2" ? (fri ? 3 : 4) : (fri ? 2 : 3), bad = list.length<min; if(bad) thin++;
+        var subj = {}; list.forEach(function(a){ subj[a.subject] = (subj[a.subject]||0)+1; });
+        cells += '<div style="display:inline-block;vertical-align:top;margin:3px 6px 3px 0;padding:6px 8px;border:2px solid '+(bad ? "#c0392b" : "var(--border)")+';border-radius:10px;min-width:118px;font-size:12.5px">'+
+          '<b>'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]+" "+(d.getMonth()+1)+"/"+d.getDate()+'</b> '+(bad ? "\u26A0\uFE0F " : "")+list.length+' lessons<br><span class="muted">'+Object.keys(subj).map(function(k){ return escapeHtml(k)+(subj[k]>1 ? " x"+subj[k] : ""); }).join(", ")+'</span></div>';
+      }
+      d.setDate(d.getDate()+1);
+    }
+    rows += '<div style="margin-top:6px"><b>'+escapeHtml(name)+'</b><div>'+cells+'</div></div>';
+  });
+  var log = (state.fillLog||[]).filter(function(x){ return x.to>=today; }).slice(-6);
+  wrap.innerHTML = '<div style="font-weight:700">\uD83D\uDDD3\uFE0F Week check: '+(thin ? '<span style="color:#c0392b">'+thin+' thin day'+(thin===1?"":"s")+'</span>' : '<span style="color:var(--green,#2a9d5c)">every day looks full \u2713</span>')+'</div>'+
+    '<div class="muted" style="font-size:12.5px;margin-top:4px">The next 5 school days. Ryan\'s thin days fill themselves from his upcoming lessons every time the app opens (never more than the daily limits). Red means a day has fewer lessons than expected.</div>'+rows+
+    (log.length ? '<div class="muted" style="font-size:12px;margin-top:8px"><b>Moved in just now:</b> '+log.map(function(x){ return escapeHtml(String(x.title||"").slice(0,40))+' (from '+x.from.slice(5)+' to '+x.to.slice(5)+')'; }).join("; ")+'</div>' : '');
+  if(thin){
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;margin-top:8px;color:var(--ink)";
+    b.textContent = "Top up thin days now"; b.onclick = function(){ var n = fillThinDays("kid2"); toast(n ? "Moved "+n+" lesson"+(n===1?"":"s")+" into thin days" : "Nothing left to move in"); renderLeaderArea(); };
+    wrap.appendChild(b);
+  }
+  return wrap;
 }
 function balanceFutureLoad(){
   if(!db) return;
@@ -21242,7 +21339,7 @@ function familyGoalLeaderCard(){
 function daysOffApply(list, msg){
   var g = Object.assign({}, familyGoal(), {daysOff:list});
   saveFamilyGoal(g).then(function(){
-    moveWeekendLessonsToMonday(); balanceFutureLoad();
+    moveWeekendLessonsToMonday(); balanceFutureLoad(); fillThinDays();
     toast(msg); renderLeaderArea();
   });
 }
@@ -28086,7 +28183,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-02.5";
+var APP_BUILD = "2026-11-03.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }

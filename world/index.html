@@ -510,7 +510,7 @@ function askQuestion(title, allowSkip, done){
   }
   order.forEach(function(oi, k){ var b = document.createElement("button"); b.className = "qopt"; b.textContent = (k + 1) + ". " + q.c[oi]; b.onclick = function(){ pick(oi, b); }; btns.push(b); card.appendChild(b); });
   card.appendChild(fb);
-  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = "Skip for now"; sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
+  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = (typeof allowSkip === "string" ? allowSkip : "Skip for now"); sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
   document.addEventListener("keydown", keyHandler, true);
 }
 

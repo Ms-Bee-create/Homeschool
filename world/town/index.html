@@ -417,7 +417,7 @@ function askQuestion(title, allowSkip, done){
   }
   order.forEach(function(oi, k){ var b = document.createElement("button"); b.className = "qopt"; b.textContent = (k + 1) + ". " + q.c[oi]; b.onclick = function(){ pick(oi, b); }; btns.push(b); card.appendChild(b); });
   card.appendChild(fb);
-  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = "Skip for now"; sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
+  if (allowSkip){ var sk = document.createElement("button"); sk.className = "qskip"; sk.textContent = (typeof allowSkip === "string" ? allowSkip : "Skip for now"); sk.onclick = function(){ finish(null); }; card.appendChild(sk); }
   document.addEventListener("keydown", keyHandler, true);
 }
 
@@ -427,8 +427,12 @@ function brainTick(){
   if (!QS.length || quizOpen || !started || BRAIN_LEFT <= 0 || Date.now() < brainAt) return;
   if (delivery){ brainAt = Date.now() + 60000; return; }
   brainAt = Date.now() + 240000;
-  askQuestion("⚡ Brain Boost! A right answer earns 1 coin", true, function(ok){
-    if (ok === null) return;
+  askQuestion("⚡ Brain Boost! A right answer earns 1 coin", "Skip (costs 1 coin)", function(ok){
+    if (ok === null){   // skipping costs a coin, and the same question comes back in a minute
+      qPos = Math.max(0, qPos - 1); brainAt = Date.now() + 60000;
+      try { if (parent !== window) parent.postMessage({forge:"brain", skip:true}, "*"); else toast("Skipped. The question will come back in a minute."); } catch (e) {}
+      return;
+    }
     try { if (parent !== window) parent.postMessage({forge:"brain", right:!!ok}, "*"); } catch (e) {}
   });
 }
