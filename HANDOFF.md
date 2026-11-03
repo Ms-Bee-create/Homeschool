@@ -696,3 +696,9 @@ FIXES (3 layers):
 3. Leader card "Week check" (weekCheckCard): the next 5 school days for both kids with counts and subjects, thin days in red, "Moved in just now" log, and a "Top up thin days now" button. Mom should glance at it on Sunday or Monday instead of adjusting.
 TESTED (harness, all of Ryan's packs added, project picked, Tuesday emptied on purpose): Monday kept 5 after the pick (was 2), the emptied Tuesday refilled to 4 with Reading, Warm-up, Math and Science, no rhythm or daily-limit break, repeated runs move nothing (stable), no page errors. NOT run against Mom's real data (no export): the first real check is Leader, Week check, after the update loads.
 LESSONS: (a) a rule that caps a day is not a rule that guarantees a day: add a floor; (b) when one feature moves lessons (the pick), test the week before and after; (c) always give Mom a way to SEE the week without editing it.
+
+## Leader spectate (3 Nov 2026, build 2026-11-03.2)
+- Leader card "Watch them play" (spectateCard): buttons for Ryan's town, Ryan's Minecraft world, Anna's town. openWorldSpectate opens the world page as an invisible observer (`spectate:true` in #p, body class "spec", no avatar, no controls). Needs "Walk together" ON (same live channel).
+- The spectator sends only a tiny `{w,t:"w",id}` hello every 4 s; kids' pages count watchers (watcherCount) as company, so positions flow, and send a full avatar message when a watcher first appears.
+- Camera: follows an explorer (Tab, or click a name in the top roster; roster comes from the broadcast payloads, aged out after 40 s) or flies free (W A S D, Space up, C down, Shift fast, drag to look). The roster can switch the viewer between town and Minecraft.
+- Tested: syntax, spectator pages load with the UI hidden and no errors. NOT tested: real two-computer watching over Supabase Realtime.
