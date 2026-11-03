@@ -702,3 +702,8 @@ LESSONS: (a) a rule that caps a day is not a rule that guarantees a day: add a f
 - The spectator sends only a tiny `{w,t:"w",id}` hello every 4 s; kids' pages count watchers (watcherCount) as company, so positions flow, and send a full avatar message when a watcher first appears.
 - Camera: follows an explorer (Tab, or click a name in the top roster; roster comes from the broadcast payloads, aged out after 40 s) or flies free (W A S D, Space up, C down, Shift fast, drag to look). The roster can switch the viewer between town and Minecraft.
 - Tested: syntax, spectator pages load with the UI hidden and no errors. NOT tested: real two-computer watching over Supabase Realtime.
+
+## Stub lessons written (3 Nov 2026, build 2026-11-03.3)
+- The other session's audit found 13 Minecraft World 2 lessons with no instructions and 4 Ryan US-History teach lessons with no worked example. STUB_FILLS (before RYAN_US_HISTORY) holds the text; fillStubText(title, passage) fills a missing passage or adds a "See It Done" step. Applied to RYAN_US_HISTORY and CURRICULUM_MINECRAFT_WORLD2 (addMinecraftWorld2 now passes passage), and patchStubLessons() fills lessons already in the database (undone only, idempotent).
+- Also covers Anna's "Science: Mixed Review — Life Cycles" if it is ever stored with no passage.
+- Still open from that audit: date swapping in far-future lessons (needs a fresh export), unverified standard tags (ELAGSE4SL1 etc. must be shown on the Georgia site first), "3-5.F" leftovers.
