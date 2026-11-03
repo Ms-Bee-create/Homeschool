@@ -20576,7 +20576,7 @@ function runAutoMigrations(){
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
-    balanceFutureLoad();
+    restoreDatedCivics(); balanceFutureLoad();
     fillThinDays();
     patchTrimAnnaSs();
   }catch(e){ console.error("auto-migration error", e); }
@@ -20767,6 +20767,20 @@ function weekCheckCard(){
   }
   return wrap;
 }
+/* Dated civics lessons that the balancer already pushed later (3 Nov 2026 export: Election Day lessons sat 10 days after the election) go back to the date they were written for,
+   but only when that date is today or later and the lesson is not started. Runs before balanceFutureLoad. Idempotent. */
+function restoreDatedCivics(){
+  if(!db) return;
+  var src = {}, today = todayISO();
+  [].concat(typeof AHG_CIVICS!=="undefined" ? AHG_CIVICS : [], typeof RYAN_CIVICS!=="undefined" ? RYAN_CIVICS : []).forEach(function(it){ src[it.title] = it.date; });
+  var n = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id], want = src[a.title];
+    if(!want || (a.skillId!=="ahg-civics" && a.skillId!=="ryan-civics") || a.done || hasWork(a) || want<today || a.date<=want || isWeekendIso(want)) return;
+    a.date = want; db.doc("assignments/"+id).update({date:want}); n++;
+  });
+  if(n) console.log("restoreDatedCivics: put "+n+" lesson(s) back on their written dates");
+}
 function balanceFutureLoad(){
   if(!db) return;
   var tomorrow = todayISO(), moved = 0; /* starts today: unstarted lessons on a stacked day move on, started or finished ones stay */
@@ -20776,7 +20790,7 @@ function balanceFutureLoad(){
       var a = state.assignments[id];
       if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || a.reviewStatus==="retired" || isWeekendIso(a.date)) return;
       if(a.date>maxDate) maxDate = a.date;
-      if(a.done || hasWork(a)){
+      if(a.done || hasWork(a) || RHYTHM_EXEMPT[a.skillId]){   // dated civics/heroes lessons keep their day too (3 Nov 2026: they were being pushed 5 to 15 days later)
         fixed[a.date] = (fixed[a.date]||0)+1;
         fixedSubj[a.date] = fixedSubj[a.date]||{}; fixedSubj[a.date][subjKey(a)] = (fixedSubj[a.date][subjKey(a)]||0)+1;
         var fb = blockKeyFor(a); fixedBlk[a.date] = fixedBlk[a.date]||{}; fixedBlk[a.date][fb] = (fixedBlk[a.date][fb]||0)+1;
@@ -28273,7 +28287,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-03.3";
+var APP_BUILD = "2026-11-03.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
