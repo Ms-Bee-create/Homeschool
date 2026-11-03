@@ -2363,7 +2363,7 @@ function worldDeliveryDone(kid, fast){
   try{ worldGame.frame.contentWindow.postMessage({forge:"deliveryState", left:worldDeliveriesLeft(d)}, "*"); }catch(e){}
 }
 /* Quick questions in the worlds (Gimkit style). The pool is built from lessons this kid has already finished (spaced review, one subject after another),
-   sent with the link. Brain Boost in the town pays 1 coin per right answer, at most WORLD_BRAIN_DAILY a day; a wrong answer or a skip costs nothing. */
+   sent with the link. Brain Boost in the town pays 1 coin per right answer, at most WORLD_BRAIN_DAILY a day; a wrong answer costs nothing, and a skip costs 1 coin. */
 var WORLD_BRAIN_DAILY = 5;
 function worldQuestionPool(kid){
   var bySubj = {}, out = [], keys, i = 0;
