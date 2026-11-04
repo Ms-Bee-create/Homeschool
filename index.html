@@ -20547,7 +20547,7 @@ function agendaHtml(){
       list.forEach(function(a){
         total++;
         h += '<div class="it">'+(a.done ? "☑ " : "☐ ")+esc(a.title||"")+(a.reviewStatus==="flagged" ? ' <span class="fl">sent back: try again</span>' : "")+'</div>';
-        var g = agendaGather(a); if(g) h += '<div class="gather">Gather: '+esc(g)+'.</div>';
+        var g = agendaGather(a); if(g) h += '<div class="gather">Gather: '+esc(g)+(/\.\.\.$/.test(g) ? '' : '.')+'</div>';
       });
       h += '</div>';
     });
