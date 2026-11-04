@@ -12831,6 +12831,37 @@ function patchDuplicateLessons(){
   if(removed) console.log("patchDuplicateLessons: removed "+removed+" repeated lesson(s)");
   return Promise.all(pend).then(function(rs){ return {tried:pend.length, gone:rs.filter(function(r){ return r && !r.error && !r.notRemoved; }).length}; });
 }
+var ANNA_STUDIO_POOL = [{"title": "Draw Your Dream Treehouse 🌳", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Artists plan with simple shapes first. A treehouse is a box (the room), a triangle (the roof), and lines (the ladder).\nSee It Done — Example: draw a big tree trunk. On top draw a square for the room and a triangle for the roof. Add a rope ladder with short lines.\nYour Turn — 1. Draw the tree trunk and branches. 2. Add a square room and a triangle roof. 3. Add one thing only you would put in your treehouse. 4. Color it, and give it a name.\nCheck Yourself — Can you point to the square, the triangle, and your special thing?\nShow What You Know — Tell a grown-up what happens in your treehouse."}, {"title": "Pattern Parade: A Border Like a Real Artist 🎨", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — A pattern is a shape or color that repeats in the same order. Patterns can be A-B-A-B or A-B-B-A-B-B.\nSee It Done — Example: along the top of your paper draw circle, triangle, circle, triangle. The order repeats, so it is an A-B pattern.\nYour Turn — 1. Draw a pattern border along the top with 2 shapes. 2. Draw a different border along the bottom using 3 shapes. 3. Color each shape in a repeating color pattern too. 4. Write the pattern code under each, like A-B-A-B.\nCheck Yourself — Does each border repeat in the same order all the way across?\nShow What You Know — Say your pattern out loud and see if a grown-up can guess what comes next."}, {"title": "Squiggle Monster: Turn a Scribble Into a Creature 🐛", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Artists find pictures in random lines. Draw a squiggle, then look for eyes, legs, or wings hiding in it.\nSee It Done — Example: a looping line can become a snail. The big loop is the shell and one end becomes its head.\nYour Turn — 1. Close your eyes and draw a big squiggle in one line. 2. Open your eyes. What does it look like? 3. Add eyes, legs, or wings to turn it into a creature. 4. Color it and write its name and one fun fact you invent.\nCheck Yourself — Does your creature have a name and at least 3 added details?\nShow What You Know — Introduce your creature to a grown-up as if it is a new animal you found."}, {"title": "Draw What You See: A Shoe Up Close 👟", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Looking carefully is the first skill of drawing. Draw the real shapes you see, not what you think a shoe looks like.\nSee It Done — Example: look at the sole. It is not a straight line, it curves. Look at the laces: they make little X shapes.\nYour Turn — 1. Put one shoe in front of you. 2. Draw its biggest outline first. 3. Add 3 details you can really see (laces, stitches, bumps). 4. Color it the same colors as the real shoe.\nCheck Yourself — Did you add 3 real details? Does it match the shoe?\nShow What You Know — Hold your drawing next to the shoe and tell a grown-up one thing you noticed."}, {"title": "Make a Comic: Three Boxes, One Story 💬", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — A comic tells a story with pictures in order: beginning, middle, and end. Speech bubbles show what people say.\nSee It Done — Example: box 1, a cat sees a fish. Box 2, the cat reaches for it. Box 3, the fish splashes the cat.\nYour Turn — 1. Fold or draw your paper into 3 boxes. 2. Pick a character and a small problem. 3. Draw the beginning, middle, and end, one in each box. 4. Add a speech bubble in at least one box.\nCheck Yourself — Do your 3 boxes tell a story in order?\nShow What You Know — Read your comic out loud with funny voices for a grown-up."}, {"title": "Design a Pet Robot for Our House 🤖", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Designers draw an idea before they build it. A good design has a job, a shape, and labels that say how it works.\nSee It Done — Example: a dish robot has a square body, two long arms, and a label \"arms hold plates\".\nYour Turn — 1. Decide the job of your robot. 2. Draw its body from simple shapes. 3. Add 3 labels with arrows to parts and what they do. 4. Color it and give it a name.\nCheck Yourself — Do all 3 labels say what a part does?\nShow What You Know — Tell a grown-up your robot's job and how it works."}, {"title": "Sunset Colors: Warm and Cool 🌅", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Warm colors (red, orange, yellow) feel hot like fire. Cool colors (blue, green, purple) feel calm like water.\nSee It Done — Example: color the sky from yellow at the bottom, to orange, to red. Color the water below in blues and purples.\nYour Turn — 1. Draw a line across the middle of your paper for the horizon. 2. Color the sky with warm colors, in stripes. 3. Color the water or hills with cool colors. 4. Draw a sun and one more thing (a boat or tree).\nCheck Yourself — Is your sky warm and your ground cool?\nShow What You Know — Tell a grown-up which colors feel warm and which feel cool."}, {"title": "Bird's-Eye Map of My Bedroom 🗺️", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — A map is a picture of a place seen from above, like a bird flying over. Furniture looks like simple shapes from above.\nSee It Done — Example: a bed from above is a rectangle. A round rug is a circle. The door is a gap in the wall.\nYour Turn — 1. Draw a big rectangle for your room. 2. Draw the bed, the door, and one more thing as shapes from above. 3. Add a key that says what each shape is. 4. Draw a compass rose with N for north.\nCheck Yourself — Could someone find your bed using only the map?\nShow What You Know — Give a grown-up directions to your bed using only your map."}, {"title": "Symmetry Butterfly: Draw One Wing, Match the Other 🦋", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Symmetry means one side is a mirror of the other. A butterfly's wings are symmetrical.\nSee It Done — Example: draw a line down the middle. If the left wing has a big circle at the top, put the same circle in the same place on the right.\nYour Turn — 1. Draw a line down the middle of your paper. 2. Draw the body, then one wing on the left. 3. Draw the matching wing on the right. 4. Color both wings with matching patterns.\nCheck Yourself — Does each part on the left have a twin on the right?\nShow What You Know — Fold your paper on the line and hold it to the light to check your match."}, {"title": "Draw an Animal's Home 🏡", "passage": "Gather first — paper, a pencil, and crayons.\nHere's the Idea — Every animal has a home that fits its needs: food, water, and shelter. Drawing a habitat means showing those needs.\nSee It Done — Example: a rabbit's home is a burrow underground. Draw a grassy field above with a carrot patch, and tunnels below.\nYour Turn — 1. Pick an animal you like. 2. Draw where it lives: ground, plants, water. 3. Show food, water, and shelter in your picture. 4. Label the three things.\nCheck Yourself — Can you point to food, water, and shelter?\nShow What You Know — Tell a grown-up how your animal's home keeps it safe."}];
+/* Creative Studio (4 Nov 2026, Mom: it should be on Anna's schedule every day). Math and Storytime already get a daily lesson; this does the same for Creative Studio on Mon to Thu
+   (Friday is kept light). Only when the day has no lesson in that block. Paper, pencil and crayons only (rule 26). Idempotent: one stable id per day. */
+var annaStudioSeen = {};
+function fillAnnaCreativeStudio(){
+  if(!db) return;
+  var d = new Date(todayISO()+"T00:00:00");
+  while(isOffDate(d)) d.setDate(d.getDate()+1);
+  var anchor = new Date("2026-01-05T00:00:00"), added = 0;
+  for(var i=0;i<10;i++){
+    var iso = isoDate(d), dow = d.getDay();
+    if(dow>=1 && dow<=4 && !annaStudioSeen[iso]){
+      annaStudioSeen[iso] = true;
+      var have = false, ordinal = 0, c = new Date(anchor);
+      Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId==="kid1" && a.date===iso && a.reviewStatus!=="retired" && blockKeyFor(a)==="project") have = true; });
+      if(!have){
+        while(c<d){ c.setDate(c.getDate()+1); if(!isOffDate(c)) ordinal++; }
+        var item = ANNA_STUDIO_POOL[ordinal % ANNA_STUDIO_POOL.length], id2 = stableUuid("anna-studio|"+iso);
+        if(!state.assignments[id2]){
+          db.collection("assignments").addOnce({
+            kidId:"kid1", date:iso, subject:"Related Arts", title:"Creative Studio: "+item.title, xp:10, done:false, doneAt:null, skillId:"anna-creative-studio", stage:"apply",
+            standard:"VA2.CR.2", passage:item.passage, createdAt:new Date().toISOString()
+          }, id2);
+          added++;
+        }
+      }
+    }
+    d = addSchoolDays(d, 1);
+  }
+  if(added) console.log("fillAnnaCreativeStudio: added "+added+" Creative Studio lesson(s) for empty days");
+}
 function fillAnnaDailyBasics(){
   if(!db) return;
   var d = new Date(todayISO()+"T00:00:00");
@@ -20660,6 +20691,7 @@ function runAutoMigrations(){
     patchFlaggedStranded();
     autoApproveQuizOnly();
     fillAnnaDailyBasics();
+    fillAnnaCreativeStudio();
     patchAnnaStorytimeFromReaders();
     patchRyanJohnnyOS();
     autoAddRyanJohnnyBuild();
@@ -28396,7 +28428,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-04.2";
+var APP_BUILD = "2026-11-04.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
