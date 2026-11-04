@@ -20843,13 +20843,23 @@ function schedClassCap(kid, cls){
   if(cls==="ELA-extra") return 3;
   return (SUBJECT_DAY_CAP[kid]||{})[cls] || 99;
 }
+/* A dated lesson (election-week civics, Georgia heroes) is only fixed while it sits on the day it was written for. One whose written day has passed and that slid later is just a lesson waiting for the next free slot. */
+var schedWritten = null;
+function schedDatedHere(a){
+  if(!schedWritten){
+    schedWritten = {};
+    [].concat(typeof AHG_CIVICS!=="undefined" ? AHG_CIVICS : [], typeof RYAN_CIVICS!=="undefined" ? RYAN_CIVICS : []).forEach(function(it){ schedWritten[it.title] = it.date; });
+  }
+  var w = schedWritten[a.title];
+  return !w || a.date===w || w>=todayISO();
+}
 function planKid(kid, today){
   var occ = {}, queues = {}, items = [];
   function day(iso){ return occ[iso] = occ[iso] || {n:0, cls:{}, teach:0}; }
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(a.kidId!==kid || !a.date || a.date<today || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
-    if(a.done || hasWork(a) || RHYTHM_EXEMPT[a.skillId]){
+    if(a.done || hasWork(a) || (RHYTHM_EXEMPT[a.skillId] && schedDatedHere(a))){
       if(isWeekendIso(a.date)) return;
       var o = day(a.date), c = schedClass(a);
       if(!(kid==="kid1" && c==="Math")) o.n++;
@@ -20908,7 +20918,10 @@ function schedMissing(kid, iso){
   if(dow===5) return miss;   // Friday is the light, off-screen day
   if(!have["Math"]) miss.push("Math");
   if(!have["ELA"] && !have["Reading"]) miss.push("ELA");
-  if(!have["project"]) miss.push(kid==="kid1" ? "Creative Studio" : "Project");
+  if(!have["project"]){
+    if(kid==="kid1") miss.push("Creative Studio");
+    else { var rp = familyGoal().rp, dd = new Date(iso+"T00:00:00"); dd.setDate(dd.getDate()-((dow+6)%7)); if(rp && rp.week===isoDate(dd)) miss.push("Project"); }   // Ryan's project comes from his Monday pick; no pick yet is not a gap
+  }
   Object.keys(WEEK_RHYTHM).forEach(function(sj){ if(WEEK_RHYTHM[sj].indexOf(dow)>=0 && !have[sj]) miss.push(sj); });
   return miss;
 }
@@ -28392,7 +28405,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-04.4";
+var APP_BUILD = "2026-11-04.5";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
