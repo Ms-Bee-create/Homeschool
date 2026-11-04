@@ -8231,6 +8231,7 @@ function renderLeaderArea(){
   els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(weekCheckCard());
+  els.view.appendChild(agendaCard());
   els.view.appendChild(autoReviewCard());
   els.view.appendChild(liveWorldCard());
   els.view.appendChild(spectateCard());
@@ -20509,6 +20510,91 @@ function runAiCheck(a){
 /* Automatic work pre-check: while school is on (weekdays 8am-4pm on the device's clock), any open copy of the app checks new unreviewed work once an hour
    and saves the suggestion on the assignment (ai_check column, supabase/ai_check.sql). Mom still taps to approve or send back. */
 var AUTO_CHECK_HOURS = [8, 16];
+var AGENDA_WORDS = [["persevere", "keep trying even when it is hard", "Harriet Tubman persevered on every trip north."], ["curious", "wanting to find out more", "The curious cat peeked into every box."], ["generous", "happy to share what you have", "A generous friend shared her crayons."], ["brave", "doing the right thing even when you feel afraid", "It was brave to say sorry first."], ["observe", "look very carefully and notice details", "Observe the clouds and tell me their shapes."], ["explore", "travel or look around to discover new things", "We will explore the creek bank."], ["patient", "able to wait calmly", "Be patient while the bread bakes."], ["community", "a group of people who live or work together", "Our community built a new park."], ["invent", "make up or create something new", "Ryan wants to invent a better rover."], ["courage", "the strength to do something hard or scary", "It took courage to speak in front of the class."], ["journey", "a long trip from one place to another", "The journey to the sea took all day."], ["predict", "say what you think will happen next", "Predict what the seed will look like in a week."], ["gratitude", "a thankful feeling", "She wrote a note of gratitude to her teacher."], ["discover", "find something for the first time", "Scientists discover new insects every year."], ["responsible", "doing what you should without being reminded", "A responsible helper feeds the pets."], ["imagine", "make a picture in your mind", "Imagine a castle made of ice."], ["evidence", "facts that help show something is true", "Wet footprints are evidence that someone walked in."], ["freedom", "being able to make your own choices", "The colonists wanted freedom."], ["steady", "not shaking or changing", "Keep a steady hand when you draw the line."], ["improve", "make better", "Practice helps you improve."], ["cooperate", "work together", "We cooperate to clean the kitchen."], ["compare", "look at how things are alike and different", "Compare a frog and a toad."], ["kindness", "being gentle and caring to others", "Kindness can make someone's whole day."], ["adapt", "change to fit a new place or problem", "Polar bears adapt to the cold."], ["challenge", "something hard that makes you try your best", "Climbing the hill was a fun challenge."], ["create", "make something new", "Create a poster about your favorite animal."], ["respect", "treating others and their things with care", "Show respect by listening."], ["focus", "keep your attention on one thing", "Focus on the problem for five minutes."], ["teamwork", "working together to reach a goal", "Teamwork got the wagon up the hill."], ["wonder", "want to know about something", "I wonder why the sky is blue."]];
+var AGENDA_MOVES = [["10 jumping jacks, then 5 slow squats. Say one letter of the word on each one.", "If you could add one brand new rule to your favorite game, what would it be, and who would it help?"], ["Hold a tree pose on each foot for 10 seconds, then reach up high and touch the floor 5 times.", "If animals could talk for one day, which animal would be the funniest to talk to? What would you ask?"], ["March in place like a giant for 20 steps, then tiptoe like a mouse for 20 steps.", "What is something you use every day that did not exist 100 years ago? What would a person from then think of it?"], ["Do 8 frog jumps across the room, then stretch like a cat.", "If you could shrink to the size of an ant for an hour, what would be the scariest and the coolest thing in your house?"], ["Everyone makes up a 5 move dance. Show it, then everyone copies it together.", "Is a hot dog a sandwich? Each person gives one reason, then you vote."], ["Spin slowly 3 times each way, then do 10 arm circles forward and back.", "If you could invite any person from history to breakfast, who would it be and what would you ask them?"], ["Play freeze: dance until a grown-up says freeze, then hold the pose for 5 seconds. Do it 4 times.", "If you woke up and gravity was half as strong, what would be fun and what would be a problem?"], ["Wiggle your whole body for 10 seconds, then take 10 slow deep belly breaths.", "What would a school on the moon be like? What would the rules be?"], ["Do 5 bear crawls and 5 crab walks across the room.", "If you could change one color in the world to a different color, which would you pick and what would change?"], ["Touch your toes, reach for the sky, and shake it out. Repeat 3 times.", "What is something that is true and sounds made up? Share one and see if the family can guess."]];
+function agendaPick(list, iso){ var d = new Date(iso+"T00:00:00"), day = Math.floor((d - new Date(d.getFullYear(),0,0))/86400000); return list[day % list.length]; }
+function agendaGather(a){
+  var m = /Gather first[^—\-]*[—\-]\s*([^\n]*)/.exec(String(a.passage||""));
+  if(!m) return "";
+  var t = m[1].split(/\.\s/)[0].replace(/\.$/, "");
+  return t.length>110 ? t.slice(0,107)+"..." : t;
+}
+function agendaGrownUp(){
+  var out = [], flagged = 0, unsure = 0, waiting = 0;
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id]; if(a.reviewStatus==="retired") return;
+    if(a.reviewStatus==="flagged") flagged++;
+    else if(a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null)){ if(a.aiCheck && a.aiCheck.verdict==="unsure") unsure++; else waiting++; }
+  });
+  if(unsure) out.push(unsure+" piece"+(unsure>1?"s":"")+" of work the helper was not sure about: look in Leader.");
+  if(flagged) out.push(flagged+" piece"+(flagged>1?"s":"")+" sent back for another try: sit with the kid.");
+  if(waiting) out.push(waiting+" piece"+(waiting>1?"s":"")+" of finished work waiting for your review.");
+  return out;
+}
+function agendaHtml(){
+  var iso = todayISO(), d = new Date(iso+"T00:00:00");
+  var dateStr = d.toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
+  var dayNo = Math.floor((d - new Date(d.getFullYear(),0,0))/86400000);
+  var w = agendaPick(AGENDA_WORDS, iso), mv = agendaPick(AGENDA_MOVES, iso), esc = escapeHtml, total = 0;
+  function edition(kid, cls){
+    var plan = worldTodayPlan(kid), kd = kidData(kid), h = '<div class="ed '+cls+'"><div class="kick">'+esc((kd.name||"Scholar")+"'s Edition")+(kd.grade!=null ? " · Grade "+esc(String(kd.grade)) : "")+'</div>';
+    plan.blocks.forEach(function(b){
+      var list = plan.by[b.key] || [], name = worldBlockName(kid, b);
+      h += '<div class="sec"><div class="hd">'+esc(name)+'</div>';
+      if(b.key==="morning") h += '<div class="it">☐ Mood check and today\'s goal</div>';
+      else if(b.key==="showTeach") h += '<div class="it">☐ Tell a grown-up one thing you learned</div>';
+      else if(!list.length) h += '<div class="it gather">Nothing planned today.</div>';
+      list.forEach(function(a){
+        total++;
+        h += '<div class="it">'+(a.done ? "☑ " : "☐ ")+esc(a.title||"")+(a.reviewStatus==="flagged" ? ' <span class="fl">sent back: try again</span>' : "")+'</div>';
+        var g = agendaGather(a); if(g) h += '<div class="gather">Gather: '+esc(g)+'.</div>';
+      });
+      h += '</div>';
+    });
+    return h+'</div>';
+  }
+  var k1 = edition("kid1","k1"), k2 = edition("kid2","k2");
+  var gu = agendaGrownUp(), guHtml = gu.length ? gu.map(function(t){ return '<div class="it">☐ '+esc(t)+'</div>'; }).join("") : '<div class="it">Nothing is waiting for you today.</div>';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>The Christy Times</title><style>'+
+   '@page{size:letter;margin:.35in}*{box-sizing:border-box}body{font:12.5px/1.38 Georgia,"Times New Roman",serif;color:#1a1a1a;margin:0;padding:.25in;background:#fbf8ef}'+
+   '.top{display:flex;justify-content:space-between;font:700 10.5px/1 Georgia,serif;letter-spacing:.12em;text-transform:uppercase;border-top:3px double #1a1a1a;border-bottom:1px solid #1a1a1a;padding:4px 2px}'+
+   '.mast{text-align:center;font-family:"Old English Text MT","UnifrakturMaguntia",Georgia,serif;font-size:50px;font-weight:700;line-height:1.05;margin:6px 0 0;letter-spacing:.01em}'+
+   '.tag{text-align:center;font-style:italic;font-size:12px;border-top:1px solid #1a1a1a;border-bottom:3px double #1a1a1a;padding:3px 0;margin:4px 0 8px}'+
+   '.head{text-align:center;margin:2px 0 8px}.head h2{margin:0;font-size:21px;font-weight:700;line-height:1.1}.head p{margin:2px 0 0;font-style:italic;font-size:12px}'+
+   '.cols{display:grid;grid-template-columns:1fr 1fr .82fr;gap:0}.cols>div{padding:0 9px;border-left:1px solid #1a1a1a}.cols>div:first-child{border-left:0;padding-left:0}.cols>div:last-child{padding-right:0}'+
+   '.kick{font:700 11px/1 Georgia,serif;text-transform:uppercase;letter-spacing:.14em;text-align:center;border-top:2px solid #1a1a1a;border-bottom:1px solid #1a1a1a;padding:4px 0;margin-bottom:5px}'+
+   '.sec{margin-bottom:5px;break-inside:avoid}.hd{font-weight:700;font-size:13px;border-bottom:1px dotted #777;margin-bottom:1px}.it{font-size:12px}.gather{font-size:10.5px;color:#555;font-style:italic;margin-left:15px}'+
+   '.fl{background:#fff3cd;border:1px solid #c79a00;padding:0 4px;font-size:10.5px;font-style:normal}'+
+   '.box{border:2px solid #1a1a1a;padding:6px 8px;margin-bottom:8px;break-inside:avoid}.box h3{margin:0 0 3px;font:700 11px/1 Georgia,serif;text-transform:uppercase;letter-spacing:.12em;text-align:center;border-bottom:1px solid #1a1a1a;padding-bottom:3px}'+
+   '.word{font-size:25px;font-weight:700;text-align:center;font-style:italic;margin:2px 0}.small{font-size:11.5px}.foot{border-top:3px double #1a1a1a;margin-top:10px;padding-top:4px;text-align:center;font-size:10.5px;font-style:italic}'+
+   '</style></head><body>'+
+   '<div class="top"><span>Vol. 1 · No. '+dayNo+'</span><span>'+esc(dateStr)+'</span><span>Price: one big smile</span></div>'+
+   '<div class="mast">The Christy Times</div><div class="tag">All the news that is fit to learn</div>'+
+   '<div class="head"><h2>Two Scholars, '+total+' Lessons, One Great Day</h2><p>Read your edition, tick the boxes, and bring a good attitude.</p></div>'+
+   '<div class="cols"><div>'+k1+'</div><div>'+k2+'</div><div>'+
+   '<div class="box"><h3>Word of the Day</h3><div class="word">'+esc(w[0])+'</div><div class="small"><i>means</i> to '+esc(w[1])+'.</div><div class="small" style="margin-top:3px">“'+esc(w[2])+'” Use it once at breakfast!</div></div>'+
+   '<div class="box"><h3>Morning Exercise</h3><div class="small">'+esc(mv[0])+'</div></div>'+
+   '<div class="box"><h3>Brain Teaser</h3><div class="small">'+esc(mv[1])+'</div></div>'+
+   '<div class="box"><h3>Grown-Up Notices</h3>'+guHtml+'</div>'+
+   '</div></div><div class="foot">The Christy Times is printed fresh every school morning at the kitchen table.</div></body></html>';
+}
+function openAgenda(autoPrint){
+  var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#fff;display:flex;flex-direction:column";
+  var bar = document.createElement("div"); bar.style.cssText = "display:flex;gap:10px;padding:8px 10px;background:#111a33";
+  function mk(label, fn, bg){ var b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "background:"+bg+";color:#222;border:3px solid #000;border-radius:10px;padding:5px 14px;font-weight:800;cursor:pointer;font-family:inherit"; b.onclick = fn; bar.appendChild(b); }
+  var fr = document.createElement("iframe"); fr.style.cssText = "flex:1;border:0;width:100%"; fr.srcdoc = agendaHtml();
+  mk("🖨️ Print", function(){ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Could not open the print window"); } }, "#ffd23f");
+  mk("Close", function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }, "#fff");
+  ov.appendChild(bar); ov.appendChild(fr); document.body.appendChild(ov);
+  if(autoPrint) fr.onload = function(){ setTimeout(function(){ try{ fr.contentWindow.print(); }catch(e){} }, 400); };
+}
+function agendaCard(){
+  var c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
+  c.innerHTML = '<div style="font-weight:700">🗞️ The Christy Times (print today\'s agenda)</div><div class="muted" style="font-size:12.5px;margin:6px 0">A one-page newspaper: both kids\' day in order, a word of the day, a morning exercise, a brain teaser, and what needs a grown-up.</div>';
+  var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;color:var(--ink)";
+  b.textContent = "Open today's paper"; b.onclick = function(){ openAgenda(false); };
+  c.appendChild(b); return c;
+}
 function autoReviewOn(){ return familyGoal().autoReview !== false; }
 function autoReviewCard(){
   var on = autoReviewOn(), c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
@@ -20559,6 +20645,7 @@ function autoCheckSweep(){
 }
 function runAutoMigrations(){
   if(!db) return;
+  if(location.hash==="#print-agenda" && !state.agendaPrinted){ state.agendaPrinted = true; setTimeout(function(){ try{ openAgenda(true); }catch(e){ console.error(e); } }, 3000); }   // for a scheduled print on a home computer
   /* Repeated lessons are cleaned first and on their own, so a problem in any other patch below can never stop it. */
   try{ patchDuplicateLessons(); }catch(e){ console.error("duplicate cleanup error", e); }
   try{
@@ -28309,7 +28396,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-04.1";
+var APP_BUILD = "2026-11-04.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
