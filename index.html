@@ -19778,9 +19778,10 @@ function syncAnnaSsCh1(){
     fri.setDate(fri.getDate()+7);
     if(x){
       if(x.a.done) return;
-      if(String(x.a.passage||"").indexOf("Part 1 of 2")>=0){ if(x.a.date!==iso && !hasWork(x.a)){ x.a.date = iso; db.doc("assignments/"+x.id).update({date:iso}); } return; } /* split into two days: keep its text, only keep its Friday */
-      var upd = {date:iso, passage:it.passage, quiz:it.quiz, standard:it.standard, stage:it.stage, xp:it.xp};
-      if(x.a.passage===it.passage && x.a.date===iso) return;
+      /* 4 Nov 2026: this no longer sets dates. The planner owns every future date (Social Studies is Wed/Thu now); when this also moved lessons to Fridays the two undid each other on every load. */
+      if(String(x.a.passage||"").indexOf("Part 1 of 2")>=0) return; /* split into two days: keep its text */
+      var upd = {passage:it.passage, quiz:it.quiz, standard:it.standard, stage:it.stage, xp:it.xp};
+      if(x.a.passage===it.passage) return;
       Object.assign(x.a, upd); db.doc("assignments/"+x.id).update(upd);
     } else if(!added){
       addSeed({kidId:"kid1", date:iso, subject:it.subject, title:it.title, xp:it.xp, done:false, doneAt:null,
@@ -20716,8 +20717,7 @@ function runAutoMigrations(){
     autoAddAnnaStuffieSchool();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
-    restoreDatedCivics(); balanceFutureLoad();
-    fillThinDays();
+    restoreDatedCivics(); planSchedule();
     patchTrimAnnaSs();
   }catch(e){ console.error("auto-migration error", e); }
 }
@@ -20826,58 +20826,92 @@ function patchTrimAnnaSs(){
    Missing core subjects (Math, ELA or Reading, and the rhythm subjects of that weekday) come first. Only everyday subjects and warm-ups are pulled, never another project's lessons.
    Done, started and exempt (dated civics and heroes) lessons never move. Ryan only for now: Anna has her own basics filler and a trimmed Social Studies series. */
 var MIN_DAY_LESSONS = {kid2:{weekday:4, friday:3}};
-function fillThinDays(kidFilter){
-  if(!db) return 0;
-  var moved = 0, log = [];
-  ["kid2"].forEach(function(kid){
-    if(kidFilter && kidFilter!==kid) return;
-    var minCfg = MIN_DAY_LESSONS[kid]; if(!minCfg) return;
-    var today = todayISO(), byDate = {}, future = [];
-    Object.keys(state.assignments).forEach(function(id){
-      var a = state.assignments[id];
-      if(a.kidId!==kid || !a.date || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
-      (byDate[a.date] = byDate[a.date]||[]).push({id:id, a:a});
-      if(a.date>today && !a.done && !hasWork(a) && !RHYTHM_EXEMPT[a.skillId] && !isWeekendIso(a.date) && (blockKeyFor(a)!=="project" || a.subject==="Live Lesson")) future.push({id:id, a:a});
-    });
-    future.sort(function(x, y){ return x.a.date.localeCompare(y.a.date) || String(x.a.title||"").localeCompare(String(y.a.title||"")); });
-    var d = new Date(today+"T00:00:00"), n = 0, guard = 0;
-    while(n<10 && guard++<40){
-      var iso = isoDate(d);
-      if(!isOffDate(d)){
-        n++;
-        var dow = d.getDay(), fri = dow===5, list = byDate[iso] || [], min = fri ? minCfg.friday : minCfg.weekday, cap = dayCapFor(kid, iso);
-        var subjN = {}, blkN = {}, teachN = 0;
-        list.forEach(function(it){ var sj = subjKey(it.a), b = blockKeyFor(it.a); subjN[sj] = (subjN[sj]||0)+1; blkN[b] = (blkN[b]||0)+1; if(it.a.stage==="teach") teachN++; });
-        var subjCap = SUBJECT_DAY_CAP[kid] || {}, blkCap = BLOCK_DAY_CAP[kid] || {}, teachCap = TEACH_DAY_CAP[kid] || 99;
-        var needSubj = ["Math","ELA","Reading"].concat(Object.keys(WEEK_RHYTHM).filter(function(sb){ return WEEK_RHYTHM[sb].indexOf(dow)>=0; }));
-        while(list.length<min && list.length<cap){
-          var pickIdx = -1;
-          for(var i=0;i<future.length;i++){
-            var a2 = future[i].a;
-            if(a2.date<=iso || !rhythmAllows(a2, dow)) continue;
-            var sj2 = subjKey(a2), b2 = blockKeyFor(a2);
-            if(subjCap[sj2] && (subjN[sj2]||0)>=subjCap[sj2]) continue;
-            if(!fri && blkCap[b2] && (blkN[b2]||0)>=blkCap[b2]) continue;
-            if(!fri && a2.stage==="teach" && teachN>=teachCap) continue;
-            if(needSubj.indexOf(a2.subject)>=0 && !subjN[sj2]){ pickIdx = i; break; }   // a missing core subject wins at once
-            if(pickIdx<0) pickIdx = i;
-          }
-          if(pickIdx<0) break;
-          var chosen = future.splice(pickIdx, 1)[0], from = chosen.a.date;
-          chosen.a.date = iso; db.doc("assignments/"+chosen.id).update({date:iso}); moved++;
-          byDate[from] = (byDate[from]||[]).filter(function(it){ return it.id!==chosen.id; });   // it has left that day, so that day can be topped up in this same pass
-          list.push(chosen); byDate[iso] = list;
-          var sj3 = subjKey(chosen.a), b3 = blockKeyFor(chosen.a); subjN[sj3] = (subjN[sj3]||0)+1; blkN[b3] = (blkN[b3]||0)+1; if(chosen.a.stage==="teach") teachN++;
-          log.push({title:chosen.a.title, from:from, to:iso, kid:kid});
-        }
-      }
-      d.setDate(d.getDate()+1);
+/* ===== THE PLANNER (4 Nov 2026) =====
+   One function owns future lesson dates. It replaces the old balancer and thin-day top-up, which pushed and pulled lessons on their own and disagreed with each other.
+   The template is the weekly rhythm Mom chose on 30 Oct (HANDOFF.md "Weekly rhythm"): Math and ELA every day, projects and design studio every day (up to 2), warm-ups every day,
+   Faith Mon/Wed/Fri, Science Tue/Thu, Social Studies Wed/Thu, one a day of each core subject. The caps are the constants above (DAILY_LESSON_CAP, FRIDAY_LESSON_CAP, BLOCK_DAY_CAP, SUBJECT_DAY_CAP, TEACH_DAY_CAP, WEEK_RHYTHM).
+   How it works: lessons that are not started wait in a queue per kind (Math, ELA, Reading, Faith, Science, Social Studies, projects, extras) in their current order. Starting today, each school day takes the next
+   lesson from each queue that the template allows that day, until the day is full. Done, started, dated (RHYTHM_EXEMPT) and off-screen Friday lessons are fixed and use up their slot first.
+   A project lesson is never pulled EARLIER than its date (Ryan's weekly project pick holds other packs back on purpose); core subjects and warm-ups are pulled forward to fill gaps.
+   Because the result depends only on the queues and the template, running it again changes nothing. */
+var SCHED_FILL_ORDER = ["Math","ELA","Reading","Faith","Science","Social Studies","project","ELA-extra"];
+var SCHED_FRIDAY_ORDER = ["ELA","project","Social Studies","Faith","Reading","Science","Math","ELA-extra"];
+function schedClass(a){ var k = subjKey(a); return {"Math":1,"ELA":1,"Reading":1,"Faith":1,"Science":1,"Social Studies":1,"ELA-extra":1}[k] ? k : "project"; }
+function schedPullable(a){ var c = schedClass(a); return (c!=="project" && c!=="ELA-extra") || a.subject==="Live Lesson"; }
+function schedClassCap(kid, cls){
+  if(cls==="project") return (BLOCK_DAY_CAP[kid]||{}).project || 2;
+  if(cls==="ELA-extra") return 3;
+  return (SUBJECT_DAY_CAP[kid]||{})[cls] || 99;
+}
+function planKid(kid, today){
+  var occ = {}, queues = {}, items = [];
+  function day(iso){ return occ[iso] = occ[iso] || {n:0, cls:{}, teach:0}; }
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.kidId!==kid || !a.date || a.date<today || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
+    if(a.done || hasWork(a) || RHYTHM_EXEMPT[a.skillId]){
+      if(isWeekendIso(a.date)) return;
+      var o = day(a.date), c = schedClass(a);
+      if(!(kid==="kid1" && c==="Math")) o.n++;
+      o.cls[c] = (o.cls[c]||0)+1; if(a.stage==="teach") o.teach++;
+      return;
     }
+    items.push({id:id, a:a, cls:schedClass(a)});
   });
-  if(moved){ state.fillLog = (state.fillLog||[]).concat(log).slice(-30); console.log("fillThinDays: moved "+moved+" lesson(s) into thin days"); }
+  items.sort(function(x,y){ return (x.a.date||"").localeCompare(y.a.date||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||"")) || x.id.localeCompare(y.id); });
+  items.forEach(function(it){ (queues[it.cls] = queues[it.cls]||[]).push(it); });
+  var left = items.length, d = new Date(today+"T00:00:00"), guard = 0, changes = [], teachCap = TEACH_DAY_CAP[kid] || 99;
+  while(left>0 && guard++<900){
+    if(isOffDate(d)){ d.setDate(d.getDate()+1); continue; }
+    var iso = isoDate(d), dow = d.getDay(), fri = dow===5, cap = dayCapFor(kid, iso), o = day(iso);
+    (fri ? SCHED_FRIDAY_ORDER : SCHED_FILL_ORDER).forEach(function(cls){
+      var q = queues[cls]; if(!q || !q.length) return;
+      var free = (kid==="kid1" && cls==="Math");   // Anna always keeps one Math a day, outside the daily limit
+      var ccap = schedClassCap(kid, cls);
+      while(q.length && (o.cls[cls]||0)<ccap && (free || o.n<cap)){
+        var pick = -1;
+        for(var i=0;i<q.length;i++){
+          var it = q[i];
+          if(!rhythmAllows(it.a, dow)) continue;
+          if(!schedPullable(it.a) && it.a.date>iso) continue;
+          if(!fri && it.a.stage==="teach" && o.teach>=teachCap) continue;
+          pick = i; break;
+        }
+        if(pick<0) break;
+        var chosen = q.splice(pick,1)[0]; left--;
+        if(!free) o.n++; o.cls[cls] = (o.cls[cls]||0)+1; if(chosen.a.stage==="teach") o.teach++;
+        if(chosen.a.date!==iso) changes.push({id:chosen.id, a:chosen.a, from:chosen.a.date, to:iso});
+      }
+    });
+    d.setDate(d.getDate()+1);
+  }
+  return changes;
+}
+function planSchedule(kidFilter){
+  if(!db) return 0;
+  var today = todayISO(), moved = 0, log = [];
+  ["kid1","kid2"].forEach(function(kid){
+    if(kidFilter && kidFilter!==kid) return;
+    planKid(kid, today).forEach(function(c){
+      c.a.date = c.to; db.doc("assignments/"+c.id).update({date:c.to}); moved++;
+      if(c.to<c.from) log.push({title:c.a.title, from:c.from, to:c.to});
+    });
+  });
+  if(moved){ state.fillLog = (state.fillLog||[]).concat(log).slice(-30); console.log("planSchedule: placed "+moved+" lesson(s) on their days"); }
   return moved;
 }
-/* Leader: a glance at the next school days for both kids. Thin days are flagged, and one tap tops them up. */
+function fillThinDays(kidFilter){ return planSchedule(kidFilter); }   // old name kept for the callers; the planner does both jobs
+/* Which of the template's slots a day is missing (used by the Week check). "ok" days have everything the weekly rhythm asks for. */
+function schedMissing(kid, iso){
+  var dow = new Date(iso+"T00:00:00").getDay(), have = {}, miss = [];
+  Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId===kid && a.date===iso && a.reviewStatus!=="retired" && a.skillId!=="offscreen-friday") have[schedClass(a)] = true; });
+  if(dow===5) return miss;   // Friday is the light, off-screen day
+  if(!have["Math"]) miss.push("Math");
+  if(!have["ELA"] && !have["Reading"]) miss.push("ELA");
+  if(!have["project"]) miss.push(kid==="kid1" ? "Creative Studio" : "Project");
+  Object.keys(WEEK_RHYTHM).forEach(function(sj){ if(WEEK_RHYTHM[sj].indexOf(dow)>=0 && !have[sj]) miss.push(sj); });
+  return miss;
+}
 function weekCheckCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
   var today = todayISO(), thin = 0, rows = "";
@@ -20887,10 +20921,10 @@ function weekCheckCard(){
       if(!isOffDate(d)){
         shown++; var iso = isoDate(d), fri = d.getDay()===5;
         var list = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){ return a.kidId===kid && a.date===iso && a.reviewStatus!=="retired" && a.skillId!=="offscreen-friday"; });
-        var min = kid==="kid2" ? (fri ? 3 : 4) : (fri ? 2 : 3), bad = list.length<min; if(bad) thin++;
+        var min = kid==="kid2" ? (fri ? 3 : 4) : (fri ? 2 : 3), miss = schedMissing(kid, iso), bad = list.length<min || miss.length>0; if(bad) thin++;
         var subj = {}; list.forEach(function(a){ subj[a.subject] = (subj[a.subject]||0)+1; });
         cells += '<div style="display:inline-block;vertical-align:top;margin:3px 6px 3px 0;padding:6px 8px;border:2px solid '+(bad ? "#c0392b" : "var(--border)")+';border-radius:10px;min-width:118px;font-size:12.5px">'+
-          '<b>'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]+" "+(d.getMonth()+1)+"/"+d.getDate()+'</b> '+(bad ? "\u26A0\uFE0F " : "")+list.length+' lessons<br><span class="muted">'+Object.keys(subj).map(function(k){ return escapeHtml(k)+(subj[k]>1 ? " x"+subj[k] : ""); }).join(", ")+'</span></div>';
+          '<b>'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()]+" "+(d.getMonth()+1)+"/"+d.getDate()+'</b> '+(bad ? "\u26A0\uFE0F " : "")+list.length+' lessons<br>'+(miss.length ? '<span style="color:#c0392b">needs: '+escapeHtml(miss.join(", "))+'</span><br>' : "")+'<span class="muted">'+Object.keys(subj).map(function(k){ return escapeHtml(k)+(subj[k]>1 ? " x"+subj[k] : ""); }).join(", ")+'</span></div>';
       }
       d.setDate(d.getDate()+1);
     }
@@ -20902,7 +20936,7 @@ function weekCheckCard(){
     (log.length ? '<div class="muted" style="font-size:12px;margin-top:8px"><b>Moved in just now:</b> '+log.map(function(x){ return escapeHtml(String(x.title||"").slice(0,40))+' (from '+x.from.slice(5)+' to '+x.to.slice(5)+')'; }).join("; ")+'</div>' : '');
   if(thin){
     var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;margin-top:8px;color:var(--ink)";
-    b.textContent = "Top up thin days now"; b.onclick = function(){ var n = fillThinDays("kid2"); toast(n ? "Moved "+n+" lesson"+(n===1?"":"s")+" into thin days" : "Nothing left to move in"); renderLeaderArea(); };
+    b.textContent = "Re-plan the weeks now"; b.onclick = function(){ var n = planSchedule(); toast(n ? "Placed "+n+" lesson"+(n===1?"":"s") : "Nothing needed to move"); renderLeaderArea(); };
     wrap.appendChild(b);
   }
   return wrap;
@@ -20921,77 +20955,7 @@ function restoreDatedCivics(){
   });
   if(n) console.log("restoreDatedCivics: put "+n+" lesson(s) back on their written dates");
 }
-function balanceFutureLoad(){
-  if(!db) return;
-  var tomorrow = todayISO(), moved = 0; /* starts today: unstarted lessons on a stacked day move on, started or finished ones stay */
-  ["kid1","kid2"].forEach(function(kid){
-    var fixed = {}, fixedBlk = {}, fixedTeach = {}, fixedSubj = {}, byDate = {}, maxDate = tomorrow;
-    Object.keys(state.assignments).forEach(function(id){
-      var a = state.assignments[id];
-      if(a.kidId!==kid || !a.date || a.date<tomorrow || a.skillId==="offscreen-friday" || a.reviewStatus==="retired" || isWeekendIso(a.date)) return;
-      if(a.date>maxDate) maxDate = a.date;
-      if(a.done || hasWork(a) || RHYTHM_EXEMPT[a.skillId]){   // dated civics/heroes lessons keep their day too (3 Nov 2026: they were being pushed 5 to 15 days later)
-        fixed[a.date] = (fixed[a.date]||0)+1;
-        fixedSubj[a.date] = fixedSubj[a.date]||{}; fixedSubj[a.date][subjKey(a)] = (fixedSubj[a.date][subjKey(a)]||0)+1;
-        var fb = blockKeyFor(a); fixedBlk[a.date] = fixedBlk[a.date]||{}; fixedBlk[a.date][fb] = (fixedBlk[a.date][fb]||0)+1;
-        if(a.stage==="teach") fixedTeach[a.date] = (fixedTeach[a.date]||0)+1;
-        return;
-      }
-      (byDate[a.date] = byDate[a.date]||[]).push({id:id, a:a, o:a.date, date:a.date});
-    });
-    var d = new Date(tomorrow+"T00:00:00"), guard = 0;
-    while(isoDate(d)<=maxDate && guard++<900){
-      var iso = isoDate(d), list = byDate[iso]||[], room = dayCapFor(kid, iso)-(fixed[iso]||0);
-      if(room<0) room = 0;
-      /* Weekly rhythm: a lesson on a day its subject is not planned for slides to the next day (and keeps sliding until its day). */
-      var offDay = list.filter(function(it){ return !rhythmAllows(it.a, d.getDay()); });
-      if(offDay.length){
-        list = list.filter(function(it){ return offDay.indexOf(it)<0; });
-        byDate[iso] = list;
-        var rIso = isoDate(addSchoolDays(new Date(iso+"T00:00:00"), 1));
-        offDay.forEach(function(it){ it.date = rIso; (byDate[rIso] = byDate[rIso]||[]).push(it); });
-        if(rIso>maxDate) maxDate = rIso;
-      }
-      /* Anna always keeps one Math lesson a day (30 Oct 2026: on a Friday full of book lessons the cap pushed her Math to Monday, so she had no math). It does not count toward the cap. */
-      var mathAnchor = null;
-      if(kid==="kid1" && !((fixedBlk[iso]||{}).math)){
-        mathAnchor = list.filter(function(it){ return blockKeyFor(it.a)==="math"; })[0] || null;
-        if(mathAnchor) list = list.filter(function(it){ return it!==mathAnchor; });
-      }
-      var fri = d.getDay()===5, blkCap = (BLOCK_DAY_CAP[kid]||{}), teachCap = TEACH_DAY_CAP[kid]||99;
-      var overBlock = !fri && list.some(function(it){ var b = blockKeyFor(it.a); return blkCap[b] && ((fixedBlk[iso]||{})[b]||0) + list.filter(function(o){ return blockKeyFor(o.a)===b; }).length > blkCap[b]; });
-      var overTeach = !fri && ((fixedTeach[iso]||0) + list.filter(function(o){ return o.a.stage==="teach"; }).length) > teachCap;
-      var subjCap = SUBJECT_DAY_CAP[kid] || {};
-      var overSubj = Object.keys(subjCap).some(function(sj){ return ((fixedSubj[iso]||{})[sj]||0) + (mathAnchor && subjKey(mathAnchor.a)===sj ? 1 : 0) + list.filter(function(o){ return subjKey(o.a)===sj; }).length > subjCap[sj]; });
-      if(list.length>room || overBlock || overTeach || overSubj){
-        list.sort(function(x,y){
-          /* Order of who keeps the day: (Friday only) ELA first, then book/project/Social Studies, then the rest; then a dated civics lesson ahead of a Social Studies book lesson; then the earliest planned. */
-          var rk = function(o){ return !fri ? 0 : o.a.subject==="ELA" ? 0 : (o.a.skillId==="anna-book-lessons"||o.a.subject==="Social Studies"||o.a.subject==="Related Arts") ? 1 : 2; };
-          var bk = function(o){ return (o.a.subject==="Social Studies" && o.a.skillId==="anna-book-lessons") ? 1 : 0; };
-          return (rk(x)-rk(y)) || (bk(x)-bk(y)) || (x.o||"").localeCompare(y.o||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||""));
-        });
-        var keep = [], push = [], blkN = Object.assign({}, fixedBlk[iso]||{}), teachN = fixedTeach[iso]||0, subjN = Object.assign({}, fixedSubj[iso]||{});
-        if(mathAnchor){ var ak = subjKey(mathAnchor.a); subjN[ak] = (subjN[ak]||0)+1; }
-        list.forEach(function(it){
-          var b = blockKeyFor(it.a), isT = it.a.stage==="teach", sj = subjKey(it.a);
-          if(keep.length<room && (fri || !blkCap[b] || (blkN[b]||0)<blkCap[b]) && (fri || !isT || teachN<teachCap) && (!subjCap[sj] || (subjN[sj]||0)<subjCap[sj])){ keep.push(it); blkN[b] = (blkN[b]||0)+1; subjN[sj] = (subjN[sj]||0)+1; if(isT) teachN++; }
-          else push.push(it);
-        });
-        byDate[iso] = mathAnchor ? keep.concat([mathAnchor]) : keep;
-        var nd = addSchoolDays(new Date(iso+"T00:00:00"), 1), nIso = isoDate(nd);
-        push.forEach(function(it){ it.date = nIso; (byDate[nIso] = byDate[nIso]||[]).push(it); });
-        if(nIso>maxDate) maxDate = nIso;
-      }
-      d.setDate(d.getDate()+1);
-    }
-    Object.keys(byDate).forEach(function(k){
-      byDate[k].forEach(function(it){
-        if(it.a.date!==it.date){ it.a.date = it.date; db.doc("assignments/"+it.id).update({date:it.date}); moved++; }
-      });
-    });
-  });
-  if(moved) console.log("balanceFutureLoad: moved "+moved+" lesson(s) to keep each day within its limit");
-}
+function balanceFutureLoad(){ return planSchedule(); }   // the planner (above) replaced the old balancer
 
 /* ---------- Leader: Helper chats (what Ryan asked the AI troubleshooter) ---------- */
 function helperChatsCard(){
@@ -28389,7 +28353,7 @@ function syncAll(force){
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     if(!changed) return;
     updateLibraryTabVisibility();
-    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); noteDeviceBuild(); }
+    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); setTimeout(function(){ try{ planSchedule(); }catch(e){ console.error(e); } }, 5000); noteDeviceBuild(); }   // plan again once the lessons the migrations just added have landed
     renderKidbar(); renderXpBar();
     if(whoGateEl.style.display!=="none") renderWhoGate();
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
@@ -28428,7 +28392,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-04.3";
+var APP_BUILD = "2026-11-04.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
