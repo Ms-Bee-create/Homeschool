@@ -1,22 +1,48 @@
-# Backups for Forge Academy and Momma Money
+# Private backups and recovery
 
-`backup.py` copies everything out of Supabase into a folder on a computer you own. It only reads;
-it never changes or deletes anything in Supabase.
+The script reads Supabase and copies the data to your computer. It does not encrypt it: choose an encrypted destination folder or drive. Keep the existing scheduled task and older backups until a new run is verified.
 
-## Set up (once)
-1. Install Python 3 (already there on Linux and Chromebooks' Linux).
-2. Copy `.env.example` to `.env` in this folder and fill it in. The key is in Supabase:
-   Project Settings → API → `service_role`. It can read everything, so keep `.env` private
-   (it is ignored by git and must never be pasted into chat or uploaded).
-3. Run `python3 backup.py`. You should see every table listed and a new dated folder.
+## Run and verify
 
-## Run it every few days
-Linux or Chromebook (cron): run `crontab -e` and add (changing the path):
+1. Keep `.env` on your own computer. Never paste its service-role key into chat or upload it.
+2. Run `python backup.py` from this directory. A successful run ends with **Verified complete** and a new `data/<timestamp>/` directory.
+3. Run `python verify.py /path/to/data/<timestamp> --require-home-quest` independently to check it again. Windows paths with spaces need quotes.
 
-    0 3 */3 * * /usr/bin/python3 /home/you/Homeschool/tools/backup/backup.py >> /home/you/backup.log 2>&1
+Each new run contains the table JSON files, its own `_files/` copy of the uploaded work, and `manifest.json` with row counts and SHA-256 checksums. Table/media failures return an error, leave an `.incomplete-*` directory, and do **not** prune older backups. Only completed new-format runs participate in retention; legacy backups are left alone. Receipts are optional until the safe-saving migration has been installed.
 
-That is 3am every 3 days. On Windows use Task Scheduler (run `python backup.py`), on a Mac use cron too.
+The script lists cloud uploads, then reuses a local copy only when the object ID, revision timestamp, size and available ETag match a previous snapshot AND its local checksum verifies. New, changed, corrupt or unversioned files are downloaded. A same-size replacement is not treated as unchanged. Each snapshot still owns independent local copies, so pruning or editing another backup cannot alter it.
 
-## Restoring
-Each `data/<date>/<table>.json` is a plain list of rows. Files in `files/` keep the same names they
-had in the `lesson-uploads` bucket, so they can be uploaded back.
+`MAX_BACKUP_DOWNLOAD_MB=100` in `.env` sets a **100 MiB response-body limit per run**, including tables, listings and uploaded files. Known oversized media is stopped before download; unknown-length responses are read in bounded chunks. Exceeding the budget fails visibly and keeps older backups. The manifest records response-body bytes, reused/downloaded media counts and bytes. This cap does not measure all provider/network overhead and is not an account-wide billing limit.
+
+The first new-format run may need to download the media once: old backups lack verified cloud revision metadata. Table JSON is still read each run. Retain the existing backup task; confirm its frequency rather than adding another task. The laptop must be awake and its encrypted folder accessible. Do not raise the limit or trigger repeated full backups to force a success without first checking Supabase Usage.
+
+## Rehearse recovery without touching the app
+
+```
+python restore.py /path/to/data/<timestamp> /path/to/NEW-recovery-folder
+```
+
+This verifies, copies, and re-verifies all rows and media into a **new local folder**. It refuses to replace an existing folder. No network requests or production writes occur. The recovery folder must also be private/encrypted.
+
+Legacy runs have no manifest and their media was shared between runs in `backups/files/`. Keep that whole directory. They cannot pass the new checksum verification: first run a fresh backup with this version. Do not rename a legacy run “verified” or construct a success manifest by hand.
+
+## What this does NOT back up
+
+This is a data-and-upload backup, not a full Supabase project image. It does not preserve database schema, RLS/storage policies, triggers, Edge Function deployments or secrets, auth accounts, or browser-only drafts/worlds. Its table reads are sequential, not a transactionally consistent database snapshot. Run the pre-release copy while the children are not working, with other app tabs closed.
+
+## Restoring to Supabase
+
+A complete production restore is **not yet certified**. Before the first release, the project owner must:
+
+1. Export/preserve the actual database schema, roles/policies, storage configuration and deployed function versions through Supabase's supported backup tools. Store secrets privately.
+2. Use an isolated LOCAL Supabase/PostgreSQL environment first, configure matching schema/policies and test auth/account relationships, and load a copy of the backup there. Do not automatically create a hosted test project; a hosted trial requires reviewing account quota and any costs first. Use schema-aware import tooling; table order matters because of foreign keys. Keep original IDs and verify referenced uploaded-file paths.
+3. Compare table counts and selected work values, open a restored uploaded-work sample while signed in, and test the app against that **test** project. Run checks under ordinary household authentication, not just a service role.
+4. Document the exact tested import order and account mapping for this installation. Until that succeeds, leave live deployment blocked.
+
+Do not point the production website at a test database or copy production credentials into a public preview. A local recovery-copy test is useful evidence of intact backup files, but it is not evidence that the family's live Supabase project can be restored.
+
+Code recovery and data recovery are separate: see `../reliability/RELEASE.md`.
+
+## Home Quest coverage
+
+New snapshots include `home_jobs` and `home_job_logs`; either table failing makes the backup incomplete. Older snapshots remain readable, but a full-family recovery check requires both tables. Use `--require-home-quest` when verifying the new pre-release recovery point. Separate device exports preserve browser-only world edits/drafts; see `../inspection/README.md`.

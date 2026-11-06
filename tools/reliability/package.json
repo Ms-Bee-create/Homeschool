@@ -1,0 +1,12 @@
+{
+  "name": "forge-inspection-checks",
+  "private": true,
+  "scripts": {
+    "test": "node inspection.test.cjs",
+    "test:browser": "node inspection-browser.test.cjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1",
+    "@supabase/supabase-js": "2.119.0"
+  }
+}

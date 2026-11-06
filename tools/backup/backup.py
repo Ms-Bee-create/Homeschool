@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Backs up Forge Academy and Momma Money from Supabase to a folder on this computer.
 
-What it saves (every run makes a new dated folder, and old ones are pruned):
-  data/<date>/<table>.json     every row of every table (lessons, kids, journal, chores, money, ...)
-  files/                       every photo and upload from the lesson-uploads storage bucket
-                               (shared between runs, so only new files are downloaded)
+What it saves (each successful run has its own immutable data/media directory):
+  data/<date>/<table>.json   configured tables, with stable pagination
+  data/<date>/_files/       photos and uploads from lesson-uploads
+  data/<date>/manifest.json row counts, sizes and checksums
+Incomplete runs are not counted as success and never prune previous backups.
 
 Setup: copy .env.example to .env, fill it in, then run:  python3 backup.py
 Nothing here ever writes to Supabase. It only reads. Uses only Python's standard library.
 """
-import json, os, sys, time, urllib.request, urllib.error, urllib.parse, datetime, shutil
+import json, os, sys, time, urllib.request, urllib.error, urllib.parse, datetime, shutil, hashlib, math
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -30,6 +32,15 @@ KEY = ENV.get("SUPABASE_SERVICE_ROLE_KEY", "")
 DEST = os.path.expanduser(ENV.get("BACKUP_DIR", os.path.join(HERE, "backups")))
 KEEP = int(ENV.get("KEEP_BACKUPS", "12"))
 BUCKET = ENV.get("STORAGE_BUCKET", "lesson-uploads")
+MAX_BACKUP_DOWNLOAD_MB = float(ENV.get("MAX_BACKUP_DOWNLOAD_MB", "100"))
+if not math.isfinite(MAX_BACKUP_DOWNLOAD_MB) or MAX_BACKUP_DOWNLOAD_MB <= 0:
+    raise ValueError("MAX_BACKUP_DOWNLOAD_MB must be positive")
+DOWNLOAD_LIMIT = int(MAX_BACKUP_DOWNLOAD_MB * 1024 * 1024)
+downloaded_bytes = 0
+media_usage = {}
+
+class DownloadBudgetExceeded(RuntimeError):
+    pass
 
 TABLES = [
     # Forge Academy
@@ -38,32 +49,61 @@ TABLES = [
     # Momma Money
     "households", "members", "chore_templates", "assignment_rules", "chore_logs",
     "fine_templates", "reward_items", "transactions", "screen_sessions",
+    "home_jobs", "home_job_logs",
+    "al_work_receipts",
 ]
 
 def request(path, method="GET", body=None, headers=None, raw=False):
+    global downloaded_bytes
     h = {"apikey": KEY, "Authorization": "Bearer " + KEY}
     h.update(headers or {})
     data = json.dumps(body).encode() if body is not None else None
     if data: h["Content-Type"] = "application/json"
     req = urllib.request.Request(URL + path, data=data, headers=h, method=method)
     with urllib.request.urlopen(req, timeout=60) as r:
-        content = r.read()
+        length = r.headers.get("Content-Length")
+        if length and int(length) > DOWNLOAD_LIMIT - downloaded_bytes:
+            raise DownloadBudgetExceeded("Backup download budget would be exceeded; older backups kept")
+        chunks=[]
+        while True:
+            remaining=DOWNLOAD_LIMIT-downloaded_bytes
+            chunk=r.read(min(65536,remaining+1))
+            if not chunk: break
+            downloaded_bytes += len(chunk)
+            if downloaded_bytes > DOWNLOAD_LIMIT:
+                raise DownloadBudgetExceeded("Backup download budget reached; older backups kept")
+            chunks.append(chunk)
+        content=b"".join(chunks)
         return content if raw else json.loads(content or b"null")
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def safe_path(root, name):
+    target=(Path(root) / name).resolve()
+    if not target.is_relative_to(Path(root).resolve()):
+        raise ValueError("Unsafe backup path")
+    return str(target)
 
 def dump_table(table, folder):
     rows, start, page = [], 0, 1000
+    order = {"al_schedule":"household_id.asc,kid_id.asc","al_settings":"household_id.asc","al_kids":"household_id.asc,id.asc","al_work_receipts":"household_id.asc,operation_id.asc"}.get(table,"id.asc")
     while True:
         try:
-            chunk = request("/rest/v1/%s?select=*" % urllib.parse.quote(table), headers={
+            chunk = request("/rest/v1/%s?select=*&order=%s" % (urllib.parse.quote(table),order), headers={
                 "Range-Unit": "items", "Range": "%d-%d" % (start, start + page - 1)})
         except urllib.error.HTTPError as e:
+            if e.code == 416 and start > 0: break
             if e.code in (400, 404):
-                print("  skipped %-18s (table not found)" % table)
-                return None
+                if table == "al_work_receipts":
+                    print("  optional receipts table not installed yet")
+                    return None
+                raise RuntimeError("Required table unavailable: " + table) from e
             raise
+        if not isinstance(chunk,list): raise RuntimeError("Invalid table response: " + table)
+        if not chunk: break
         rows.extend(chunk)
-        if len(chunk) < page: break
-        start += page
+        start += len(chunk)
     with open(os.path.join(folder, table + ".json"), "w", encoding="utf-8") as f:
         json.dump(rows, f, ensure_ascii=False)
     print("  saved   %-18s %6d rows" % (table, len(rows)))
@@ -80,46 +120,111 @@ def list_files(prefix=""):
             if it.get("id") is None:          # a folder
                 out.extend(list_files(name))
             else:
-                out.append((name, (it.get("metadata") or {}).get("size", 0)))
+                metadata=it.get("metadata") or {}
+                size=metadata.get("size")
+                if not isinstance(size,int) or isinstance(size,bool) or size<0:
+                    raise RuntimeError("Upload size missing; cannot safely budget the backup")
+                version=None
+                if it.get("id") and it.get("updated_at"):
+                    version={"id":it["id"],"updated_at":it["updated_at"],
+                             "etag":metadata.get("eTag") or metadata.get("etag"),"bytes":size}
+                out.append({"name":name,"bytes":size,"version":version})
         if len(items) < 100: break
         offset += 100
     return out
 
+def previous_media():
+    """Local manifests only. Missing/untrusted revision metadata never permits reuse."""
+    by_name={}
+    root=Path(DEST)/"data"
+    for folder in sorted(root.glob("*"),reverse=True):
+        if folder.name.startswith("."):continue
+        try:
+            m=json.loads((folder/"manifest.json").read_text(encoding="utf-8"))
+            if m.get("format")!=1 or m.get("complete") is not True or m.get("source")!=URL or m.get("bucket")!=BUCKET:continue
+            for entry in m.get("files",[]):
+                if entry.get("version") and entry.get("path","").startswith("_files/"):
+                    by_name.setdefault(entry["path"][7:],[]).append((folder,entry))
+        except (OSError,ValueError,TypeError,KeyError):continue
+    return by_name
+
 def mirror_files(folder):
-    try:
-        files = list_files()
-    except urllib.error.HTTPError as e:
-        print("  storage bucket '%s' not readable (%s). Skipping files." % (BUCKET, e.code))
-        return
-    new = 0
-    for name, size in files:
-        target = os.path.join(folder, *name.split("/"))
-        if os.path.exists(target) and (not size or os.path.getsize(target) == size):
-            continue
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        blob = request("/storage/v1/object/%s/%s" % (urllib.parse.quote(BUCKET), urllib.parse.quote(name)), raw=True)
-        with open(target, "wb") as f: f.write(blob)
-        new += 1
-    print("  files: %d in the bucket, %d new downloaded" % (len(files), new))
+    global media_usage
+    prior=previous_media(); plans=[]
+    for obj in list_files():
+        cached=None
+        if obj["version"]:
+            for root,entry in prior.get(obj["name"],[]):
+                try:
+                    src=safe_path(root,entry["path"])
+                    if (entry["version"]==obj["version"] and entry["bytes"]==obj["bytes"]
+                        and Path(src).stat().st_size==obj["bytes"] and digest(src)==entry["sha256"]):
+                        cached={"path":src,"sha256":entry["sha256"]};break
+                except (OSError,ValueError,KeyError):continue
+        plans.append((obj,cached))
+    needed=sum(obj["bytes"] for obj,cached in plans if not cached)
+    if needed>DOWNLOAD_LIMIT-downloaded_bytes:
+        raise DownloadBudgetExceeded("New/changed uploads exceed the remaining backup budget; older backups kept")
+    entries=[]
+    media_usage={"downloaded_files":0,"downloaded_bytes":0,"reused_files":0,"reused_bytes":0}
+    for obj,cached in plans:
+        target=safe_path(folder,obj["name"]);Path(target).parent.mkdir(parents=True,exist_ok=True)
+        if cached:
+            # Independent copies: neither pruning nor editing another snapshot changes this one.
+            shutil.copyfile(cached["path"],target)
+            if digest(target)!=cached["sha256"]:raise RuntimeError("Local cached upload changed during copy; older backups kept")
+            media_usage["reused_files"]+=1;media_usage["reused_bytes"]+=obj["bytes"]
+        else:
+            blob=request("/storage/v1/object/%s/%s"%(urllib.parse.quote(BUCKET),urllib.parse.quote(obj["name"],safe="/")),raw=True)
+            if len(blob)!=obj["bytes"]:raise RuntimeError("Upload changed during backup; run again")
+            Path(target).write_bytes(blob)
+            media_usage["downloaded_files"]+=1;media_usage["downloaded_bytes"]+=len(blob)
+        entries.append({"path":"_files/"+obj["name"],"bytes":obj["bytes"],"sha256":digest(target),"version":obj["version"]})
+    print("  files: %d downloaded, %d reused from verified local copies"%(media_usage["downloaded_files"],media_usage["reused_files"]))
+    return entries
 
 def prune(data_root):
-    runs = sorted(d for d in os.listdir(data_root) if os.path.isdir(os.path.join(data_root, d)))
+    runs = sorted(d for d in os.listdir(data_root) if not d.startswith(".") and os.path.isfile(os.path.join(data_root,d,"manifest.json")))
     for old in runs[:-KEEP] if KEEP > 0 else []:
         shutil.rmtree(os.path.join(data_root, old), ignore_errors=True)
         print("  removed old backup", old)
 
 def main():
+    global downloaded_bytes, media_usage
+    downloaded_bytes=0;media_usage={}
     if not URL or not KEY:
         sys.exit("Fill in SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env first (see .env.example).")
-    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+    stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
     data_root = os.path.join(DEST, "data")
-    folder = os.path.join(data_root, stamp)
-    os.makedirs(folder, exist_ok=True)
+    folder = os.path.join(data_root, ".incomplete-" + stamp)
+    os.makedirs(folder, exist_ok=False)
     print("Backing up to", DEST)
-    for t in TABLES: dump_table(t, folder)
-    mirror_files(os.path.join(DEST, "files"))
-    prune(data_root)
-    print("Done:", folder)
+    try:
+        tables=[]
+        for t in TABLES:
+            count=dump_table(t, folder)
+            if count is not None:
+                path=t+".json"
+                tables.append({"path":path,"rows":count,"sha256":digest(os.path.join(folder,path))})
+        files=mirror_files(os.path.join(folder,"_files"))
+        manifest={"format":1,"complete":True,"source":URL,"bucket":BUCKET,
+                  "created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"tables":tables,"files":files,
+                  "coverage":{"home_quest":True,"browser_storage":False,"database_schema":False},
+                  "usage":{"response_body_bytes":downloaded_bytes,"limit_bytes":DOWNLOAD_LIMIT,"media":media_usage},
+                  "limits":["Data and uploaded files only; excludes database schema, policies, functions, auth accounts and browser-only drafts.",
+                            "Sequential reads are not a transactional point-in-time database snapshot.",
+                            "Encryption must be provided by the destination drive/folder."]}
+        with open(os.path.join(folder,"manifest.json"),"w",encoding="utf-8") as f: json.dump(manifest,f,indent=2)
+        from verify import verify
+        verify(folder, require_home_quest=True)
+        final=os.path.join(data_root,stamp)
+        os.rename(folder,final)
+        prune(data_root)
+        print("Verified complete:",final)
+        print("Downloaded response bodies: %.2f MiB of %.2f MiB local budget"%(downloaded_bytes/1048576,DOWNLOAD_LIMIT/1048576))
+    except Exception:
+        print("BACKUP INCOMPLETE. Previous backups were kept. See the error below.",file=sys.stderr)
+        raise
 
 if __name__ == "__main__":
     main()
