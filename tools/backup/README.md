@@ -8,6 +8,8 @@ Download only `preflight.py` and place it beside the existing laptop `backup.py`
 
 ## Run and verify
 
+For a one-time check without replacing the laptop's old script, download **only** `recovery_backup.py` into the existing `backup.py`/`.env` folder and run `py recovery_backup.py`. It embeds the verifier, uses the existing private settings, never prunes old backups or changes the scheduled task, and caps response-body downloads at 100 MiB (or a smaller configured limit). It creates a new snapshot, verifies its data/media checksums, and requires Home Quest coverage. This does not certify a database restore. Run while the children are not working and other school tabs are closed. If it stops, keep the incomplete copy and report the final status; do not repeatedly retry or raise the cap without checking usage.
+
 1. Keep `.env` on your own computer. Never paste its service-role key into chat or upload it.
 2. Run `python backup.py` from this directory. A successful run ends with **Verified complete** and a new `data/<timestamp>/` directory.
 3. Run `python verify.py /path/to/data/<timestamp> --require-home-quest` independently to check it again. Windows paths with spaces need quotes.
