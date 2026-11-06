@@ -2,6 +2,10 @@
 
 The script reads Supabase and copies the data to your computer. It does not encrypt it: choose an encrypted destination folder or drive. Keep the existing scheduled task and older backups until a new run is verified.
 
+## First laptop check (offline)
+
+Download only `preflight.py` and place it beside the existing laptop `backup.py` and private `.env`; do not replace either existing file. In that folder run `py preflight.py` on Windows, or `python3 preflight.py` on macOS/Linux. The check reads configuration privately and checks which backup files exist. It does not execute the backup script, make network requests, change the scheduled task, or change any file. Only its status summary is suitable to share. File presence is not verification of backup integrity, encryption or restoration. If the existing script/configuration is elsewhere, move the helper to that folder rather than moving private keys or changing the task.
+
 ## Run and verify
 
 1. Keep `.env` on your own computer. Never paste its service-role key into chat or upload it.
