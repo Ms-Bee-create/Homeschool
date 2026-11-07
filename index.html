@@ -708,6 +708,7 @@ body.ryan-skin .idea{border-radius:0}
 .xc-bar i{flex:1;height:8px;border-radius:4px;background:currentColor;opacity:.5}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/inspection.js"></script>
 </head>
 <body>
 
@@ -8229,6 +8230,7 @@ function renderLeaderArea(){
   els.view.appendChild(ahgTrackerCard());
   els.view.appendChild(tlTrackerCard());
   els.view.appendChild(scheduleCopyCard());
+  els.view.appendChild(inspectionRecoveryCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(weekCheckCard());
   els.view.appendChild(agendaCard());
@@ -21782,6 +21784,35 @@ function duplicateLessons(){
   Object.keys(seen).forEach(function(k){ if(seen[k].length>1) dups.push(seen[k]); });
   return dups;
 }
+function inspectionRecoveryCard(){
+  var card=document.createElement("div");card.className="card";
+  var title=document.createElement("h3");title.textContent="Recovery and live-view comparison";card.appendChild(title);
+  var note=document.createElement("p");note.className="muted";
+  note.textContent="These downloads do not change school or cloud data. Keep device backups in your private encrypted folder. Export from each device before replacing it or clearing its browser.";card.appendChild(note);
+  var status=document.createElement("div");status.setAttribute("role","status");
+  function download(name, value){
+    var blob=new Blob([JSON.stringify(value,null,2)],{type:"application/json"}), url=URL.createObjectURL(blob);
+    var link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(function(){URL.revokeObjectURL(url);},30000);
+  }
+  function button(label, action){
+    var b=document.createElement("button");b.type="button";b.className="primary-btn";b.textContent=label;b.style.margin="4px";
+    b.onclick=function(){
+      if(!state.leaderMode || !state.leaderUnlocked || !HOUSEHOLD_ID){status.textContent="Open and unlock the parent profile first.";return;}
+      b.disabled=true;
+      Promise.resolve().then(action).then(function(){status.textContent="Download prepared. Save it privately; this does not certify a full recovery.";},function(){status.textContent="Export failed. Keep this browser's data and try again.";}).finally(function(){b.disabled=false;});
+    };card.appendChild(b);
+  }
+  button("Download schedule comparison",function(){
+    download("forge-schedule-"+todayISO()+".json",ForgeInspection.snapshot({build:APP_BUILD,householdId:HOUSEHOLD_ID,kids:KIDS,
+      kidData:kidData,getDayPlan:getDayPlan,orderedBlocksFor:orderedBlocksFor,assignmentsFor:assignmentsFor,
+      blockKeyFor:blockKeyFor,isOffDate:isOffDate,daysOffList:daysOffList,familyGoal:familyGoal,schedules:state.schedules},todayISO(),21));
+  });
+  button("Back up this device's worlds and drafts",async function(){
+    var value=await ForgeInspection.deviceBackup(localStorage,{origin:location.origin,build:APP_BUILD,householdId:HOUSEHOLD_ID},crypto);
+    download("forge-device-"+todayISO()+".json",value);
+  });
+  card.appendChild(status);return card;
+}
 function scheduleCopyCard(){
   var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
   var det = document.createElement("details");
@@ -28405,7 +28436,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-04.5";
+var APP_BUILD = "2026-11-06.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
