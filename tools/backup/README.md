@@ -38,6 +38,14 @@ This is a data-and-upload backup, not a full Supabase project image. It does not
 
 ## Restoring to Supabase
 
+### Private structure export with CLI v3
+
+After Docker is working and the owner has signed into the official Supabase CLI 3.0.0, save `export_structure.py` beside the portable `supabase.exe` and run `py export_structure.py`. Choose the existing folder containing `backup.py` and `.env`. The helper reads only the project URL and destination from that configuration, checks a matching completed backup exists, and creates a new directory under the existing private backup destination's `database-structure` folder. It does not overwrite earlier exports or backups.
+
+The only hosted command constructed is `db dump --remote=<exact-project-ref>`, exporting structure and role definitions into three checksummed SQL files. There is no `--yes`, `--data-only`, password argument, migration push, remote reset or config push. The CLI uses its private account login and can provision a temporary database login role; application rows and schema are not migrated. A closed input stream prevents the helper from answering unexpected confirmation/password prompts. Errors keep an incomplete directory; raw diagnostics remain private locally. Initial Docker image downloads use ordinary internet transfer and may take several minutes. Saved SQL size is not an account-wide transfer measurement.
+
+Keep all SQL, generated config and diagnostics private. The managed auth/storage definitions are reference material, not instructions to overwrite an initialized local Supabase stack. Auth user rows, bucket/object data/configuration, deployed functions and secrets still need their separately scoped recovery treatment. Exporting/checksumming structure does not prove restoration. The helper's command construction/failure paths are tested with synthetic CLI responses; live CLI compatibility remains to be checked by the owner.
+
 A complete production restore is **not yet certified**. Before the first release, the project owner must:
 
 1. Export/preserve the actual database schema, roles/policies, storage configuration and deployed function versions through Supabase's supported backup tools. Store secrets privately.
