@@ -135,6 +135,21 @@ def clean_env(home,endpoint):
     env['SUPABASE_HOME']=str(home);env['DOCKER_HOST']=endpoint
     return env
 
+def source_major(sql,confirmed=None):
+    # CLI exports may omit pg_dump comments. Never infer the hosted version from
+    # a fresh local config's default. An owner-confirmed server_version is a valid
+    # explicit source when the comment is absent.
+    match=re.search(r'(?im)^\s*--\s*Dumped from database version\s+(\d+)(?:\.|\s|$)',sql)
+    detected=int(match.group(1)) if match else None
+    if confirmed is not None and confirmed not in (15,17):
+        raise RehearsalStopped('Unsupported explicitly confirmed source database version.')
+    if detected is not None and confirmed is not None and detected!=confirmed:
+        raise RehearsalStopped('The confirmed server version conflicts with the structure export. No database was started.')
+    major=confirmed if confirmed is not None else detected
+    if major not in (15,17):
+        raise RehearsalStopped('Source version is absent or unsupported. Confirm server_version in the SQL Editor, then provide --source-major; do not repeat the backup.')
+    return major
+
 class LocalDatabase:
     def __init__(self,cli,workspace,log,runner=subprocess.run,major=17):
         self.cli=Path(cli).resolve();self.workspace=Path(workspace);self.log=Path(log);self.runner=runner
@@ -206,7 +221,11 @@ class LocalDatabase:
         cache=config.parent/'.temp';cache.mkdir(exist_ok=True);(cache/'postgres-version').write_text(version+'\n',encoding='utf-8')
         self.dock(['volume','create','--driver','local','--opt','type=tmpfs','--opt','device=tmpfs','--opt','o=size=2147483648',
             '--label','forge.rehearsal='+self.project,self.volume])
-        self.dock(['network','create','--internal','--label','forge.rehearsal='+self.project,self.network])
+        # Docker Desktop must reach the empty database's published local health
+        # port during bootstrap. Disconnect every network and assert isolation
+        # below BEFORE loading application definitions or family records.
+        self.dock(['network','create','--opt','com.docker.network.bridge.host_binding_ipv4=127.0.0.1',
+            '--label','forge.rehearsal='+self.project,self.network])
         print('Starting a new empty local database using a cached database image...',flush=True)
         self.cli_call(['db','start'])
         x=self.inspect();self.container=x['Id']
@@ -224,7 +243,10 @@ class LocalDatabase:
             raise RehearsalStopped('Local Supabase authentication baseline is missing. No private records were loaded.')
     def query(self,sql,raw=False):
         self.assert_offline()
-        r=self.dock(['exec','-i',self.container,'psql','-X','-w','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-qtA','-f','-'],data=sql.encode('utf-8'))
+        # Supabase's postgres role is deliberately not a PostgreSQL superuser.
+        # Administrative restore operations (logging, roles, replication mode)
+        # need supabase_admin, exclusively inside this owned, offline container.
+        r=self.dock(['exec','-i',self.container,'psql','-X','-w','-U','supabase_admin','-d','postgres','-v','ON_ERROR_STOP=1','-qtA','-f','-'],data=sql.encode('utf-8'))
         out=r.stdout.decode('utf-8')
         if raw:return out
         if out.strip() in ('t','f'):return out.strip()=='t'
@@ -298,7 +320,7 @@ def check_household_reads(db,tables):
                 raise RehearsalStopped('Own-household read failed in restored '+table+'.')
     return len(targets)
 
-def rehearse(backup_folder,cli,runner=subprocess.run,data_only=False):
+def rehearse(backup_folder,cli,runner=subprocess.run,data_only=False,confirmed_major=None):
     print('Verifying private backup, supplement, structure and file references locally...',flush=True)
     project,dest,snapshot,backup,tables,sql=read_inputs(backup_folder,data_only=data_only)
     media=backup['rehearsal_media_coverage']
@@ -306,12 +328,11 @@ def rehearse(backup_folder,cli,runner=subprocess.run,data_only=False):
         print('Data-only rehearsal: '+str(media['missing_unique_paths'])+' unmatched attachment paths remain documented; none are removed or recovered.',flush=True)
     stamp=datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S_%f');folder=dest/'restore-rehearsals'/stamp;folder.mkdir(parents=True,exist_ok=False)
     workspace=folder/'local-rehearsal';workspace.mkdir()
-    version=re.search(r'(?m)^-- Dumped from database version (\d+)\.',sql['application.sql'])
-    if not version or int(version.group(1)) not in (15,17):
-        raise RehearsalStopped('Could not confirm a supported source database version from the exported structure. No database was started.')
-    db=LocalDatabase(cli,workspace,folder/'PRIVATE-diagnostics.txt',runner,major=int(version.group(1)))
+    major=source_major(sql['application.sql'],confirmed=confirmed_major)
+    db=LocalDatabase(cli,workspace,folder/'PRIVATE-diagnostics.txt',runner,major=major)
     report={'format':'forge-local-restore-check-v1','complete':False,'full_project_restore_certified':False,
       'data_only_requested':bool(data_only),'media_coverage':media,
+      'source_major':major,'source_version_confirmation':'owner SQL Editor check' if confirmed_major is not None else 'export comment',
       'limits':['Local database/data rehearsal only. Auth rows are local placeholders, not restored login accounts.',
        'No browser sign-in, media playback, Edge Functions/secrets, storage service or device worlds are certified.',
        'Managed schema reference export is not blindly loaded over the local baseline.',
@@ -353,13 +374,15 @@ def rehearse(backup_folder,cli,runner=subprocess.run,data_only=False):
 
 def main():
     parser=argparse.ArgumentParser(description='Local database rehearsal; --data-only records known media gaps without certifying media recovery.')
-    parser.add_argument('--data-only',action='store_true');args=parser.parse_args()
+    parser.add_argument('--data-only',action='store_true')
+    parser.add_argument('--source-major',type=int,choices=(15,17),help='Use only after confirming the hosted server_version in the SQL Editor.')
+    args=parser.parse_args()
     try:
         from tkinter import Tk,filedialog
         ui=Tk();ui.withdraw();folder=filedialog.askdirectory(title='Choose the existing folder containing backup.py and .env');ui.destroy()
         if not folder:raise RehearsalStopped('No folder selected; no rehearsal started.')
         cli=Path(__file__).with_name('supabase.exe')
-        rehearse(folder,cli,data_only=args.data_only)
+        rehearse(folder,cli,data_only=args.data_only,confirmed_major=args.source_major)
     except RehearsalStopped as e:print('STOPPED: '+str(e));return 1
     except Exception:print('STOPPED: local rehearsal did not finish. Keep private diagnostics; no hosted restore was attempted.');return 1
     return 0

@@ -83,6 +83,14 @@ class PgAdapter:
         self.process.stdout.close();self.process.stderr.close()
 
 class RehearsalTests(unittest.TestCase):
+    def test_source_version_accepts_explicit_confirmation_when_comments_are_omitted(self):
+        sql='CREATE TABLE public.example(id integer);'
+        with self.assertRaises(helper.RehearsalStopped):helper.source_major(sql)
+        self.assertEqual(helper.source_major(sql,17),17)
+        self.assertEqual(helper.source_major('-- Dumped from database version 15.8 (Ubuntu)'),15)
+        self.assertEqual(helper.source_major('\ufeff\n-- Dumped from database version 17\n'),17)
+        with self.assertRaises(helper.RehearsalStopped):helper.source_major('-- Dumped from database version 15.8',17)
+        with self.assertRaises(helper.RehearsalStopped):helper.source_major(sql,18)
     def test_explicit_data_only_mode_retains_media_gaps_and_source_records_unchanged(self):
         with tempfile.TemporaryDirectory() as d:
             backup,dest,snapshot,tables,sql=fixture(d)
@@ -123,7 +131,10 @@ class RehearsalTests(unittest.TestCase):
                 if args[:2]==['network','inspect']:return result('',0 if state['network'] else 1)
                 if args[:2]==['image','ls']:return result(json.dumps({'Repository':'public.ecr.aws/supabase/postgres','Tag':'17.6.1.021'}))
                 if args[:2]==['volume','create']:state['volume']=True;return result()
-                if args[:2]==['network','create']:state['network']=True;return result()
+                if args[:2]==['network','create']:
+                    self.assertNotIn('--internal',args)
+                    self.assertIn('com.docker.network.bridge.host_binding_ipv4=127.0.0.1',args)
+                    state['network']=True;return result()
                 if args[:1]==['inspect']:
                     return result(json.dumps([{'Name':'/'+db.container_name,'Id':'synthetic-container-id',
                       'NetworkSettings':{'Networks':{'isolated':{}} if state['connected'] else {}},
@@ -131,13 +142,15 @@ class RehearsalTests(unittest.TestCase):
                 if args[:2]==['network','disconnect']:state['connected']=False;return result()
                 if args[:1]==['exec']:
                     self.assertFalse(state['connected']);self.assertIn('-w',args);self.assertIn('-qtA',args)
+                    self.assertEqual(args[args.index('-U')+1],'supabase_admin')
                     self.assertNotIn('DROP TABLE',str(args))
                     source=kw.get('input',b'')
                     if b"'users',to_regclass" in source:return result(json.dumps({'users':True,'uid':True,'roles':2}))
                     return result('/var/lib/postgresql/data\n' if source.startswith(b'SHOW') else '')
                 if args[:1] in (['stop'],['rm']) or args[:2] in (['volume','rm'],['network','rm']):return result()
                 raise AssertionError(argv)
-            with patch('rehearse_restore.shutil.which',return_value='docker'),patch.dict(os.environ,{'SUPABASE_ACCESS_TOKEN':'private','SUPABASE_DB_PASSWORD':'private'}):
+            with patch('rehearse_restore.shutil.which',return_value='docker'),patch.dict(os.environ,{'SUPABASE_ACCESS_TOKEN':'private','SUPABASE_DB_PASSWORD':'private'}),patch('rehearse_restore.socket.socket') as sock:
+                sock.return_value.__enter__.return_value.getsockname.return_value=('127.0.0.1',55333)
                 db=helper.LocalDatabase(cli,workspace,root/'private.log',runner)
                 with contextlib.redirect_stdout(io.StringIO()):db.start()
                 self.assertFalse(state['connected']);self.assertEqual(db.container,'synthetic-container-id')
@@ -163,7 +176,20 @@ class RehearsalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             backup,dest,snapshot,tables,sql=fixture(d);db=PgAdapter()
             try:
-                db.query(BASELINE,raw=True);db.query(sql,raw=True);db.query(helper.insert_sql(tables),raw=True)
+                db.query(BASELINE,raw=True)
+                # Reproduce the owner's exact error using an ordinary login,
+                # then exercise the whole SQL restore as the local admin role.
+                db.query('CREATE ROLE restricted_local_login LOGIN; SET SESSION AUTHORIZATION restricted_local_login;',raw=True)
+                with self.assertRaisesRegex(RuntimeError,'permission denied to set parameter "log_min_error_statement"'):
+                    db.query("ALTER SYSTEM SET log_min_error_statement='panic';",raw=True)
+                with self.assertRaisesRegex(RuntimeError,'permission denied to set parameter "session_replication_role"'):
+                    db.query('SET session_replication_role=replica;',raw=True)
+                db.query('SET SESSION AUTHORIZATION postgres; CREATE ROLE supabase_admin LOGIN SUPERUSER; SET SESSION AUTHORIZATION supabase_admin;',raw=True)
+                # psql -f executes these as separate statements. The adapter's
+                # multi-statement protocol would instead wrap them implicitly.
+                db.query("ALTER SYSTEM SET log_min_error_statement='panic';",raw=True)
+                db.query('SELECT pg_reload_conf();',raw=True)
+                db.query(sql,raw=True);db.query(helper.insert_sql(tables),raw=True)
                 counts=helper.check_rows(db,tables);self.assertEqual(counts['al_assignments'],1)
                 self.assertGreater(helper.check_foreign_keys(db,tables),0)
                 self.assertEqual(helper.check_household_reads(db,tables),4)
