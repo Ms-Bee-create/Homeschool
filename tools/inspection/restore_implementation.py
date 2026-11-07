@@ -1,4 +1,5 @@
 """Implementation bundled with verify.py; requires the existing export_structure.py beside it."""
+import argparse
 import datetime
 import os
 import re
@@ -17,7 +18,7 @@ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def ident(value):return '"'+str(value).replace('"','""')+'"'
 def literal(value):return "'"+str(value).replace("'","''")+"'"
 
-def read_inputs(backup_folder):
+def read_inputs(backup_folder,data_only=False):
     project,dest=settings(backup_folder)
     snapshots=[]
     for path in (dest/'data').glob('*/manifest.json'):
@@ -70,12 +71,20 @@ def read_inputs(backup_folder):
         elif isinstance(value,list):
             for v in value:yield from walk(v)
         elif isinstance(value,str):yield value
+    missing_paths=set();missing_references=0
     for table in ('al_assignments','al_journal','al_reflections'):
         for value in walk(tables.get(table,[])):
             if not value.startswith('https://'+project+'.supabase.co/storage/v1/object/'):continue
             url=urlparse(value);match=re.match(r'^/storage/v1/object/(?:public|sign)/lesson-uploads/(.+)$',url.path)
             if match and unquote(match.group(1)) not in backed:
-                raise RehearsalStopped('A saved school upload reference has no matching backed-up file.')
+                missing_references+=1;missing_paths.add(unquote(match.group(1)))
+    if missing_paths and not data_only:
+        raise RehearsalStopped('A saved school upload reference has no matching backed-up file.')
+    # These fields describe rehearsal coverage only. Never write them into the source
+    # manifest, change a stored URL/completion flag, or represent missing media as recovered.
+    manifest=dict(manifest)
+    manifest['rehearsal_media_coverage']={'missing_references':missing_references,'missing_unique_paths':len(missing_paths),
+      'data_only_requested':bool(data_only),'all_references_backed_up':not missing_paths,'playback_tested':False}
     return project,dest,snapshot,manifest,tables,sql
 
 def clean_env(home,endpoint):
@@ -246,9 +255,12 @@ def check_household_reads(db,tables):
                 raise RehearsalStopped('Own-household read failed in restored '+table+'.')
     return len(targets)
 
-def rehearse(backup_folder,cli,runner=subprocess.run):
+def rehearse(backup_folder,cli,runner=subprocess.run,data_only=False):
     print('Verifying private backup, supplement, structure and file references locally...',flush=True)
-    project,dest,snapshot,backup,tables,sql=read_inputs(backup_folder)
+    project,dest,snapshot,backup,tables,sql=read_inputs(backup_folder,data_only=data_only)
+    media=backup['rehearsal_media_coverage']
+    if media['missing_unique_paths']:
+        print('Data-only rehearsal: '+str(media['missing_unique_paths'])+' unmatched attachment paths remain documented; none are removed or recovered.',flush=True)
     stamp=datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S_%f');folder=dest/'restore-rehearsals'/stamp;folder.mkdir(parents=True,exist_ok=False)
     workspace=folder/'local-rehearsal';workspace.mkdir()
     version=re.search(r'(?m)^-- Dumped from database version (\d+)\.',sql['application.sql'])
@@ -256,6 +268,7 @@ def rehearse(backup_folder,cli,runner=subprocess.run):
         raise RehearsalStopped('Could not confirm a supported source database version from the exported structure. No database was started.')
     db=LocalDatabase(cli,workspace,folder/'PRIVATE-diagnostics.txt',runner,major=int(version.group(1)))
     report={'format':'forge-local-restore-check-v1','complete':False,'full_project_restore_certified':False,
+      'data_only_requested':bool(data_only),'media_coverage':media,
       'limits':['Local database/data rehearsal only. Auth rows are local placeholders, not restored login accounts.',
        'No browser sign-in, media playback, Edge Functions/secrets, storage service or device worlds are certified.',
        'Managed schema reference export is not blindly loaded over the local baseline.',
@@ -291,16 +304,19 @@ def rehearse(backup_folder,cli,runner=subprocess.run):
         (folder/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     if not report['complete']:raise RehearsalStopped('Local restore check is incomplete. Keep its private report and diagnostics.')
     print('Local data restore checks passed: '+str(len(counts))+' tables, '+str(relationships)+' relationships, '+str(role_tables)+' household-read checks.')
+    if media['missing_unique_paths']:print('Unresolved media references remain: '+str(media['missing_unique_paths'])+' unmatched paths. This does not certify media recovery.')
     print('Login, media playback and full app recovery still require separate tests. Keep report/diagnostics private.')
     return report
 
 def main():
+    parser=argparse.ArgumentParser(description='Local database rehearsal; --data-only records known media gaps without certifying media recovery.')
+    parser.add_argument('--data-only',action='store_true');args=parser.parse_args()
     try:
         from tkinter import Tk,filedialog
         ui=Tk();ui.withdraw();folder=filedialog.askdirectory(title='Choose the existing folder containing backup.py and .env');ui.destroy()
         if not folder:raise RehearsalStopped('No folder selected; no rehearsal started.')
         cli=Path(__file__).with_name('supabase.exe')
-        rehearse(folder,cli)
+        rehearse(folder,cli,data_only=args.data_only)
     except RehearsalStopped as e:print('STOPPED: '+str(e));return 1
     except Exception:print('STOPPED: local rehearsal did not finish. Keep private diagnostics; no hosted restore was attempted.');return 1
     return 0

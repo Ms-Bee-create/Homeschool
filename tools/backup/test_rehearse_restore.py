@@ -83,6 +83,23 @@ class PgAdapter:
         self.process.stdout.close();self.process.stderr.close()
 
 class RehearsalTests(unittest.TestCase):
+    def test_explicit_data_only_mode_retains_media_gaps_and_source_records_unchanged(self):
+        with tempfile.TemporaryDirectory() as d:
+            backup,dest,snapshot,tables,sql=fixture(d)
+            path=snapshot/'al_assignments.json';rows=json.loads(path.read_text())
+            rows[0]['work_blocks'].append({'type':'image','url':'https://'+PROJECT+'.supabase.co/storage/v1/object/public/lesson-uploads/household/old-missing.png'})
+            path.write_text(json.dumps(rows));m=json.loads((snapshot/'manifest.json').read_text())
+            next(e for e in m['tables'] if e['path']==path.name)['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            (snapshot/'manifest.json').write_text(json.dumps(m));before=path.read_bytes();before_manifest=(snapshot/'manifest.json').read_bytes()
+            with self.assertRaises(helper.RehearsalStopped):helper.read_inputs(backup)
+            _,_,_,coverage,restored,_=helper.read_inputs(backup,data_only=True)
+            self.assertEqual(coverage['rehearsal_media_coverage']['missing_unique_paths'],1)
+            self.assertFalse(coverage['rehearsal_media_coverage']['all_references_backed_up'])
+            self.assertEqual(restored['al_assignments'],rows)
+            self.assertEqual(path.read_bytes(),before)
+            self.assertEqual((snapshot/'manifest.json').read_bytes(),before_manifest)
+            path.write_text('[]')
+            with self.assertRaises(ValueError):helper.read_inputs(backup,data_only=True)
     def test_local_docker_guard_disconnects_networks_and_requires_tmpfs_before_queries(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d);cli=root/'supabase.exe';cli.write_text('not executed');workspace=root/'workspace';workspace.mkdir()
