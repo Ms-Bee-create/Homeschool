@@ -37,6 +37,10 @@ test('broad policies expose synthetic rows when grants permit; correction preser
     await db.exec(`UPDATE al_assignments SET title='Unwanted change' WHERE id='other'`);
     await db.exec('RESET ROLE');
     await db.exec(migration);await db.exec(migration); // Safe to repeat.
+    const verification=fs.readFileSync(path.resolve(__dirname,'../inspection/verify_permissions.sql'),'utf8');
+    const report=(await db.query(verification)).rows[0].permission_verification;
+    assert.equal(report.school_tables_with_rls,2);assert.equal(report.expected_household_policies,2);
+    assert.equal(report.unrestricted_school_policies_remaining,0);
     await db.exec('SET ROLE anon');
     assert.equal((await db.query('SELECT id FROM al_assignments')).rows.length,0);
     await assert.rejects(db.exec(`INSERT INTO al_assignments VALUES('anon','${own}','blocked')`),/row-level security/);
