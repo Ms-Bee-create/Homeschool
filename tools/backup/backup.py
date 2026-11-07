@@ -49,7 +49,7 @@ TABLES = [
     # Momma Money
     "households", "members", "chore_templates", "assignment_rules", "chore_logs",
     "fine_templates", "reward_items", "transactions", "screen_sessions",
-    "home_jobs", "home_job_logs",
+    "home_jobs", "home_job_logs", "member_pins",
     "al_work_receipts",
 ]
 
@@ -87,7 +87,7 @@ def safe_path(root, name):
 
 def dump_table(table, folder):
     rows, start, page = [], 0, 1000
-    order = {"al_schedule":"household_id.asc,kid_id.asc","al_settings":"household_id.asc","al_kids":"household_id.asc,id.asc","al_work_receipts":"household_id.asc,operation_id.asc"}.get(table,"id.asc")
+    order = {"al_settings":"household_id.asc","al_kids":"household_id.asc,id.asc","member_pins":"member_id.asc","al_work_receipts":"household_id.asc,operation_id.asc"}.get(table,"id.asc")
     while True:
         try:
             chunk = request("/rest/v1/%s?select=*&order=%s" % (urllib.parse.quote(table),order), headers={
@@ -209,7 +209,7 @@ def main():
         files=mirror_files(os.path.join(folder,"_files"))
         manifest={"format":1,"complete":True,"source":URL,"bucket":BUCKET,
                   "created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"tables":tables,"files":files,
-                  "coverage":{"home_quest":True,"browser_storage":False,"database_schema":False},
+                  "coverage":{"home_quest":True,"member_pins":True,"browser_storage":False,"database_schema":False},
                   "usage":{"response_body_bytes":downloaded_bytes,"limit_bytes":DOWNLOAD_LIMIT,"media":media_usage},
                   "limits":["Data and uploaded files only; excludes database schema, policies, functions, auth accounts and browser-only drafts.",
                             "Sequential reads are not a transactional point-in-time database snapshot.",

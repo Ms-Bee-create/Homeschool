@@ -2,6 +2,8 @@
 
 Status: local draft, not deployed. Public Pages `version.json` returned build `2026-11-04.5` on 6 November 2026. This isolated inspection draft's build is `2026-11-06.2`; it is not live. The earlier safe-saving draft remains separate and is not included in this branch. A public version check is not authenticated schedule access.
 
+Update: the owner completed a checksum-verified full data/media backup, reporting **19.42 MiB** downloaded. The subsequent private installed-schema inventory revealed a missing PIN table and open school policies; see `INVENTORY_REVIEW.md`. This is not yet a complete recovery certificate or a proof of dual-assistant live access. The PIN supplement avoids repeating the full download. Live grants, complete schema/function recovery, isolated restore, and client authentication remain outstanding.
+
 ## What is ready to review
 
 - School/money backups now require `home_jobs` and `home_job_logs` to succeed. Older snapshots remain verifiable, but cannot pass the new explicit full-family coverage check.

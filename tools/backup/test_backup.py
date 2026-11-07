@@ -35,6 +35,16 @@ class BackupTests(unittest.TestCase):
             with self.assertRaises(ValueError):verify(root, require_home_quest=True)
             m['coverage']={'home_quest':True};(root/'manifest.json').write_text(json.dumps(m))
             with self.assertRaises(ValueError):verify(root)
+    def test_pin_coverage_is_explicit_and_older_snapshot_remains_readable(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);m=self.fixture(root)
+            verify(root)
+            with self.assertRaises(ValueError):verify(root,require_member_pins=True)
+            rows=[{'member_id':'test','household_id':'fake','pin_hash':'synthetic'}]
+            p=root/'member_pins.json';p.write_text(json.dumps(rows))
+            m['tables'].append({'path':p.name,'rows':1,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
+            m['coverage']={'member_pins':True};(root/'manifest.json').write_text(json.dumps(m))
+            verify(root,require_member_pins=True)
     def test_complete_backup_roundtrip_with_server_page_cap(self):
         from unittest.mock import patch
         from urllib.parse import urlparse

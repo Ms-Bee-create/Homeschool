@@ -86,6 +86,7 @@ test('authenticated inspection issues only constrained GETs with no private answ
     assert.equal(options.method,'GET');assert.equal(url.searchParams.get('household_id'),'eq.'+household);
     assert.equal(url.searchParams.get('limit'),'201');assert.equal(options.redirect,'error');
     assert.ok(!/work_blocks|leader_pin|balance|\*/.test(url.searchParams.get('select')));
+    if(url.pathname.endsWith('/al_kids'))assert.equal(url.searchParams.get('select'),'id,name,day_plan');
   }
   assert.ok(!JSON.stringify(body).includes('SERVER-SECRET'));
 });

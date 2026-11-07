@@ -2,6 +2,38 @@
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
+SUPPLEMENT='''
+def pin_supplement():
+    """Read only the newly discovered PIN table; never repeat the full media backup."""
+    global downloaded_bytes, DOWNLOAD_LIMIT
+    if not URL or not KEY:
+        raise RuntimeError("Missing private backup configuration")
+    downloaded_bytes=0
+    DOWNLOAD_LIMIT=min(DOWNLOAD_LIMIT,1024*1024)
+    stamp=datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
+    root=Path(DEST)/"recovery-supplements"
+    folder=root/(".incomplete-pins-"+stamp)
+    folder.mkdir(parents=True,exist_ok=False)
+    rows=dump_table("member_pins",str(folder))
+    path=folder/"member_pins.json"
+    checksum=digest(path)
+    data=json.loads(path.read_text(encoding="utf-8"))
+    ids=[r.get("member_id") for r in data]
+    if rows!=len(data) or any(not isinstance(i,str) for i in ids) or len(ids)!=len(set(ids)):
+        raise RuntimeError("Invalid PIN supplement")
+    manifest={"format":"forge-member-pins-supplement-v1","complete":True,"source":URL,
+      "created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+      "table":{"path":"member_pins.json","rows":rows,"sha256":checksum},
+      "response_body_bytes":downloaded_bytes,"limit_bytes":DOWNLOAD_LIMIT,
+      "limits":["PIN records only. Keep privately with the full backup; not a full snapshot or a restore proof."]}
+    (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+    checked=json.loads((folder/"manifest.json").read_text(encoding="utf-8"))
+    if digest(path)!=checked["table"]["sha256"]:raise RuntimeError("PIN supplement checksum mismatch")
+    folder.rename(root/("pins-"+stamp))
+    print("Verified PIN supplement complete. Older backups and scheduled task unchanged.")
+    print("Downloaded response bodies: %.2f MiB of %.2f MiB local budget"%(downloaded_bytes/1048576,DOWNLOAD_LIMIT/1048576))
+'''
+
 def build():
     verify=(ROOT/'tools/backup/verify.py').read_text().split("if __name__=='__main__':")[0]
     backup=(ROOT/'tools/backup/backup.py').read_text()
@@ -11,9 +43,14 @@ def build():
     backup=backup.replace('        from verify import verify\n','')
     backup=backup.replace('        prune(data_root)','        print("Older backups kept; scheduled task unchanged.")')
     backup=backup.replace('if __name__ == "__main__":\n    main()',
-        '''if __name__ == "__main__":
+        SUPPLEMENT+'''\nif __name__ == "__main__":
     try:
-        main()
+        if sys.argv[1:]==["--pin-supplement"]:
+            pin_supplement()
+        elif not sys.argv[1:]:
+            main()
+        else:
+            sys.exit("Use no argument for a full backup, or --pin-supplement for the small PIN-only addition.")
     except Exception as error:
         code = ("HTTP " + str(error.code)) if isinstance(error, urllib.error.HTTPError) else type(error).__name__
         print("Recovery check stopped (" + code + "). Older backups were kept. No cloud data changed.", file=sys.stderr)

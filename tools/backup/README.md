@@ -52,3 +52,9 @@ Code recovery and data recovery are separate: see `../reliability/RELEASE.md`.
 ## Home Quest coverage
 
 New snapshots include `home_jobs` and `home_job_logs`; either table failing makes the backup incomplete. Older snapshots remain readable, but a full-family recovery check requires both tables. Use `--require-home-quest` when verifying the new pre-release recovery point. Separate device exports preserve browser-only world edits/drafts; see `../inspection/README.md`.
+
+## PIN protection supplement
+
+The installed-schema inventory revealed a separate `member_pins` table. New full backups include it and mark that coverage in the manifest. For the already completed full backup, download the updated `recovery_backup.py` over only that helper file and run `py recovery_backup.py --pin-supplement` from the existing private backup folder. This reads only PIN protection records, with a response-body limit of at most **1 MiB**, and writes a new checksummed folder under the existing backup destination's `recovery-supplements`. It does not repeat media/table downloads, overwrite the full snapshot, prune anything, or change the scheduled task. Keep the supplement private with the full backup; do not upload it. It is not a complete snapshot or database restore proof. If the script stops, preserve the incomplete folder and report its final status rather than retrying repeatedly.
+
+`verify.py --require-member-pins` can require PIN coverage for new full snapshots. Older full snapshots remain readable without that flag. A separately retained supplement must be included explicitly by the eventual restore procedure.

@@ -11,6 +11,24 @@ spec=importlib.util.spec_from_file_location('recovery_helper',HERE/'recovery_bac
 helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
 
 class RecoveryHelperTests(unittest.TestCase):
+    def test_pin_supplement_reads_only_missing_table_without_pruning(self):
+        requests=[]
+        def request(path,method='GET',body=None,headers=None,raw=False):
+            requests.append(path)
+            self.assertIn('/rest/v1/member_pins?',path)
+            self.assertIn('order=member_id.asc',path)
+            start=int(headers['Range'].split('-')[0])
+            return [{'member_id':'synthetic-member','pin_hash':'synthetic-hash'}] if start==0 else []
+        with tempfile.TemporaryDirectory() as d:
+            with patch.object(helper,'DEST',d),patch.object(helper,'URL','https://fake'),patch.object(helper,'KEY','fake'),patch.object(helper,'request',side_effect=request),patch.object(helper,'DOWNLOAD_LIMIT',100*1024*1024):
+                helper.pin_supplement()
+            folder=next((Path(d)/'recovery-supplements').iterdir())
+            manifest=json.loads((folder/'manifest.json').read_text())
+            self.assertEqual(manifest['table']['rows'],1)
+            self.assertEqual(manifest['limit_bytes'],1024*1024)
+            self.assertEqual(helper.digest(folder/'member_pins.json'),manifest['table']['sha256'])
+            self.assertEqual(len(requests),2)
+            self.assertFalse((Path(d)/'data').exists())
     def test_full_backup_keeps_old_snapshots_and_contains_home_quest(self):
         def request(path,method='GET',body=None,headers=None,raw=False):
             if path.startswith('/rest/v1/'):

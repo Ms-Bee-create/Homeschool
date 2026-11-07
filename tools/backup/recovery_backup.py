@@ -11,7 +11,7 @@ REQUIRED={'al_kids','al_assignments','al_schedule','al_questions','al_journal','
           'assignment_rules','chore_logs','fine_templates','reward_items','transactions','screen_sessions'}
 HOME_QUEST={'home_jobs','home_job_logs'}
 
-def verify(folder, require_home_quest=False):
+def verify(folder, require_home_quest=False, require_member_pins=False):
     root=Path(folder).resolve()
     manifest=json.loads((root/'manifest.json').read_text(encoding='utf-8'))
     if manifest.get('format')!=1 or manifest.get('complete') is not True:
@@ -21,6 +21,8 @@ def verify(folder, require_home_quest=False):
     if not REQUIRED.issubset(names): raise ValueError('Required tables missing from backup')
     if (require_home_quest or manifest.get('coverage',{}).get('home_quest')) and not HOME_QUEST.issubset(names):
         raise ValueError('Home Quest lists/history missing; keep this older backup but take a new full-family copy')
+    if (require_member_pins or manifest.get('coverage',{}).get('member_pins')) and 'member_pins' not in names:
+        raise ValueError('Member PIN protection records missing; keep this backup and add a private PIN supplement')
     seen=set()
     for entry in tables+files:
         relative=entry['path'];path=(root/relative).resolve()
@@ -32,9 +34,9 @@ def verify(folder, require_home_quest=False):
             rows=json.loads(data)
             if not isinstance(rows,list) or len(rows)!=entry['rows'] or any(not isinstance(r,dict) for r in rows):
                 raise ValueError('Invalid table rows: '+relative)
-            ids=[r.get('id') for r in rows if r.get('id') is not None]
             # al_kids uses (id, household_id), so validate composite identity.
-            keys=[(r.get('id'),r.get('household_id')) for r in rows if r.get('id') is not None]
+            identity='member_id' if relative=='member_pins.json' else 'id'
+            keys=[(r.get(identity),r.get('household_id')) for r in rows if r.get(identity) is not None]
             if len(keys)!=len(set(keys)): raise ValueError('Duplicate records: '+relative)
         elif len(data)!=entry['bytes']: raise ValueError('Upload size mismatch: '+relative)
     return manifest
@@ -91,7 +93,7 @@ TABLES = [
     # Momma Money
     "households", "members", "chore_templates", "assignment_rules", "chore_logs",
     "fine_templates", "reward_items", "transactions", "screen_sessions",
-    "home_jobs", "home_job_logs",
+    "home_jobs", "home_job_logs", "member_pins",
     "al_work_receipts",
 ]
 
@@ -129,7 +131,7 @@ def safe_path(root, name):
 
 def dump_table(table, folder):
     rows, start, page = [], 0, 1000
-    order = {"al_schedule":"household_id.asc,kid_id.asc","al_settings":"household_id.asc","al_kids":"household_id.asc,id.asc","al_work_receipts":"household_id.asc,operation_id.asc"}.get(table,"id.asc")
+    order = {"al_settings":"household_id.asc","al_kids":"household_id.asc,id.asc","member_pins":"member_id.asc","al_work_receipts":"household_id.asc,operation_id.asc"}.get(table,"id.asc")
     while True:
         try:
             chunk = request("/rest/v1/%s?select=*&order=%s" % (urllib.parse.quote(table),order), headers={
@@ -251,7 +253,7 @@ def main():
         files=mirror_files(os.path.join(folder,"_files"))
         manifest={"format":1,"complete":True,"source":URL,"bucket":BUCKET,
                   "created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),"tables":tables,"files":files,
-                  "coverage":{"home_quest":True,"browser_storage":False,"database_schema":False},
+                  "coverage":{"home_quest":True,"member_pins":True,"browser_storage":False,"database_schema":False},
                   "usage":{"response_body_bytes":downloaded_bytes,"limit_bytes":DOWNLOAD_LIMIT,"media":media_usage},
                   "limits":["Data and uploaded files only; excludes database schema, policies, functions, auth accounts and browser-only drafts.",
                             "Sequential reads are not a transactional point-in-time database snapshot.",
@@ -267,9 +269,45 @@ def main():
         print("BACKUP INCOMPLETE. Previous backups were kept. See the error below.",file=sys.stderr)
         raise
 
+
+def pin_supplement():
+    """Read only the newly discovered PIN table; never repeat the full media backup."""
+    global downloaded_bytes, DOWNLOAD_LIMIT
+    if not URL or not KEY:
+        raise RuntimeError("Missing private backup configuration")
+    downloaded_bytes=0
+    DOWNLOAD_LIMIT=min(DOWNLOAD_LIMIT,1024*1024)
+    stamp=datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
+    root=Path(DEST)/"recovery-supplements"
+    folder=root/(".incomplete-pins-"+stamp)
+    folder.mkdir(parents=True,exist_ok=False)
+    rows=dump_table("member_pins",str(folder))
+    path=folder/"member_pins.json"
+    checksum=digest(path)
+    data=json.loads(path.read_text(encoding="utf-8"))
+    ids=[r.get("member_id") for r in data]
+    if rows!=len(data) or any(not isinstance(i,str) for i in ids) or len(ids)!=len(set(ids)):
+        raise RuntimeError("Invalid PIN supplement")
+    manifest={"format":"forge-member-pins-supplement-v1","complete":True,"source":URL,
+      "created_at":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+      "table":{"path":"member_pins.json","rows":rows,"sha256":checksum},
+      "response_body_bytes":downloaded_bytes,"limit_bytes":DOWNLOAD_LIMIT,
+      "limits":["PIN records only. Keep privately with the full backup; not a full snapshot or a restore proof."]}
+    (folder/"manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
+    checked=json.loads((folder/"manifest.json").read_text(encoding="utf-8"))
+    if digest(path)!=checked["table"]["sha256"]:raise RuntimeError("PIN supplement checksum mismatch")
+    folder.rename(root/("pins-"+stamp))
+    print("Verified PIN supplement complete. Older backups and scheduled task unchanged.")
+    print("Downloaded response bodies: %.2f MiB of %.2f MiB local budget"%(downloaded_bytes/1048576,DOWNLOAD_LIMIT/1048576))
+
 if __name__ == "__main__":
     try:
-        main()
+        if sys.argv[1:]==["--pin-supplement"]:
+            pin_supplement()
+        elif not sys.argv[1:]:
+            main()
+        else:
+            sys.exit("Use no argument for a full backup, or --pin-supplement for the small PIN-only addition.")
     except Exception as error:
         code = ("HTTP " + str(error.code)) if isinstance(error, urllib.error.HTTPError) else type(error).__name__
         print("Recovery check stopped (" + code + "). Older backups were kept. No cloud data changed.", file=sys.stderr)

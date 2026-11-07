@@ -15,7 +15,7 @@ export async function inspectDay(date, read){
   // read() is supplied only by the server and always adds its configured household filter.
   const specs=[
     ['assignments','al_assignments','id,kid_id,date,title,subject,stage,standard,done,submitted_at,review_status',{date:'eq.'+date}],
-    ['kids','al_kids','id,name,day_plan,block_order',{}],
+    ['kids','al_kids','id,name,day_plan',{}],
     ['schedules','al_schedule','kid_id,blocks',{}],
     ['settings','al_settings','project:family_goal->rp,days_off:family_goal->daysOff',{}],
     ['homeJobs','home_jobs','id,member_id,title,place,time_label,slot,days,sort,active',{}],
@@ -27,6 +27,7 @@ export async function inspectDay(date, read){
     limitations:['Not a rendered schedule. Browser defaults, unsynced changes and local fallbacks can differ.',
       'Includes retired assignments for comparison; these are hidden by assignmentsFor in the app.',
       'Home jobs include inactive/nonmatching weekdays so configuration can be inspected.',
+      'The supplied live schema has no al_kids.block_order column; compare the browser default order separately.',
       'No lesson answers, media, balances, login credentials or parent PINs are returned.']};
   for(const [name,table,select,filters] of specs)result[name]=await read(table,select,filters);
   return result;
