@@ -38,6 +38,16 @@ This is a data-and-upload backup, not a full Supabase project image. It does not
 
 ## Restoring to Supabase
 
+### Scoped local data rehearsal
+
+After the verified full backup, PIN supplement and CLI structure export, save `rehearse_restore.py` beside the already downloaded `export_structure.py` and `supabase.exe`. Run `py rehearse_restore.py` and choose the existing backup-tools folder. The helper verifies checksums and file references, uses a matching cached Supabase database image, creates its own uniquely named empty local database, requires a RAM-backed database volume, disconnects every container network, and rechecks that isolation before each SQL operation. It clears cloud account/password/target overrides and uses a separate private CLI home. It does not issue hosted CLI commands or change earlier backups.
+
+The rehearsal imports structure plus only the school/money/quest/PIN table data, compares every restored row value/count, checks foreign-key relationships (including money links), and tests anonymous, wrong-household and own-household reads. It preserves saved-file checksums without opening production media URLs. Because login accounts were not in the JSON backup, it creates local-only account-ID placeholders for foreign keys. **This does not certify restored login accounts, browser sign-in, media playback, storage service configuration, deployed functions/secrets or browser-only worlds.** The managed schema reference file is not blindly restored over the local baseline. Other apps' schema definitions may be present, but their data is not imported.
+
+Successful output says `Local data restore checks passed`; it also states the remaining limits. A private `report.json` and diagnostics are saved under the existing backup destination's `restore-rehearsals`. The temporary database is stopped and only its own container/volume/network are removed after checking. On failure, no partial report is called successful. Setup failure may leave empty local rehearsal resources; do not run broad Docker cleanup commands. Raw SQL/diagnostics/reports remain private. Docker RAM-backed storage does not constitute a certification of the laptop's OS encryption/paging settings.
+
+Validation: generated-helper consistency, checksum/credential-override guards, local Docker command/isolation guards, and real PostgreSQL (PGlite) data/relationship/RLS checks pass on synthetic fixtures. A full Supabase Docker startup in this cloud test workspace was blocked by insufficient Docker storage while unpacking its image. The helper therefore reuses the owner's already cached matching image and still must be validated on the owner's Docker Desktop. Do not claim that cloud Docker startup or the owner's complete restore is proven by these tests.
+
 ### Private structure export with CLI v3
 
 After Docker is working and the owner has signed into the official Supabase CLI 3.0.0, save `export_structure.py` beside the portable `supabase.exe` and run `py export_structure.py`. Choose the existing folder containing `backup.py` and `.env`. The helper reads only the project URL and destination from that configuration, checks a matching completed backup exists, and creates a new directory under the existing private backup destination's `database-structure` folder. It does not overwrite earlier exports or backups.
