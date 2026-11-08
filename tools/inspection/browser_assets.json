@@ -1,0 +1,92 @@
+{
+  "repository": "Ms-Bee-create/Homeschool",
+  "commit": "9682c2ad90d88dc9081348efabba920a2435f9cf",
+  "build": "2026-11-04.5",
+  "assets": [
+    {
+      "path": "index.html",
+      "blob": "049ca52af2797225beece2b37f0be60bfaec5838",
+      "bytes": 2404100,
+      "sha256": "72fd1c9b08a43eea03402b0e6b1c53bd6c113dbc25a179bd7667c986c97b3713"
+    },
+    {
+      "path": "version.json",
+      "blob": "6fc4d53dff1602329babef89cad198e0c5c0a627",
+      "bytes": 25,
+      "sha256": "bb920b73f3c69eace71e172c539c83d01c2173b248926817f875c643ce50a237"
+    },
+    {
+      "path": "logo.png",
+      "blob": "cfff66be3faa7a309cc150fa8d821bafd0f8826d",
+      "bytes": 1043771,
+      "sha256": "6225dd62edeb20a1d04b8f090ebe63eed17b4a7911f8b17c44319cb647cb214d"
+    },
+    {
+      "path": "avatars/amber-smith.webp",
+      "blob": "b9966f0ad5c6ad8045f7a02fcd4561dc91246f77",
+      "bytes": 174590,
+      "sha256": "13c3c492feaa403be065f77a3c75c7d1c0126c931990e4c7e007c8f1182d456a"
+    },
+    {
+      "path": "avatars/blue-astronaut.webp",
+      "blob": "bb035ffc33787cc3dee0bb9cd27c5c7c647c312c",
+      "bytes": 121844,
+      "sha256": "3ebd71b3583500a68fde939d3bda507f5695155fef6b091f8370c1a7ddafd64b"
+    },
+    {
+      "path": "avatars/blue-explorer.webp",
+      "blob": "8e328515f71264ae2eacb2fb3057276b7a01cf67",
+      "bytes": 170892,
+      "sha256": "c68d701f2f46d22f151e04557a60628bae51224a510bea4ccc1731f40820675e"
+    },
+    {
+      "path": "avatars/forge-unicorn.webp",
+      "blob": "68f3af04def8f66b7bedeaedab34992385fcc920",
+      "bytes": 94314,
+      "sha256": "63602ea7cfb9ec43e2ab0501322d602d47d4cba83eba7bc1fec2db64b668bc49"
+    },
+    {
+      "path": "avatars/gold-astronaut.webp",
+      "blob": "331d68092ed742f24bfe5a5ba1166c1ff05ca8a0",
+      "bytes": 160260,
+      "sha256": "1235fb05c49d376860ba44dfad8e07665625d92670ac6ea7c18ca242618d634a"
+    },
+    {
+      "path": "avatars/gold-forge.webp",
+      "blob": "e9d8bbaa71775e23762d85adcfc8f8e9efb978b3",
+      "bytes": 266910,
+      "sha256": "3426e85911e60d9a3d4d47cd2864b09909af75a88460be27d62c0e96ea97465a"
+    },
+    {
+      "path": "avatars/orange-badge.webp",
+      "blob": "a5013f2bd528e005e3c1c5b53a3ea843ff0e84c7",
+      "bytes": 144358,
+      "sha256": "1a31d5845fd83cb2ca025f185b7abd3cadce007c27808ee800155e540fa75e96"
+    },
+    {
+      "path": "avatars/pink-astronaut.webp",
+      "blob": "976c6bf4ed2b514f2a3216ea0cd25b28618561af",
+      "bytes": 146774,
+      "sha256": "f4755e2f1a61323bd362b0d9a33dfd17ffaa5faccc1e713e3aa8cb53ef3f2cc3"
+    },
+    {
+      "path": "avatars/violet-mage.webp",
+      "blob": "33271b9069f7ad0068fab55a9d7eb4949fe2e27f",
+      "bytes": 228776,
+      "sha256": "8fc0892fd9fa3fa74431ee9219913618db1d46e13be6c597f3d8359e09f189d4"
+    }
+  ],
+  "sdk": {
+    "path": "vendor/supabase.js",
+    "bytes": 219856,
+    "sha256": "a867edbcfb029370aeec7223dd6180b560b621fbe3bc64c6584fb0369d1b7bce",
+    "blob": "f7b5aa6617995e6e4a9edf423f71f43624de59f4",
+    "source": "@supabase/supabase-js 2.119.0, MIT; official npm UMD distribution"
+  },
+  "sdk_license": {
+    "path": "vendor/supabase-LICENSE.txt",
+    "blob": "ddeba6a00ae5ec536d5429e040bc73ef2c6a07d6",
+    "bytes": 1065,
+    "sha256": "334dd6820e2eaeab2064e7c59001b810566728a28a41a7c1dbf69bbee17d0936"
+  }
+}

@@ -1,0 +1,2 @@
+# Preserve the pinned upstream bundle byte-for-byte, including template strings.
+tools/reliability/vendor/supabase-2.119.0.js -whitespace
