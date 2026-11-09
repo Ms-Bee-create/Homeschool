@@ -2,3 +2,9 @@
 .env
 node_modules/
 tools/lesson-audit/coverage.md
+__pycache__/
+tools/backup/backups/
+tools/inspection/private/
+forge-device-*.json
+forge-schedule-*.json
+*.bundle
