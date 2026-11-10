@@ -6864,6 +6864,356 @@ function annaFriendly(text){
   }).join("\n");
 }
 function annaSpoken(text){ return annaFriendly(text).replace(/\[\[(book|say|photo)\]\]/g, "").replace(/Quick Checks?/g, "Treat Time"); }
+/* FORGE-WIDGETS-START */
+/* "Try it" practice aids inside a lesson (build 2026-11-10.9): ten frame, arrays, analog clock, fractions, number line, long division.
+   Plain DOM and SVG made here (rule 25), no libraries, no network, no storage, no timers, no random. A widget only SHOWS and EXPLAINS what the kid
+   taps: it never grades, never scores, never says "wrong", never blocks anything (rules 5, 10, 11), and it never touches the lesson's done / XP / saving.
+   Words and a picture always appear together, with a "Read it to me" button. Use: ForgeWidgets.mount(el, type, cfg, {speak}).destroy() */
+var ForgeWidgets = (function(){
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function clamp(v, lo, hi){ v = Math.floor(Number(v)); if(!isFinite(v)) v = lo; return Math.max(lo, Math.min(hi, v)); }
+  function plural(n, one, many){ return n+" "+(n===1 ? one : many); }
+
+  /* ---------- pure logic (tested without a browser) ---------- */
+  /* Long division, one small step at a time (the divide, multiply, subtract, bring down loop). */
+  function ld(n, d){
+    var ds = String(n).split("").map(Number), steps = [], cur = 0, q = [], started = false, i;
+    for(i = 0; i < ds.length; i++){
+      cur = cur*10 + ds[i];
+      if(!started && cur < d && i < ds.length-1){ steps.push({kind:"take", col:i, text:d+" does not fit into "+cur+" yet. Look at the next digit too."}); continue; }
+      started = true;
+      var qd = Math.floor(cur/d), prod = qd*d, rem = cur-prod, last = i === ds.length-1;
+      steps.push({kind:"divide", col:i, cur:cur, qd:qd, done:d+" goes into "+cur+" "+plural(qd,"time","times")+". Write "+qd+" on top."});
+      steps.push({kind:"multiply", col:i, ans:prod, done:qd+" × "+d+" = "+prod+". Write "+prod+" under "+cur+"."});
+      steps.push({kind:"subtract", col:i, ans:rem, last:last, done:cur+" − "+prod+" = "+rem+"."});
+      q.push(qd);
+      if(!last) steps.push({kind:"bring", col:i, digit:ds[i+1], done:"Bring down the "+ds[i+1]+": now we have "+(rem*10+ds[i+1])+"."});
+      cur = rem;
+    }
+    return {n:n, d:d, steps:steps, quotient:parseInt(q.join(""), 10), remainder:cur};
+  }
+  function tenSetup(a, b){ var c = [], i; for(i = 0; i < 20; i++) c.push(0); for(i = 0; i < a; i++) c[i] = "r"; for(i = 0; i < b; i++) c[10+i] = "b"; return c; }
+  /* move counters from the second frame into the empty boxes of the first frame (colors stay) */
+  function tenMakeTen(cells){
+    var c = cells.slice(), from = 19, to;
+    for(to = 0; to < 10; to++){
+      if(c[to]) continue;
+      while(from >= 10 && !c[from]) from--;
+      if(from < 10) break;
+      c[to] = c[from]; c[from] = 0;
+    }
+    return c;
+  }
+  function tenCounts(cells){
+    var o = {f1:0, f2:0, r:0, b:0}, i;
+    for(i = 0; i < 20; i++){ if(!cells[i]) continue; if(i < 10) o.f1++; else o.f2++; if(cells[i] === "r") o.r++; else o.b++; }
+    o.total = o.f1+o.f2; return o;
+  }
+  function tenSay(cells){
+    var c = tenCounts(cells);
+    if(!c.total) return "Both ten frames are empty. Tap a box to put a counter in it, or press Set up.";
+    var s = "First frame: "+c.f1+(c.f1 === 10 ? " (full)" : "")+". Second frame: "+c.f2+". ";
+    s += (c.f1 === 10 && c.f2 > 0) ? "10 + "+c.f2+" = "+c.total+"." : "That is "+c.total+" counters in all.";
+    if(c.r && c.b) s += " ("+c.r+" red and "+c.b+" blue.)";
+    return s;
+  }
+  function arraySay(r, c){
+    var tot = r*c, i, parts = [];
+    for(i = 0; i < r; i++) parts.push(c);
+    var s = plural(r,"row","rows")+" of "+plural(c,"dot","dots")+". ";
+    s += r === 1 ? "One row of "+c+" is "+tot+"." : "Add up the rows: "+parts.join(" + ")+" = "+tot+". As multiplying: "+r+" × "+c+" = "+tot+".";
+    if(r !== c) s += " Turn it on its side: "+plural(c,"row","rows")+" of "+r+" is still "+tot+".";
+    return s;
+  }
+  function clockSay(h, m){
+    var mm = m < 10 ? "0"+m : ""+m, nxt = h%12+1;
+    var s = "The short hand is the hour hand. It points near the "+h+". The long hand is the minute hand. ";
+    s += m === 0 ? "It points straight up at the 12, so there are no extra minutes. " : "It points at the "+(m/5)+", which means "+m+" minutes. ";
+    s += "The time is "+h+":"+mm+".";
+    if(m === 0) s += " That is "+h+" o'clock.";
+    else if(m === 15) s += " That is quarter past "+h+".";
+    else if(m === 30) s += " That is half past "+h+".";
+    else if(m === 45) s += " That is quarter to "+nxt+".";
+    return s;
+  }
+  var FRAC_NAME = {2:["half","halves"], 3:["third","thirds"], 4:["fourth","fourths"]};
+  function fracSay(p, k){
+    var nm = FRAC_NAME[p] || [p+"th", p+"ths"];
+    var s = "The shape is cut into "+p+" equal parts. Each part is one "+nm[0]+(p === 4 ? " (also called a quarter)" : "")+". ";
+    if(!k) return s+"Nothing is shaded yet. Tap a part to shade it.";
+    if(k === p) return s+"All "+p+" parts are shaded. That is "+p+"/"+p+", the whole thing.";
+    return s+plural(k,"part is","parts are")+" shaded: "+k+" out of "+p+", written "+k+"/"+p+". That is "+plural(k, nm[0], nm[1])+".";
+  }
+  function lineSay(st){
+    if(!st.hops.length) return "You are at "+st.pos+" on the number line. Tap a hop button to move. Plus hops go right, minus hops go left.";
+    var h = st.hops[st.hops.length-1], d = h[1]-h[0];
+    return "You hopped "+(d > 0 ? "forward "+d : "back "+(-d))+" and landed on "+h[1]+". "+h[0]+(d > 0 ? " + " : " − ")+Math.abs(d)+" = "+h[1]+". You started at "+st.start+".";
+  }
+
+  /* ---------- drawings (original SVG) ---------- */
+  function framesSvg(cells){
+    var sz = 44, out = '<svg class="fw-svg" viewBox="0 0 224 220" role="group" aria-label="Two ten frames with counters" style="max-width:300px">';
+    [0, 1].forEach(function(f){
+      var x0 = 2, y0 = 18+f*110;
+      out += '<text x="2" y="'+(y0-5)+'" class="fw-lab">'+(f ? "second frame" : "first frame")+'</text><rect x="'+x0+'" y="'+y0+'" width="'+(5*sz)+'" height="'+(2*sz)+'" fill="#fff" stroke="#334155" stroke-width="2"/>';
+      for(var i = 0; i < 10; i++){
+        var idx = f*10+i, cx = x0+(i%5)*sz, cy = y0+Math.floor(i/5)*sz, v = cells[idx], what = v === "r" ? "red counter" : v === "b" ? "blue counter" : "empty";
+        out += '<g data-fw="cell" data-v="'+idx+'" tabindex="0" role="button" class="fw-tap" aria-label="Frame '+(f+1)+', box '+(i+1)+': '+what+'. Tap to change.">'+
+          '<rect x="'+cx+'" y="'+cy+'" width="'+sz+'" height="'+sz+'" fill="transparent" stroke="#94a3b8"/>'+(v ? '<circle cx="'+(cx+sz/2)+'" cy="'+(cy+sz/2)+'" r="15" fill="'+(v === "r" ? "#dc2626" : "#2563eb")+'"/>' : "")+'</g>';
+      }
+    });
+    return out+'</svg>';
+  }
+  function arraySvg(r, c){
+    var gap = 28, w = c*gap+8, h = r*gap+8, out = "", i, j;
+    for(i = 0; i < r; i++) for(j = 0; j < c; j++) out += '<circle cx="'+(4+gap/2+j*gap)+'" cy="'+(4+gap/2+i*gap)+'" r="10" fill="'+(i%2 ? "#2563eb" : "#dc2626")+'"/>';
+    return '<svg class="fw-svg" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(plural(r,"row","rows")+" of "+plural(c,"dot","dots"))+'" style="max-width:'+w+'px">'+out+'</svg>';
+  }
+  function clockSvg(h, m){
+    var out = '<circle cx="100" cy="100" r="94" fill="#fff" stroke="#334155" stroke-width="4"/>', i, a;
+    for(i = 0; i < 60; i++){ a = i*6*Math.PI/180; var big = i%5 === 0, r1 = big ? 82 : 87; out += '<line x1="'+(100+r1*Math.sin(a)).toFixed(1)+'" y1="'+(100-r1*Math.cos(a)).toFixed(1)+'" x2="'+(100+90*Math.sin(a)).toFixed(1)+'" y2="'+(100-90*Math.cos(a)).toFixed(1)+'" stroke="#64748b" stroke-width="'+(big ? 2 : 1)+'"/>'; }
+    for(i = 1; i <= 12; i++){ a = i*30*Math.PI/180; out += '<text x="'+(100+68*Math.sin(a)).toFixed(1)+'" y="'+(100-68*Math.cos(a)+6).toFixed(1)+'" text-anchor="middle" class="fw-num">'+i+'</text>'; }
+    var ha = ((h%12)*30+m*0.5)*Math.PI/180, ma = m*6*Math.PI/180;
+    out += '<line x1="100" y1="100" x2="'+(100+46*Math.sin(ha)).toFixed(1)+'" y2="'+(100-46*Math.cos(ha)).toFixed(1)+'" stroke="#dc2626" stroke-width="8" stroke-linecap="round"/>'+
+      '<line x1="100" y1="100" x2="'+(100+70*Math.sin(ma)).toFixed(1)+'" y2="'+(100-70*Math.cos(ma)).toFixed(1)+'" stroke="#2563eb" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="6" fill="#334155"/>';
+    return '<svg class="fw-svg" viewBox="0 0 200 200" role="img" aria-label="A clock showing '+h+':'+(m < 10 ? "0" : "")+m+'. The short red hand is the hour hand. The long blue hand is the minute hand." style="max-width:240px">'+out+'</svg>';
+  }
+  function fracSvg(p, on, shape){
+    var out = "", i, W, H;
+    if(shape === "circle"){
+      W = H = 164; var cx = 82, cy = 82, r = 76;
+      for(i = 0; i < p; i++){
+        var a0 = -Math.PI/2+i*2*Math.PI/p, a1 = -Math.PI/2+(i+1)*2*Math.PI/p, big = (a1-a0) > Math.PI ? 1 : 0;
+        out += '<path data-fw="part" data-v="'+i+'" tabindex="0" role="button" class="fw-tap" aria-label="Part '+(i+1)+' of '+p+': '+(on[i] ? "shaded" : "not shaded")+'. Tap to change." d="M'+cx+' '+cy+' L'+(cx+r*Math.cos(a0)).toFixed(1)+' '+(cy+r*Math.sin(a0)).toFixed(1)+' A'+r+' '+r+' 0 '+big+' 1 '+(cx+r*Math.cos(a1)).toFixed(1)+' '+(cy+r*Math.sin(a1)).toFixed(1)+' Z" fill="'+(on[i] ? "#f59e0b" : "#fff")+'" stroke="#334155" stroke-width="3" stroke-linejoin="round"/>';
+      }
+    } else {
+      W = 240; H = 84; var bw = 232/p;
+      for(i = 0; i < p; i++) out += '<rect data-fw="part" data-v="'+i+'" tabindex="0" role="button" class="fw-tap" aria-label="Part '+(i+1)+' of '+p+': '+(on[i] ? "shaded" : "not shaded")+'. Tap to change." x="'+(4+i*bw).toFixed(1)+'" y="4" width="'+bw.toFixed(1)+'" height="76" fill="'+(on[i] ? "#f59e0b" : "#fff")+'" stroke="#334155" stroke-width="3"/>';
+    }
+    return '<svg class="fw-svg" viewBox="0 0 '+W+' '+H+'" role="group" aria-label="A '+shape+' cut into '+p+' equal parts" style="max-width:'+(shape === "circle" ? 200 : 300)+'px">'+out+'</svg>';
+  }
+  function lineSvg(st, cfg){
+    var W = 320, x0 = 16, span = 288, y = 74, max = cfg.max, X = function(v){ return x0+v*span/max; }, out = "", v;
+    out += '<line x1="'+x0+'" y1="'+y+'" x2="'+(x0+span)+'" y2="'+y+'" stroke="currentColor" stroke-width="3"/>';
+    var tickEvery = max <= 20 ? 1 : 10, labelEvery = max <= 20 ? 5 : 10;
+    for(v = 0; v <= max; v += tickEvery){
+      var lab = v%labelEvery === 0;
+      out += '<line x1="'+X(v).toFixed(1)+'" y1="'+(y-(lab ? 9 : 5))+'" x2="'+X(v).toFixed(1)+'" y2="'+(y+(lab ? 9 : 5))+'" stroke="currentColor" stroke-width="2"/>';
+      if(lab) out += '<text x="'+X(v).toFixed(1)+'" y="'+(y+28)+'" text-anchor="middle" class="fw-num">'+v+'</text>';
+    }
+    st.hops.slice(-5).forEach(function(h, k){
+      var a = X(h[0]), b = X(h[1]), m = (a+b)/2, lift = 34+(k%2)*14;
+      out += '<path d="M'+a.toFixed(1)+' '+y+' Q'+m.toFixed(1)+' '+(y-lift*1.6)+' '+b.toFixed(1)+' '+y+'" fill="none" stroke="#2563eb" stroke-width="2.5"/><text x="'+m.toFixed(1)+'" y="'+(y-lift*0.8-6)+'" text-anchor="middle" class="fw-num fw-blue">'+(h[1] > h[0] ? "+" : "−")+Math.abs(h[1]-h[0])+'</text>';
+    });
+    out += '<circle cx="'+X(st.pos).toFixed(1)+'" cy="'+y+'" r="9" fill="#dc2626" stroke="#fff" stroke-width="2"/>';
+    return '<svg class="fw-svg" viewBox="0 0 '+W+' 110" role="img" aria-label="Number line from 0 to '+max+'. The red dot is at '+st.pos+'." style="max-width:360px">'+out+'</svg>';
+  }
+  function ldSvg(n, d, upto){
+    var info = ld(n, d), W = 30, x0 = 56, ds = String(n), steps = info.steps.slice(0, upto), rowY = 70, remY = 0, parts = [], width = x0+W*ds.length+30;
+    var cx = function(col){ return x0+col*W+W/2; };
+    steps.forEach(function(st){
+      if(st.kind === "divide") parts.push('<text x="'+cx(st.col)+'" y="30" class="q">'+st.qd+'</text>');
+      if(st.kind === "multiply"){ rowY += 26; parts.push('<text x="'+(cx(st.col-(String(st.ans).length-1))-24)+'" y="'+rowY+'" class="p">−</text>'); String(st.ans).split("").forEach(function(ch, k, arr){ parts.push('<text x="'+cx(st.col-(arr.length-1)+k)+'" y="'+rowY+'" class="p">'+ch+'</text>'); }); }
+      if(st.kind === "subtract"){ parts.push('<line x1="'+(cx(st.col-2)-6)+'" x2="'+(cx(st.col)+12)+'" y1="'+(rowY+8)+'" y2="'+(rowY+8)+'" stroke="currentColor" stroke-width="2"/>'); rowY += 26; remY = rowY; if(st.ans !== 0 || st.last) parts.push('<text x="'+cx(st.col)+'" y="'+rowY+'" class="r">'+st.ans+'</text>'); }
+      if(st.kind === "bring") parts.push('<text x="'+cx(st.col+1)+'" y="'+remY+'" class="b">'+st.digit+'</text>');
+    });
+    var height = Math.max(110, rowY+24);
+    return '<svg class="fw-svg fw-ld" viewBox="0 0 '+width+' '+height+'" role="img" aria-label="Long division of '+n+' by '+d+' worked so far" style="max-width:340px">'+
+      '<text x="10" y="64" class="p">'+d+'</text><path d="M'+(x0-10)+' 40 V 74 M'+(x0-10)+' 40 H '+(x0+W*ds.length+6)+'" stroke="currentColor" stroke-width="2.5" fill="none"/>'+
+      ds.split("").map(function(ch, i){ return '<text x="'+cx(i)+'" y="64" class="p">'+ch+'</text>'; }).join("")+parts.join("")+'</svg>';
+  }
+
+  /* ---------- style (scoped to .fw, follows the page colors, light and dark) ---------- */
+  var CSS = '.fw{color:var(--text,#1f2937);font:inherit;max-width:520px}.fw *{box-sizing:border-box}'+
+    '.fw-svg{display:block;width:100%;height:auto;margin:6px 0}.fw-svg text{fill:currentColor}.fw-lab{font-size:12px}.fw-num{font:700 14px ui-monospace,Consolas,monospace}.fw-blue{fill:#2563eb!important}'+
+    '.fw-tap{cursor:pointer}.fw-tap:focus{outline:none}.fw-tap:focus rect,.fw-tap:focus path{stroke:#2563eb;stroke-width:4}'+
+    '.fw-ld text{font:600 20px ui-monospace,Consolas,monospace;text-anchor:middle}.fw-ld .q{fill:#15803d}.fw-ld .r{fill:#b45309}.fw-ld .b{fill:#2563eb}'+
+    '.fw-say{font-size:15px;line-height:1.5;margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--paper,#f8fafc);border:1px solid var(--border,#d8dee6)}'+
+    '.fw-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;align-items:center}.fw-lbl{font-size:14px;margin-right:2px}'+
+    '.fw-btn{min-height:44px;min-width:44px;padding:0 12px;border:1px solid var(--border,#d8dee6);background:var(--card,transparent);color:inherit;border-radius:10px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}'+
+    '.fw-btn.on{background:#dbeafe;border-color:#2563eb;color:#1e3a8a}.fw-btn[disabled]{opacity:.45;cursor:default}'+
+    '.fw-in{min-height:44px;width:5.5em;padding:0 8px;font:inherit;color:inherit;background:transparent;border:1px solid var(--border,#d8dee6);border-radius:8px}';
+  function ensureStyle(doc){ if(doc.getElementById("fw-style")) return; var s = doc.createElement("style"); s.id = "fw-style"; s.textContent = CSS; (doc.head || doc.documentElement).appendChild(s); }
+  function btn(label, act, v, extra, cls){ return '<button type="button" class="fw-btn'+(cls ? " "+cls : "")+'" data-fw="'+act+'"'+(v != null ? ' data-v="'+v+'"' : "")+(extra || "")+'>'+label+'</button>'; }
+  function stepper(label, val, act, lessAria, moreAria, lo, hi){
+    return '<div class="fw-row"><span class="fw-lbl">'+label+': <b>'+val+'</b></span>'+btn("−", act+"-", null, ' aria-label="'+lessAria+'"'+(val <= lo ? " disabled" : ""))+btn("+", act+"+", null, ' aria-label="'+moreAria+'"'+(val >= hi ? " disabled" : ""))+'</div>';
+  }
+
+  /* ---------- the six widgets: init / html / say / act (act returns false to skip the redraw) ---------- */
+  var WIDGETS = {
+    tenframe: {
+      init: function(){ return {a:8, b:5, cells:tenSetup(8, 5)}; },
+      html: function(st){ return stepper("First number", st.a, "a", "Make the first number smaller", "Make the first number bigger", 1, 9)+stepper("Second number", st.b, "b", "Make the second number smaller", "Make the second number bigger", 1, 10)+framesSvg(st.cells)+
+        '<div class="fw-row">'+btn("Set up "+st.a+" + "+st.b, "setup")+btn("Make ten", "make")+btn("Clear", "clear")+'</div>'; },
+      say: function(st){ return tenSay(st.cells); },
+      act: function(st, act, ds){
+        if(act === "a-") st.a = clamp(st.a-1, 1, 9); else if(act === "a+") st.a = clamp(st.a+1, 1, 9);
+        else if(act === "b-") st.b = clamp(st.b-1, 1, 10); else if(act === "b+") st.b = clamp(st.b+1, 1, 10);
+        if(/^[ab][-+]$/.test(act) || act === "setup") st.cells = tenSetup(st.a, st.b);
+        else if(act === "make") st.cells = tenMakeTen(st.cells);
+        else if(act === "clear") st.cells = tenSetup(0, 0);
+        else if(act === "cell"){ var i = clamp(ds.v, 0, 19), c = st.cells[i]; st.cells[i] = c === 0 ? "r" : c === "r" ? "b" : 0; }
+        else return false;
+      }
+    },
+    arrays: {
+      init: function(){ return {r:3, c:4}; },
+      html: function(st){ return stepper("Rows", st.r, "r", "Fewer rows", "More rows", 1, 10)+stepper("Dots in each row", st.c, "c", "Fewer dots in each row", "More dots in each row", 1, 10)+arraySvg(st.r, st.c); },
+      say: function(st){ return arraySay(st.r, st.c); },
+      act: function(st, act){
+        if(act === "r-") st.r = clamp(st.r-1, 1, 10); else if(act === "r+") st.r = clamp(st.r+1, 1, 10);
+        else if(act === "c-") st.c = clamp(st.c-1, 1, 10); else if(act === "c+") st.c = clamp(st.c+1, 1, 10); else return false;
+      }
+    },
+    clock: {
+      init: function(){ return {h:3, m:0}; },
+      html: function(st){ return clockSvg(st.h, st.m)+'<div class="fw-row"><span class="fw-lbl">Time: <b>'+st.h+':'+(st.m < 10 ? "0" : "")+st.m+'</b></span></div>'+
+        '<div class="fw-row">'+btn("Hour −", "h-", null, ' aria-label="Move the hour back"')+btn("Hour +", "h+", null, ' aria-label="Move the hour forward"')+btn("Minutes −5", "m-", null, ' aria-label="Move the minute hand back 5 minutes"')+btn("Minutes +5", "m+", null, ' aria-label="Move the minute hand forward 5 minutes"')+'</div>'+
+        '<div class="fw-row">'+btn("o'clock", "set", 0)+btn("quarter past", "set", 15)+btn("half past", "set", 30)+btn("quarter to", "set", 45)+'</div>'; },
+      say: function(st){ return clockSay(st.h, st.m); },
+      act: function(st, act, ds){
+        if(act === "h+") st.h = st.h%12+1; else if(act === "h-") st.h = (st.h+10)%12+1;
+        else if(act === "m+") st.m = (st.m+5)%60; else if(act === "m-") st.m = (st.m+55)%60;
+        else if(act === "set") st.m = clamp(ds.v, 0, 55); else return false;
+      }
+    },
+    fractions: {
+      init: function(){ return {p:2, shape:"bar", on:[true, false, false, false]}; },
+      html: function(st){ return '<div class="fw-row"><span class="fw-lbl">Shape:</span>'+btn("Bar", "shape", "bar", ' aria-pressed="'+(st.shape === "bar")+'"', st.shape === "bar" ? "on" : "")+btn("Circle", "shape", "circle", ' aria-pressed="'+(st.shape === "circle")+'"', st.shape === "circle" ? "on" : "")+'</div>'+
+        '<div class="fw-row"><span class="fw-lbl">Cut into:</span>'+[2, 3, 4].map(function(p){ return btn(p+" parts", "parts", p, ' aria-pressed="'+(st.p === p)+'"', st.p === p ? "on" : ""); }).join("")+'</div>'+
+        fracSvg(st.p, st.on, st.shape)+'<div class="fw-row">'+btn("Clear", "clear")+'</div>'; },
+      say: function(st){ return fracSay(st.p, st.on.slice(0, st.p).filter(Boolean).length); },
+      act: function(st, act, ds){
+        if(act === "shape") st.shape = ds.v === "circle" ? "circle" : "bar";
+        else if(act === "parts"){ st.p = clamp(ds.v, 2, 4); st.on = [true, false, false, false]; }
+        else if(act === "part"){ var i = clamp(ds.v, 0, st.p-1); st.on[i] = !st.on[i]; }
+        else if(act === "clear") st.on = [false, false, false, false]; else return false;
+      }
+    },
+    numberline: {
+      init: function(cfg){ cfg.max = cfg.max === 100 ? 100 : 20; cfg.steps = cfg.steps || (cfg.max === 100 ? [1, 10] : [1, 2, 5, 10]); return {start:0, pos:0, hops:[]}; },
+      html: function(st, cfg){
+        var row1 = "", row2 = "", tens = cfg.max === 100;
+        cfg.steps.forEach(function(s){
+          row1 += btn("+"+s, "hop", s, ' aria-label="Hop forward '+s+'"'+(st.pos+s > cfg.max ? " disabled" : ""));
+          row2 += btn("−"+s, "hop", -s, ' aria-label="Hop back '+s+'"'+(st.pos-s < 0 ? " disabled" : ""));
+        });
+        return lineSvg(st, cfg)+'<div class="fw-row"><span class="fw-lbl">Hop right:</span>'+row1+'</div><div class="fw-row"><span class="fw-lbl">Hop left:</span>'+row2+'</div>'+
+          '<div class="fw-row"><span class="fw-lbl">Start at: <b>'+st.start+'</b></span>'+(tens ? btn("−10", "start-t", null, ' aria-label="Start 10 further left"'+(st.start-10 < 0 ? " disabled" : "")) : "")+btn("−1", "start-", null, ' aria-label="Start 1 further left"'+(st.start-1 < 0 ? " disabled" : ""))+btn("+1", "start+", null, ' aria-label="Start 1 further right"'+(st.start+1 > cfg.max ? " disabled" : ""))+(tens ? btn("+10", "start+t", null, ' aria-label="Start 10 further right"'+(st.start+10 > cfg.max ? " disabled" : "")) : "")+btn("Start over", "again")+'</div>';
+      },
+      say: function(st){ return lineSay(st); },
+      act: function(st, act, ds, cfg){
+        if(act === "hop"){ var s = Number(ds.v), to = st.pos+s; if(!isFinite(s) || to < 0 || to > cfg.max) return false; st.hops.push([st.pos, to]); st.pos = to; }
+        else if(act === "start-" || act === "start+" || (cfg.max === 100 && (act === "start-t" || act === "start+t"))){ var step = /t$/.test(act) ? 10 : 1; st.start = clamp(st.start+(/^start+/.test(act) ? step : -step), 0, cfg.max); st.pos = st.start; st.hops = []; }
+        else if(act === "again"){ st.pos = st.start; st.hops = []; } else return false;
+      }
+    },
+    longdivision: {
+      init: function(cfg){ var n = clamp(cfg.n || 584, 10, 999), d = clamp(cfg.d || 4, 2, 9); return {n:n, d:d, i:0, msg:""}; },
+      html: function(st){
+        var info = ld(st.n, st.d);
+        return '<div class="fw-row"><label class="fw-lbl">Number to divide <input class="fw-in" type="number" inputmode="numeric" min="10" max="999" value="'+st.n+'" data-fw-input="n"></label>'+btn("−", "n-", null, ' aria-label="One less"')+btn("+", "n+", null, ' aria-label="One more"')+'</div>'+
+          stepper("Divide by", st.d, "d", "Divide by a smaller number", "Divide by a bigger number", 2, 9)+ldSvg(st.n, st.d, st.i)+
+          '<div class="fw-row">'+btn("◀ Back", "back", null, st.i ? "" : " disabled")+btn("Next step ▶", "next", null, st.i >= info.steps.length ? " disabled" : "", "on")+btn("Start over", "again")+'</div>'; },
+      say: function(st){
+        if(st.msg) return st.msg;
+        var info = ld(st.n, st.d), i = st.i;
+        var s = i === 0 ? "We will solve "+st.n+" ÷ "+st.d+" one small step at a time. Tap Next step. The steps repeat: divide, multiply, subtract, bring down." : (info.steps[i-1].done || info.steps[i-1].text);
+        if(i >= info.steps.length) s += " The answer is "+info.quotient+(info.remainder ? " remainder "+info.remainder : "")+". Check: "+info.quotient+" × "+st.d+(info.remainder ? " + "+info.remainder : "")+" = "+st.n+".";
+        return s;
+      },
+      act: function(st, act, ds, cfg, info){
+        st.msg = "";
+        if(act === "next") st.i = Math.min(ld(st.n, st.d).steps.length, st.i+1);
+        else if(act === "back") st.i = Math.max(0, st.i-1);
+        else if(act === "again") st.i = 0;
+        else if(act === "d-" || act === "d+"){ st.d = clamp(st.d+(act === "d+" ? 1 : -1), 2, 9); st.i = 0; }
+        else if(act === "n-" || act === "n+"){ st.n = clamp(st.n+(act === "n+" ? 1 : -1), 10, 999); st.i = 0; }
+        else if(act === "input"){ var v = Number(ds.v); if(isFinite(v) && Math.floor(v) === v && v >= 10 && v <= 999){ st.n = v; st.i = 0; } else st.msg = "Pick a whole number from 10 to 999, then tap Next step."; }
+        else return false;
+      }
+    }
+  };
+
+  /* ---------- the controller ---------- */
+  function mount(el, type, cfg, opts){
+    var W = WIDGETS[type]; if(!W) throw new Error("unknown widget type: "+type);
+    opts = opts || {}; cfg = JSON.parse(JSON.stringify(cfg || {}));
+    ensureStyle(el.ownerDocument);
+    var st = W.init(cfg), dead = false;
+    function render(focus){
+      if(dead) return;
+      el.innerHTML = '<div class="fw" data-fw-type="'+type+'">'+W.html(st, cfg)+'<p class="fw-say" role="status" aria-live="polite">'+esc(W.say(st, cfg))+'</p><div class="fw-row">'+btn("🔊 Read it to me", "speak")+'</div></div>';
+      if(focus){ var ns = el.querySelectorAll("[data-fw]"), k; for(k = 0; k < ns.length; k++){ if(ns[k].getAttribute("data-fw") === focus[0] && (ns[k].getAttribute("data-v") || "") === focus[1] && !ns[k].disabled){ ns[k].focus(); break; } } }
+    }
+    function go(act, ds){
+      if(act === "speak"){ if(opts.speak) opts.speak(W.say(st, cfg)); return; }
+      var r; try{ r = W.act(st, act, ds, cfg); }catch(e){ return; }
+      if(r !== false) render([act, ds.v == null ? "" : String(ds.v)]);
+    }
+    function onClick(e){ var t = e.target && e.target.closest ? e.target.closest("[data-fw]") : null; if(!t || !el.contains(t) || t.disabled) return; go(t.getAttribute("data-fw"), {v:t.getAttribute("data-v")}); }
+    function onKey(e){ var t = e.target; if(!t || !t.getAttribute || t.tagName === "BUTTON" || !t.getAttribute("data-fw")) return; if(e.key === "Enter" || e.key === " "){ e.preventDefault(); go(t.getAttribute("data-fw"), {v:t.getAttribute("data-v")}); } }
+    function onChange(e){ var t = e.target; if(t && t.getAttribute && t.getAttribute("data-fw-input")) go("input", {v:t.value}); }
+    el.addEventListener("click", onClick); el.addEventListener("keydown", onKey); el.addEventListener("change", onChange);
+    render();
+    return {getState: function(){ return JSON.parse(JSON.stringify(st)); }, destroy: function(){ dead = true; el.removeEventListener("click", onClick); el.removeEventListener("keydown", onKey); el.removeEventListener("change", onChange); el.innerHTML = ""; }};
+  }
+  return {mount:mount, types:Object.keys(WIDGETS), logic:{ld:ld, tenSetup:tenSetup, tenMakeTen:tenMakeTen, tenCounts:tenCounts, tenSay:tenSay, arraySay:arraySay, clockSay:clockSay, fracSay:fracSay, lineSay:lineSay}};
+})();
+
+/* Which lessons get which "Try it" aid (exact titles; the lookup also needs the right kid). Nothing about a lesson is changed. */
+var WIDGET_FOR = [
+ {kid:"kid1", type:"tenframe", label:"Ten frame", titles:["Fill the Ten: Break Apart and Make a Ten", "Give and Take: Make a Friendly Ten"]},
+ {kid:"kid1", type:"arrays", label:"Arrays", titles:["Array Garden: Rows and Columns", "Square Tiles: Cover the Rectangle"]},
+ {kid:"kid1", type:"clock", label:"Clock", titles:["Clock Maker: Tell Time to 5 Minutes", "Quarter Past, Half Past, Quarter Till"]},
+ {kid:"kid1", type:"fractions", label:"Fractions", titles:["Fold It Fair: Halves, Thirds and Fourths", "One Half, One Third, One Fourth", "Count the Parts: Halves, Thirds and Fourths"]},
+ {kid:"kid1", type:"numberline", label:"Number line", cfg:{max:20}, titles:["Hop Along the Number Line: Count On to Add", "Hop Backward: Count Back to Subtract"]},
+ {kid:"kid1", type:"numberline", label:"Number line", cfg:{max:100}, titles:["Big Hop, Little Hop: Add Tens First", "Hop Back in Tens, Then Ones"]},
+ {kid:"kid2", type:"longdivision", label:"Long division", cfg:{n:584, d:4}, titles:["Math Book, Unit 6: The Standard Algorithm (Long Division Steps)", "Math Book, Unit 6: Remainders, Area Models, and Partial Quotients", "Math Book, Unit 6: What Do I Do With the Remainder? (Interpreting Remainders)"]}
+];
+function widgetSpecFor(a){
+  if(!a || !a.title) return null;
+  var t = String(a.title).replace(/\s+/g, " ").trim();
+  for(var i = 0; i < WIDGET_FOR.length; i++){ var w = WIDGET_FOR[i]; if(w.kid === a.kidId && w.titles.indexOf(t) >= 0) return w; }
+  return null;
+}
+/* Leader switch (default ON): familyGoal().widgetsOff = {kid1:true} turns the aids off for that kid. Stored like the other Leader switches (this device plus al_settings.family_goal). */
+function widgetsOn(kidId){ var o = familyGoal().widgetsOff; return !(o && o[kidId]); }
+/* The collapsible "Try it" panel for a lesson page, or null. It only mounts a widget; it never reads or writes lesson data. Any problem hides the panel instead of breaking the lesson. */
+function widgetPanelFor(a){
+  try{
+    var w = widgetSpecFor(a); if(!w || !widgetsOn(a.kidId)) return null;
+    var det = document.createElement("details"); det.className = "fw-panel";
+    det.style.cssText = "margin-bottom:14px;padding:4px 14px;border-radius:10px;background:var(--paper);border:1px solid var(--border)";
+    var sum = document.createElement("summary");
+    sum.style.cssText = "cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700";
+    sum.textContent = "🧰 Try it: "+w.label+" (practice, not a test)";
+    det.appendChild(sum);
+    var body = document.createElement("div"); body.style.cssText = "padding:4px 0 10px"; det.appendChild(body);
+    var mounted = false;
+    function open(){ if(mounted) return; mounted = true; try{ ForgeWidgets.mount(body, w.type, w.cfg || {}, {speak:speak}); }catch(e){ body.textContent = "This practice tool did not load. You can keep going with the lesson."; } }
+    var key = detailsOpenKey("widget", a.kidId==="kid2" ? "ryan" : "anna", false, a.id || w.type);
+    if(isDetailsOpen(key)){ det.open = true; open(); }
+    det.addEventListener("toggle", function(){ setDetailsOpen(key, det.open); if(det.open) open(); });
+    return det;
+  }catch(e){ return null; }
+}
+function widgetsLeaderCard(){
+  var c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
+  c.innerHTML = '<div style="font-weight:700">🧰 "Try it" practice tools in lessons</div>'+
+    '<div class="muted" style="font-size:12.5px;margin:6px 0">Some lessons show a small tool between the lesson and the quiz (ten frame, arrays, clock, fractions, number line, long division). It is practice only: it never grades and does not change Done, XP or saving. Switch it off for a kid here.</div>';
+  KIDS.forEach(function(k){
+    var on = widgetsOn(k.id), row = document.createElement("div"); row.style.cssText = "display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap";
+    row.innerHTML = '<span style="min-width:90px">'+escapeHtml(kidData(k.id).name || k.id)+': <b>'+(on ? "ON" : "OFF")+'</b></span>';
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:10px 14px;min-height:44px;color:var(--ink)";
+    b.textContent = on ? "Turn off" : "Turn on";
+    b.onclick = function(){ var off = Object.assign({}, familyGoal().widgetsOff || {}); if(on) off[k.id] = true; else delete off[k.id]; saveFamilyGoal(Object.assign({}, familyGoal(), {widgetsOff:off}), true); renderLeaderArea(); };
+    row.appendChild(b); c.appendChild(row);
+  });
+  return c;
+}
+/* FORGE-WIDGETS-END */
+
 function renderLessonDetail(){
   els.view.innerHTML = "";
   var a = state.assignments[state.lessonDetailId];
@@ -7371,6 +7721,8 @@ function renderLessonDetail(){
     if(SR) wireLongMic(hMic, hIn, hAsk);
     card.appendChild(hDet);
   }
+
+  var widgetPanel = widgetPanelFor(a); if(widgetPanel) card.appendChild(widgetPanel);   /* optional Try-it practice aid (build .9): only for the lessons in WIDGET_FOR, writes nothing */
 
   if(Array.isArray(a.quiz) && a.quiz.length){
     var quizWrap = document.createElement("div");
@@ -8262,6 +8614,7 @@ function renderLeaderArea(){
   els.view.appendChild(agendaCard());
   els.view.appendChild(autoReviewCard());
   els.view.appendChild(liveWorldCard());
+  els.view.appendChild(widgetsLeaderCard());
   els.view.appendChild(spectateCard());
   els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
@@ -28500,6 +28853,7 @@ function saveFamilyGoal(g, quiet){
   if(g.world===undefined && cur.world!==undefined) g = Object.assign({}, g, {world:cur.world});
   if(g.liveWorld===undefined && cur.liveWorld!==undefined) g = Object.assign({}, g, {liveWorld:cur.liveWorld});
   if(g.autoReview===undefined && cur.autoReview!==undefined) g = Object.assign({}, g, {autoReview:cur.autoReview});
+  if(g.widgetsOff===undefined && cur.widgetsOff!==undefined) g = Object.assign({}, g, {widgetsOff:cur.widgetsOff});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -35621,7 +35975,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-10.8";
+var APP_BUILD = "2026-11-10.10";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
