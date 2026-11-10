@@ -4220,7 +4220,10 @@ function taskRow(a){
 
 function toggleAssignment(a){
   if(!db) return;
-  var willDone = !a.done;
+  var cur0 = state.assignments[a.id] || a;
+  if(SG.tapTooSoon(a.id)) return;   // a double tap is one tap
+  if(cur0.reviewStatus==="approved" && cur0.done && !state.leaderUnlocked){ toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
+  var willDone = !cur0.done;
   var doneAt = willDone ? new Date().toISOString() : null;
   if(state.assignments[a.id]){ state.assignments[a.id].done = willDone; state.assignments[a.id].doneAt = doneAt; renderView(); }
   db.doc("assignments/"+a.id).update({done: willDone, doneAt: doneAt});
@@ -6816,7 +6819,7 @@ function autoApproveQuizOnly(){
     var a = state.assignments[id];
     if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
     if(a.quizScore/a.quizTotal < 0.7) return;
-    a.reviewStatus = "approved"; db.doc("assignments/"+id).update({reviewStatus:"approved"}); n++;
+    a.reviewStatus = "approved"; SG.afterSend(id, function(){ db.doc("assignments/"+id).update({reviewStatus:"approved"}); }); n++;
   });
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
 }
@@ -7845,13 +7848,15 @@ function renderLessonDetail(){
 
   function saveWork(){
     if(!db) return;
+    var live0 = state.assignments[a.id] || a;
+    if(live0.reviewStatus==="approved" && !state.leaderUnlocked){ savedNote.textContent = "\uD83D\uDD12 Already approved, so it can't be changed"; toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
     var now = new Date().toISOString();
     var updates = {workBlocks: blocks, submittedAt: now};
     if(a.reviewStatus==="flagged"){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
     a.workBlocks = blocks; draftSnap = JSON.stringify(blocks);
     if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {workBlocks: blocks, submittedAt: now, reviewStatus: a.reviewStatus, reviewNote: a.reviewNote});
     db.doc("assignments/"+a.id).update(updates);
-    savedNote.textContent = "Saved just now";
+    savedNote.textContent = "Saved on this device \u2705";
   }
 
   /* "Check Yourself" and "Show What You Know" get answer boxes right at the question. A yes or no is only offered for a plain self-check;
@@ -8280,6 +8285,7 @@ function renderLeaderArea(){
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
   intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
+  var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
 
   var all = [];
   KIDS.forEach(function(k){
@@ -9652,16 +9658,21 @@ function doc(path){
   var table = TABLE[coll], keyCol = KEY_COL[coll];
   return {
     update: function(partial){
+      var refused = SG.guard(coll, id, partial); if(refused) return refused;
+      if(SG.durable(coll, partial)) return SG.queueUpdate(coll, id, partial);   // kept on this device first, then sent with a stable request id (see SG)
       return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(checkWriteError);
     },
     /* Same as update but does not trigger a sync afterwards: for frequent small autosaves (a kid typing), so they cost one write and no extra reads. */
     updateQuiet: function(partial){
+      var refused = SG.guard(coll, id, partial, true); if(refused) return refused;
       return sb.from(table).update(toRow(coll, partial)).eq(keyCol, id).then(function(res){
         if(res && res.error){ console.error("Academy Log sync error:", res.error); toast("\u26A0\uFE0F Couldn't save"+(res.error.message ? ": "+res.error.message : " \u2014 check your connection and try again")); }
         return res;
       });
     },
     set: function(full){
+      var refused = SG.guard(coll, id, full); if(refused) return refused;
+      if(SG.durable(coll, full)) return SG.queueUpdate(coll, id, full);
       return sb.from(table).update(toRow(coll, full)).eq(keyCol, id).then(checkWriteError);
     },
     delete: function(){
@@ -9685,6 +9696,7 @@ function collection(coll){
       var id = obj.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random());
       var row = toRow(coll, obj);
       row.id = id; row.household_id = HOUSEHOLD_ID;
+      if(coll==="rewards") return SG.queueInsert(coll, row);   // saved on this device first; the id is fixed here, so a resend can never add a second reward
       return sb.from(table).insert(row).then(checkWriteError);
     },
     /* Insert with a fixed id: if any device or earlier run already added this row, nothing happens (no overwrite, no error toast). */
@@ -9700,6 +9712,263 @@ function collection(coll){
 }
 db = { doc: doc, collection: collection };
 window.db = db;
+
+/* ---------- Reliable saving and a parent-only approval gate (build 2026-11-10.7) ----------
+   Ported from the isolated prototype (claude/daily-flow-prototype, steps 3a/3b), smallest form. Nothing here adds a new store or a new column.
+   SAVING. When a kid turns work in, saves progress, answers a quiz or earns XP, the change is kept on this device first (localStorage "al_outbox_v1"),
+   then sent to Supabase. Every queued change has a stable request id (assignment + round + sequence, never a short hash). Changes to the same
+   assignment in the same round that have not left the device are one request (a double tap is one entry). The writes are ABSOLUTE values (done, doneAt,
+   submittedAt, work, score, total XP), and the time stamps are chosen once when the tap happens, so sending the same request twice, or again after a lost
+   confirmation, leaves one result and no second reward. The level-up reward row gets one id chosen when it is queued and is inserted "ignore duplicates".
+   Offline is not a failure: nothing is counted or retried while the device says it is offline. A failed send is retried a bounded number of times with
+   waits, then kept as "Send again" (never dropped). After a reload the unsent copies are laid back over what the server returned, so a lesson never
+   looks undone while its turn-in is still waiting.
+   APPROVAL. An approved lesson is locked for its round: a kid session cannot change its work, answers or done mark, and a send-back (flag) is the only way
+   to a new round. Only a grown-up (Leader PIN unlocked) can write reviewStatus "approved"; the two automatic reviewers (quiz-only at 70% and the helper's
+   "looks good") pass through SG.auto() and are checked against their evidence here, so no other caller can claim to be "auto". The server also refuses to
+   overwrite an approved row with a kid copy (the update carries a "not approved" filter).
+   LIMITS (see RELEASE_HANDOFF_SAVING.md): the app signs every device in with one household login, so this is a guard inside the app, not a server rule. */
+var SG = (function(){
+  var KEY = "al_outbox_v1", RKEY = "al_outbox_ids_v1", MAX_TRIES = 6, BACKOFF = [3000, 10000, 30000, 60000, 120000, 300000], limits = {timeout: 20000}, waiters = [];
+  var TRIG = {assignments:["done","submittedAt","workBlocks","quizScore","quizRetryUsed"], kids:["xp"]};
+  var LOCKED_KEYS = ["workBlocks","submittedAt","quizScore","quizTotal","quizRetryUsed"];
+  var box = [], ids = {rounds:{}, seqs:{}}, memOnly = false, running = false, timer = null, autoDepth = 0, taps = {}, inflight = null, chip = null;
+  function readJson(k, d){ try{ var v = JSON.parse(localStorage.getItem(k)||"null"); return v==null ? d : v; }catch(e){ return d; } }
+  var lastBox = null, lastIds = null;
+  function persist(){
+    var sb1 = JSON.stringify(box), sb2 = JSON.stringify(ids);
+    if(sb1===lastBox && sb2===lastIds && !memOnly) return;   // nothing changed: do not rewrite the stored copy
+    try{ localStorage.setItem(KEY, sb1); localStorage.setItem(RKEY, sb2); memOnly = false; lastBox = sb1; lastIds = sb2; }
+    catch(e){ memOnly = box.length>0; }
+  }
+  box = readJson(KEY, []); if(!Array.isArray(box)) box = [];
+  ids = readJson(RKEY, {rounds:{}, seqs:{}}); if(!ids || !ids.rounds || !ids.seqs) ids = {rounds:{}, seqs:{}};
+  box.forEach(function(e){ if(e.status==="sending") e.status = "queued"; });   // a copy that was in flight when the page closed is simply sent again (same id, same values)
+  function localRow(coll, id){ return coll==="assignments" ? state.assignments[id] : coll==="kids" ? state.kids[id] : null; }
+  function isParent(){ return !!state.leaderUnlocked; }
+  function newUuid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 12); }
+  function refuse(msg, quiet){ if(!quiet) toast("🔒 " + msg); return Promise.resolve({data:null, error:{message:msg, locked:true}}); }
+
+  /* Evidence the two automatic reviewers must have (checked again here, so "auto" cannot be claimed by any other caller). */
+  function autoEvidence(a){
+    if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
+    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && a.quizScore/a.quizTotal >= 0.7;
+    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn());
+    return quizOnly || ai;
+  }
+  function auto(fn){ autoDepth++; try{ return fn(); } finally{ autoDepth--; } }
+
+  /* Called first by every db.doc(...).update/set/updateQuiet. Returns a resolved "refused" promise, or null to let the write go on. */
+  function guard(coll, id, partial, quiet){
+    if(coll!=="assignments" || !partial) return null;
+    var cur = state.assignments[id];
+    if(partial.reviewStatus==="approved"){
+      if(isParent() || (autoDepth>0 && autoEvidence(cur))) return null;
+      return refuse("Only a grown-up can approve work.", quiet);
+    }
+    if(cur && cur.reviewStatus==="approved" && !isParent()){
+      var touches = LOCKED_KEYS.some(function(k){ return k in partial; }) || partial.done===false;
+      if(touches) return refuse("This was already checked and approved, so it can't be changed.", quiet);
+    }
+    return null;
+  }
+  function durable(coll, partial){
+    var keys = TRIG[coll]; if(!keys || !partial) return false;
+    return keys.some(function(k){ return k in partial; });
+  }
+
+  function find(coll, id, round){
+    return box.filter(function(x){ return x.kind==="update" && x.coll===coll && x.id===id && x.round===round && x!==inflight; })[0] || null;
+  }
+  /* Keep a change on this device first, then send it. One request per assignment per round until it has left the device. */
+  function queueUpdate(coll, id, partial){
+    var round = ids.rounds[id] || 0;
+    if(coll==="assignments" && "reviewStatus" in partial && partial.reviewStatus===null) round = ids.rounds[id] = round + 1;   // a kid fixing a sent-back lesson starts a new round
+    var e = find(coll, id, round);
+    if(e){ Object.keys(partial).forEach(function(k){ e.partial[k] = partial[k]; }); e.status = "queued"; e.tries = 0; e.nextAt = 0; e.err = null; if(isParent()) e.parent = true; }
+    else {
+      var base = coll + "/" + id + "#r" + round;
+      ids.seqs[base] = (ids.seqs[base]||0) + 1;
+      e = {rid: base + "#" + ids.seqs[base], kind:"update", coll:coll, id:id, round:round, partial:JSON.parse(JSON.stringify(partial)), parent:isParent(), status:"queued", tries:0, nextAt:0, err:null, at:new Date().toISOString()};
+      box.push(e);
+    }
+    var cur = localRow(coll, id); if(cur) Object.keys(partial).forEach(function(k){ cur[k] = partial[k]; });
+    persist(); renderStatus(); setTimeout(flush, 0);
+    return Promise.resolve({data:null, error:null, queued:true});
+  }
+  /* A row that must exist exactly once (the level-up reward). The id is chosen here, kept with the copy, and inserted "ignore duplicates". */
+  function queueInsert(coll, row){
+    var e = {rid: coll + "/" + row.id, kind:"insert", coll:coll, id:row.id, row:row, status:"queued", tries:0, nextAt:0, err:null, at:new Date().toISOString()};
+    box.push(e); persist(); renderStatus(); setTimeout(flush, 0);
+    return Promise.resolve({data:null, error:null, queued:true});
+  }
+
+  function deliver(e){
+    var table = TABLE[e.coll], keyCol = KEY_COL[e.coll];
+    if(e.kind==="insert"){
+      var q0 = sb.from(table);
+      var p0 = (typeof q0.upsert==="function") ? q0.upsert(e.row, {onConflict:"id", ignoreDuplicates:true}) : q0.insert(e.row);
+      return p0.then(function(res){ if(res && res.error){ e.err = res.error.message; return "retry"; } return "ok"; });
+    }
+    if(e.coll==="kids" && "xp" in e.partial && !e.parent){
+      /* A kid copy never lowers the points the server already has (another tablet may have added more since this one last looked). */
+      return sb.from(table).select("xp").eq(keyCol, e.id).then(function(r0){
+        if(r0.error){ e.err = r0.error.message; return "retry"; }
+        var srvXp = (r0.data && r0.data[0] && r0.data[0].xp) || 0, part = JSON.parse(JSON.stringify(e.partial));
+        if(srvXp > part.xp) part.xp = srvXp;
+        return sb.from(table).update(toRow(e.coll, part)).eq(keyCol, e.id).select(keyCol).then(function(res){
+          if(res.error){ e.err = res.error.message || "could not send"; return "retry"; }
+          return (res.data && res.data.length) ? "ok" : "gone";
+        });
+      });
+    }
+    var q = sb.from(table).update(toRow(e.coll, e.partial)).eq(keyCol, e.id);
+    if(e.coll==="assignments" && !e.parent) q = q.or("review_status.is.null,review_status.neq.approved");   // the server copy of an approved lesson is never overwritten by a kid copy
+    return q.select(keyCol).then(function(res){
+      if(res.error){ e.err = res.error.message || "could not send"; return "retry"; }
+      if(res.data && res.data.length) return "ok";
+      /* Nothing changed: either the lesson was approved (refused) or it no longer exists. */
+      return sb.from(table).select(e.coll==="assignments" ? keyCol+",review_status" : keyCol).eq(keyCol, e.id).then(function(r2){
+        if(r2.error){ e.err = r2.error.message; return "retry"; }
+        var row = (r2.data||[])[0];
+        if(!row){ e.err = "that lesson could not be found"; return "gone"; }
+        if(row.review_status==="approved"){ e.err = "already approved"; return "refused"; }
+        e.err = "the server did not take it"; return "retry";
+      });
+    });
+  }
+  function remove(e){ box = box.filter(function(x){ return x!==e; }); }
+  var sentSome = false;
+  function flush(){
+    if(running) return;
+    if(!box.some(function(x){ return x.status==="queued"; })){ renderStatus(); return; }
+    if(typeof navigator!=="undefined" && navigator.onLine===false){ renderStatus(); return; }   // offline is not a failure: nothing is counted
+    if(!HOUSEHOLD_ID || typeof sb==="undefined" || !sb){ later(5000); return; }
+    running = true; sentSome = false;
+    (function next(){
+      var now = Date.now();
+      var e = box.filter(function(x){ return x.status==="queued" && (x.nextAt||0)<=now; })[0];
+      if(!e){ running = false; inflight = null; finish(); return; }
+      inflight = e; renderStatus();
+      var p; try{ p = deliver(e); }catch(err){ e.err = String(err && err.message || err); p = Promise.resolve("retry"); }
+      /* A request that never answers counts as a failed try after a while, so the queue never freezes behind it. */
+      p = Promise.race([p, new Promise(function(res){ setTimeout(function(){ e.err = "timed out"; res("retry"); }, limits.timeout); })]);
+      p.then(function(r){ return r; }, function(err){ e.err = String(err && err.message || err); return "retry"; }).then(function(r){
+        inflight = null;
+        if(r==="ok"){ remove(e); sentSome = true; persist(); next(); }
+        else if(r==="refused"){ e.status = "refused"; persist(); syncState.sig = ""; next(); }
+        else if(r==="gone"){ e.status = "gone"; persist(); next(); }
+        else {
+          e.tries = (e.tries||0) + 1;
+          if(e.tries>=MAX_TRIES) e.status = "needs_attention"; else e.nextAt = Date.now() + BACKOFF[Math.min(e.tries-1, BACKOFF.length-1)];
+          persist(); running = false; finish();
+        }
+      });
+    })();
+  }
+  function later(ms){ clearTimeout(timer); timer = setTimeout(flush, ms); }
+  function finish(){
+    renderStatus(); runWaiters();
+    var waits = box.filter(function(x){ return x.status==="queued"; }).map(function(x){ return Math.max(500, (x.nextAt||0) - Date.now()); });
+    if(waits.length) later(Math.min.apply(null, waits));
+    if(sentSome){ sentSome = false; syncSoon(); }
+  }
+  /* The "Send again" tap. */
+  function retryNow(){
+    box.forEach(function(x){ if(x.status==="needs_attention"){ x.status = "queued"; x.tries = 0; x.nextAt = 0; x.err = null; } });
+    persist(); renderStatus(); flush();
+  }
+  function dismiss(rid){ box = box.filter(function(x){ return !(x.rid===rid && (x.status==="refused" || x.status==="gone")); }); persist(); renderStatus(); runWaiters(); }
+  /* The two automatic approvers must not approve a lesson while the kid's own done mark / score for it is still waiting to send
+     (the server refuses a kid copy once the row is approved). Their write waits until that lesson has nothing waiting. */
+  function hasPending(id){ return box.some(function(x){ return x.kind==="update" && x.coll==="assignments" && x.id===id && x.status!=="refused" && x.status!=="gone"; }); }
+  function afterSend(id, fn){ if(!hasPending(id)){ auto(fn); return; } waiters.push({id:id, fn:fn}); renderStatus(); setTimeout(flush, 0); }
+  function runWaiters(){
+    if(!waiters.length) return;
+    var rest = [], go = [];
+    waiters.forEach(function(w){ (hasPending(w.id) ? rest : go).push(w); });
+    waiters = rest; go.forEach(function(w){ auto(w.fn); });
+  }
+
+  /* After a sync replaced the local copy with the server's, lay the not-yet-sent changes back on top. */
+  function overlay(){
+    box.forEach(function(e){
+      if(e.kind!=="update" || e.status==="refused" || e.status==="gone") return;
+      var cur = localRow(e.coll, e.id); if(cur) Object.keys(e.partial).forEach(function(k){
+        if(k==="xp" && !e.parent && cur.xp > e.partial.xp) return;   // never lay an older points total over a newer one from the server
+        cur[k] = e.partial[k];
+      });
+    });
+  }
+  function unsent(){ return box.filter(function(x){ return x.status!=="refused" && x.status!=="gone"; }); }
+  function refused(){ return box.filter(function(x){ return x.status==="refused"; }); }
+  function tapTooSoon(id){ var n = Date.now(); if(taps[id] && n - taps[id] < 700) return true; taps[id] = n; return false; }
+
+  function describe(e){
+    var row = localRow(e.coll, e.id), what = e.coll==="assignments" ? (row && row.title ? row.title : "a lesson") : e.coll==="kids" ? "points" : "a reward";
+    var who = row && row.kidId ? kidData(row.kidId).name : (e.coll==="kids" ? kidData(e.id).name : "");
+    return {title: String(what).slice(0, 80), who: who};
+  }
+  function statusText(){
+    var n = unsent().length; if(!n) return null;
+    if(memOnly) return {txt:"💾 Saved in this window only. Please keep this page open until it sends.", again:false};
+    if(unsent().some(function(x){ return x.status==="needs_attention"; })) return {txt:"💾 Saved on this device, but it has not sent yet.", again:true};
+    if(typeof navigator!=="undefined" && navigator.onLine===false) return {txt:"💾 Saved on this device. It will send when you are back online.", again:false};
+    return {txt:"💾 Saved on this device · sending…", again:false};
+  }
+  function renderStatus(){
+    try{
+      var st = statusText();
+      if(!st){ if(chip){ chip.remove(); chip = null; } return; }
+      if(!chip){
+        chip = document.createElement("div"); chip.id = "sgStatus"; chip.setAttribute("role", "status");
+        chip.style.cssText = "position:fixed;left:12px;bottom:12px;z-index:9998;max-width:calc(100vw - 24px);background:var(--card,#fff);color:var(--text,#222);border:1px solid var(--border,#ccc);border-radius:999px;padding:8px 14px;font:600 13px system-ui,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.18);display:flex;gap:10px;align-items:center";
+        document.body.appendChild(chip);
+      }
+      chip.innerHTML = "";
+      var t = document.createElement("span"); t.textContent = st.txt; chip.appendChild(t);
+      if(st.again){
+        var b = document.createElement("button"); b.type = "button"; b.textContent = "Send again"; b.id = "sgSendAgain";
+        b.style.cssText = "border:0;border-radius:999px;padding:6px 12px;font:700 13px system-ui,sans-serif;background:var(--gold,#e0a100);color:#fff;cursor:pointer";
+        b.onclick = retryNow; chip.appendChild(b);
+      }
+    }catch(e){}
+  }
+  /* Leader card: every copy that has not reached the server, and every copy the server refused. Work is never invisible. */
+  function leaderCard(){
+    var list = box.slice(); if(!list.length) return null;
+    var card = document.createElement("div"); card.className = "card"; card.id = "sgLeaderCard";
+    card.style.cssText = "margin-bottom:12px;border:2px solid var(--gold,#e0a100)";
+    var h = document.createElement("div"); h.className = "section-title"; h.style.marginTop = "0";
+    h.textContent = "💾 Not sent yet (" + list.length + ")"; card.appendChild(h);
+    var p = document.createElement("p"); p.className = "muted"; p.style.cssText = "font-size:13px;margin:2px 0 10px";
+    p.textContent = "These were saved on this device but have not reached the server. They stay here until they send, so nothing is lost. This list is only for this device.";
+    card.appendChild(p);
+    list.forEach(function(e){
+      var d = describe(e), row = document.createElement("div");
+      row.style.cssText = "display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border,#ddd);font-size:13.5px";
+      var left = document.createElement("div"); left.style.flex = "1";
+      var state2 = e.status==="gone" ? "Could not be sent: that lesson no longer exists. Tap Hide to clear it."
+        : e.status==="refused" ? "Not saved: this lesson was already approved, so this copy was kept out of the record."
+        : e.status==="needs_attention" ? "Did not send yet. Tap Send again." : "Waiting to send.";
+      left.innerHTML = "<b>" + escapeHtml(d.who ? d.who + ": " : "") + escapeHtml(d.title) + "</b><br><span class='muted'>" + escapeHtml(state2) + "</span>";
+      row.appendChild(left);
+      var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
+      b.style.cssText = "opacity:1;font-weight:700;border:1px solid var(--border)";
+      if(e.status==="refused" || e.status==="gone"){ b.textContent = "Hide"; b.onclick = function(){ dismiss(e.rid); renderLeaderArea(); }; }
+      else { b.textContent = "Send again"; b.onclick = function(){ retryNow(); setTimeout(renderLeaderArea, 1500); }; }
+      row.appendChild(b); card.appendChild(row);
+    });
+    return card;
+  }
+  window.addEventListener("online", function(){ flush(); });
+  window.addEventListener("offline", renderStatus);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) flush(); });
+  setInterval(function(){ if(box.length) flush(); }, 20000);
+  setTimeout(function(){ renderStatus(); flush(); }, 2500);
+  return {guard:guard, durable:durable, queueUpdate:queueUpdate, queueInsert:queueInsert, auto:auto, autoEvidence:autoEvidence, flush:flush, retryNow:retryNow,
+          overlay:overlay, backoff:BACKOFF, limits:limits, afterSend:afterSend, pending:function(){ return unsent().length; }, tapTooSoon:tapTooSoon, leaderCard:leaderCard, newId:newUuid, MAX_TRIES:MAX_TRIES};
+})();
 /* Read-only: prints (via console.table) each curriculum assignment's stored date next to what
    date it "should" be if the 5-day Mon-Fri cadence were followed exactly from the Day-0 lesson's
    own actual date — and flags any that landed on a real Saturday/Sunday. Does not change anything;
@@ -27605,7 +27874,7 @@ function autoCheckSweep(){
                                              : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
           if(r.verdict==="looks_good" && !live.done) toggleAssignment(live);
           Object.assign(live, upd);
-          db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd));
+          SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd)); });
         } else db.doc("assignments/"+a.id).update({aiCheck:saved});
       });
     });
@@ -35299,6 +35568,7 @@ function syncAll(force){
       kidsRows.forEach(function(r){ state.kids[r.id] = fromRow("kids", r); });
       state.assignments = {};
       assignRows.forEach(function(r){ state.assignments[r.id] = fromRow("assignments", r); });
+      SG.overlay();   // copies saved on this device but not yet sent go back on top of what the server returned
     }
     if(changedSlow){
       state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
@@ -35351,7 +35621,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-10.6";
+var APP_BUILD = "2026-11-10.8";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
@@ -35371,7 +35641,7 @@ function hasUnsavedTyping(){
   return false;
 }
 function newBuildSafeNow(){
-  return state.lessonDetailId==null && !state.quiz && !state.miniGame && !state.fileInputActive && !isTypingInFormField() && !hasUnsavedTyping() && (Date.now()-lastTouchAt) > 300000;
+  return SG.pending()===0 && state.lessonDetailId==null && !state.quiz && !state.miniGame && !state.fileInputActive && !isTypingInFormField() && !hasUnsavedTyping() && (Date.now()-lastTouchAt) > 300000;
 }
 function checkForNewBuild(){
   if(document.hidden && !newBuildSeen) return;
