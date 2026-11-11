@@ -1121,6 +1121,15 @@ var REVIEW_GAMES = {
   "other":[
     {name:"Teach the Stuffie", gather:"a stuffed animal or toy and paper", how:"Teach your stuffed animal the topic like you are the teacher. Draw one picture on paper to help explain it, and ask the stuffie three questions it needs to answer."}]
 };
+/* 11 Nov 2026 (Mom): Ryan's game days kept repeating the same two number games (dice sums, card sums) that had nothing to do with the topic.
+   Ryan's Math review lessons now draw from this larger pool. Every game uses the lesson's own idea, so it fits any topic, and each ends with one clear question. */
+var REVIEW_GAMES_RYAN_MATH = [
+  {name:"Stump Mom", gather:"paper, a pencil, and a grown-up to play against", how:"Look at the Idea above. Write 3 problems of that kind for your grown-up to solve, with the answers hidden on your own paper. Then swap: your grown-up writes 3 for you. Each correct answer is 1 point. Whoever has more points after both rounds wins."},
+  {name:"Find the Mistake", gather:"paper, a pencil, and a grown-up", how:"Your grown-up solves 3 problems of the kind in the Idea above on paper and puts exactly ONE mistake in one of them. You check each step and circle the mistake, then write the correct step. Switch jobs and do it again with you hiding the mistake."},
+  {name:"Beat the Clock", gather:"a timer (a phone works), paper, and a pencil", how:"Set the timer for 3 minutes. Write and solve as many problems of the kind in the Idea above as you can, using any numbers you like. Check each one with the opposite operation. Count your correct ones, then try again and beat your own score."},
+  {name:"Real-Life Problem Maker", gather:"paper, a pencil, and a grown-up", how:"Make up 2 word problems that use the Idea above with something real (the games you play, a recipe, a trip). Write the question and solve it, showing every step. Read one to your grown-up and see if they get the same answer."},
+  {name:"Dice Duel", gather:"two dice, paper, a pencil, and a grown-up to play against", how:"Each player rolls both dice and uses the two numbers to make a problem of the kind in the Idea above (for example, make a two-digit number from the dice, or multiply them). Solve it and show your steps. The bigger answer wins the round. Play 6 rounds."}
+];
 var REVIEW_VIDEO = {
   "place":{name:"The Place Value Song by Jack Hartmann", url:"https://www.youtube.com/watch?v=Zt78cFS5isQ"}
 };
@@ -1159,6 +1168,7 @@ function reviewIdea(src){
 function reviewPassageFor(src){
   var fam = reviewFamily(src), topic = reviewTopic(src);
   var games = REVIEW_GAMES[fam] || REVIEW_GAMES.other;
+  if(fam==="math" && src && src.kidId==="kid2") games = REVIEW_GAMES_RYAN_MATH;
   var g = games[reviewHash(String(src && src.id || topic)) % games.length];
   var online = REVIEW_ONLINE[fam];
   var idea = reviewIdea(src);
@@ -1171,7 +1181,7 @@ function reviewPassageFor(src){
   if(online) steps.push("Want more? Play "+online.name+" with the link below.");
   steps.push("Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.");
   out += "Your Turn — "+steps.map(function(t,i){ return (i+1)+". "+t; }).join(" ")+"\n";
-  out += "Show What You Know — Tell a grown-up one thing about "+topic+" that you remembered during the game.";
+  out += "Show What You Know — "+(fam==="math" && src && src.kidId==="kid2" ? "Pick one problem from the game and explain to a grown-up, step by step, how you solved it and how you know your answer is right." : "Tell a grown-up one thing about "+topic+" that you remembered during the game.");
   return {passage:out, materials: online ? online.url : null, video: vid ? vid.url : null};
 }
 function queueSkillReview(kidId, sourceAssignment, item){
@@ -29219,6 +29229,7 @@ function runAutoMigrations(){
     patchRyanLessonText(); patchStubLessons(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics(); autoAddRyanCivics(); patchAhgFaithSpread(); patchApprovedVideos(); patchAnnaCivicsQuizzes();
     autoAddAnnaStuffieSchool();
     patchAnnaStuffieScripts();
+    patchRyanGameDays();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
     planSchedule();
@@ -36405,6 +36416,30 @@ function patchAnnaStuffieScripts(){
   if(n) console.log("patchAnnaStuffieScripts: updated "+n+" lesson(s)");
   if(ids.length){ try{ localStorage.setItem(flag, "1"); }catch(e){} }
 }
+/* 11 Nov 2026 (Mom): six of Ryan's open Math game days had a generic dice or card game that did not use the lesson's topic. This one-time patch writes ONLY the passage
+   (the game, the idea, the steps, the closing question) on these exact lessons, and only while they are not done and have no saved work. The check questions are untouched. Safe to run twice. */
+var RYAN_GAMEDAY_FIX = [
+ {id:"dfd45ce7-4680-429e-9a47-68e0cca76104", title:"Can You Beat Mom at Virtual Phones Lab 4: Screen Pixel and Storage Math? \uD83C\uDFAE", passage:"Gather first — two dice, paper, a pencil, and a grown-up to play against.\nHere's the Idea — A phone screen is a grid of tiny dots called pixels. The number of pixels is width times height. Big numbers are easier in friendly pieces: for 400 wide and 300 tall, do 4 x 3 = 12, then put the four zeros back to get 120,000. Storage is counted in MB and GB, and 1 GB = 1,000 MB.\nYour Turn — 1. Play Pixel Showdown. Each player rolls two dice. The first die is the width in hundreds (a 4 means 400 pixels wide). The second die is the height in hundreds (a 3 means 300 pixels tall). Find your pixels: multiply the two dice numbers, then add four zeros. Write it like this: 4 x 3 = 12, so 120,000 pixels. The bigger screen wins the round (if you tie, roll again). Play 6 rounds and keep a tally. 2. Bonus round: a game needs 200 MB of storage. Using 1 GB = 1,000 MB, how many of these games fit in 4 GB? Write your division and check it with multiplication. 3. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Pick one round and explain to a grown-up how you found the pixels without multiplying the big numbers all at once."},
+ {id:"75af7268-4926-4da4-8f54-7dc4b8348f66", title:"Play to Win: floppy disks vs. modern storage \u2B50", passage:"Gather first — two dice, paper, a pencil, and a grown-up to play against.\nHere's the Idea — A benchmark is a test that compares two things with numbers. A floppy disk holds 1.44 megabytes (MB). That means 144 MB would take about 100 floppy disks, because 144 / 1.44 = 100. So a file that is some number of 144s needs that same number of hundreds of floppy disks.\nYour Turn — 1. Play Floppy Fleet. Each player rolls one die. Your file size is that number times 144 MB. Work it out in friendly pieces, for example 6 x 144 = 600 + 240 + 24 = 864 MB. Now count the floppy disks: a 6 means 6 x 100 = 600 floppy disks. The bigger fleet of floppy disks wins the round (if you tie, roll again). Play 6 rounds and keep a tally. 2. Look at your biggest file. How many files that big would fit on 1 GB (1,000 MB)? Use whole files only, and show your division. 3. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Explain to a grown-up why a 144 MB file needs about 100 floppy disks."},
+ {id:"c261a818-0426-4421-a8b0-467a9b95d2fd", title:"counting a 32x32 icon grid Boss Battle \uD83C\uDFC6", passage:"Gather first — a deck of cards with the 10s and face cards taken out (an Ace is 1), paper, a pencil, and a grown-up to play against.\nHere's the Idea — A pixel is one tiny colored square. A picture is a grid of rows and columns of pixels, and the number of pixels is rows times columns. A desktop icon is 32 rows by 32 columns. Use friendly pieces: 32 x 32 = 32 x 30 + 32 x 2 = 960 + 64 = 1,024 pixels.\nYour Turn — 1. Play Icon Battle. Each player turns over two cards and makes a two-digit number (the first card is tens, the second is ones, so a 2 and a 5 make 25). That is the number of rows in your icon. Every icon has 32 columns. Find your pixels: rows x 32, written in friendly pieces, for example 25 x 32 = 25 x 30 + 25 x 2 = 750 + 50 = 800 pixels. The bigger icon wins the round (if you tie, draw again). Play 6 rounds and keep a tally. 2. Boss round: a 32 x 32 icon. Write 32 x 30, then 32 x 2, then add them, and check that you get 1,024. 3. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Explain to a grown-up how you found the number of pixels in a 32 x 32 icon, using the two friendly pieces."},
+ {id:"e07c5be4-5889-456e-9cd0-f087f5a0cfad", title:"shortest gap between OS releases Boss Battle \uD83C\uDFC6", passage:"Gather first — paper, a pencil, scissors to make 4 small slips, and a grown-up to play against.\nHere's the Idea — An upgrade cycle is how long it takes between one version and the next. To find the gap between two releases, subtract the earlier year from the later year. Here are four releases: Windows 98 (1998), Windows 2000 (2000), Windows XP (2001), and Windows Vista (2006).\nYour Turn — 1. Write each of the four years on its own slip: 1998, 2000, 2001, 2006. 2. Play Gap Hunt. Your grown-up shuffles the slips and picks two. Say which is the later year, subtract the earlier from it, and call out the gap in years. Your grown-up checks it. Get it right and you score 1 point. Then switch jobs. Play until you have 5 points. 3. Line the years up in order. Write the three gaps between neighbors (1998 to 2000, 2000 to 2001, 2001 to 2006) and circle the smallest. 4. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Tell a grown-up the smallest gap you found between neighbors, and show the subtraction that proves it."},
+ {id:"145a0cb4-f69d-4f43-9cf8-1300abe385b0", title:"Math Book, Unit 1: Say It, Write It, Stretch It (Three Forms) Game Day \uD83C\uDFB2", passage:"Gather first — one die, paper, a pencil, and a grown-up to check your work.\nHere's the Idea — A number can be written three ways. Standard form is the digits: 405,032. Word form is how you say it: four hundred five thousand, thirty-two. Expanded form splits it by place value: 400,000 + 5,000 + 30 + 2. A zero in a place means nothing is added there.\nYour Turn — 1. Play Number Builder. Draw six boxes in a row. Roll the die six times and write each roll in the next box, left to right. A roll of 6 counts as zero. If your first roll is a 6, roll again, because a number cannot start with zero. 2. Write your number in standard form with a comma, then in expanded form, then in word form. 3. Your grown-up checks all three forms. You get 1 point for each form that is right (3 points a round). 4. Play 3 rounds, then swap and check your grown-up's number. 5. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Pick one number you built and explain to a grown-up how its expanded form matches its standard form, including what you did with any zero."},
+ {id:"6b0c4422-ef91-4845-8c26-53c759c65e1f", title:"Play to Win: Mystery Number: Find the Missing Number \u2B50", passage:"Gather first — two dice, paper, a pencil, and a grown-up to play against.\nHere's the Idea — Multiplication and division are opposites, like putting on and taking off a sock. If 3 x ? = 24, divide: 24 / 3 = 8. Then check with multiplication: 3 x 8 = 24. The mystery number is the one you do not know yet.\nYour Turn — 1. Play Mystery Number Duel. Roll both dice and multiply them. For example, a 4 and a 6 make 24, but do not show your grown-up the product. Write a mystery problem like 4 x ? = 24 and hide your dice. 2. Your grown-up finds the mystery number by dividing, and says how they will check it. You check their answer with the dice. 3. Switch jobs. Then play a division round: roll both dice. Say you roll a 4 and a 6: write ? / 4 = 6 on paper and hide the answer. Your partner finds the mystery number by multiplying 4 x 6 = 24 and says how they know. Each correct mystery number is 1 point. First to 6 points wins. 4. Do the check question at the bottom of this lesson. If you miss it, read the hint and try again.\nShow What You Know — Pick one mystery problem and explain to a grown-up how you found the missing number and how you know it is right."}
+];
+function patchRyanGameDays(){
+  if(!db) return;
+  var flag = "al_ryan_gamedays_v1", done = false;
+  try{ done = !!localStorage.getItem(flag); }catch(e){}
+  if(done) return;
+  var ids = Object.keys(state.assignments), n = 0;
+  RYAN_GAMEDAY_FIX.forEach(function(fx){
+    var a = state.assignments[fx.id];
+    if(!a || a.kidId!=="kid2" || a.title!==fx.title || a.done || hasWork(a) || a.passage===fx.passage) return;
+    a.passage = fx.passage; db.doc("assignments/"+fx.id).update({passage:fx.passage}); n++;
+  });
+  if(n) console.log("patchRyanGameDays: updated "+n+" lesson(s)");
+  if(ids.length){ try{ localStorage.setItem(flag, "1"); }catch(e){} }
+}
 /* Wobbly Life money math for Anna (a Leader content pack). Pay amounts come from fan guides and may not match the current game; the lessons say to check. */
 var ANNA_WOBBLY_MATH = [
  {
@@ -36946,7 +36981,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-10.12";
+var APP_BUILD = "2026-11-11.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
