@@ -596,8 +596,8 @@ body.ryan-skin .idea{border-radius:0}
 .login-err{color:var(--coral);font-size:12.5px;margin:-2px 0 10px;min-height:1em}
 
 /* ===== Morning Launch interactive tracker ===== */
-.launch-mood-row{display:flex;gap:10px;margin-bottom:14px}
-.launch-mood-btn{flex:1;text-align:center;padding:14px 6px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease}
+.launch-mood-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.launch-mood-btn{flex:1 1 84px;min-width:0;text-align:center;padding:14px 6px;border-radius:14px;border:2px solid var(--border);background:var(--card);cursor:pointer;transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease, background .15s ease}
 .launch-mood-btn:active{transform:scale(0.96)}
 .launch-mood-btn .launch-mood-icon{font-size:28px;line-height:1;display:block;margin-bottom:4px}
 .launch-mood-btn .launch-mood-label{font-size:11.5px;color:var(--text-dim);font-weight:600}
@@ -1979,6 +1979,936 @@ function syncKidSkin(){
   startPlanTimer();
 }
 
+/* SHARED-DAY-START */
+/* ---------- The shared timed school day (build 2026-11-10.12) ----------
+   Both kids run the same clock, Monday to Friday, skipping the days off the app already knows. The planner still owns lesson DATES;
+   this only arranges TODAY's lessons into clock blocks and never changes a date or deletes anything. Leader has a master switch
+   (family settings: sd.off). When it is off, planNow()/the Today view/the school-done rule are exactly the old per-kid plan.
+   A lesson that needs a grown-up is put only in the 9:15 start-up window (or later, when an adult is near). The 10:00-11:00
+   independent hour only gets practice/prepared lessons. See sdNeedsGrownUp() for the exact signals. */
+var SD_TZ = "America/New_York";
+var SD_BLOCKS = [
+  {key:"sd_launch", s:540, e:555, kind:"work", icon:"🌅", label:"Launch", anna:{label:"Sunshine Start", icon:"🌞"}},
+  {key:"sd_start", s:555, e:590, kind:"work", icon:"🚀", label:"Start-up work", anna:{label:"Rainbow Start-Up", icon:"🌈"}},
+  {key:"sd_gather", s:590, e:600, kind:"move", icon:"🤸", label:"Move and gather supplies", anna:{label:"Wiggle and Gather", icon:"🦋"}},
+  {key:"sd_indep", s:600, e:660, kind:"work", protect:true, icon:"🎯", label:"Independent hour", anna:{label:"My Quiet Hour", icon:"🦄"}},
+  {key:"sd_check1", s:660, e:675, kind:"break", icon:"🍎", label:"Check one: break", anna:{label:"Snack and Wiggle Break", icon:"🍎"}},
+  {key:"sd_keep", s:675, e:720, kind:"work", icon:"📚", label:"Keep learning", anna:{label:"Keep Exploring", icon:"🌸"}},
+  {key:"sd_lunch", s:720, e:750, kind:"break", icon:"🥪", label:"Lunch and move", anna:{label:"Lunch and Play", icon:"🥪"}},
+  {key:"sd_finish", s:750, e:805, kind:"work", icon:"🏁", label:"Finish essential work and Home Quest", anna:{label:"Finish and Home Quest", icon:"🏁"}},
+  {key:"sd_check2", s:805, e:820, kind:"break", icon:"🍎", label:"Check two: break", anna:{label:"Snack and Wiggle Break", icon:"🍎"}},
+  {key:"sd_reset", s:820, e:825, kind:"reset", icon:"🧹", label:"Reset and preview tomorrow", anna:{label:"Tidy Up and Peek at Tomorrow", icon:"🧹"}},
+  {key:"sd_hour2", s:825, e:885, kind:"quiet", icon:"🌳", label:"Outside hour (screens off)", anna:{label:"Outside Adventure Hour", icon:"🌳"}},
+  {key:"sd_snack", s:885, e:900, kind:"break", icon:"🍊", label:"Snack", anna:{label:"Snack Time", icon:"🍊"}}
+];
+var SD_START = 540, SD_CHECKS = [660, 805], SD_END_WORK = 825, SD_END_DAY = 900;
+/* How much estimated lesson time each window takes before the next lesson moves on (a lesson never moves to another DATE). */
+var SD_CAP = {sd_start:35, sd_indep:60, sd_keep:45, sd_finish:55};
+var SD_GROWNUP_RE = /\b(?:with|ask|get|call)\s+(?:a|an|your|the)?\s*(?:grown[\s-]?ups?|adults?|parents?)\b|\bgrown[\s-]?ups?\s+(?:nearby|beside|helps?|sits?|must|needs?|is\s+with|with\s+you)\b|\b(?:with|ask)\s+(?:mom|dad)\b/i;
+var SD_BRAIN_VIDEOS = {
+  kid2: [{id:"TP8r4mbqNWg", t:"Minecraft Brain Break Party"}, {id:"juIAfUHTxfY", t:"Mario Turbo Run"}, {id:"EPuLgbXDmkw", t:"9-Minute Morning Workout"}, {id:"9u-QDciRueQ", t:"Fantastic 4 Multiverse Race"}],
+  kid1: [{id:"XJg2kdBJC5w", t:"Start the Day Song"}, {id:"CuI_p7a9VGs", t:"Our Family Favorite"}, {id:"cRYQ1EyGBOQ", t:"Grandpa's Wake-Up Song"}, {id:"Xb29Js0wehg", t:"Have a Good Morning Song"}, {id:"QdRA3nQnc_4", t:"Good Morning Song"}]
+};
+function sdSettings(){ var g = familyGoal(); return (g.sd && typeof g.sd==="object") ? g.sd : {}; }
+function sdOn(){ return sdSettings().off !== true; }
+function sdDoneScreenOn(){ return sdSettings().doneOff !== true; }
+function sdSave(patch){
+  var g = Object.assign({}, familyGoal()); g.sd = Object.assign({}, sdSettings(), patch);
+  return saveFamilyGoal(g, true);
+}
+var sdFmt = null;
+/* The school clock reads New York time on purpose (the family is in Georgia), so a tablet set to another zone still shows the right block. It changes what is displayed only. */
+function sdClock(now){
+  now = now || new Date();
+  try{
+    if(!sdFmt) sdFmt = new Intl.DateTimeFormat("en-US", {timeZone:SD_TZ, hourCycle:"h23", year:"numeric", month:"2-digit", day:"2-digit", weekday:"short", hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    var o = {}; sdFmt.formatToParts(now).forEach(function(p){ o[p.type] = p.value; });
+    var dow = {Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6}[o.weekday];
+    return {iso:o.year+"-"+o.month+"-"+o.day, dow:dow, mins:((+o.hour)%24)*60 + (+o.minute) + (+o.second)/60};
+  }catch(e){ return {iso:isoDate(now), dow:now.getDay(), mins:now.getHours()*60 + now.getMinutes() + now.getSeconds()/60}; }
+}
+function sdIsSchoolDay(clk){ return clk.dow>=1 && clk.dow<=5 && !isDayOffIso(clk.iso); }
+function sdBlockIdx(mins){ for(var i=0;i<SD_BLOCKS.length;i++){ if(mins>=SD_BLOCKS[i].s && mins<SD_BLOCKS[i].e) return i; } return -1; }
+function sdBlockFor(kidId, key){
+  for(var i=0;i<SD_BLOCKS.length;i++){
+    var b = SD_BLOCKS[i]; if(b.key!==key) continue;
+    var t = (kidId==="kid1" && b.anna) ? b.anna : b;
+    return {key:b.key, s:b.s, e:b.e, kind:b.kind, protect:!!b.protect, label:t.label, icon:t.icon, idx:i};
+  }
+  return null;
+}
+function sdMinsText(m){ return fmtClock(m); }
+/* A lesson "needs a grown-up" when any of these signals is true. Returns the list of reasons (empty = it can be done alone).
+   Deliberately NOT a signal: "show a grown-up your photo" (that happens at the check, not during the work). */
+function sdNeedsGrownUp(a){
+  var why = [];
+  if(!a) return why;
+  if(a.stage==="teach") why.push("teach stage");
+  if(!a.stage) why.push("no stage set");
+  if(a.subject==="Faith") why.push("Faith");
+  if(a.installHelp) why.push("install help");
+  if(a.subject==="Live Lesson" && !isWarmup(a)) why.push("live lesson");
+  if(a.passage!==undefined && !String(a.passage||"").trim()) why.push("no instructions");
+  if(SD_GROWNUP_RE.test([a.passage, a.title, a.materials].join(" "))) why.push("grown-up wording");
+  return why;
+}
+/* Pure: today's lessons for one kid in, blocks out. No writes, no date changes, nothing dropped or doubled.
+   Returns {by:{blockKey:[lessons]}, why:{id:[reasons]}, used:{blockKey:minutes}, long:{blockKey:true}}. */
+function sdAssign(kidId, list){
+  var by = {}, why = {}, used = {}, long = {};
+  SD_BLOCKS.forEach(function(b){ by[b.key] = []; used[b.key] = 0; });
+  var order = getBlockOrder(kidId), units = [], groups = {};
+  list.forEach(function(a){
+    if(a.choiceGroup){ if(groups[a.choiceGroup]){ groups[a.choiceGroup].members.push(a); return; } }
+    var u = {head:a, members:[a]};
+    if(a.choiceGroup) groups[a.choiceGroup] = u;
+    units.push(u);
+  });
+  units.forEach(function(u){ u.rank = order.indexOf(blockKeyFor(u.head)); if(u.rank<0) u.rank = 99; u.why = sdNeedsGrownUp(u.head); u.est = estMinutesFor(u.head); });
+  units.sort(function(x, y){ return (x.rank-y.rank) || String(x.head.title||"").localeCompare(String(y.head.title||"")) || String(x.head.id||"").localeCompare(String(y.head.id||"")); });
+  function put(u, key){
+    u.members.forEach(function(a){ by[key].push(a); why[a.id] = u.why; });
+    used[key] += u.est;
+  }
+  function fits(key, u){ return used[key]===0 || used[key]+u.est <= SD_CAP[key]; }
+  var rest = [];
+  units.forEach(function(u){
+    var k = blockKeyFor(u.head);
+    if(k==="morning"){ put(u, "sd_launch"); return; }
+    rest.push(u);
+  });
+  rest.filter(function(u){ return u.why.length; }).forEach(function(u){
+    var tries = ["sd_start", "sd_keep", "sd_finish"], key = null;
+    for(var i=0;i<tries.length;i++){ if(fits(tries[i], u)){ key = tries[i]; break; } }
+    put(u, key || "sd_finish");
+  });
+  rest.filter(function(u){ return !u.why.length; }).forEach(function(u){
+    var tries = ["sd_start", "sd_indep", "sd_keep", "sd_finish"], key = null;
+    for(var i=0;i<tries.length;i++){ if(fits(tries[i], u)){ key = tries[i]; break; } }
+    put(u, key || "sd_finish");
+  });
+  Object.keys(SD_CAP).forEach(function(k){ if(used[k] > SD_CAP[k]) long[k] = true; });
+  return {by:by, why:why, used:used, long:long};
+}
+/* Quiet-time goal: how many minutes of the 10:00-11:00 hour the kids are asked not to interrupt Mom. It is an expectation shown to Mom and the kids; the block itself stays 10:00-11:00.
+   Default: starts at 20 minutes, +5 for every school day since Mom pressed "Start building", up to 60. Mom can also set a fixed number. */
+function sdQuietGoal(iso){
+  var q = sdSettings().quiet || {};
+  if(+q.fixed > 0) return Math.max(5, Math.min(60, Math.round(+q.fixed)));
+  var base = 20, step = 5, max = 60;
+  if(!q.start) return base;
+  var d = new Date(q.start+"T00:00:00"), end = new Date(iso+"T00:00:00"), days = 0, guard = 0;
+  while(d < end && guard++ < 400){ d.setDate(d.getDate()+1); if(d <= end && !isOffDate(d)) days++; }
+  return Math.min(max, base + step*days);
+}
+/* "Builds daily": the build-up starts by itself on the first school day the shared day is seen (one small settings write), but only after this device has read the family settings once, so it can never overwrite them with a stale copy. */
+var sdAutoStarted = false;
+function sdAutoStart(){
+  if(sdAutoStarted || !sdOn()) return;
+  try{
+    var clk = sdClock(); if(!sdIsSchoolDay(clk)) return;
+    if(!(syncState && syncState.lastSlow)) return;
+    var q = sdSettings().quiet || {}; if(q.start || +q.fixed > 0){ sdAutoStarted = true; return; }
+    sdAutoStarted = true; sdSave({quiet:{start:clk.iso}});
+  }catch(e){}
+}
+function sdQuietMode(){ var q = sdSettings().quiet || {}; return +q.fixed > 0 ? "fixed" : (q.start ? "building" : "notstarted"); }
+/* Lessons: done, left, checked. "Checked" means the grown-up has approved it when it is the kind of lesson that goes to the review queue; a plain tick needs no review. */
+function sdNeedsReview(a){ return (hasWork(a) && (a.submittedAt || a.done)) || a.quizScore!=null; }
+function sdChecked(a){ return !!a.done && a.reviewStatus!=="flagged" && (!sdNeedsReview(a) || a.reviewStatus==="approved"); }
+function sdLeft(a){ return !a.done || a.reviewStatus==="flagged"; }
+/* A pick-one group (choiceGroup) is ONE unit of work: done when one member is done, the same rule the Today list uses (tasksUnitsComplete). Hidden siblings never count as work left. */
+function sdGroupDone(list, a){ return list.some(function(t){ return t.choiceGroup===a.choiceGroup && t.done && t.reviewStatus!=="flagged"; }); }
+function sdLeftOf(list){
+  var seen = {};
+  return list.filter(function(a){
+    if(!a.choiceGroup) return sdLeft(a);
+    if(sdGroupDone(list, a) || seen[a.choiceGroup]) return false;
+    seen[a.choiceGroup] = 1; return true;
+  });
+}
+function sdUnitCounts(list){
+  var seen = {}, total = 0, done = 0;
+  list.forEach(function(a){
+    if(a.choiceGroup){ if(seen[a.choiceGroup]) return; seen[a.choiceGroup] = 1; total++; if(list.some(function(t){ return t.choiceGroup===a.choiceGroup && t.done; })) done++; }
+    else { total++; if(a.done) done++; }
+  });
+  return {done:done, total:total};
+}
+function sdAllChecked(kidId, iso){
+  if(!Object.keys(state.assignments).length) return false;
+  var list = assignmentsFor(kidId, iso), seen = {};
+  return list.every(function(a){
+    if(!a.choiceGroup) return sdChecked(a);
+    if(a.choiceGroup in seen) return true;
+    seen[a.choiceGroup] = list.some(function(t){ return t.choiceGroup===a.choiceGroup && sdChecked(t); });
+    return seen[a.choiceGroup];
+  });
+}
+function sdKidItems(kidId){ return SD_BLOCKS.map(function(b){ return {key:b.key, start:b.s, stop:b.e}; }); }
+/* The clock position, shaped like planNow() so every old caller keeps working. */
+function sdPlanNow(kidId, now){
+  var clk = sdClock(now);
+  if(!sdIsSchoolDay(clk)) return {phase:"off", sd:true};
+  var m = clk.mins;
+  if(m < SD_START) return {phase:"before", start:SD_START, sd:true};
+  if(m >= SD_END_WORK && sdDoneScreenOn() && sdAllChecked(kidId, todayISO())) return {phase:"over", end:SD_END_WORK, sd:true};
+  if(m >= SD_END_DAY) return {phase:"after", sd:true, m:m};
+  var idx = sdBlockIdx(m), items = sdKidItems(kidId), it = items[idx];
+  return {phase:"running", sd:true, idx:idx, item:it, items:items, plan:{}, end:SD_END_WORK, m:m, minsLeft:Math.ceil(it.stop-m), endLeft:Math.ceil(SD_END_WORK-m), next:items[idx+1]||null, iso:clk.iso, dow:clk.dow};
+}
+function sdMomChecksText(m, anna){
+  for(var i=0;i<SD_CHECKS.length;i++){ if(m < SD_CHECKS[i]) return anna ? "Mom looks at your work at "+fmtClock(SD_CHECKS[i])+" 🌟" : "Mom checks at "+fmtClock(SD_CHECKS[i]); }
+  return "";
+}
+function sdBrainBreak(kidId, iso){
+  var list = SD_BRAIN_VIDEOS[kidId] || [], n = 0; for(var i=0;i<iso.length;i++) n += iso.charCodeAt(i);
+  var v = list.length ? list[n % list.length] : null;
+  var ideas = ((PLAN_IDEAS[kidId] || {}).move) || [];
+  return {video:v, idea: ideas.length ? ideas[n % ideas.length] : "Stretch, get a drink of water, and take three slow breaths."};
+}
+function sdGatherOf(a){
+  var m = String(a.passage||"").match(/Gather first\s*[—-]\s*([^\n]*)/);
+  if(!m) return "";
+  return m[1].split(/(?<=[a-z0-9)]\.)\s+(?=[A-Z])/).filter(function(x){ return !/^(Lab book|Take a screenshot|Use your notes|Read the)/i.test(x.trim()); }).join(" ").trim();
+}
+
+/* ---- Chores (read-only). Home Quest lives in the Momma Money tables of the same project; the app only reads the kid's chore list. ---- */
+var sdChores = {rows:null, iso:null, tried:0, loading:false};
+var SD_CHORE_LS = "al_sd_chores_v1";
+function sdChoreBlock(r){
+  var t = String(r.time_label||"");
+  if(/before\s*9/i.test(t)) return "sd_launch";
+  if(/9:50|movement/i.test(t)) return "sd_gather";
+  if(/12:00|lunch/i.test(t)) return "sd_lunch";
+  if(/12:30|home quest/i.test(t)) return "sd_finish";
+  if(/1:40|reset/i.test(t)) return "sd_reset";
+  if(/before\s*7|evening/i.test(t)) return "";
+  var s = String(r.slot||"");
+  if(s==="morning") return "sd_launch";
+  if(s==="after_school") return "sd_finish";
+  return "";
+}
+function sdChoresLoad(){
+  if(sdChores.loading || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID) return;
+  var iso = todayISO();
+  if(sdChores.iso===iso && sdChores.rows) return;
+  try{ var c = JSON.parse(localStorage.getItem(SD_CHORE_LS)||"null"); if(c && c.iso===iso && Array.isArray(c.rows)){ sdChores.rows = c.rows; sdChores.iso = iso; return; } }catch(e){}
+  if(Date.now()-sdChores.tried < 600000) return;
+  sdChores.tried = Date.now(); sdChores.loading = true;
+  var ids = Object.keys(MM_MEMBERS).map(function(k){ return MM_MEMBERS[k]; });
+  var p;
+  try{ p = sb.from("home_jobs").select("id,title,slot,time_label,days,active,member_id").in("member_id", ids); }catch(e){ sdChores.loading = false; return; }
+  p.then(function(res){
+    sdChores.loading = false;
+    if(!res || res.error || !Array.isArray(res.data)) return;   // cannot read them: show nothing, no error
+    sdChores.rows = res.data; sdChores.iso = iso;
+    try{ localStorage.setItem(SD_CHORE_LS, JSON.stringify({iso:iso, rows:res.data})); }catch(e){}
+    sdRefreshIfIdle();
+  }, function(){ sdChores.loading = false; });
+}
+function sdChoresFor(kidId, blockKey, dow){
+  var rows = sdChores.rows; if(!Array.isArray(rows)) return [];
+  var mid = MM_MEMBERS[kidId];
+  return rows.filter(function(r){
+    if(r.member_id!==mid || r.active===false) return false;
+    if(Array.isArray(r.days) && r.days.length && r.days.indexOf(dow)<0) return false;
+    return sdChoreBlock(r)===blockKey;
+  }).map(function(r){ return String(r.title||"").trim(); }).filter(Boolean);
+}
+function sdChoreCard(kidId, blockKey, dow){
+  var items = sdChoresFor(kidId, blockKey, dow);
+  if(!items.length) return null;
+  var c = document.createElement("div"); c.className = "card sd-chores"; c.style.cssText = "margin:10px 0;padding:12px 14px";
+  c.innerHTML = '<div style="font-weight:800;margin-bottom:6px">🏠 Home Quest chores for this time</div>'+
+    items.map(function(t){ return '<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:15px"><span aria-hidden="true">☐</span><span>'+escapeHtml(t)+'</span></div>'; }).join("")+
+    '<div class="muted" style="font-size:12.5px;margin:6px 0">You check these off in Home Quest.</div>';
+  var a = document.createElement("a"); a.href = MM_URL; a.target = "_blank"; a.rel = "noopener";
+  a.className = "primary-btn"; a.style.cssText = "display:inline-block;text-decoration:none;padding:10px 16px;min-height:44px;box-sizing:border-box";
+  a.textContent = "Open Home Quest"; c.appendChild(a);
+  return c;
+}
+/* Re-draw the screen when something loaded in the background, but never while a kid is typing, in a lesson or in a game. */
+function sdRefreshIfIdle(){
+  try{
+    if(state.leaderMode || state.lessonDetailId!=null || state.quiz || state.miniGame || state.world || state.lore || isTypingInFormField()) return;
+    if(state.tab==="today" || state.tab==="home") renderView();
+  }catch(e){}
+}
+
+/* ---- Help ladder: Look again, helper, Ask for Help, Skip for now. Ask for Help and "Ping the school" write one row to al_help_requests.
+   If that table does not exist yet, or there is no connection, the request is kept on this device and sent later; nothing else is written. ---- */
+var SD_HELP_LS = "al_sd_help_q_v1", SD_HELP_MISS_LS = "al_sd_help_missing";
+var SD_NET_TIMEOUT = 20000, SD_MAX_TRIES = 5, SD_POLL_GAP = 55000;
+var sdHelp = {rows:[], seen:{}, primed:false, flushing:false, flushP:null, fetching:false, missingUntil:0, fetchedAt:0, error:"", handled:{}, handledTry:{}, recent:{}};
+function sdHelpMissing(){ try{ var t = +localStorage.getItem(SD_HELP_MISS_LS)||0; return t > Date.now()-3600000; }catch(e){ return sdHelp.missingUntil > Date.now(); } }
+function sdHelpQueue(){ try{ var q = JSON.parse(localStorage.getItem(SD_HELP_LS)||"[]"); return Array.isArray(q) ? q : []; }catch(e){ return []; } }
+function sdHelpSaveQueue(q){ try{ localStorage.setItem(SD_HELP_LS, JSON.stringify(q)); }catch(e){} }
+/* Only the real "that table is not there" answers count: Postgres 42P01, PostgREST PGRST205, an HTTP 404 on the request itself, or the exact Postgres / PostgREST wording. */
+function sdTableMissing(res){
+  var err = res && res.error; if(!err) return false;
+  if(res.status===404) return true;
+  var code = String(err.code||"");
+  if(code==="42P01" || code==="PGRST205") return true;
+  return /relation "?[\w.]*al_help_requests"? does not exist|could not find the table '?[\w.]*al_help_requests'? in the schema cache/i.test(String(err.message||""));
+}
+function sdIsNetworkError(err){ return !!err && (err.timeout===true || /failed to fetch|network|load failed|fetch failed|timeout/i.test(String(err.message||err.details||""))); }
+/* Every network wait ends: after SD_NET_TIMEOUT the call counts as a failed (network) answer, so busy flags always clear. */
+function sdWithTimeout(p){
+  return new Promise(function(resolve){
+    var done = false, t = setTimeout(function(){ if(!done){ done = true; resolve({error:{message:"timeout", timeout:true}}); } }, SD_NET_TIMEOUT);
+    Promise.resolve(p).then(function(r){ if(!done){ done = true; clearTimeout(t); resolve(r || {error:{message:"empty answer", timeout:true}}); } },
+      function(e){ if(!done){ done = true; clearTimeout(t); resolve({error:{message:String(e && e.message || "network failed"), timeout:true}}); } });
+  });
+}
+function sdUuid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "h"+Date.now().toString(36)+Math.random().toString(36).slice(2,10); }
+function sdNextCheckLabel(m){ for(var i=0;i<SD_CHECKS.length;i++){ if(m < SD_CHECKS[i]) return fmtClock(SD_CHECKS[i]); } return ""; }
+/* One request. A second tap within a minute on the same lesson and kind is the same request (returns null). Otherwise returns {row, done}: done resolves true once the row reached the table, false if it is only saved on this device. */
+function sdHelpSend(kidId, a, kind, message){
+  var clk = sdClock(), q = sdHelpQueue(), now = Date.now();
+  var key = kidId+"|"+(a ? a.id : "")+"|"+kind;
+  if(sdHelp.recent[key] && now-sdHelp.recent[key] < 60000) return null;   // a double tap is one request
+  sdHelp.recent[key] = now;
+  var bi = sdBlockIdx(clk.mins);
+  var row = {id:sdUuid(), household_id:HOUSEHOLD_ID, kid_id:kidId, kind:kind, assignment_id:a ? a.id : null, lesson_title:a ? String(a.title||"").slice(0,160) : null,
+    block_key:bi>=0 ? SD_BLOCKS[bi].key : null, message:String(message||"").slice(0,400), status:"open", created_at:new Date().toISOString(), tries:0};
+  q.push(row); sdHelpSaveQueue(q);
+  return {row:row, done:sdHelpFlush().then(function(){ return !sdHelpQueue().some(function(r){ return r.id===row.id; }); })};
+}
+/* Sends the saved rows one by one. A row the server refuses is retried a few times and then set aside as "not sent" (it stays on the device) so it never blocks the rows behind it.
+   No connection, a timeout, or a missing table stops the pass quietly; the rows stay saved and the next pass tries again. */
+function sdHelpFlush(){
+  if(sdHelp.flushP) return sdHelp.flushP;
+  if(typeof sb==="undefined" || !sb || !HOUSEHOLD_ID || sdHelp.missingUntil > Date.now() || !sdHelpQueue().some(function(x){ return !x.stuck; })) return Promise.resolve();
+  sdHelp.flushing = true;
+  function finish(){ sdHelp.flushing = false; sdHelp.flushP = null; }
+  function step(ids, i){
+    if(i >= ids.length){ finish(); return Promise.resolve(); }
+    var q = sdHelpQueue(), r = q.filter(function(x){ return x.id===ids[i]; })[0];
+    if(!r || r.stuck) return step(ids, i+1);
+    var row = Object.assign({}, r); delete row.tries; delete row.stuck; row.household_id = HOUSEHOLD_ID;
+    var p; try{ p = sb.from("al_help_requests").upsert(row, {onConflict:"id", ignoreDuplicates:true}); }catch(e){ finish(); return Promise.resolve(); }
+    return sdWithTimeout(p).then(function(res){
+      if(res && res.error){
+        if(sdTableMissing(res)){ sdHelp.missingUntil = Date.now()+600000; try{ localStorage.setItem(SD_HELP_MISS_LS, String(Date.now())); }catch(e){} finish(); return; }
+        if(sdIsNetworkError(res.error)){ finish(); return; }   // offline or slow: keep everything, try again later
+        var cur = sdHelpQueue().map(function(x){ if(x.id===r.id){ x.tries = (x.tries||0)+1; if(x.tries >= SD_MAX_TRIES) x.stuck = true; } return x; });
+        sdHelpSaveQueue(cur);
+        return step(ids, i+1);   // do not let one refused row hold up the rest
+      }
+      try{ localStorage.removeItem(SD_HELP_MISS_LS); }catch(e){}
+      sdHelpSaveQueue(sdHelpQueue().filter(function(x){ return x.id!==r.id; }));
+      return step(ids, i+1);
+    });
+  }
+  var ids0 = sdHelpQueue().filter(function(x){ return !x.stuck; }).map(function(x){ return x.id; });
+  sdHelp.flushP = Promise.resolve().then(function(){ return step(ids0, 0); });   // started on the next tick so finish() can never run before flushP is set
+  return sdHelp.flushP;
+}
+/* ONE place decides how often the Leader reads the table: a quiet (automatic) read happens at most about once a minute, never while the tab is hidden, and never after 2 hours without a touch.
+   force=true is the Refresh button. */
+function sdHelpFetch(force){
+  if(typeof sb==="undefined" || !sb || !HOUSEHOLD_ID || sdHelp.fetching) return;
+  var now = Date.now();
+  if(force!==true){
+    if(document.hidden || now-lastTouchAt > 7200000) return;
+    if(now-sdHelp.fetchedAt < SD_POLL_GAP) return;
+    if(sdHelp.missingUntil > now) return;
+  }
+  sdHelp.fetching = true; sdHelp.fetchedAt = now;
+  var p; try{ p = sb.from("al_help_requests").select("*").eq("household_id", HOUSEHOLD_ID).eq("status", "open").limit(40); }catch(e){ sdHelp.fetching = false; return; }
+  sdWithTimeout(p).then(function(res){
+    sdHelp.fetching = false;
+    if(!res || res.error){
+      if(sdTableMissing(res)){ sdHelp.missingUntil = Date.now()+600000; sdHelp.error = "missing"; } else sdHelp.error = "unreadable";
+      sdHelp.rows = []; sdLeaderRedraw(); return;
+    }
+    sdHelp.error = ""; sdHelp.missingUntil = 0;
+    var rows = (res.data||[]).filter(function(r){ return !sdHelp.handled[r.id]; }).sort(function(a, b){ return String(b.created_at||"").localeCompare(String(a.created_at||"")); });
+    var fresh = rows.filter(function(r){ return !sdHelp.seen[r.id]; });
+    rows.forEach(function(r){ sdHelp.seen[r.id] = 1; });
+    sdHelp.rows = rows;
+    if(sdHelp.primed && fresh.length) sdDing("help:"+fresh.map(function(r){ return r.id; }).join(","));
+    sdHelp.primed = true;
+    sdHandledFlush();
+    sdLeaderRedraw();
+  });
+}
+/* "Got it": hidden on this screen right away and stays hidden; the server is told, and told again later if that did not work. */
+function sdHandledFlush(){
+  Object.keys(sdHelp.handled).forEach(function(id){
+    if(sdHelp.handled[id]!==1 || sdHelp.handledTry[id]) return;
+    sdHelp.handledTry[id] = 1;
+    var p; try{ p = sb.from("al_help_requests").update({status:"handled", handled_at:new Date().toISOString()}).eq("id", id); }catch(e){ sdHelp.handledTry[id] = 0; return; }
+    sdWithTimeout(p).then(function(res){
+      sdHelp.handledTry[id] = 0;
+      if(res && !res.error) sdHelp.handled[id] = 2;   // the server has it
+    });
+  });
+}
+function sdHelpHandled(id){
+  sdHelp.handled[id] = 1;
+  sdHelp.rows = sdHelp.rows.filter(function(r){ return r.id!==id; });
+  sdLeaderRedraw();
+  sdHandledFlush();
+}
+
+/* ---- The ding (Leader only, while the Leader page is open). Browsers only allow sound after a tap, so there is a Sound on switch. ---- */
+var sdAudio = {ctx:null};
+window.__sdDings = window.__sdDings || [];
+function sdSoundPref(){ try{ return localStorage.getItem("al_sd_sound")==="1"; }catch(e){ return false; } }
+function sdSoundArm(){
+  try{
+    var AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
+    if(!sdAudio.ctx) sdAudio.ctx = new AC();
+    if(sdAudio.ctx.state==="suspended") sdAudio.ctx.resume();
+    return true;
+  }catch(e){ return false; }
+}
+function sdBeep(){
+  window.__sdBeeps = (window.__sdBeeps||0) + 1;
+  try{
+    if(!sdAudio.ctx) return;
+    var c = sdAudio.ctx, t = c.currentTime;
+    [880, 1175].forEach(function(f, i){
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t+i*0.22); g.gain.exponentialRampToValueAtTime(0.35, t+i*0.22+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.22+0.2);
+      o.connect(g); g.connect(c.destination); o.start(t+i*0.22); o.stop(t+i*0.22+0.22);
+    });
+  }catch(e){}
+}
+function sdDing(why){
+  var on = sdSoundPref();
+  window.__sdDings.push({why:why, sound:on, t:Date.now()});
+  if(on) sdBeep();
+}
+document.addEventListener("pointerdown", function(){ if(sdSoundPref() && !sdAudio.ctx) sdSoundArm(); }, true);
+
+/* ---- The kid's top bar, the clock tick, and the Today view ---- */
+function sdLeftCount(kidId){ return sdLeftOf(assignmentsFor(kidId, todayISO())).length; }
+function sdMk(tag, css, html){ var e = document.createElement(tag); if(css) e.style.cssText = css; if(html!=null) e.innerHTML = html; return e; }
+function sdBarEl(kidId, st){
+  st = st || planNow(kidId, new Date());
+  if(!st.sd || st.phase!=="running") return null;
+  var anna = kidId==="kid1", b = sdBlockFor(kidId, st.item.key), nxt = st.next ? sdBlockFor(kidId, st.next.key) : null;
+  var span = st.item.stop - st.item.start, frac = Math.max(0, Math.min(1, (st.m - st.item.start)/span));
+  var bar = document.createElement("div"); bar.className = "plan-bar sd-bar";
+  var quietish = b.kind==="break" || b.kind==="quiet" || b.kind==="move";
+  if(quietish) bar.classList.add("screenoff"); else if(st.minsLeft<=5 && nxt) bar.classList.add("warn");
+  var html = '<div class="pb-top"><div class="pb-title">'+b.icon+' '+escapeHtml(b.label)+' <span class="muted" style="font-weight:700">until '+fmtClock(b.e)+'</span></div>'+
+    '<div class="pb-left">'+st.minsLeft+' min left</div></div>'+
+    '<div class="pb-track"><div class="pb-fill" style="width:'+Math.round(frac*100)+'%"></div></div>';
+  var left = sdLeftCount(kidId);
+  if(b.kind==="break" && b.key!=="sd_snack") html += '<div class="pb-switch">'+(b.key==="sd_lunch" ? "Lunch time. Screens off, eat, and move your body." : "Break time. Have a snack or move your body. No work right now.")+'</div>';
+  else if(b.kind==="move") html += '<div class="pb-switch">Stretch and move. Then gather the things you need for the next hour.</div>';
+  else if(b.kind==="quiet") html += '<div class="pb-switch">'+(anna ? "Outside time! Screens are off. Mom is working." : "Outside hour. Screens are off. Mom is working and not available unless it is an emergency.")+'</div>';
+  else if(b.protect){
+    var goal = sdQuietGoal(st.iso || todayISO()), into = Math.floor(st.m - b.s);
+    html += '<div class="pb-switch">'+(into < goal ? "Mom is working. Quiet goal today: "+goal+" minutes. Stuck? Look again, ask the helper, then Ask for Help." : "You made it past your quiet goal! Mom may check in now.")+'</div>';
+  }
+  if(st.m >= SD_END_WORK && left) html += '<div class="pb-switch" style="font-weight:700">'+(anna ? "You still have a little work. That is okay! Ask Mom what to do next." : "You still have some work. That is okay. Ask Mom what to do next.")+'</div>';
+  var chk = (b.kind==="work") ? sdMomChecksText(st.m, anna) : "";
+  if(chk) html += '<div class="pb-next">'+escapeHtml(chk)+'</div>';
+  if(nxt) html += '<div class="pb-next">Next: '+nxt.icon+' '+escapeHtml(nxt.label)+' at '+fmtClock(nxt.s)+'</div>';
+  bar.innerHTML = html;
+  return bar;
+}
+var sdPrevKey = {};
+function sdTick(kid, st){
+  var key = st.phase==="running" ? st.idx : st.phase;
+  var prev = sdPrevKey[kid]; sdPrevKey[kid] = key;
+  if(prev!==undefined && prev!==key){
+    if(st.phase==="running"){
+      var b = sdBlockFor(kid, st.item.key);
+      planSay(b.kind==="work" ? "Time to switch! Now: "+b.label+"." : b.kind==="quiet" ? "Outside time! Screens off." : b.kind==="move" ? "Time to move!" : "Break time!");
+    }
+    if(!(state.lessonDetailId!=null || state.quiz || state.miniGame || state.world || state.lore || isTypingInFormField())) renderView();
+    else { var o1 = document.querySelector(".plan-bar"); if(o1){ var f1 = planBarEl(kid); if(f1) o1.replaceWith(f1); } }
+    return;
+  }
+  if(st.phase!=="running") return;
+  var day = kid+"|"+todayISO();
+  if(st.minsLeft<=5 && st.next && !planSeen[day+"|sd"+st.idx+"|5"]){
+    planSeen[day+"|sd"+st.idx+"|5"] = true;
+    planSay("5 more minutes, then it is time for "+sdBlockFor(kid, st.next.key).label+".");
+  }
+  var old = document.querySelector(".plan-bar");
+  if(old){ var fresh = planBarEl(kid); if(fresh) old.replaceWith(fresh); }
+}
+
+function sdSkipKey(a, iso){ return "al_sd_skip_"+a.id+"_"+iso; }
+function sdIsSkipped(a, iso){ try{ return localStorage.getItem(sdSkipKey(a, iso))==="1"; }catch(e){ return false; } }
+function sdSpeakBtn(text){
+  var b = document.createElement("button"); b.type = "button"; b.innerHTML = "🔊"; b.title = "Read aloud"; b.setAttribute("aria-label", "Read aloud");
+  b.style.cssText = "border:none;background:none;cursor:pointer;font-size:18px;padding:0 6px;min-width:44px;min-height:44px";
+  b.onclick = function(e){ e.stopPropagation(); speak(text); };
+  return b;
+}
+/* Lesson rows for one block. Anna sees at most two lessons at a time; Ryan sees the whole list. */
+function sdLessonRows(kidId, lessons, iso, host, cap){
+  var vis = lessons.filter(function(a){ return !(a.choiceGroup && !a.done && lessons.some(function(t){ return t.choiceGroup===a.choiceGroup && t.done; })); });
+  var todo = vis.filter(sdLeft), dn = vis.filter(function(a){ return !sdLeft(a); }), units = sdLeftOf(vis).length;
+  todo.sort(function(x, y){ return (sdIsSkipped(x, iso)?1:0) - (sdIsSkipped(y, iso)?1:0); });
+  var shown = (cap!=null) ? todo.slice(0, cap) : todo;
+  shown.forEach(function(a){
+    var r = taskRow(a);
+    if(sdIsSkipped(a, iso)){ var tag = sdMk("div", "font-size:12px;color:var(--text-dim);margin:0 0 6px 44px", "Saved for Mom's check"); host.appendChild(r); host.appendChild(tag); }
+    else host.appendChild(r);
+  });
+  if(units > 0 && todo.length > shown.length) host.appendChild(sdMk("div", "font-size:13px;margin:6px 2px", "✨ "+Math.max(1, units-shown.length)+" more coming up after these. One thing at a time."));
+  if(cap!=null){ if(dn.length) host.appendChild(sdMk("div", "font-size:13px;margin:6px 2px;color:var(--success)", "✅ "+dn.length+" done"+(dn.length===1?"":" so far"))); }
+  else dn.forEach(function(a){ host.appendChild(taskRow(a)); });
+  return todo;
+}
+function sdBreakCard(kidId, iso, big){
+  var bb = sdBrainBreak(kidId, iso), anna = kidId==="kid1";
+  var c = sdMk("div", "margin:10px 0;padding:12px 14px;border-radius:14px;border:2px solid var(--teal);background:var(--teal-soft)");
+  var h = '<div style="font-weight:800;margin-bottom:4px">'+(anna ? "🌈 Brain break idea" : "🧠 Brain break idea")+'</div><div style="font-size:15px;line-height:1.5">'+escapeHtml(bb.idea)+'</div>';
+  if(bb.video) h += '<div style="margin-top:8px"><a href="https://www.youtube.com/watch?v='+escapeHtml(bb.video.id)+'" target="_blank" rel="noopener" style="color:var(--teal);font-weight:700">🎥 Watch: '+escapeHtml(bb.video.t)+'</a></div>';
+  c.innerHTML = h;
+  return c;
+}
+/* Ask for Help / Look again / helper / Skip for now. Never marks a lesson done and never approves anything. */
+function sdLookAgain(a){
+  var p = String(a.passage||""), m = p.match(/See It Done\s*[—-]\s*([^\n]*)/i) || p.match(/Here's the Idea\s*[—-]\s*([^\n]*)/i);
+  if(m) return m[1].trim();
+  var first = p.split("\n").filter(function(l){ return l.trim(); })[0];
+  return first ? first.trim() : "Read the steps again slowly, then try just the first step.";
+}
+function sdHelperAvailable(kidId){ return (kidId==="kid1" || kidId==="kid2") && typeof sb!=="undefined" && sb && !!sb.functions; }
+function sdHelpPanel(kidId, a){
+  var anna = kidId==="kid1", iso = todayISO(), missing = sdHelpMissing();
+  var box = sdMk("div", "margin:12px 0;padding:12px 14px;border-radius:14px;border:2px dashed var(--border);background:var(--paper)");
+  box.className = "sd-help";
+  box.innerHTML = '<div style="font-weight:800;margin-bottom:8px">🛟 '+(anna ? "Stuck? Try these, one at a time" : "Stuck? Try these in order")+'</div>';
+  var row = sdMk("div", "display:flex;gap:8px;flex-wrap:wrap");
+  var out = sdMk("div", "margin-top:10px;font-size:15px;line-height:1.5");
+  function btn(label, fn, id){
+    var b = document.createElement("button"); b.type = "button"; b.textContent = label; if(id) b.setAttribute("data-sd", id);
+    b.style.cssText = "min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer";
+    b.onclick = fn; row.appendChild(b); return b;
+  }
+  btn("👀 Look again", function(){
+    out.innerHTML = ""; var t = sdMk("div", "padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--border)", escapeHtml(sdLookAgain(a)));
+    out.appendChild(t); out.appendChild(sdSpeakBtn(sdLookAgain(a)));
+  }, "look");
+  if(sdHelperAvailable(kidId)) btn("💬 Ask the helper", function(){
+    try{ setDetailsOpen(detailsOpenKey("homehelper", kidId, false, "main"), true); }catch(e){}
+    state.lessonDetailId = null; state.tab = "home"; renderView();
+  }, "helper");
+  var askBtn = btn(missing ? "🙋 Ask Mom" : "🙋 Ask for Help", function(){
+    out.innerHTML = "";
+    var ta = document.createElement("textarea"); ta.rows = 2; ta.maxLength = 300; ta.setAttribute("aria-label", "What is stuck?");
+    ta.placeholder = "What is stuck? A few words is fine."; ta.style.cssText = "width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text)";
+    out.appendChild(ta);
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var line = sdMk("div", "display:flex;gap:8px;flex-wrap:wrap;margin-top:8px");
+    if(SR){
+      var mic = document.createElement("button"); mic.type = "button"; mic.textContent = "🎤 Say it";
+      mic.style.cssText = "min-height:44px;padding:8px 14px;border-radius:12px;border:2px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-weight:700;cursor:pointer";
+      mic.onclick = function(){ try{ var r = new SR(); r.lang = "en-US"; r.onresult = function(e){ ta.value = (ta.value+" "+e.results[0][0].transcript).trim(); }; r.start(); }catch(e){} };
+      line.appendChild(mic);
+    }
+    var send = document.createElement("button"); send.type = "button"; send.textContent = "Send";
+    send.setAttribute("data-sd", "send"); send.className = "primary-btn"; send.style.cssText = "min-height:44px;padding:8px 18px";
+    send.onclick = function(){
+      if(send.disabled) return; send.disabled = true;
+      var sent = sdHelpSend(kidId, a, "help", ta.value), when = sdNextCheckLabel(sdClock().mins);
+      var box1 = sdMk("div", "padding:10px 12px;border-radius:10px;background:var(--success-soft);border:1px solid var(--success)", "Saving your note...");
+      out.innerHTML = ""; out.appendChild(box1); askBtn.disabled = true;
+      Promise.resolve(sent ? sent.done : true).then(function(ok2){
+        box1.textContent = ok2 ? "Got it. Mom will see this"+(when ? " at "+when : "")+". Skip to your next lesson for now."
+          : "Saved on this device. It will go to Mom when it can. You can also tell Mom or Dad. Skip to your next lesson for now.";
+      });
+    };
+    line.appendChild(send); out.appendChild(line);
+  }, "ask");
+  btn("⏭️ Skip for now", function(){
+    try{ localStorage.setItem(sdSkipKey(a, iso), "1"); }catch(e){}
+    sdHelpSend(kidId, a, "skip", "");
+    toast("Saved for Mom's check. On to the next one!");
+    state.lessonDetailId = null; renderView();
+  }, "skip");
+  box.appendChild(row); box.appendChild(out);
+  return box;
+}
+/* The help ladder is shown in the independent hour only (hour two uses "Ping the school"). */
+function sdLessonLadder(a){
+  try{
+    if(!sdOn() || state.leaderMode) return null;
+    var st = planNow(a.kidId, new Date());
+    if(!st.sd || st.phase!=="running" || st.item.key!=="sd_indep") return null;
+    return sdHelpPanel(a.kidId, a);
+  }catch(e){ return null; }
+}
+function sdPingPanel(kidId){
+  var anna = kidId==="kid1";
+  var box = sdMk("div", "margin:12px 0;padding:14px;border-radius:14px;border:2px solid var(--gold);background:var(--gold-soft)");
+  box.className = "sd-ping";
+  box.innerHTML = '<div style="font-weight:800;font-size:17px">🔔 Ping the school</div>'+
+    '<div style="font-size:14px;margin:6px 0">Mom is working. Press this if you need her and it can wait a minute. Like self-checkout, a grown-up will come when they can.</div>'+
+    '<div style="font-size:14px;margin:6px 0;font-weight:700">Hurt or scared? Go and find a grown-up right now. Do not wait for a ping.</div>';
+  var ta = document.createElement("textarea"); ta.rows = 2; ta.maxLength = 300; ta.setAttribute("aria-label", "Optional note for Mom");
+  ta.placeholder = "Anything Mom should know? (you can leave this empty)"; ta.style.cssText = "width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text)";
+  var b = document.createElement("button"); b.type = "button"; b.className = "primary-btn"; b.setAttribute("data-sd", "ping"); b.textContent = "Ping the school";
+  b.style.cssText = "min-height:48px;padding:10px 20px;margin-top:8px";
+  var res = sdMk("div", "margin-top:8px;font-size:15px");
+  b.onclick = function(){
+    if(b.disabled) return; b.disabled = true;
+    var pg = sdHelpSend(kidId, null, "ping", ta.value);
+    res.textContent = "Sending...";
+    Promise.resolve(pg ? pg.done : true).then(function(ok2){ res.textContent = ok2 ? "Pinged! Mom will see it. Keep playing nearby." : "Saved on this device. It will go to Mom when it can. You can also go and tell Mom or Dad."; });
+    setTimeout(function(){ b.disabled = false; }, 60000);
+  };
+  box.appendChild(ta); box.appendChild(b); box.appendChild(res);
+  return box;
+}
+
+function sdTomorrowPeek(kidId, iso){
+  var d = addSchoolDays(new Date(iso+"T00:00:00"), 1), tIso = isoDate(d);
+  var titles = assignmentsFor(kidId, tIso).map(function(a){ return displayTitle(a); }).slice(0, 6);
+  var c = sdMk("div", "margin:10px 0;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--paper)");
+  c.innerHTML = '<div style="font-weight:800;margin-bottom:4px">👀 Peek at tomorrow</div>'+
+    (titles.length ? titles.map(function(t){ return '<div style="font-size:14.5px;padding:2px 0">• '+escapeHtml(t)+'</div>'; }).join("") : '<div class="muted" style="font-size:14px">Nothing planned yet.</div>');
+  return c;
+}
+function sdThinLine(text){
+  return sdMk("div", "font-size:13px;color:var(--text-dim);padding:6px 10px;margin:4px 0;border:1px solid var(--border);border-radius:10px;background:var(--paper)", text);
+}
+/* Today for the shared day. Past blocks never lock: they are thin lines, and anything left over comes forward. */
+function renderSharedToday(kidId, iso, st){
+  sdChoresLoad(); sdAutoStart();
+  var anna = kidId==="kid1", clk = sdClock(), dow = clk.dow, view = els.view;
+  var list = assignmentsFor(kidId, iso), A = sdAssign(kidId, list);
+  var warmDone = blockComplete("morning", kidId, iso, {morning:A.by.sd_launch});
+  if(st.phase==="before"){
+    var c0 = sdMk("div", "padding:16px;border-radius:16px;border:2px solid var(--border);margin-bottom:10px");
+    c0.className = "card";
+    c0.innerHTML = '<div style="font-size:20px;font-weight:800">🌤️ School starts at 9:00</div><div style="font-size:15px;margin-top:6px">'+(anna ? "Do your morning chores first, and have a good breakfast." : "Do your chores first. Then you are ready for 9:00.")+'</div>';
+    view.appendChild(c0);
+    var cc0 = sdChoreCard(kidId, "sd_launch", dow); if(cc0) view.appendChild(cc0);
+    return;
+  }
+  var cur = st.idx, curB = sdBlockFor(kidId, SD_BLOCKS[cur].key), left = sdLeftOf(list);
+  if(clk.mins >= SD_END_WORK && left.length){
+    view.appendChild(sdMk("div", "padding:12px 14px;border-radius:14px;border:2px solid var(--gold);background:var(--gold-soft);margin-bottom:10px;font-weight:700",
+      anna ? "🌟 You still have a little work. That is okay! Ask Mom what to do next." : "You still have some work. That is okay. Ask Mom what to do next."));
+  }
+  /* earlier blocks: thin lines, leftovers carried forward */
+  var carried = [], carriedGrownup = [];
+  SD_BLOCKS.forEach(function(b, i){
+    if(i >= cur) return;
+    var bk = sdBlockFor(kidId, b.key);
+    if(b.kind!=="work") return;
+    var ls = A.by[b.key] || [], undone = sdLeftOf(ls), done = ls.filter(function(a){ return !sdLeft(a); });
+    if(b.key==="sd_launch"){
+      if(!warmDone) { carried.push({launch:true}); view.appendChild(sdThinLine(bk.icon+" "+bk.label+" ("+fmtClock(b.s)+"): not finished yet. It is still here for you.")); }
+      else view.appendChild(sdThinLine(bk.icon+" "+bk.label+": done ✅"));
+    } else if(ls.length){
+      view.appendChild(sdThinLine(bk.icon+" "+bk.label+" ("+fmtClock(b.s)+"): "+(undone.length ? undone.length+" left over, moved up to "+(curB.kind==="work" ? "now" : "your next work time") : done.length+" done ✅")));
+    }
+    undone.forEach(function(a){ if(curB.protect && A.why[a.id] && A.why[a.id].length) carriedGrownup.push(a); else carried.push(a); });
+  });
+  var kn = kidNotesCard(kidId); if(kn) view.appendChild(kn);
+  if(kidId==="kid2"){ var rpc = ryanProjectCard(); if(rpc) view.appendChild(rpc); }
+  /* the current block */
+  var card = sdMk("div", "margin-bottom:10px;border-color:var(--gold)"); card.className = "card sd-now";
+  var hd = sdMk("div", "display:flex;align-items:center;gap:8px;flex-wrap:wrap");
+  hd.innerHTML = '<span style="font-size:24px" aria-hidden="true">'+curB.icon+'</span><div style="flex:1;min-width:150px"><div style="font-weight:800;font-size:18px">'+escapeHtml(curB.label)+
+    ' <span class="chip" style="background:var(--gold-soft);color:var(--gold);font-size:11px">now</span>'+(A.long[curB.key] ? ' <span class="chip" style="background:#fef3c7;color:#92400e;font-size:11px">may run long</span>' : '')+
+    '</div><div class="muted" style="font-size:12.5px">'+fmtClock(curB.s)+' to '+fmtClock(curB.e)+'</div></div>';
+  if(anna) hd.appendChild(sdSpeakBtn(curB.label+". Until "+fmtClock(curB.e)+"."));
+  card.appendChild(hd);
+  var body = sdMk("div", "margin-top:10px"); card.appendChild(body);
+  var chk = curB.kind==="work" ? sdMomChecksText(st.m, anna) : "";
+  if(chk) body.appendChild(sdMk("div", "font-size:13.5px;font-weight:700;margin-bottom:8px", escapeHtml(chk)));
+  if(curB.kind==="work"){
+    if(curB.key==="sd_launch"){
+      body.appendChild(renderMorningLaunch(kidId, iso));
+    } else if(carried.some(function(x){ return x.launch; }) && !warmDone){
+      /* a launch that was not finished stays available, folded away so it does not crowd the current block */
+      var ld0 = document.createElement("details"); ld0.style.cssText = "margin-bottom:8px";
+      var lk0 = detailsOpenKey("sd", kidId, false, "launch-"+iso); if(isDetailsOpen(lk0)) ld0.open = true;
+      ld0.addEventListener("toggle", function(){ setDetailsOpen(lk0, ld0.open); });
+      ld0.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">'+(anna ? "🌞 Finish your Sunshine Start" : "🌅 Finish your Morning Launch")+'</summary>';
+      if(ld0.open) ld0.appendChild(renderMorningLaunch(kidId, iso));
+      ld0.addEventListener("toggle", function(){ if(ld0.open && ld0.children.length<2) ld0.appendChild(renderMorningLaunch(kidId, iso)); });
+      body.appendChild(ld0);
+    }
+    var mine = A.by[curB.key] || [], rowsHost = sdMk("div", "");
+    var pool = carried.filter(function(x){ return !x.launch; }), shownPool = 0;
+    if(pool.length){
+      body.appendChild(sdMk("div", "font-size:12.5px;font-weight:700;margin:8px 2px 4px;color:var(--text-dim)", "Still to do from earlier"));
+      var ph = sdMk("div", ""); body.appendChild(ph);
+      var t1 = sdLessonRows(kidId, pool, iso, ph, anna ? 2 : null);
+      shownPool = anna ? Math.min(2, t1.length) : t1.length;
+    }
+    body.appendChild(rowsHost);
+    var todo = sdLessonRows(kidId, mine, iso, rowsHost, anna ? Math.max(0, 2 - shownPool) : null);
+    if(!mine.length && !pool.length && curB.key!=="sd_launch") body.appendChild(sdMk("div", "font-size:14px;color:var(--text-dim)", "Nothing is planned for this time. Enjoy it, or ask Mom what to do."));
+    else if(curB.key!=="sd_launch" && !sdLeftOf(pool.concat(mine)).length){
+      /* finished this block early: say so, and offer lessons from later blocks that can be done alone. Lessons that need a grown-up stay in their own window. */
+      var nx = null; for(var qi=cur+1; qi<SD_BLOCKS.length; qi++){ if(SD_BLOCKS[qi].kind==="work"){ nx = sdBlockFor(kidId, SD_BLOCKS[qi].key); break; } }
+      body.appendChild(sdMk("div", "padding:10px 12px;border-radius:12px;background:var(--success-soft);border:1px solid var(--success);font-weight:700;margin-top:6px",
+        "\uD83C\uDF1F All done for this block!"+(nx ? " Next: "+escapeHtml(nx.label)+" at "+fmtClock(nx.s)+"." : "")));
+      var ahead = [];
+      SD_BLOCKS.forEach(function(bb, bi2){ if(bi2 > cur && bb.kind==="work") sdLeftOf(A.by[bb.key]||[]).forEach(function(a2){ if(!(A.why[a2.id]||[]).length) ahead.push(a2); }); });
+      if(ahead.length){
+        var gdt = document.createElement("details"); gdt.style.cssText = "margin-top:8px";
+        var gak = detailsOpenKey("sd", kidId, false, "ahead-"+iso+"-"+curB.key); if(isDetailsOpen(gak)) gdt.open = true;
+        gdt.addEventListener("toggle", function(){ setDetailsOpen(gak, gdt.open); });
+        gdt.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Get ahead (optional)</summary>';
+        ahead.slice(0, anna ? 2 : 3).forEach(function(a2){ gdt.appendChild(taskRow(a2)); });
+        body.appendChild(gdt);
+      }
+    }
+    if(carriedGrownup.length){
+      var gd = document.createElement("details"); gd.style.cssText = "margin-top:8px";
+      var gk = detailsOpenKey("sd", kidId, false, "saved-"+iso); if(isDetailsOpen(gk)) gd.open = true;
+      gd.addEventListener("toggle", function(){ setDetailsOpen(gk, gd.open); });
+      gd.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Saved for after the independent hour ('+carriedGrownup.length+')</summary>';
+      carriedGrownup.forEach(function(a){ gd.appendChild(taskRow(a)); });
+      body.appendChild(gd);
+    }
+    if(curB.protect){
+      var firstPool = sdLeftOf(pool.concat(mine)), first = firstPool.filter(function(a){ return !sdIsSkipped(a, iso); })[0] || firstPool[0];
+      if(first) body.appendChild(sdHelpPanel(kidId, first));
+    }
+    if(curB.key==="sd_finish"){
+      var stDet = document.createElement("details"); stDet.style.cssText = "margin-top:10px";
+      var sk = detailsOpenKey("sd", kidId, false, "showteach-"+iso); if(isDetailsOpen(sk)) stDet.open = true;
+      stDet.addEventListener("toggle", function(){ setDetailsOpen(sk, stDet.open); });
+      stDet.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">'+(anna ? "🌟 Sparkle and Share" : "🎤 Show &amp; Teach")+(reflectionFor(kidId, iso) ? " ✅" : "")+'</summary>';
+      stDet.appendChild(renderShowTeach(kidId, iso)); body.appendChild(stDet);
+    }
+    var ch = sdChoreCard(kidId, curB.key, dow); if(ch) body.appendChild(ch);
+  } else {
+    if(curB.kind==="break" && curB.key!=="sd_snack"){
+      body.appendChild(sdMk("div", "font-size:15px;line-height:1.5", curB.key==="sd_lunch" ? "Lunch and move. Screens are off while you eat and play." : "This is a break. No work right now. Have a snack or move your body."));
+      body.appendChild(sdBreakCard(kidId, iso));
+    } else if(curB.kind==="move"){
+      body.appendChild(sdMk("div", "font-size:15px;line-height:1.5", "Stretch and move for a minute. Then gather what you need for the next hour."));
+      var sup = [];
+      sdLeftOf(A.by.sd_indep || []).forEach(function(a){ var g = sdGatherOf(a); if(g) sup.push({t:displayTitle(a), g:g}); });
+      var sc = sdMk("div", "margin:10px 0;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--paper)");
+      sc.innerHTML = '<div style="font-weight:800;margin-bottom:4px">🧺 Gather first</div>'+(sup.length ? sup.map(function(s){ return '<div style="font-size:14.5px;padding:3px 0"><b>'+escapeHtml(s.t)+'</b>: '+escapeHtml(s.g)+'</div>'; }).join("") : '<div class="muted" style="font-size:14px">Nothing special. Pencil and paper are enough.</div>');
+      body.appendChild(sc);
+      body.appendChild(sdBreakCard(kidId, iso));
+    } else if(curB.kind==="reset"){
+      body.appendChild(sdMk("div", "font-size:15px;line-height:1.5", "Put your things away and tidy your space."));
+      body.appendChild(sdTomorrowPeek(kidId, iso));
+    } else if(curB.kind==="quiet"){
+      body.appendChild(sdMk("div", "font-size:15px;line-height:1.5", anna ? "Go outside and play! Screens are off. Mom is working." : "Go outside. Screens are off. Mom is working and is not available unless it is an emergency."));
+      var ideas = planIdeasFor(kidId, 3);
+      body.appendChild(sdMk("div", "margin-top:8px", ideas.map(function(i){ return '<div class="idea"><small>'+escapeHtml(i.tag)+'</small>'+escapeHtml(i.text)+'</div>'; }).join("")));
+      body.appendChild(sdPingPanel(kidId));
+    } else {
+      body.appendChild(sdMk("div", "font-size:15px;line-height:1.5", "Snack time. Then you are all done with the school day."));
+    }
+    var ch2 = sdChoreCard(kidId, curB.key, dow); if(ch2) body.appendChild(ch2);
+    var waiting = sdLeftOf(list);
+    if(waiting.length){
+      var wd = document.createElement("details"); wd.style.cssText = "margin-top:10px";
+      var wk = detailsOpenKey("sd", kidId, false, "waiting-"+iso+"-"+curB.key); if(isDetailsOpen(wk)) wd.open = true;
+      wd.addEventListener("toggle", function(){ setDetailsOpen(wk, wd.open); });
+      wd.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Peek at what is waiting ('+waiting.length+')</summary>';
+      waiting.forEach(function(a){ wd.appendChild(taskRow(a)); });
+      body.appendChild(wd);
+    }
+  }
+  view.appendChild(card);
+  /* later today: names and times only */
+  var later = SD_BLOCKS.filter(function(b, i){ return i > cur && b.key!=="sd_snack"; });
+  if(later.length){
+    var ld = document.createElement("details"); ld.className = "card"; ld.style.cssText = "margin-bottom:10px;padding:8px 14px";
+    var lk = detailsOpenKey("sd", kidId, false, "later-"+iso); if(isDetailsOpen(lk)) ld.open = true;
+    ld.addEventListener("toggle", function(){ setDetailsOpen(lk, ld.open); });
+    ld.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Later today</summary>'+
+      later.map(function(b){ var bk = sdBlockFor(kidId, b.key), n = sdLeftOf(A.by[b.key]||[]).length;
+        return '<div style="display:flex;gap:8px;padding:5px 0;font-size:14px;border-top:1px solid var(--border)"><span>'+bk.icon+'</span><span style="flex:1">'+escapeHtml(bk.label)+(n ? ' <span class="muted">('+n+' lesson'+(n===1?"":"s")+')</span>' : '')+'</span><span class="muted">'+fmtClock(b.s)+'</span></div>'; }).join("");
+    view.appendChild(ld);
+  }
+}
+
+/* ---- Leader "Today" card (PIN only) ---- */
+var sdNudgeSeen = {};
+function sdCheckBanner(clk){
+  if(!sdOn() || !sdIsSchoolDay(clk)) return "";
+  for(var i=0;i<SD_CHECKS.length;i++){
+    var left = SD_CHECKS[i] - clk.mins;
+    if(left > 0 && left <= 5){
+      var parts = KIDS.map(function(k){
+        var turned = Object.keys(state.assignments).filter(function(id){ var a = state.assignments[id]; return a.kidId===k.id && a.done && a.date===todayISO() && !a.reviewStatus && sdNeedsReview(a); }).length;
+        var helps = sdHelp.rows.filter(function(r){ return r.kid_id===k.id; }).length;
+        return (kidData(k.id).name||k.id)+" has "+turned+" turned in"+(helps ? ", "+helps+" help request"+(helps===1?"":"s") : "");
+      });
+      var n = Math.ceil(left);
+      return "Check "+(i===0 ? "one" : "two")+" in "+n+" minute"+(n===1?"":"s")+": "+parts.join(", ")+".";
+    }
+  }
+  return "";
+}
+function sdWaitingReview(kidId){
+  return Object.keys(state.assignments).filter(function(id){
+    var a = state.assignments[id];
+    return a.kidId===kidId && a.reviewStatus!=="approved" && a.reviewStatus!=="retired" && a.reviewStatus!=="flagged" && (hasWork(a) && (a.submittedAt || a.done) || a.quizScore!=null);
+  }).length;
+}
+function sdLeaderCard(){
+  var card = document.createElement("div"); card.className = "card"; card.id = "sdTodayCard"; card.style.cssText = "margin-bottom:10px;border:2px solid var(--gold)";
+  var on = sdOn(), clk = sdClock(), iso = todayISO();
+  sdAutoStart();
+  if(on) sdHelpFetch();
+  var h = '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div style="font-weight:800;font-size:17px;flex:1;min-width:140px">📍 Today <span class="muted" style="font-weight:600;font-size:13px">'+escapeHtml(fmtClock(Math.floor(clk.mins)))+'</span></div></div>';
+  var banner = sdCheckBanner(clk);
+  if(banner) h += '<div id="sdBanner" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--gold-soft);border:1px solid var(--gold);font-weight:700">🔔 '+escapeHtml(banner)+'</div>';
+  card.innerHTML = h;
+  var top = card.firstChild;
+  var refresh = document.createElement("button"); refresh.type = "button"; refresh.className = "reward-skip"; refresh.id = "sdRefresh"; refresh.textContent = "Refresh";
+  refresh.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)";
+  refresh.onclick = function(){ try{ syncAll(true); }catch(e){} sdHelpFetch(true); sdHelpFlush(); setTimeout(sdLeaderRedraw, 900); };
+  top.appendChild(refresh);
+  if(!on){
+    card.appendChild(sdMk("div", "font-size:13.5px;margin:8px 0", "The shared day is <b>OFF</b>. The kids see the old per-kid Daily schedule. Nothing was deleted; turn it on below to use the shared day."));
+  } else {
+    var list = sdMk("div", "margin:8px 0");
+    KIDS.forEach(function(k){
+      var st = planNow(k.id, new Date()), nm = kidData(k.id).name || k.id, todays = assignmentsFor(k.id, iso), uc = sdUnitCounts(todays), done = uc.done;
+      var where;
+      if(st.phase==="running"){ var b = sdBlockFor(k.id, st.item.key); where = b.icon+" "+b.label+" (until "+fmtClock(b.e)+")"; }
+      else if(st.phase==="before") where = "School starts at 9:00";
+      else if(st.phase==="over") where = "School-done screen is showing";
+      else if(st.phase==="after") where = "After school";
+      else where = "No school today";
+      var on1 = "";
+      if(st.phase==="running"){
+        var A = sdAssign(k.id, todays), cur = st.item.key, pool = (A.by[cur]||[]);
+        var open = sdLeftOf(pool)[0] || SD_BLOCKS.reduce(function(acc, bb){ return acc || sdLeftOf(A.by[bb.key]||[])[0]; }, null);
+        if(open) on1 = " &middot; next up: "+escapeHtml(displayTitle(open));
+      }
+      list.appendChild(sdMk("div", "padding:6px 0;border-top:1px solid var(--border);font-size:14.5px", '<b>'+escapeHtml(nm)+'</b>: '+escapeHtml(where)+' &middot; '+done+' of '+uc.total+' lessons done'+on1));
+    });
+    card.appendChild(list);
+  }
+  /* waiting for you */
+  var w = sdMk("div", "margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--paper);border:1px solid var(--border)");
+  w.innerHTML = '<div style="font-weight:800;margin-bottom:6px">Waiting for you</div>';
+  if(sdHelp.error==="missing") w.appendChild(sdMk("div", "font-size:13px;color:var(--text-dim);margin-bottom:6px", "Help requests are not switched on yet. Run supabase/al_help_requests.sql once to turn them on. Until then the kids' notes stay on their own devices."));
+  else if(sdHelp.error==="unreadable") w.appendChild(sdMk("div", "font-size:13px;color:var(--text-dim);margin-bottom:6px", "Could not read help requests just now. Tap Refresh to try again."));
+  if(!sdHelp.rows.length && !sdHelp.error) w.appendChild(sdMk("div", "font-size:14px;color:var(--text-dim)", "No help requests right now."));
+  sdHelp.rows.forEach(function(r){
+    var nm = kidData(r.kid_id).name || r.kid_id, at = r.created_at ? new Date(r.created_at) : null;
+    var label = r.kind==="ping" ? "🔔 Ping" : r.kind==="skip" ? "⏭️ Skipped" : "🙋 Help";
+    var row = sdMk("div", "display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--border);font-size:14px;flex-wrap:wrap");
+    row.setAttribute("data-help", r.id);
+    var txt = sdMk("div", "flex:1;min-width:160px", '<b>'+escapeHtml(nm)+'</b> '+label+(r.lesson_title ? ': '+escapeHtml(r.lesson_title) : '')+(r.message ? ' &mdash; &ldquo;'+escapeHtml(r.message)+'&rdquo;' : '')+
+      (at && !isNaN(at) ? ' <span class="muted">'+escapeHtml(at.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}))+'</span>' : ''));
+    var got = document.createElement("button"); got.type = "button"; got.className = "reward-skip"; got.textContent = "Got it";
+    got.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)";
+    got.onclick = function(){ sdHelpHandled(r.id); };
+    row.appendChild(txt); row.appendChild(got); w.appendChild(row);
+  });
+  var stuckN = sdHelpQueue().filter(function(r){ return r.stuck; }).length, waitN = sdHelpQueue().length;
+  if(waitN) w.appendChild(sdMk("div", "font-size:13px;color:var(--text-dim);margin:6px 0", waitN+" note"+(waitN===1?"":"s")+" from this device "+(waitN===1?"is":"are")+" saved here and "+(stuckN ? stuckN+" could not be sent after several tries (they stay saved)." : "waiting to be sent.")));
+  var tot = 0, rv = sdMk("div", "padding-top:8px;border-top:1px solid var(--border);margin-top:6px;font-size:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap");
+  var parts = KIDS.map(function(k){ var n = sdWaitingReview(k.id); tot += n; return (kidData(k.id).name||k.id)+": "+n; });
+  rv.appendChild(sdMk("span", "flex:1;min-width:160px", "Work waiting for review &mdash; "+parts.join(", ")));
+  var rq = document.createElement("button"); rq.type = "button"; rq.className = "reward-skip"; rq.id = "sdOpenQueue"; rq.textContent = "Open Review Queue";
+  rq.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)";
+  rq.onclick = function(){ var t = document.getElementById("leaderReviewQueue"); if(t) t.scrollIntoView({behavior:"smooth", block:"start"}); };
+  rv.appendChild(rq); w.appendChild(rv);
+  card.appendChild(w);
+  /* sound */
+  var snd = sdMk("div", "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0");
+  var armed = !!sdAudio.ctx, pref = sdSoundPref();
+  var sb1 = document.createElement("button"); sb1.type = "button"; sb1.className = "reward-skip"; sb1.id = "sdSound";
+  sb1.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)";
+  sb1.textContent = pref ? (armed ? "🔊 Sound: ON" : "🔊 Sound: ON (tap here once to get it ready)") : "🔇 Sound: OFF (tap to turn on)";
+  sb1.onclick = function(){
+    if(pref && armed){ try{ localStorage.setItem("al_sd_sound", "0"); }catch(e){} }
+    else { try{ localStorage.setItem("al_sd_sound", "1"); }catch(e){} sdSoundArm(); sdBeep(); }
+    sdLeaderRedraw(true);
+  };
+  snd.appendChild(sb1);
+  snd.appendChild(sdMk("span", "font-size:12.5px;color:var(--text-dim);flex:1;min-width:200px", "The ding and the banner only work while this Leader page is open on this device. Nothing reaches your phone when the app is closed."));
+  card.appendChild(snd);
+  /* settings */
+  var det = document.createElement("details"); det.style.cssText = "margin-top:6px";
+  var dk = detailsOpenKey("leader", "all", false, "sdsettings"); if(isDetailsOpen(dk)) det.open = true;
+  det.addEventListener("toggle", function(){ setDetailsOpen(dk, det.open); });
+  det.innerHTML = '<summary style="cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center">Shared day settings</summary>';
+  function swRow(label, isOn, onTxt, offTxt, fn, id){
+    var r = sdMk("div", "display:flex;align-items:center;gap:10px;margin:6px 0;flex-wrap:wrap");
+    r.appendChild(sdMk("span", "min-width:150px", label+': <b>'+(isOn ? onTxt : offTxt)+'</b>'));
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.id = id;
+    b.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)";
+    b.textContent = isOn ? "Turn off" : "Turn on"; b.onclick = fn; r.appendChild(b); det.appendChild(r);
+  }
+  swRow("Shared day", on, "ON", "OFF", function(){ sdSave({off:on}); renderLeaderArea(); }, "sdSwitchDay");
+  swRow("School-done screen", sdDoneScreenOn(), "ON", "OFF", function(){ sdSave({doneOff:sdDoneScreenOn()}); renderLeaderArea(); }, "sdSwitchDone");
+  det.appendChild(sdMk("div", "font-size:12.5px;color:var(--text-dim);margin:2px 0 8px", "Shared day OFF puts back the old per-kid Daily schedule exactly. School-done screen: when ON it shows only after 1:45 when all of today's work is done AND you have checked it off. When OFF the kids never get that takeover screen."));
+  var goal = sdQuietGoal(iso), mode = sdQuietMode();
+  var qd = sdMk("div", "margin:8px 0;padding-top:8px;border-top:1px solid var(--border)");
+  qd.innerHTML = '<div style="font-weight:700">Quiet-time goal today: <span id="sdGoal">'+goal+'</span> minutes</div>'+
+    '<div style="font-size:12.5px;color:var(--text-dim);margin:4px 0">How long the kids are asked not to interrupt you in the 10:00 to 11:00 hour. The hour itself stays 10:00 to 11:00. '+
+    (mode==="building" ? "It started at 20 minutes and grows by 5 minutes every school day, up to 60. It builds by itself." : mode==="fixed" ? "You set a fixed number." : "It starts at 20 minutes on the first school day and then grows by 5 minutes every school day, up to 60.")+'</div>';
+  var qr = sdMk("div", "display:flex;gap:8px;flex-wrap:wrap;align-items:center");
+  function qb(txt, fn, id){ var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.textContent = txt; if(id) b.id = id;
+    b.style.cssText = "opacity:1;border:1px solid var(--border);padding:8px 14px;min-height:44px;color:var(--ink)"; b.onclick = fn; qr.appendChild(b); return b; }
+  qb("Restart from 20 minutes", function(){ sdSave({quiet:{start:iso}}); renderLeaderArea(); }, "sdQuietStart");
+  var num = document.createElement("input"); num.type = "number"; num.min = "5"; num.max = "60"; num.step = "5"; num.id = "sdQuietNum"; num.value = goal; num.setAttribute("aria-label", "Fixed quiet-time minutes");
+  num.style.cssText = "width:76px;font:inherit;font-size:15px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--paper);color:var(--text)";
+  qr.appendChild(num);
+  qb("Use this number", function(){ var v = Math.max(5, Math.min(60, Math.round(+num.value||20))); sdSave({quiet:{fixed:v, start:(sdSettings().quiet||{}).start||null}}); renderLeaderArea(); }, "sdQuietFixed");
+  if(mode==="fixed") qb("Back to building", function(){ var q = sdSettings().quiet || {}; sdSave({quiet:{start:q.start||iso}}); renderLeaderArea(); }, "sdQuietBuild");
+  qd.appendChild(qr); det.appendChild(qd);
+  card.appendChild(det);
+  return card;
+}
+function sdLeaderRedraw(force){
+  try{
+    var old = document.getElementById("sdTodayCard");
+    if(!old || !state.leaderMode || !state.leaderUnlocked) return;
+    var ae = document.activeElement; if(!force && ae && old.contains(ae) && ae.tagName==="INPUT") return;
+    var fresh = sdLeaderCard(); old.replaceWith(fresh);
+  }catch(e){}
+}
+function sdLeaderTick(){
+  if(!state.leaderMode || !state.leaderUnlocked) return;
+  var clk = sdClock();
+  if(sdOn() && sdIsSchoolDay(clk)){
+    for(var i=0;i<SD_CHECKS.length;i++){
+      var left = SD_CHECKS[i] - clk.mins;
+      if(left > 0 && left <= 5){
+        var key = clk.iso+"|"+i;
+        if(!sdNudgeSeen[key]){ sdNudgeSeen[key] = 1; sdDing("check"+(i+1)); }
+      }
+    }
+  }
+  sdLeaderRedraw();
+}
+function sdPollTick(){
+  if(document.hidden || !state.leaderMode || !state.leaderUnlocked || !sdOn()) return;
+  sdHelpFetch();   // the one guard inside decides whether a read is due
+}
+var sdTimersOn = false;
+function sdStartTimers(){
+  if(sdTimersOn) return; sdTimersOn = true;
+  setInterval(function(){ if(!document.hidden) sdHelpFlush(); }, 45000);
+  window.addEventListener("online", function(){ sdHelpFlush(); });
+  setInterval(sdPollTick, 60000);
+  sdHelpFlush();
+}
+/* Test hook: the audit harness exposes these (the real page does not use this). */
+function sdExpose(){
+  return {SD_BLOCKS:SD_BLOCKS, sdAssign:sdAssign, sdNeedsGrownUp:sdNeedsGrownUp, sdPlanNow:sdPlanNow, sdClock:sdClock, sdQuietGoal:sdQuietGoal, sdChoresFor:sdChoresFor, sdChoreBlock:sdChoreBlock,
+    sdHelpQueue:sdHelpQueue, sdHelpFlush:sdHelpFlush, sdHelpFetch:sdHelpFetch, sdHelpSend:sdHelpSend, sdLeaderCard:sdLeaderCard, sdLeaderTick:sdLeaderTick, sdChores:sdChores, sdHelp:sdHelp,
+    sdBarEl:sdBarEl, sdAllChecked:sdAllChecked, sdChecked:sdChecked, sdSave:sdSave, sdOn:sdOn, sdSettings:sdSettings, planNow:planNow, sdChoresLoad:sdChoresLoad, sdCheckBanner:sdCheckBanner,
+    sdTick:sdTick, sdLessonLadder:sdLessonLadder, sdPollTick:sdPollTick, sdLeftOf:sdLeftOf, sdUnitCounts:sdUnitCounts, sdTableMissing:sdTableMissing, setNetTimeout:function(ms){ SD_NET_TIMEOUT = ms; }, sdHelpHandled:sdHelpHandled, sdAutoStart:sdAutoStart};
+}
+/* SHARED-DAY-END */
+
 /* ---------- Daily plan: a clock for the school day, so switching and stopping are predictable ----------
    Both kids start around 9:00 and school is done by 1:45 at the latest. The bar on Today and on the
    lesson page counts down the current block, the pet warns 5 minutes before every switch, and at the
@@ -2022,6 +2952,7 @@ function getDayPlan(kidId){
   return plan;
 }
 function planItemInfo(kidId, key){
+  if(String(key).indexOf("sd_")===0){ var sb0 = sdBlockFor(kidId, key); if(sb0) return {label:sb0.label, icon:sb0.icon, block:sb0.kind==="work"}; }
   var b = blocksForKid(kidId).filter(function(x){ return x.key===key; })[0];
   if(b) return {label:b.label, icon:b.icon, block:true};
   var e = PLAN_EXTRA_LABELS[key] || {label:key, icon:"⏰"};
@@ -2031,6 +2962,7 @@ function planItemInfo(kidId, key){
    block; "running" = inside item idx; "extra" = past the end time but a parent granted extra time;
    "over" = past the end time (or extra time ran out). */
 function planNow(kidId, now){
+  if(sdOn()) return sdPlanNow(kidId, now);   // the shared day; Leader can switch it off to get the old per-kid plan back
   var plan = getDayPlan(kidId); if(!plan) return {phase:"off"};
   var dow = now.getDay(); if(dow===0 || dow===6) return {phase:"off"};
   var m = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
@@ -2063,6 +2995,7 @@ function planIdeasFor(kidId, count){
 }
 function planBarEl(kidId){
   var st = planNow(kidId, new Date());
+  if(st.sd) return sdBarEl(kidId, st);
   if(st.phase!=="running" && st.phase!=="extra") return null;
   var bar = document.createElement("div"); bar.className = "plan-bar";
   if(st.phase==="extra"){
@@ -2095,11 +3028,12 @@ function planBarEl(kidId){
 }
 var planTimer = null, planPrevPhase = {}, planPrevIdx = {}, planSeen = {};
 function planTickOnce(){
-  if(state.leaderMode) return;
+  if(state.leaderMode){ sdLeaderTick(); return; }
   petIdleTip();
   var kid = state.activeKid, now = new Date(), st = planNow(kid, now), over = st.phase==="over";
   var was = planPrevPhase[kid]; planPrevPhase[kid] = over;
   if(was!==undefined && was!==over){ renderView(); return; }
+  if(st.sd) return sdTick(kid, st);
   if(st.phase!=="running" && st.phase!=="extra") return;
   var day = kid+"|"+todayISO();
   if(st.phase==="running"){
@@ -2122,6 +3056,7 @@ function planTickOnce(){
   if(old){ var fresh = planBarEl(kid); if(fresh) old.replaceWith(fresh); }
 }
 function startPlanTimer(){
+  sdStartTimers();
   if(planTimer) return;
   planTimer = setInterval(function(){ if(!document.hidden) planTickOnce(); }, 15000);
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) planTickOnce(); });
@@ -2149,6 +3084,7 @@ function renderSchoolDone(kidId){
   var knd = kidNotesCard(kidId); if(knd){ knd.style.marginTop = "12px"; els.view.appendChild(knd); }
   els.view.appendChild(wrap);
   wrap.querySelector("#sdMore").onclick = function(){ renderSchoolDone(kidId); };
+  if(sdOn()){ var sdc = sdClock(); if(sdc.mins>=SD_END_WORK && sdc.mins<885) wrap.appendChild(sdPingPanel(kidId)); }   // hour two: "Ping the school"
   var khd = kidHelperCard(kidId); if(khd){ khd.style.marginTop = "12px"; els.view.appendChild(khd); }
 }
 
@@ -2213,6 +3149,7 @@ function dayPlanCard(){
   var sum = document.createElement("summary"); sum.style.cssText = "cursor:pointer;font-weight:700";
   sum.textContent = "⏰ Daily schedule & screen time  ▾ tap to open or close"; det.appendChild(sum);
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
+  if(sdOn()){ var sdNote = document.createElement("div"); sdNote.style.cssText = "font-size:12.5px;margin:8px 0;padding:8px 10px;border-radius:8px;background:var(--gold-soft)"; sdNote.textContent = "The shared day is ON, so the kids follow it instead of these times. These saved times are kept untouched and come back if you turn the shared day off (Leader > Today > Shared day settings)."; det.appendChild(sdNote); }
   note.textContent = "Both kids' days run on this clock, Monday to Friday. The pet and a countdown warn 5 minutes before each switch. At the end time the app shows a calm \"school's done\" screen with screen-free ideas.";
   det.appendChild(note);
   var inputCss = "font:inherit;font-size:14px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--paper);color:var(--text)";
@@ -2853,6 +3790,7 @@ function renderHome(){
     var info = planItemInfo(kid, st.item.key);
     say = (info.block ? "Right now: " : "Time for: ")+info.label+" until "+fmtClock(st.item.stop)+".";
   } else if(st.phase==="extra") say = "You have extra learning time. Let us use it well!";
+  else if(st.phase==="after") say = "Keep going on what is left, or ask Mom what is next.";
   else say = "School is done. Great work today!";
   if(total && doneN===total) say = anna ? "You finished everything today! I am so proud of you!" : "All tasks complete today. Nice work.";
 
@@ -4634,6 +5572,8 @@ function renderToday(){
     return;
   }
 
+  var sdSt = sdOn() ? planNow(kidId, new Date()) : null;
+  if(sdSt && sdSt.sd && (sdSt.phase==="before" || sdSt.phase==="running")){ renderSharedToday(kidId, iso, sdSt); return; }   // shared timed day (build .12)
   var kn = kidNotesCard(kidId); if(kn) els.view.appendChild(kn);
   var blocks = orderedBlocksFor(kidId);
   var listOn = isListMode(kidId);
@@ -7227,6 +8167,7 @@ function renderLessonDetail(){
   backBtn.onclick = function(){ state.lessonDetailId = null; renderView(); };
   els.view.appendChild(backBtn);
   var lessonPlanBar = planBarEl(a.kidId); if(lessonPlanBar) els.view.appendChild(lessonPlanBar);
+  var sdLadder = sdLessonLadder(a); if(sdLadder) els.view.appendChild(sdLadder);
 
   var card = document.createElement("div");
   card.className = "qz-card";
@@ -8597,6 +9538,7 @@ function renderLeaderArea(){
   lockRow.appendChild(lockBtn);
   els.view.appendChild(lockRow);
 
+  els.view.appendChild(sdLeaderCard());
   els.view.appendChild(leaderGuideCard());
   els.view.appendChild(renderWeekendExtrasSettingsCard());
   els.view.appendChild(materialsCard());
@@ -8630,6 +9572,7 @@ function renderLeaderArea(){
      checked less often than "what needs my attention right now." */
   var title = document.createElement("div");
   title.className = "section-title";
+  title.id = "leaderReviewQueue";
   title.textContent = "Leader's Review Queue";
   els.view.appendChild(title);
 
@@ -28855,6 +29798,7 @@ function saveFamilyGoal(g, quiet){
   if(g.liveWorld===undefined && cur.liveWorld!==undefined) g = Object.assign({}, g, {liveWorld:cur.liveWorld});
   if(g.autoReview===undefined && cur.autoReview!==undefined) g = Object.assign({}, g, {autoReview:cur.autoReview});
   if(g.widgetsOff===undefined && cur.widgetsOff!==undefined) g = Object.assign({}, g, {widgetsOff:cur.widgetsOff});
+  if(g.sd===undefined && cur.sd!==undefined) g = Object.assign({}, g, {sd:cur.sd});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -36002,7 +36946,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-10.11";
+var APP_BUILD = "2026-11-10.12";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }

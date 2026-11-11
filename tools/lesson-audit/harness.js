@@ -26,7 +26,7 @@ exports.open = async function(){
   ] };
   seedStore(store);
   const b = await chromium.launch({executablePath:CHROME, args:['--no-sandbox']});
-  const ctx = await b.newContext({viewport:{width:420,height:900}});
+  const ctx = await b.newContext({viewport:{width:420,height:900}, timezoneId:'America/New_York'});
   await ctx.addInitScript(([hid])=>{
     const exp = Math.floor(Date.now()/1000)+86400*30;
     const fake = btoa(JSON.stringify({alg:'HS256',typ:'JWT'}))+'.'+btoa(JSON.stringify({sub:hid,exp,role:'authenticated'}))+'.sig';
@@ -47,7 +47,7 @@ exports.open = async function(){
     return true;
   }
   /* Test switch (default off): net.dropNext = how many write requests the fake server APPLIES but whose answer is lost (the browser sees a failed request). net.writes counts writes. */
-  const net = { dropNext: 0, writes: 0, failWrites: false, failed: 0, hang: 0 };
+  const net = { dropNext: 0, writes: 0, failWrites: false, failed: 0, hang: 0, missing: {}, log: [], reads: {}, hangReads: {}, reject: {} };   // reject: row ids the fake server answers with a 400 (a refused row)   // missing: tables that answer like a table that does not exist yet; log: every write {method, table}
   await page.route('**/fbrnxuargsilbyyjrjop.supabase.co/**', async route=>{
     const u = new URL(route.request().url()), m = route.request().method(), p = u.pathname;
     const isWrite = m!=='GET' && m!=='OPTIONS' && /^\/rest\/v1\//.test(p);
@@ -59,7 +59,11 @@ exports.open = async function(){
     let mt;
     if((mt=p.match(/^\/rest\/v1\/rpc\/(\w+)/))) return r.fulfill({status:200,headers:h,body:JSON.stringify(mt[1]==='server_time'?new Date().toISOString():null)});
     if((mt=p.match(/^\/rest\/v1\/(\w+)/))){
-      const t = mt[1]; const rows = store[t] = store[t] || [];
+      const t = mt[1];
+      if(net.missing[t]) return r.fulfill({status:404,headers:h,body:JSON.stringify({code:'PGRST205',message:"Could not find the table 'public."+t+"' in the schema cache"})});
+      if(isWrite) net.log.push({method:m, table:t});
+      if(m==='GET'){ net.reads[t] = (net.reads[t]||0)+1; if(net.hangReads[t]) return new Promise(()=>{}); }   // hangReads: a read that never answers
+      const rows = store[t] = store[t] || [];
       const q = [...u.searchParams.entries()];
       if(m==='GET'){
         const obj = (r.request().headers()['accept']||'').includes('pgrst.object');
@@ -68,6 +72,7 @@ exports.open = async function(){
       }
       if(m==='POST'){
         let body = JSON.parse(r.request().postData()||'{}'); const arr = Array.isArray(body)?body:[body]; const made = [];
+        if(arr.some(x=>x && net.reject[x.id])) return r.fulfill({status:400,headers:h,body:JSON.stringify({code:'23514',message:'new row violates check constraint'})});
         const ignoreDup = /ignore-duplicates/.test(r.request().headers()['prefer']||'') && u.searchParams.get('on_conflict');
         arr.forEach(x=>{ if(ignoreDup && x.id && rows.some(y=>y.id===x.id)) return; const row = Object.assign({id:'a'+Math.random().toString(36).slice(2,10),household_id:HID},x); rows.push(row); made.push(row); });
         return r.fulfill({status:201,headers:h,body:JSON.stringify(made)});
@@ -83,7 +88,7 @@ exports.open = async function(){
   const hook = 'window.state = state;';
   if(src.split(hook).length!==2) throw new Error('hook line "window.state = state;" not found exactly once');
   const tmp = path.resolve(__dirname,'.audit-copy.html');
-  fs.writeFileSync(tmp, src.replace(hook, hook+' window.__fa = {worldZones:(typeof worldZones!=="undefined"?worldZones:null), worldTodayPlan:(typeof worldTodayPlan!=="undefined"?worldTodayPlan:null), sb:sb, renderView:renderView, renderLessonDetail:renderLessonDetail, els:els, STANDARD_STATUS:STANDARD_STATUS, runAutoMigrations:runAutoMigrations, daysOffApply:daysOffApply, contentPacks:contentPacks, isDayOffIso:isDayOffIso, addSchoolDays:addSchoolDays, EXPLAINER_CARDS:EXPLAINER_CARDS, planSchedule:planSchedule, schedMissing:schedMissing, schedClass:schedClass, rhythmAllows:rhythmAllows, subjKey:subjKey, SUBJECT_DAY_CAP:SUBJECT_DAY_CAP, blockKeyFor:blockKeyFor, blockComplete:blockComplete, renderDailyBlockCard:renderDailyBlockCard, isWarmup:isWarmup, todayISO:todayISO, isoDate:isoDate, estMinutesFor:estMinutesFor, planKid:planKid, toggleAssignment:toggleAssignment, SG:(typeof SG!=="undefined"?SG:null), db:db, grantXP:grantXP, syncAll:syncAll, syncState:syncState, autoApproveQuizOnly:autoApproveQuizOnly, patchAnnaStuffieScripts:(typeof patchAnnaStuffieScripts!=="undefined"?patchAnnaStuffieScripts:null), ANNA_STUFFIE_SCHOOL:(typeof ANNA_STUFFIE_SCHOOL!=="undefined"?ANNA_STUFFIE_SCHOOL:null), ANNA_REGROUPING:(typeof ANNA_REGROUPING!=="undefined"?ANNA_REGROUPING:null)};'));
+  fs.writeFileSync(tmp, src.replace(hook, hook+' window.__fa = {worldZones:(typeof worldZones!=="undefined"?worldZones:null), worldTodayPlan:(typeof worldTodayPlan!=="undefined"?worldTodayPlan:null), sb:sb, renderView:renderView, renderLessonDetail:renderLessonDetail, els:els, STANDARD_STATUS:STANDARD_STATUS, runAutoMigrations:runAutoMigrations, daysOffApply:daysOffApply, contentPacks:contentPacks, isDayOffIso:isDayOffIso, addSchoolDays:addSchoolDays, EXPLAINER_CARDS:EXPLAINER_CARDS, planSchedule:planSchedule, schedMissing:schedMissing, schedClass:schedClass, rhythmAllows:rhythmAllows, subjKey:subjKey, SUBJECT_DAY_CAP:SUBJECT_DAY_CAP, blockKeyFor:blockKeyFor, blockComplete:blockComplete, renderDailyBlockCard:renderDailyBlockCard, isWarmup:isWarmup, todayISO:todayISO, isoDate:isoDate, estMinutesFor:estMinutesFor, planKid:planKid, toggleAssignment:toggleAssignment, SG:(typeof SG!=="undefined"?SG:null), db:db, grantXP:grantXP, syncAll:syncAll, syncState:syncState, autoApproveQuizOnly:autoApproveQuizOnly, patchAnnaStuffieScripts:(typeof patchAnnaStuffieScripts!=="undefined"?patchAnnaStuffieScripts:null), ANNA_STUFFIE_SCHOOL:(typeof ANNA_STUFFIE_SCHOOL!=="undefined"?ANNA_STUFFIE_SCHOOL:null), ANNA_REGROUPING:(typeof ANNA_REGROUPING!=="undefined"?ANNA_REGROUPING:null), sd:(typeof sdExpose!=="undefined"?sdExpose():null)};'));
   await page.goto('file://'+tmp);
   return {browser:b, page, store, errors, net, ctx};
 };
