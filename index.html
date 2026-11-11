@@ -33064,6 +33064,59 @@ var RYAN_VR_LAB = [
   ])
 ];
 
+/* Ryan: Social Studies "Build-It" pilot. Same facts as the plain lessons for these topics; instead of a worksheet, Ryan builds a model that has to prove a fixed checklist. He picks WHAT to build; the checklist is fixed. Leader content pack (nothing is added until Mom loads it). */
+var SS_BUILD_PROOF = "Your build is only done when it shows every item on the checklist. Ask a grown-up (or your AI helper) to read your checklist and tell you which items are missing by asking you questions. They may point at a gap, but they may not build or fix it for you.";
+var RYAN_SS_BUILD = [
+  osLesson(0, "Social Studies", "Build-It: Make a Republic You Can Play 🗳️", 20, "SS4CG1", "apply", "ryan-ss-build", {
+    g:"paper, a pencil, and either a computer (Minecraft or Scratch), game pieces and cards, or a few family members for a skit. You pick ONE build below.",
+    i:"The United States is a republic, also called a representative democracy. Citizens do not vote on every law. They elect representatives to make laws for them. If voters do not like how a representative does the job, they can vote for someone else at the next election. That is the consent of the governed. Today you will not fill in a worksheet. You will build a small working model of a republic, and the model has to prove you understand it.",
+    s:"A worked example of a tiny model. A town has 9 villagers. They vote for 3 council members. The council passes one rule, like no building on the park. If the villagers hate the rule, they vote for different council members next time, and the rule can change. Voters, an election, representatives who make a rule, and a way to change them: that is a republic in four parts.",
+    y:"1. Pick ONE build. A) A town in Minecraft or Scratch where villagers vote for a council and the council makes two rules. B) A board or card game for 3 or more players with voters, an election, and representatives who make rules. C) A short skit or video with 3 scenes: voting, the representative deciding, and the next election. 2. CHECKLIST, your build must show all 5: a) voters. b) an election. c) a representative who makes a rule for the voters. d) a way the voters can change the representative next time. e) one thing that is different from everyone voting on everything. 3. "+SS_BUILD_PROOF+" 4. Fix every gap. 5. Write 3 sentences: what your build shows about the consent of the governed, one good thing about a republic, and one hard thing.",
+    c:"Can you point to each of the 5 checklist items inside your build?",
+    w:"Show a grown-up your build and teach them how a republic works without reading from your notes."
+  }, [
+    {q:"In a representative democracy, who makes the laws?", choices:["Representatives the citizens elect","Only one king","Every citizen on every law","Only the army"], answerIndex:0, explain:"Citizens elect representatives to make laws for them."},
+    {q:"What lets voters fix a leader they are unhappy with?", choices:["Voting for someone else at the next election","Waiting forever","Asking the leader to leave the country","Nothing can be done"], answerIndex:0, explain:"Elections let citizens give or take away their consent."},
+    {q:"Your model has voters, an election, and a council that makes rules. What is still missing?", choices:["A way for voters to change the council next time","More council members","A king","A bigger map"], answerIndex:0, explain:"Without a way to change the representatives, the voters do not really hold the power."}
+  ]),
+  osLesson(1, "Social Studies", "Build-It: Make a Model of the Erie Canal with a Working Lock 🚤", 20, "SS4G1", "apply", "ryan-ss-build", {
+    g:"paper, a pencil, a map of New York State, and the materials for the build you pick (Minecraft, or a tub of water with cardboard, Lego or small blocks, or a Scratch animation).",
+    i:"The Erie Canal opened in 1825. It is about 363 miles long and connects the Hudson River at Albany with Lake Erie at Buffalo. Workers dug most of it by hand. Before the canal, moving goods west was slow and expensive. The canal made trade cheaper, helped cities like New York grow, and opened the Midwest to settlers. Because land goes up and down, the canal used locks, which are chambers that fill or empty with water to lift or lower a boat like stairs.",
+    s:"How a lock works. A boat enters the lock and the gates close behind it. Water flows in, and the boat rises. When the water level matches the higher canal, the front gates open and the boat moves on. To go down, you let the water out instead.",
+    y:"1. Pick ONE build. A) A Minecraft canal with at least two locks. B) A model with a tub or tray of water, where a small boat goes up through a lock you make. C) A Scratch or drawn animation of a boat going through a lock. 2. CHECKLIST, your build must show all 6: a) the Hudson River and Albany. b) Lake Erie and Buffalo. c) the year 1825 and about 363 miles. d) a lock that lifts or lowers a boat. e) three ways the canal helped (cheaper trade, city growth, more settlers). f) why a canal beat wagons for heavy goods. 3. "+SS_BUILD_PROOF+" 4. Fix every gap. 5. Write 3 sentences about why the Erie Canal changed America.",
+    c:"Does your build show all 6 checklist items, and does the boat really get lifted?",
+    w:"Run your boat through the lock for a grown-up and explain, step by step, why it rises."
+  }, [
+    {q:"Which two bodies of water did the Erie Canal connect?", choices:["The Hudson River and Lake Erie","The Mississippi and the Pacific","The Atlantic and the Gulf of Mexico","Lake Erie and Lake Superior"], answerIndex:0, explain:"It runs from the Hudson River at Albany to Lake Erie at Buffalo."},
+    {q:"What does a lock do?", choices:["Lifts or lowers a boat by filling or emptying a chamber with water","Keeps boats out","Makes the water warm","Measures the boat"], answerIndex:0, explain:"A lock changes the water level so a boat can climb or descend the canal like stairs."},
+    {q:"Why was a canal better than wagons for heavy goods?", choices:["A boat can carry much more for much less cost","Wagons were faster","Canals had no workers","Wagons could not go on land"], answerIndex:0, explain:"Shipping by water lowered costs, which helped trade and settlement."}
+  ]),
+  osLesson(2, "Social Studies", "Build-It: Make a Relief Map That Shows Which Way the Rain Flows 🗺️", 20, "SS4G1", "apply", "ryan-ss-build", {
+    g:"a tray, clay or kinetic sand or crumpled foil and towels (or Minecraft), a spray bottle or cup of water, paper, a pencil, and a map of the United States.",
+    i:"The Great Plains are a huge, mostly flat grassland in the middle of the United States, east of the Rocky Mountains. The Continental Divide runs along the top of the Rocky Mountains. Rain that falls west of the Divide flows toward the Pacific Ocean. Rain that falls east of it flows toward the Atlantic Ocean and the Gulf of Mexico. The Plains were crossed by settlers, and the mountains were a barrier.",
+    s:"A tray model. Pile clay or sand into a ridge down one side of the tray. That is the Rockies. Put the flat part on the other side. That is the Plains. Pour a little water on each side of the top of the ridge, and watch which way it runs.",
+    y:"1. Pick ONE build. A) A clay or sand relief map on a tray with a spray bottle for rain. B) Minecraft terrain with the Rockies, the Plains, and rivers that run both ways. C) A foil and towel landform map. 2. CHECKLIST, your build must show all 6: a) the Rocky Mountains. b) the Great Plains east of them. c) the Continental Divide marked along the ridge. d) rain flowing west toward the Pacific. e) rain flowing east toward the Gulf of Mexico and the Atlantic. f) the Mississippi River. 3. "+SS_BUILD_PROOF+" 4. Test it with real or pretend rain. If the water runs the wrong way, find out why and fix it. 5. Write one way the mountains and one way the plains affected settlers.",
+    c:"When you pour water on the ridge, does it run the right way on each side?",
+    w:"Make it rain on your model for a grown-up and explain the Continental Divide."
+  }, [
+    {q:"Where are the Great Plains?", choices:["East of the Rocky Mountains","West of the Pacific","Under the ocean","In Alaska only"], answerIndex:0, explain:"The Great Plains lie east of the Rocky Mountains."},
+    {q:"Rain falls just west of the Continental Divide. Where does it flow?", choices:["Toward the Pacific Ocean","Toward the Gulf of Mexico","Up the mountain","It does not flow"], answerIndex:0, explain:"West of the Divide, water drains toward the Pacific."},
+    {q:"How did the Rocky Mountains affect settlers?", choices:["They were a barrier that was hard to cross","They made travel easier","They had no effect","They were flat"], answerIndex:0, explain:"The mountains were hard to cross, while the Plains were wide open for settlers to travel."}
+  ]),
+  osLesson(3, "Social Studies", "Build-It: Build a Cause Chain for the Battle of Little Bighorn 🏞️", 20, "SS4H3", "apply", "ryan-ss-build", {
+    g:"paper, a pencil, a map of the United States, and what you need for the build you pick (dominoes or cards, a comic page, or a slide deck).",
+    i:"As settlers moved west, the U.S. government pushed American Indian nations onto reservations. Gold was found in the Black Hills, land that had been promised to the Lakota in a treaty. In June 1876, Lakota, Cheyenne and Arapaho warriors, led by Sitting Bull and Crazy Horse, fought Lt. Col. George Armstrong Custer's army at the Little Bighorn River in Montana. Custer's force was defeated. Afterward the government sent more soldiers and forced most of the nations onto reservations. A cause chain shows how one event leads to the next. Tell it fairly, so it makes sense from more than one side.",
+    s:"A cause chain with dominoes. Write one event on each domino, stand them in a row, and tip the first one. Gold in the Black Hills tips settlers moving in, which tips the broken treaty, which tips the battle, which tips the move to reservations.",
+    y:"1. Pick ONE build. A) A domino or card chain, one event on each piece. B) A comic strip with a panel for each event. C) A short slide deck or video, one slide for each event. 2. CHECKLIST, your build must show all 6: a) gold found in the Black Hills. b) land promised to the Lakota in a treaty. c) the battle in June 1876 at the Little Bighorn River in Montana. d) Sitting Bull and Crazy Horse on one side and Custer on the other. e) what happened afterward (the nations were forced onto reservations). f) one sentence about how this changed life for American Indians. 3. "+SS_BUILD_PROOF+" 4. Fix every gap. 5. Write one question you still have about this event.",
+    c:"If someone tips your first piece, does every link in the chain lead to the next in the right order?",
+    w:"Walk a grown-up through your chain from the first event to the last and say why each one caused the next."
+  }, [
+    {q:"What started the chain of events that led to the Battle of Little Bighorn?", choices:["Gold in the Black Hills, and settlers moving onto land promised in a treaty","A baseball game","A new canal","A storm"], answerIndex:0, explain:"Gold and settlers pushed onto land promised to the Lakota."},
+    {q:"What happened to most of the nations after the battle?", choices:["They were forced onto reservations","They moved to Europe","They got everything back","They joined Custer's army"], answerIndex:0, explain:"The government sent more soldiers and forced most nations onto reservations."},
+    {q:"Where is the Little Bighorn River?", choices:["In Montana","In Georgia","In Texas","In Maine"], answerIndex:0, explain:"The battle took place by the Little Bighorn River in Montana."}
+  ])
+];
+
 var VR_BUILD_PAGE = "https://ms-bee-create.github.io/Homeschool/vr/build.html";
 var RYAN_VR_BUILD = [
   osLesson(0, "Independent", "Build Your 3D Viewer 1: Make a Scene and Walk Into It 🧊", 25, "CSS.CT.3-5.5.4", "teach", "ryan-vr-build", {
@@ -33148,6 +33201,7 @@ function contentPacks(){
     {label:"Ryan: OS Under the Hood, build a scheduler, memory, files and users in Python (10 lessons)", kid:"kid2", items:RYAN_UNDER_HOOD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_UNDER_HOOD); }},
     {label:"Ryan: VR Headset Explorer and How 3D Vision Works (5 lessons, uses the Gear VR, never taken apart)", kid:"kid2", items:RYAN_VR_LAB, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_LAB); }},
     {label:"Ryan: Build Your Own 3D Viewer for the Gear VR and the S7 (5 lessons, uses the build page)", kid:"kid2", items:RYAN_VR_BUILD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_VR_BUILD); }},
+    {label:"Ryan: Social Studies Build-It pilot (4 lessons: republic, Erie Canal, Continental Divide, Little Bighorn)", kid:"kid2", items:RYAN_SS_BUILD, oldPrefix:"", load:function(){ addPackItems("kid2", RYAN_SS_BUILD); }},
     {label:"Anna: AHG Hiking and Money Management badges (10 after-school lessons)", kid:"kid1", items:ANNA_AHG_HIKE_MONEY, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_HIKE_MONEY); }},
     {label:"Anna: AHG Badges, intro and the Dance badge (11 after-school lessons)", kid:"kid1", items:ANNA_AHG_BADGES, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_AHG_BADGES); }},
     {label:"Anna: Counting Coins, penny to quarter (4 lessons)", kid:"kid1", items:ANNA_COINS, oldPrefix:"", load:function(){ addPackItems("kid1", ANNA_COINS); }},
