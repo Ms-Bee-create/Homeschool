@@ -45,8 +45,14 @@ function build(kid) {
   const plan = { kid, start: START, end: END, moves: [], keeps: [], holds: [], old: [], gaps: [], notes: [], byDay: {} };
   const doneReviewOf = new Set(live.filter(r => r.done && r.review_of).map(r => r.review_of));
   const movable = [];
+  // repeats: same subject + same title as a lesson already done (ignoring emoji and a "Boss Battle" / "Game Day" tag); parked in holds, never deleted
+  const repNorm = t => String(t || '').toLowerCase().replace(/[^\x00-\x7f]/g, '').replace(/boss battle|game day/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const doneBy = {};
+  live.filter(r => r.done).forEach(r => { doneBy[r.subject + '|' + repNorm(r.title)] = r; });
   live.forEach(r => {
     if (r.done || hasWork(r)) return;                       // finished or started: never touched
+    const dup = doneBy[r.subject + '|' + repNorm(r.title)];
+    if (dup && r.date >= '2026-11-12') { plan.holds.push({ id: r.id, date: r.date, subject: r.subject, title: r.title, why: 'repeat of a lesson already done on ' + dup.date + ' (' + dup.title + ')', repeat: true }); return; }
     const cls = slotOf(kid, r);
     if (cls === 'fixed') { if (r.date >= START) plan.keeps.push({ id: r.id, date: r.date, why: 'dated on purpose', title: r.title, cls, subject: r.subject }); else plan.old.push({ id: r.id, date: r.date, title: r.title, cls, why: 'fixed-date lesson that is past' }); return; }
     if (r.date < START && !(r.date >= '2026-11-12' && r.date < START)) { plan.old.push({ id: r.id, date: r.date, subject: r.subject, skill: r.skill_id, title: r.title, cls }); return; }
@@ -104,6 +110,7 @@ plans.forEach(p => {
   const lastDay = Object.keys(p.byDay).filter(d => Object.keys(p.byDay[d]).length).sort().pop();
   lines.push('### ' + nm);
   lines.push('placed: ' + p.moves.length + ' lessons (' + p.changed + ' get a new date); kept as dated: ' + p.keeps.length + '; held back: ' + p.holds.length + '; old unfinished before ' + START + ': ' + p.old.length + '; not placed by ' + END + ': ' + p.leftOver.length + ' ' + JSON.stringify(leftBy));
+  p.holds.filter(h => h.repeat).forEach(h => lines.push('  REPEAT held: ' + h.date + ' ' + h.subject + ' | ' + h.title + '  <- ' + h.why));
   lines.push('empty slots: ' + Object.keys(gapBy).map(k => k + ' ' + gapBy[k].length + ' (first ' + gapBy[k][0] + ', last ' + gapBy[k][gapBy[k].length - 1] + ')').join('; '));
 });
 fs.writeFileSync(path.join(OUT, 'summary.txt'), lines.join('\n'));
