@@ -28275,6 +28275,7 @@ function runAutoMigrations(){
     patchSafetyUndo();
     patchRyanLessonText(); patchStubLessons(); patchAnnaLessonText(); patchAnnaHandwriting(); patchAnnaMessCleanup(); patchAnnaSsOverdue(); patchRyanMathVideos(); patchSplitBigBookLessons(); patchRyanMicrobitGameOver(); patchRemoveRobotBuildStubs(); patchArchiveChallengeLessons(); patchAnnaHandwritingShort(); patchAnnaMathChecks(); patchCsStandards(); patchElaStandards(); patchSciStandards(); patchSsStandards(); autoAddAhgPenPal(); autoAddAhgFaith(); autoAddAhgFaithBadges(); autoAddAhgCivics(); autoAddRyanCivics(); patchAhgFaithSpread(); patchApprovedVideos(); patchAnnaCivicsQuizzes();
     autoAddAnnaStuffieSchool();
+    patchAnnaStuffieScripts();
     autoAddOffScreenFridays();
     autoAddScooterTrack();
     planSchedule();
@@ -31015,7 +31016,7 @@ var ANNA_REGROUPING = [
 "standard": "2.NR.2.3",
 "stage": "apply",
 "video": null,
-"passage": "Gather first — buttons or beads, paper marked TENS and ONES, a pencil, and a grown-up student (Mom or Dad). You are the teacher!\nHere's the Idea — The best way to know you understand is to teach it. A good teacher shows an example, lets the student try, and checks the answer.\nYour Turn — 1. Pick one adding problem and one taking-away problem, with numbers between 20 and 70, that need a trade. 2. Teach your student to solve the adding problem with buttons. Show the trade. 3. Teach your student to solve the taking-away problem with buttons. Show the trade. 4. Let your student try one on their own while you watch. Check their answer. 5. Tell your student one thing they did well.\nCheck Yourself — Did your student say \"trade\" at the right time? Did the answers check out?\nShow What You Know — Give yourself a star: tell Mom or Alexa what you like most about trading.",
+"passage": "Gather first — buttons, paper marked TENS and ONES, a pencil, and Mom or Dad as your student.\nHere's the Idea — You are the teacher! A good teacher shows, lets the student try, and checks.\nSee It Done — Add: \"We add 36 + 27. Show 3 tens 6 ones, and 2 tens 7 ones. Ones: 6 + 7 = 13. Trade 10 ones for 1 ten. Tens: 3 + 2 + 1 = 6. So 36 + 27 = 63.\" ASK: \"When do we trade?\" Right answer: \"When the ones make 10 or more.\" Take away: \"Now 62 - 38. Show 6 tens 2 ones. We need 8 ones but have 2! Trade 1 ten for 10 ones. Now 5 tens 12 ones. 12 - 8 = 4. 5 - 3 = 2. So 62 - 38 = 24.\" ASK: \"Why did we trade?\" Right answer: \"Not enough ones.\"\nYour Turn — 1. Say the add words above. Show 36 + 27 with buttons. 2. Show 62 - 38 again. 3. Mom tries 45 + 28 now. Ask: \"How many ones? Do we trade?\" Right answer: \"13, yes.\" Mom should get 73 in all. 4. Mom tries 53 - 27 next. She should get 26 in all. 5. If Mom misses, say: \"Good try! Count the ones again.\" If she is right, say: \"Yes! Great trading!\"\nCheck Yourself — Did your student say \"trade\" at the right time?\nShow What You Know — Give yourself a star: tell Mom or Alexa what you like most about trading.",
 "quiz": [
 {
 "q": "When do you trade in addition?",
@@ -35379,7 +35380,7 @@ var ANNA_STUFFIE_SCHOOL = [
   "cross": [
    "Science"
   ],
-  "passage": "Gather first — your stuffie class, paper, crayons, a plant or flower (or a picture of one), and a pencil.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Plants are living things. They need sunlight, water, air, and space to grow. Teachers draw big pictures to help their class understand.\nSee It Done — SAY IT: 'Class, plants need 4 things: sun, water, air, and space.' SHOW IT: draw a plant with a big sun, a rain cloud, and arrows. ASK: 'What would happen if a plant had no water?'\nYour Turn — 1. Draw a big poster with a plant in the middle. Draw the sun, water, air, and space around it. 2. Say it: tell the class the 4 things plants need. 3. Show it: point to each thing on your poster as you say it. 4. Ask the class: 'What would happen if a plant had no water?' Let a stuffie 'answer' and then you explain. 5. Water a real plant (a little!) and tell the class what you did. 6. Hang your poster up in your classroom.\nCheck Yourself — Did you name all 4 things? Did you ask a question?\nShow What You Know — Tell Mom or Dad one thing your class learned about plants.",
+  "passage": "Gather first — your stuffie class, paper, crayons, a pencil, and a plant or a picture of one.\nHere's the Idea — Plants are living things. They need sun, water, air, and space.\nSee It Done — SAY IT: \"Class, plants need 4 things: sun, water, air, and space.\" SHOW IT: draw a stem and two leaves. Add a yellow sun, a blue rain cloud, and curly air lines. Draw a box around the plant. ASK: \"What does the sun give a plant?\" Bunny answers: \"Light!\" Say: \"Yes! Plants use light to make food.\" If a student misses, say: \"Good try! The yellow sun gives light.\"\nYour Turn — 1. Draw a green stem, two leaves, and brown roots. 2. Draw a yellow sun. Say: \"The sun gives light.\" 3. Draw a blue rain cloud. Say: \"Roots drink the water.\" 4. Draw curly air lines. Say: \"Leaves need air.\" 5. Draw a big box around the plant. Say: \"Space is room to grow.\" 6. Ask: \"What if a plant had no water?\" A stuffie says: \"It gets dry!\" You say: \"Yes! It droops and cannot grow.\" If a student misses, say: \"Good try! Think of a plant with no drink.\" 7. Give a real plant a little water.\nCheck Yourself — Did you draw all 4 needs? Did you ask what happens with no water?\nShow What You Know — Be the teacher for Mom or Dad. Name the 4 needs and ask what happens with no water.",
   "xp": 15
  },
  {
@@ -35389,7 +35390,7 @@ var ANNA_STUFFIE_SCHOOL = [
   "cross": [
    "ELA"
   ],
-  "passage": "Gather first — your stuffie class, paper, a pencil, and a talking stick (a spoon or a pencil works).\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. In a sharing circle, only the student holding the talking stick speaks. Everyone else listens. Teachers help students say complete sentences.\nSee It Done — Teacher Anna passes the stick to Bear. Bear (Anna's voice) says: 'My favorite food is pizza.' Teacher Anna writes the sentence on the board: 'Bear likes pizza.' Then she asks the class, 'Who else likes pizza?'\nYour Turn — 1. Sit your class in a circle. Pick a talking stick. 2. Pass the stick to one student at a time. Make up one sentence for each, like 'My favorite color is blue.' 3. Write each sentence on paper. Start with a capital letter and end with a period. 4. Read all the sentences back to the class. 5. Ask the class: 'Which sentence did you like best?' 6. Give each student a 'speaker' sticker.\nCheck Yourself — Does every sentence start with a capital and end with a period?\nShow What You Know — Read your favorite sentence to Mom or Dad.",
+  "passage": "Gather first — your stuffie class, paper, a pencil, and a talking stick (a spoon works).\nHere's the Idea — Only the one holding the stick talks. A sentence starts with a capital letter. It ends with a period.\nSee It Done — SAY IT: \"Class, big letter first, period last.\" SHOW IT: Bear holds the stick and says: \"My favorite food is pizza.\" Write it. Circle the big M and the period. ASK: \"What does a sentence start with?\" Bunny answers: \"A capital letter!\" ASK: \"What goes at the end?\" Pup answers: \"A period!\" Say: \"Yes! Super answers!\" If a student misses, say: \"Good try! Look at the big letter first.\"\nYour Turn — 1. Sit your class in a circle. Say: \"Only the stick holder talks.\" 2. Say these starters: \"My favorite color is...\" \"I like to...\" \"I can...\" 3. Pass the stick. Each student finishes a starter. Bear says: \"My favorite color is blue.\" Bunny says: \"I like to swim.\" Pup says: \"I can hop.\" 4. Write all three. Make each first letter big. End each with a period. 5. Ask: \"What goes at the end of a sentence?\" Right answer: \"A period.\" If a student misses, say: \"Good try! Look for the little dot.\" 6. Give each student a star sticker.\nCheck Yourself — Does every sentence start with a capital letter and end with a period?\nShow What You Know — Read your favorite sentence to Mom or Dad. Show them the capital letter and the period.",
   "xp": 15
  },
  {
@@ -35399,7 +35400,7 @@ var ANNA_STUFFIE_SCHOOL = [
   "cross": [
    "ELA"
   ],
-  "passage": "Gather first — your stuffie class, paper for the board, a pencil, your heart word list from handwriting, and a grown-up to check.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Heart words are words we learn by heart, like 'the', 'said', and 'you'. Teachers give a spelling check and cheer for every try.\nSee It Done — SAY IT: 'Class, this word is said. Say it with me: said.' SHOW IT: write 'said' on the board and tap each letter. ASK: 'Who can spell it?' Teacher Anna checks the spelling and says, 'Nice try!' even when a student misses.\nYour Turn — 1. Pick 5 heart words from your list. Write each on your board. 2. Say it: say each word and have the class 'say it back'. 3. Show it: tap each letter as you spell the word out loud. 4. Ask: 'Who can spell it?' Take turns being the class and the teacher. 5. Give a spelling check. Say the word, and the class writes it (you can write it for them). 6. Cheer for every try. Give a certificate to your best student.\nCheck Yourself — Did you spell each word with your class? Did you cheer for every try?\nShow What You Know — Be the teacher for Mom or Dad. Say 3 heart words and ask them to spell them.",
+  "passage": "Gather first — your stuffie class, paper, a pencil, and a grown-up to check.\nHere's the Idea — A heart word has one tricky part. Learn that part by heart.\nSee It Done — SAY IT: \"Class, our word is said. It sounds like sed. The tricky part is ai. Here, ai says e.\" SHOW IT: write said and circle the ai. ASK: \"Which letters are tricky?\" Bunny answers: \"ai!\" Say: \"Yes! Great job, Bunny!\" If a student misses, say: \"Nice try! Look at the circle. It is ai.\"\nYour Turn — 1. Teach said with the words above. 2. Teach they. Circle ey. Say: \"They is the word the, plus y.\" 3. Teach was. Circle the a. Say: \"Was sounds like wuz. The a says u.\" 4. Teach where. Circle here. Say: \"Where has the word here hiding in it.\" 5. Teach once. Circle the o. Say: \"Once sounds like wuns. The o says wu.\" 6. Ask: \"What small word hides in where?\" Right answer: \"here.\" A stuffie says: \"here!\" 7. Ask: \"How do you spell they?\" Right answer: \"t, h, e, y.\" If a student misses, say: \"Nice try! Look at the trick again.\" 8. Spelling check: cover the board. Say a word and write it. Peek and fix. Cheer every try!\nCheck Yourself — Did you circle the tricky part of every word? Did you cheer for every try?\nShow What You Know — Be the teacher for Mom or Dad. Say they and where. Ask them to spell each one.",
   "xp": 15
  },
  {
@@ -35409,7 +35410,7 @@ var ANNA_STUFFIE_SCHOOL = [
   "cross": [
    "ELA"
   ],
-  "passage": "Gather first — your stuffie class, paper, crayons, a ribbon or a paper graduation cap, and a grown-up to be the guest.\nHere's the Idea — Every teacher uses a lesson plan with 3 parts: Say it, Show it, Ask a question. Graduation is when students celebrate what they learned. A good teacher gives a short speech and thanks the class.\nSee It Done — Teacher Anna stands up and says: 'Class, this month we learned about stories, sharing fair, plants, and words. I am so proud of you.' Then she gives each student a certificate.\nYour Turn — 1. Make a graduation certificate for each student. Write their name and one thing they learned. 2. Set up your classroom for the ceremony. Invite a grown-up as the guest. 3. Give your speech. Say 3 things your class learned. 4. Hand out the certificates, and give each student a big clap. 5. Ask your guest one question about what they learned from your class. 6. Take a photo or draw a picture of graduation day.\nCheck Yourself — Did you say 3 things your class learned? Does every certificate have a name?\nShow What You Know — Teach your guest your favorite thing from Stuffie School.",
+  "passage": "Gather first — your stuffie class, paper, crayons, a paper cap, and a grown-up to be the guest.\nHere's the Idea — Graduation is a party for what you learned. The teacher gives a short speech and thanks the class.\nSee It Done — Teacher Anna says: \"Class, this month we learned so much. A lesson has 3 parts: say it, show it, ask a question. Fair means the same, so 8 candies make 4 and 4. Plants need sun, water, air, and space. A sentence starts with a capital letter and ends with a period. Heart words like said and they have a tricky part. I am so proud of you. Thank you, class!\"\nYour Turn — 1. Make a certificate for each student. Write the name and one thing learned, like \"Bear learned plants need water.\" 2. Set up your classroom. Invite the guest to sit. 3. Stand up and read the speech out loud. 4. Ask: \"What do plants need?\" Right answer: \"Sun, water, air, and space.\" A stuffie says it too. 5. Ask: \"What does a sentence end with?\" Right answer: \"A period.\" If a student misses, say: \"Good try! Let's say it together.\" 6. Hand out the certificates. Say: \"Congratulations, graduate!\" Give a big clap.\nCheck Yourself — Did you read the whole speech? Does every certificate have a name?\nShow What You Know — Ask your guest what they learned from your class. Tell them your favorite thing from Stuffie School.",
   "xp": 15
  }
 ];
@@ -35433,6 +35434,32 @@ function autoAddAnnaStuffieSchool(){
       standard:it.standard, stage:"apply", passage:it.passage, crossSubjects:it.cross, skillId:"anna-stuffie-school", createdAt:new Date().toISOString()});
   });
   try{ localStorage.setItem(flag, "1"); }catch(e){}
+}
+/* 10 Nov 2026 (Mom): Anna loves Stuffie School, but the lessons gave her too little to follow. The new passages are a word-for-word teacher script (what to say, show, ask,
+   the right answers, what the stuffies answer, how to praise or fix). The text itself lives in ANNA_STUFFIE_SCHOOL and ANNA_REGROUPING, so new installs get it too.
+   This one-time patch writes ONLY the passage, and only on Anna's lessons with these exact titles that are not done and have no saved work. Safe to run twice (same text = no write). */
+var ANNA_STUFFIE_SCRIPT_TITLES = ["Teacher Anna: Spelling and Heart Words Class \uD83D\uDCD6", "Teacher Anna: Sharing Circle and Writing Class \u270F\uFE0F", "Teacher Anna: Science Class, Plants Need Stuff \uD83C\uDF31", "Teacher Anna: Graduation Day at Stuffie School \uD83C\uDF93", "Teacher Anna: Teach Mom to Trade! \uD83C\uDF4E"];
+function annaStuffieScriptFor(title){
+  if(ANNA_STUFFIE_SCRIPT_TITLES.indexOf(title)<0) return null;
+  var found = null;
+  [ANNA_STUFFIE_SCHOOL, ANNA_REGROUPING].forEach(function(arr){ arr.forEach(function(it){ if(it.title===title) found = it.passage; }); });
+  return found;
+}
+function patchAnnaStuffieScripts(){
+  if(!db) return;
+  var flag = "al_stuffie_scripts_v1", done = false;
+  try{ done = !!localStorage.getItem(flag); }catch(e){}
+  if(done) return;
+  var ids = Object.keys(state.assignments), n = 0;
+  ids.forEach(function(id){
+    var a = state.assignments[id];
+    if(!a || a.kidId!=="kid1" || a.done || hasWork(a)) return;
+    var p = annaStuffieScriptFor(a.title);
+    if(!p || a.passage===p) return;
+    a.passage = p; db.doc("assignments/"+id).update({passage:p}); n++;
+  });
+  if(n) console.log("patchAnnaStuffieScripts: updated "+n+" lesson(s)");
+  if(ids.length){ try{ localStorage.setItem(flag, "1"); }catch(e){} }
 }
 /* Wobbly Life money math for Anna (a Leader content pack). Pay amounts come from fan guides and may not match the current game; the lessons say to check. */
 var ANNA_WOBBLY_MATH = [
@@ -35975,7 +36002,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-10.10";
+var APP_BUILD = "2026-11-10.11";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
