@@ -3547,7 +3547,7 @@ function liveWorldCard(){
   b.onclick = function(){ var g = Object.assign({}, familyGoal(), {liveWorld:!on}); saveFamilyGoal(g, true); renderLeaderArea(); };
   c.appendChild(b); return c;
 }
-function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
+function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done || quizHelpHold(a); }); }
 function worldFrameUrl(kid, which){
   var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid),
     house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:worldDeliveriesLeft(d)}, brain:{left:worldBrainLeft(d)}, qs:worldQuestionPool(kid)};
@@ -5226,6 +5226,10 @@ function taskRow(a){
    Below that they read the tips and try the new Quick Check once; after that one retry they may turn it in, and Mom sees the low first score (0 right is marked in her queue).
    Leader is never blocked, and undoing a turn-in is never blocked. */
 var QUIZ_PASS = 0.66;
+/* Help hold (Mom, 12 Nov 2026): every answer wrong on the Quick Check AND on the one retry means a grown-up has to sit with the kid. The lesson cannot be turned in until a grown-up clears it
+   (Leader: Approve, or "fresh Quick Check"). It is not a punishment: Forge World stays open while they wait. */
+var HELP_HOLD_NOTE = "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.";
+function quizHelpHold(a){ return !!a && a.reviewStatus==="flagged" && String(a.reviewNote||"").indexOf("Needs a grown-up's help") === 0; }
 function quizNeeded(total){ return (total||0) <= 2 ? 1 : Math.ceil(total * QUIZ_PASS - 1e-9); }   // 1-2 question checks: at least 1 right (Ryan has 100+ two-question checks); 3 -> 2, 4 -> 3, 5 -> 4
 function quizPassed(score, total){ return total>0 && score!=null && score >= quizNeeded(total); }
 /* Automatic approval (no one looks) is stricter than the turn-in bar on short checks: a 1-2 question check must be all right, because guessing gets 1 of 2 right about 4 times in 10. */
@@ -5234,6 +5238,7 @@ function quizGateMessage(a, kidId){
   var cur = (a && a.id && state.assignments[a.id]) || a;
   if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
   var little = (kidId || cur.kidId)==="kid1";
+  if(quizHelpHold(cur)) return little ? "This one needs Mom or Dad to help you first. Your Garden School is open while you wait! \uD83C\uDF38" : "This one needs Mom or Dad to help you first. Forge World is open while you wait. \uD83C\uDF0D";
   if(cur.quizScore==null || !(cur.quizTotal>0)) return little ? "Do your Quick Check first, then turn it in! \uD83C\uDFAF" : "Do the Quick Check first, then turn it in. \uD83C\uDFAF";
   if(quizPassed(cur.quizScore, cur.quizTotal)) return "";
   if(cur.quizRetryUsed) return "";
@@ -5247,6 +5252,13 @@ function quickCheckScoresCard(){
   card.style.cssText = "margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border)";
   var head = document.createElement("div"); head.style.cssText = "font-weight:800;font-size:14.5px;margin-bottom:6px"; head.textContent = "\uD83C\uDFAF Quick Check scores (last 14 days)"; card.appendChild(head);
   var any = false;
+  var held = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(quizHelpHold);
+  if(held.length){
+    any = true;
+    var hb = document.createElement("div"); hb.style.cssText = "margin:4px 0 8px;padding:8px 10px;border-radius:8px;background:var(--coral-soft);color:var(--coral);font-size:13px;font-weight:700";
+    hb.textContent = "\uD83C\uDD98 Waiting for a grown-up: " + held.map(function(a){ return kidData(a.kidId).name+" - "+String(a.title||"").slice(0,50); }).join("; ");
+    card.appendChild(hb);
+  }
   KIDS.forEach(function(k){
     var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){
       return a.kidId===k.id && a.quizTotal>0 && a.quizScore!=null && a.reviewStatus!=="retired" && (a.done || a.quizRetryUsed) && (a.doneAt || a.submittedAt || a.date || "") >= (a.doneAt||a.submittedAt ? cutoff : cutoff.slice(0,10));
@@ -8877,8 +8889,8 @@ function renderLessonDetail(){
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
-            if(retryCounts && correctCount===0 && db && a.id && !a.reviewStatus){
-              var helpUpd = flagFields(state.assignments[a.id] || a, "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.");
+            if(retryCounts && correctCount===0 && a.quizScore===0 && db && a.id && !a.reviewStatus){
+              var helpUpd = flagFields(state.assignments[a.id] || a, HELP_HOLD_NOTE);
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], helpUpd);
               Object.assign(a, helpUpd);
               SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(helpUpd); });
@@ -9279,7 +9291,7 @@ function renderLessonDetail(){
     if(live0.reviewStatus==="approved" && !state.leaderUnlocked){ savedNote.textContent = "\uD83D\uDD12 Already approved, so it can't be changed"; toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
     var now = new Date().toISOString();
     var updates = {workBlocks: blocks, submittedAt: now};
-    if(a.reviewStatus==="flagged"){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
+    if(a.reviewStatus==="flagged" && !quizHelpHold(a)){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
     a.workBlocks = blocks; draftSnap = JSON.stringify(blocks);
     if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {workBlocks: blocks, submittedAt: now, reviewStatus: a.reviewStatus, reviewNote: a.reviewNote});
     db.doc("assignments/"+a.id).update(updates);
@@ -9800,6 +9812,19 @@ function renderLeaderArea(){
         renderLeaderArea();
       };
       btnRow.appendChild(approveBtn);
+      if(quizHelpHold(a)){
+        var freshBtn = document.createElement("button");
+        freshBtn.className = "reward-skip"; freshBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
+        freshBtn.textContent = "\uD83D\uDD01 I helped: give a fresh Quick Check";
+        freshBtn.onclick = function(){
+          if(!db) return;
+          var fresh = {reviewStatus:null, reviewNote:null, noteUnread:false, quizScore:null, quizTotal:null, quizRetryUsed:false};
+          if(state.assignments[a.id]) Object.assign(state.assignments[a.id], fresh);
+          db.doc("assignments/"+a.id).update(fresh);
+          renderLeaderArea();
+        };
+        btnRow.appendChild(freshBtn);
+      }
       if(!a.done || a.reviewStatus==="flagged"){
         var halfBtn = document.createElement("button");
         halfBtn.className = "reward-skip";

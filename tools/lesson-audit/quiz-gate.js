@@ -186,7 +186,36 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await page.evaluate(() => { window.__noRushGuard = true; });
   await open('H1'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([false, false, false]); await sleep(500); await sync();
   ok('HELP FLAG: all wrong, then all wrong on the one retry, flags the lesson for Mom', srv('H1').review_status === 'flagged' && /grown-up's help/.test(srv('H1').review_note || ''), srv('H1').review_status + ' | ' + srv('H1').review_note);
-  await turnIn(); await sleep(900); s = await st('H1'); ok('HELP FLAG: the kid can still turn it in (nobody is stuck)', s.done, JSON.stringify(s));
+  await turnIn(); await sleep(700); s = await st('H1');
+  ok('HELP HOLD: the kid CANNOT turn it in alone (a grown-up must come)', !s.done && s.onLesson, JSON.stringify(s));
+  ok('HELP HOLD: the message says a grown-up must help and that Forge World is open', /Mom or Dad to help/.test(await toastText()) && /Forge World is open/.test(await toastText()), await toastText());
+  await open('H1'); await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /turn it in|Save my fixes/i.test(x.textContent)); if (b) b.click(); }); await sleep(500); await sync();
+  ok('HELP HOLD: tapping Save does not clear the flag', srv('H1').review_status === 'flagged', String(srv('H1').review_status));
+  const lt = await page.evaluate(() => { state.leaderUnlocked = false; window.__fa.toggleAssignment(state.assignments.H1); return true; }); await sleep(500);
+  ok('HELP HOLD: ticking it on a list does not get past it either', !(await st('H1')).done);
+  const wu = await page.evaluate(() => { const hold = window.__fa.quizHelpHold(state.assignments.H1); return { hold }; });
+  ok('HELP HOLD: the lesson is recognised as waiting for a grown-up', wu.hold === true, JSON.stringify(wu));
+  const todayNY = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const wr = await page.evaluate((today) => {
+    const ids = Object.keys(state.assignments).filter(id => state.assignments[id].kidId === 'kid2' && state.assignments[id].date === today);
+    const saved = ids.map(id => [id, state.assignments[id].done]);
+    ids.forEach(id => { state.assignments[id].done = true; });
+    const H = state.assignments.H1; const oldDate = H.date; H.date = today; H.done = false;
+    const onlyHeld = window.__fa.worldUnlocked('kid2');
+    state.assignments.H2.date = today; state.assignments.H2.done = false; state.assignments.H2.reviewStatus = null;
+    const withOther = window.__fa.worldUnlocked('kid2');
+    state.assignments.H2.date = '2027-03-01'; H.date = oldDate; saved.forEach(([id, d]) => { state.assignments[id].done = d; });
+    return { onlyHeld, withOther };
+  }, todayNY);
+  ok('FORGE WORLD: opens when the only lesson left today is waiting for a grown-up', wr.onlyHeld === true, JSON.stringify(wr));
+  ok('FORGE WORLD: stays shut if any other lesson today is still open', wr.withOther === false, JSON.stringify(wr));
+  /* Leader clears it */
+  const fresh = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView();
+    const cards = [...document.querySelectorAll('.qz-card')].find(c => /Help lesson/.test(c.textContent)); const b = cards && [...cards.querySelectorAll('button')].find(x => /fresh Quick Check/.test(x.textContent)); const banner = /Waiting for a grown-up/.test(document.body.innerText); if (b) b.click(); return { hasCard: !!cards, hasBtn: !!b, banner }; });
+  await sleep(700); await sync();
+  ok('LEADER: the card shows who is waiting, and a "fresh Quick Check" button', fresh.hasCard && fresh.hasBtn && fresh.banner, JSON.stringify(fresh));
+  ok('LEADER: that button clears the hold and gives a fresh check', !srv('H1').review_status && srv('H1').quiz_score == null && !srv('H1').quiz_retry_used, JSON.stringify([srv('H1').review_status, srv('H1').quiz_score, srv('H1').quiz_retry_used]));
+  await page.evaluate(() => { state.leaderUnlocked = false; state.leaderMode = false; });
   await open('H2'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, false, false]); await sleep(500); await sync();
   ok('HELP FLAG: one right on the retry is not flagged', !srv('H2').review_status, String(srv('H2').review_status));
 
