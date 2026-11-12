@@ -99,13 +99,53 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('the Leader is not held', leaderTap === true && leaderDone === true, leaderTap + ' ' + leaderDone);
   await page.evaluate(() => { state.leaderUnlocked = false; window.__fa.toggleAssignment(state.assignments.G7); }); await sleep(500);
   const undoMsg = await page.evaluate(() => document.body.innerText);
-  ok('undoing a turn-in is not held by the Quick Check rule (no gate message appears; whether a kid may undo submitted work at all is unchanged from before)', !/Quick Check first|Get d right/.test(undoMsg), undoMsg.slice(-160));
+  ok('undoing a turn-in is not held by the Quick Check rule (no gate message appears; whether a kid may undo submitted work at all is unchanged from before)', !/Quick Check first|Get [0-9]+ right/.test(undoMsg), undoMsg.slice(-160));
 
   /* 9. Mom's queue */
   const q = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; try { window.__fa.renderReviewQueue ? window.__fa.renderReviewQueue() : window.__fa.renderView(); } catch (e) {} const t = document.body.innerText; return { zero: /None right on the first try/.test(t), card: /Quick Check scores/.test(t), anna: /Anna: \d+ Quick Check/.test(t), ryan: /Ryan: \d+ Quick Check/.test(t), t: t.slice(0, 300) }; });
   ok('Mom: the score card is on the review screen (if this fails the queue was not opened by the test)', q.card, q.t);
   ok('Mom: it has a line for each kid', q.anna && q.ryan, JSON.stringify(q));
   ok('Mom: a first try with none right is marked', q.zero, JSON.stringify(q));
+
+  /* 10. Review-round fixes: reopening, unfinished checks, held turn-ins leave no stamp, retry pays only after none right */
+  store.al_assignments.push(
+    mk('R1', 'kid2', { title: 'Reopen lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 1, quiz_total: 3 }),
+    mk('R2', 'kid2', { title: 'Marker lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }),
+    mk('R3', 'kid2', { title: 'Held lesson', quiz: Q(3), quiz_retry: Q(3) }),
+    mk('R4', 'kid2', { title: 'Zero then retry', quiz: Q(3), quiz_retry: Q(3) }));
+  await sync();
+  await open('R1');
+  ok('REOPEN: a lesson saved at 1/3 shows the retry button again on a fresh page', await retryVisible());
+  const xpR1a = await page.evaluate(() => state.kids.kid2.xp || 0); await clickRetry(); await sleep(300); await doCheck([true, true, true]); s = await st('R1'); const xpR1b = await page.evaluate(() => state.kids.kid2.xp || 0);
+  ok('REOPEN: finishing the retry marks it used (kid is not stuck)', s.retry, JSON.stringify(s));
+  await turnIn(); await sleep(900); s = await st('R1'); ok('REOPEN: then Turn it in works', s.done, JSON.stringify(s));
+  ok('1 of 3 then a perfect retry pays no extra XP (only a none-right first try earns retry XP)', xpR1b === xpR1a, xpR1a + ' -> ' + xpR1b);
+  await open('R2');
+  ok('UNFINISHED: a check saved as 0 (left half-way) also offers the retry button on reopening', await retryVisible());
+  await open('R3'); await page.evaluate(() => { const a = state.assignments.R3; a.workBlocks = [{ type: 'text', text: 'Some work typed before the check' }]; });
+  await turnIn(); await sleep(900); await sync();
+  s = await st('R3'); ok('HELD: a held turn-in is not done', !s.done, JSON.stringify(s));
+  ok('HELD: and it is not stamped as submitted (so it cannot reach Mom or the helper check early)', !srv('R3').submitted_at, String(srv('R3').submitted_at));
+  const xpR4a = await page.evaluate(() => state.kids.kid2.xp || 0);
+  await open('R4'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, true, true]);
+  const xpR4b = await page.evaluate(() => state.kids.kid2.xp || 0);
+  ok('none right then a retry set: the retry still pays XP as it always did', xpR4b - xpR4a >= 15, xpR4a + ' -> ' + xpR4b);
+  const mq = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView();
+    const cards = [...document.querySelectorAll('.qz-card')]; const mk2 = cards.find(c => /Marker lesson/.test(c.textContent)); const t = document.body.innerText;
+    return { markerCard: !!mk2, markerFlagged: mk2 ? /None right on the first try/.test(mk2.textContent) : null, zeroList: /⚠️ Marker lesson/.test(t) }; });
+  ok('UNFINISHED: a half-finished check is not marked "none right" in the review queue', mq.markerFlagged !== true, JSON.stringify(mq));
+  ok('UNFINISHED: and is not listed under none-right in the score card', !mq.zeroList, JSON.stringify(mq));
+
+  /* 11. Short checks (Ryan has 100+ two-question and 29 one-question checks) */
+  store.al_assignments.push(mk('S1', 'kid2', { title: 'Two question A', quiz: Q(2) }), mk('S2', 'kid2', { title: 'Two question B', quiz: Q(2) }), mk('S3', 'kid2', { title: 'One question', quiz: Q(1) }), mk('S4', 'kid2', { title: 'Four question', quiz: Q(4) }));
+  await sync();
+  await open('S1'); await doCheck([true, false]); await turnIn(); await sleep(900); s = await st('S1'); ok('2-question check: 1 right is enough to turn in', s.done && s.score === 1, JSON.stringify(s));
+  await open('S2'); await doCheck([false, false]); ok('2-question check: none right offers the retry', await retryVisible());
+  await turnIn(); await sleep(500); s = await st('S2'); ok('2-question check: none right is held', !s.done, JSON.stringify(s));
+  await open('S3'); await doCheck([false]); ok('1-question check: a miss offers the retry', await retryVisible());
+  await open('S4'); await doCheck([true, true, false, false]); await turnIn(); await sleep(500); s = await st('S4'); ok('4-question check: 2 right is not enough (needs 3)', !s.done, JSON.stringify(s));
+  const needs = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 9].map(n => window.__fa.quizNeeded ? window.__fa.quizNeeded(n) : null));
+  ok('the bar by length: 1->1, 2->1, 3->2, 4->3, 5->4, 6->4, 9->6 (exposed for the test)', needs[0] === null || JSON.stringify(needs) === JSON.stringify([1, 1, 2, 3, 4, 4, 6]), JSON.stringify(needs));
 
   const errors = o.errors || [];
   ok('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

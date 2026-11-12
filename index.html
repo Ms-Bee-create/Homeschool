@@ -5226,13 +5226,14 @@ function taskRow(a){
    Below that they read the tips and try the new Quick Check once; after that one retry they may turn it in, and Mom sees the low first score (0 right is marked in her queue).
    Leader is never blocked, and undoing a turn-in is never blocked. */
 var QUIZ_PASS = 0.66;
-function quizNeeded(total){ return Math.max(1, Math.ceil((total||0) * QUIZ_PASS - 1e-9)); }
+function quizNeeded(total){ return (total||0) <= 2 ? 1 : Math.ceil(total * QUIZ_PASS - 1e-9); }   // 1-2 question checks: at least 1 right (Ryan has 100+ two-question checks); 3 -> 2, 4 -> 3, 5 -> 4
+function quizPassed(score, total){ return total>0 && score!=null && score >= quizNeeded(total); }
 function quizGateMessage(a, kidId){
   var cur = (a && a.id && state.assignments[a.id]) || a;
   if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
   var little = (kidId || cur.kidId)==="kid1";
   if(cur.quizScore==null || !(cur.quizTotal>0)) return little ? "Do your Quick Check first, then turn it in! \uD83C\uDFAF" : "Do the Quick Check first, then turn it in. \uD83C\uDFAF";
-  if(cur.quizScore/cur.quizTotal >= QUIZ_PASS) return "";
+  if(quizPassed(cur.quizScore, cur.quizTotal)) return "";
   if(cur.quizRetryUsed) return "";
   var need = quizNeeded(cur.quizTotal);
   return little ? "Read the \uD83D\uDCA1 tips, then tap Try new treats! Get "+need+" right to finish!" : "Read the \uD83D\uDCA1 tips, then tap Try a new Quick Check. Get "+need+" right to finish.";
@@ -5246,11 +5247,11 @@ function quickCheckScoresCard(){
   var any = false;
   KIDS.forEach(function(k){
     var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){
-      return a.kidId===k.id && a.quizTotal>0 && a.quizScore!=null && a.reviewStatus!=="retired" && (a.doneAt || a.submittedAt || a.date || "") >= (a.doneAt||a.submittedAt ? cutoff : cutoff.slice(0,10));
+      return a.kidId===k.id && a.quizTotal>0 && a.quizScore!=null && a.reviewStatus!=="retired" && (a.done || a.quizRetryUsed) && (a.doneAt || a.submittedAt || a.date || "") >= (a.doneAt||a.submittedAt ? cutoff : cutoff.slice(0,10));
     });
     if(!rows.length) return;
     any = true;
-    var pass = rows.filter(function(a){ return a.quizScore/a.quizTotal >= QUIZ_PASS; }).length;
+    var pass = rows.filter(function(a){ return quizPassed(a.quizScore, a.quizTotal); }).length;
     var retried = rows.filter(function(a){ return a.quizRetryUsed; }).length;
     var zeros = rows.filter(function(a){ return a.quizScore===0; });
     var pct = Math.round(100 * rows.reduce(function(n,a){ return n + a.quizScore/a.quizTotal; }, 0) / rows.length);
@@ -7858,7 +7859,7 @@ function patchFlaggedStranded(){
   });
   if(n) console.log("patchFlaggedStranded: counted "+n+" lesson(s) the kid had worked on");
 }
-/* Quiz-only lessons the kid finished with 70% or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
+/* Quiz-only lessons the kid finished with 2 of 3 right (the Quick Check bar, QUIZ_PASS) or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
    lessons with real work to look at, and the quizzes the kid struggled with. */
 function autoApproveQuizOnly(){
   if(!db) return;
@@ -7866,7 +7867,7 @@ function autoApproveQuizOnly(){
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
-    if(a.quizScore/a.quizTotal < QUIZ_PASS) return;
+    if(!quizPassed(a.quizScore, a.quizTotal)) return;
     a.reviewStatus = "approved"; SG.afterSend(id, function(){ db.doc("assignments/"+id).update({reviewStatus:"approved"}); }); n++;
   });
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
@@ -8801,11 +8802,13 @@ function renderLessonDetail(){
     var hasRetrySet = Array.isArray(a.quizRetry) && a.quizRetry.length;
     function renderQuizItems(items, isRetryAttempt){
       quizBody.innerHTML = "";
-      retryBtn.style.display = "none";
+      /* Offered from what is SAVED, not only from this sitting: a kid who reopens a lesson below the bar (or left a check unfinished, saved as 0) still sees the button. */
+      var belowBar = !isRetryAttempt && a.quizScore!=null && a.quizTotal>0 && !quizPassed(a.quizScore, a.quizTotal) && !a.quizRetryUsed;
+      retryBtn.style.display = belowBar ? "block" : "none";
       var correctCount = 0, answeredCount = 0;
       /* XP and money only on the first real attempt — reopening the lesson to re-tap answers
          is practice, not a second paycheck. */
-      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet) : (a.quizScore==null);
+      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet && a.quizScore===0) : (a.quizScore==null);
       var retryCounts = isRetryAttempt && !a.quizRetryUsed;   // finishing the one allowed retry opens the gate, with or without XP
       if(!xpEligible){
         var repeatNote = document.createElement("div");
@@ -8863,7 +8866,7 @@ function renderLessonDetail(){
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
-            if(correctCount/items.length < QUIZ_PASS){
+            if(!quizPassed(correctCount, items.length)){
               retryBtn.style.display = "block";
             } else if(xpEligible && isRetryAttempt && correctCount===items.length){
               grantMommaMoney(state.activeKid, 1);
@@ -9378,8 +9381,9 @@ function renderLessonDetail(){
   doneBtn.style.width = "100%";
   doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Save and turn it in";
   doneBtn.onclick = function(){
-    saveWork();
+    /* Held turn-in: no saveWork() here, so the lesson is NOT stamped as submitted (that would put it in Mom's queue and the helper's auto-check). Typing is already kept as a draft as it happens. */
     if(!a.done && !state.leaderUnlocked){ var qg = quizGateMessage(a, state.activeKid); if(qg){ toast(qg); var qw = document.getElementById("quickCheckWrap"); if(qw && qw.scrollIntoView) qw.scrollIntoView({behavior:"smooth", block:"center"}); return; } }
+    saveWork();
     toggleAssignment(a); state.lessonDetailId = null; renderView();
   };
   if(a.done && a.reviewStatus==="flagged"){
@@ -9694,7 +9698,7 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share; 1 right on a 1-2 question check) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
   var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
   var qsCard = quickCheckScoresCard(); if(qsCard) els.view.appendChild(qsCard);
@@ -9733,10 +9737,10 @@ function renderLeaderArea(){
       '<p class="qz-q" style="font-size:16px;margin-bottom:10px">'+escapeHtml(a.title)+'</p>';
     var quizResultHtml = "";
     if(a.quizScore!=null && a.quizTotal!=null){
-      var quizAced = a.quizScore===a.quizTotal, quizZero = a.quizScore===0 && a.quizTotal>0;
+      var quizAced = a.quizScore===a.quizTotal, quizZero = a.quizScore===0 && a.quizTotal>0 && (!!a.done || !!a.quizRetryUsed);
       quizResultHtml =
         '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizZero?'var(--coral-soft)':quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
-          (quizZero ? '⚠️ None right on the first try, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' (on retry)':'')+
+          (quizZero ? '⚠️ None right on the first try, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' on the first try, then retried':'')+
         '</div>';
     }
     var subHtml = quizResultHtml + (hasWork(a) ? '<div class="section-title" style="margin:6px 0 4px">Their work</div>' : '');
@@ -11136,7 +11140,7 @@ window.db = db;
    waits, then kept as "Send again" (never dropped). After a reload the unsent copies are laid back over what the server returned, so a lesson never
    looks undone while its turn-in is still waiting.
    APPROVAL. An approved lesson is locked for its round: a kid session cannot change its work, answers or done mark, and a send-back (flag) is the only way
-   to a new round. Only a grown-up (Leader PIN unlocked) can write reviewStatus "approved"; the two automatic reviewers (quiz-only at 70% and the helper's
+   to a new round. Only a grown-up (Leader PIN unlocked) can write reviewStatus "approved"; the two automatic reviewers (quiz-only at the Quick Check bar, 2 of 3, and the helper's
    "looks good") pass through SG.auto() and are checked against their evidence here, so no other caller can claim to be "auto". The server also refuses to
    overwrite an approved row with a kid copy (the update carries a "not approved" filter).
    LIMITS (see RELEASE_HANDOFF_SAVING.md): the app signs every device in with one household login, so this is a guard inside the app, not a server rule. */
@@ -11164,7 +11168,7 @@ var SG = (function(){
   /* Evidence the two automatic reviewers must have (checked again here, so "auto" cannot be claimed by any other caller). */
   function autoEvidence(a){
     if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
-    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && a.quizScore/a.quizTotal >= QUIZ_PASS;
+    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && quizPassed(a.quizScore, a.quizTotal);
     var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn());
     return quizOnly || ai;
   }
@@ -29262,7 +29266,7 @@ function autoCheckSweep(){
   var hourStamp = Math.floor(now.getTime()/3600000);
   try{ if(localStorage.getItem("al_autocheck_hour")===String(hourStamp)) return; }catch(e){}
   var todo = Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); }).filter(function(a){
-    return a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null) && !(a.aiCheck && a.aiCheck.sub===a.submittedAt);
+    return a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null) && !(a.aiCheck && a.aiCheck.sub===a.submittedAt) && !(!a.done && quizGateMessage(a));
   }).slice(0, 8);
   try{ localStorage.setItem("al_autocheck_hour", String(hourStamp)); }catch(e){}
   if(!todo.length) return;
@@ -29272,6 +29276,7 @@ function autoCheckSweep(){
     chain = chain.then(function(){
       var live = state.assignments[a.id];
       if(!live || (live.aiCheck && live.aiCheck.sub===live.submittedAt) || live.reviewStatus) return;
+      if(!live.done && quizGateMessage(live)) return;   // still held by the Quick Check: leave it for the kid to finish
       a.kidName = kidData(a.kidId).name;
       return runAiCheck(a).then(function(){
         var r = state.aiChecks[a.id];
