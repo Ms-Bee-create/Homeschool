@@ -229,7 +229,7 @@ function t(name, fn) { try { fn(); ok(name, true); } catch (e) { ok(name, false,
 
   /* Done and XP: same on an attached lesson with the widget open as on the control lesson */
   const xpTest = async (id) => { await openLesson(id); await pg.evaluate(() => { const s = document.querySelector('.fw-panel summary'); if (s && !document.querySelector('.fw-panel').open) s.click(); }); await pg.waitForTimeout(100);
-    return pg.evaluate(async id2 => { const a = state.assignments[id2], kd = state.kids[a.kidId], x0 = kd.xp || 0, d0 = !!a.done; const fp = document.querySelector('.fw-panel'); if (fp) fp.querySelector('button').click(); __fa.toggleAssignment(Object.assign({ id: id2 }, a)); await new Promise(r => setTimeout(r, 300)); return { gain: (state.kids[a.kidId].xp || 0) - x0, xp: a.xp, done0: d0, done1: !!state.assignments[id2].done, panel: !!fp }; }, id);
+    return pg.evaluate(async id2 => { const a = state.assignments[id2], kd = state.kids[a.kidId], x0 = kd.xp || 0, d0 = !!a.done; const fp = document.querySelector('.fw-panel'); if (fp) fp.querySelector('button').click(); if (Array.isArray(a.quiz) && a.quiz.length) { a.quizScore = a.quiz.length; a.quizTotal = a.quiz.length; } /* Quick Check done (the gate, 12 Nov) */ __fa.toggleAssignment(Object.assign({ id: id2 }, a)); await new Promise(r => setTimeout(r, 300)); return { gain: (state.kids[a.kidId].xp || 0) - x0, xp: a.xp, done0: d0, done1: !!state.assignments[id2].done, panel: !!fp }; }, id);
   };
   const aId = pick('Array Garden: Rows and Columns'), rId = pick('Math Book, Unit 6: The Standard Algorithm (Long Division Steps)');
   const ra = await xpTest(aId), rc = await xpTest(control);

@@ -5222,12 +5222,53 @@ function taskRow(a){
   return row;
 }
 
+/* Quick Check gate (Mom, 12 Nov 2026). A lesson with a Quick Check can be turned in once the kid has done the check and got at least 2 of 3 right (the same share for longer checks).
+   Below that they read the tips and try the new Quick Check once; after that one retry they may turn it in, and Mom sees the low first score (0 right is marked in her queue).
+   Leader is never blocked, and undoing a turn-in is never blocked. */
+var QUIZ_PASS = 0.66;
+function quizNeeded(total){ return Math.max(1, Math.ceil((total||0) * QUIZ_PASS - 1e-9)); }
+function quizGateMessage(a, kidId){
+  var cur = (a && a.id && state.assignments[a.id]) || a;
+  if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
+  var little = (kidId || cur.kidId)==="kid1";
+  if(cur.quizScore==null || !(cur.quizTotal>0)) return little ? "Do your Quick Check first, then turn it in! \uD83C\uDFAF" : "Do the Quick Check first, then turn it in. \uD83C\uDFAF";
+  if(cur.quizScore/cur.quizTotal >= QUIZ_PASS) return "";
+  if(cur.quizRetryUsed) return "";
+  var need = quizNeeded(cur.quizTotal);
+  return little ? "Read the \uD83D\uDCA1 tips, then tap Try new treats! Get "+need+" right to finish!" : "Read the \uD83D\uDCA1 tips, then tap Try a new Quick Check. Get "+need+" right to finish.";
+}
+/* Leader only: how the Quick Checks are going, last 14 days, per kid. First-try score, retries, and the ones with none right. */
+function quickCheckScoresCard(){
+  var cutoff = new Date(Date.now() - 14*86400000).toISOString();
+  var card = document.createElement("div");
+  card.style.cssText = "margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border)";
+  var head = document.createElement("div"); head.style.cssText = "font-weight:800;font-size:14.5px;margin-bottom:6px"; head.textContent = "\uD83C\uDFAF Quick Check scores (last 14 days)"; card.appendChild(head);
+  var any = false;
+  KIDS.forEach(function(k){
+    var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){
+      return a.kidId===k.id && a.quizTotal>0 && a.quizScore!=null && a.reviewStatus!=="retired" && (a.doneAt || a.submittedAt || a.date || "") >= (a.doneAt||a.submittedAt ? cutoff : cutoff.slice(0,10));
+    });
+    if(!rows.length) return;
+    any = true;
+    var pass = rows.filter(function(a){ return a.quizScore/a.quizTotal >= QUIZ_PASS; }).length;
+    var retried = rows.filter(function(a){ return a.quizRetryUsed; }).length;
+    var zeros = rows.filter(function(a){ return a.quizScore===0; });
+    var pct = Math.round(100 * rows.reduce(function(n,a){ return n + a.quizScore/a.quizTotal; }, 0) / rows.length);
+    var line = document.createElement("div"); line.style.cssText = "font-size:13px;margin:4px 0";
+    line.textContent = kidData(k.id).name+": "+rows.length+" Quick Checks, average "+pct+"% on the first try, "+pass+" passed first time, "+retried+" needed the retry"+(zeros.length ? ", "+zeros.length+" with none right." : ".");
+    card.appendChild(line);
+    zeros.slice(0, 6).forEach(function(a){ var z = document.createElement("div"); z.style.cssText = "font-size:12.5px;margin:2px 0 2px 12px;color:var(--coral)"; z.textContent = "\u26A0\uFE0F "+String(a.title||"").slice(0,70)+" ("+(a.doneAt||a.submittedAt||a.date||"").slice(0,10)+")"; card.appendChild(z); });
+  });
+  if(!any){ var none = document.createElement("div"); none.className = "muted"; none.style.fontSize = "13px"; none.textContent = "No Quick Checks finished in the last 14 days."; card.appendChild(none); }
+  return card;
+}
 function toggleAssignment(a){
   if(!db) return;
   var cur0 = state.assignments[a.id] || a;
   if(SG.tapTooSoon(a.id)) return;   // a double tap is one tap
   if(cur0.reviewStatus==="approved" && cur0.done && !state.leaderUnlocked){ toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
   var willDone = !cur0.done;
+  if(willDone && !state.leaderUnlocked){ var qgMsg = quizGateMessage(cur0, a.kidId); if(qgMsg){ toast(qgMsg); return; } }
   var doneAt = willDone ? new Date().toISOString() : null;
   if(state.assignments[a.id]){ state.assignments[a.id].done = willDone; state.assignments[a.id].doneAt = doneAt; renderView(); }
   db.doc("assignments/"+a.id).update({done: willDone, doneAt: doneAt});
@@ -7825,7 +7866,7 @@ function autoApproveQuizOnly(){
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
-    if(a.quizScore/a.quizTotal < 0.7) return;
+    if(a.quizScore/a.quizTotal < QUIZ_PASS) return;
     a.reviewStatus = "approved"; SG.afterSend(id, function(){ db.doc("assignments/"+id).update({reviewStatus:"approved"}); }); n++;
   });
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
@@ -8753,16 +8794,19 @@ function renderLessonDetail(){
     retryBtn.textContent = annaLook ? "\uD83D\uDD04 Try new treats!" : "🔄 Try a new Quick Check";
     retryBtn.style.cssText = "display:none;margin-top:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;font-weight:600";
     quizWrap.appendChild(retryBtn);
+    quizWrap.id = "quickCheckWrap";
     card.appendChild(quizWrap);
 
     var usingRetrySet = false;
+    var hasRetrySet = Array.isArray(a.quizRetry) && a.quizRetry.length;
     function renderQuizItems(items, isRetryAttempt){
       quizBody.innerHTML = "";
       retryBtn.style.display = "none";
       var correctCount = 0, answeredCount = 0;
       /* XP and money only on the first real attempt — reopening the lesson to re-tap answers
          is practice, not a second paycheck. */
-      var xpEligible = isRetryAttempt ? !a.quizRetryUsed : (a.quizScore==null);
+      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet) : (a.quizScore==null);
+      var retryCounts = isRetryAttempt && !a.quizRetryUsed;   // finishing the one allowed retry opens the gate, with or without XP
       if(!xpEligible){
         var repeatNote = document.createElement("div");
         repeatNote.style.cssText = "margin-bottom:8px;font-size:12.5px;color:var(--text-dim)";
@@ -8813,13 +8857,13 @@ function renderLessonDetail(){
             if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
           }
           if(answeredCount===items.length){
-            if(db && a.id && xpEligible){
+            if(db && a.id && (xpEligible || retryCounts)){
               var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
-            if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
+            if(correctCount/items.length < QUIZ_PASS){
               retryBtn.style.display = "block";
             } else if(xpEligible && isRetryAttempt && correctCount===items.length){
               grantMommaMoney(state.activeKid, 1);
@@ -8866,7 +8910,7 @@ function renderLessonDetail(){
     renderQuizItems(a.quiz.map(shuffleQuestionChoices), false);
     retryBtn.onclick = function(){
       usingRetrySet = !usingRetrySet;
-      renderQuizItems((usingRetrySet ? a.quizRetry : a.quiz).map(shuffleQuestionChoices), usingRetrySet);
+      renderQuizItems((usingRetrySet && hasRetrySet ? a.quizRetry : a.quiz).map(shuffleQuestionChoices), usingRetrySet);
     };
   }
 
@@ -9333,7 +9377,11 @@ function renderLessonDetail(){
   doneBtn.className = "primary-btn";
   doneBtn.style.width = "100%";
   doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Save and turn it in";
-  doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
+  doneBtn.onclick = function(){
+    saveWork();
+    if(!a.done && !state.leaderUnlocked){ var qg = quizGateMessage(a, state.activeKid); if(qg){ toast(qg); var qw = document.getElementById("quickCheckWrap"); if(qw && qw.scrollIntoView) qw.scrollIntoView({behavior:"smooth", block:"center"}); return; } }
+    toggleAssignment(a); state.lessonDetailId = null; renderView();
+  };
   if(a.done && a.reviewStatus==="flagged"){
     /* Sent back with a note but still counted: fixing it should never undo the credit. */
     doneBtn.textContent = "💾 Save my fixes (your credit stays)";
@@ -9646,9 +9694,10 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
   var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
+  var qsCard = quickCheckScoresCard(); if(qsCard) els.view.appendChild(qsCard);
 
   var all = [];
   KIDS.forEach(function(k){
@@ -9684,10 +9733,10 @@ function renderLeaderArea(){
       '<p class="qz-q" style="font-size:16px;margin-bottom:10px">'+escapeHtml(a.title)+'</p>';
     var quizResultHtml = "";
     if(a.quizScore!=null && a.quizTotal!=null){
-      var quizAced = a.quizScore===a.quizTotal;
+      var quizAced = a.quizScore===a.quizTotal, quizZero = a.quizScore===0 && a.quizTotal>0;
       quizResultHtml =
-        '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
-          '🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' (on retry)':'')+
+        '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizZero?'var(--coral-soft)':quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
+          (quizZero ? '⚠️ None right on the first try, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' (on retry)':'')+
         '</div>';
     }
     var subHtml = quizResultHtml + (hasWork(a) ? '<div class="section-title" style="margin:6px 0 4px">Their work</div>' : '');
@@ -11115,7 +11164,7 @@ var SG = (function(){
   /* Evidence the two automatic reviewers must have (checked again here, so "auto" cannot be claimed by any other caller). */
   function autoEvidence(a){
     if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
-    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && a.quizScore/a.quizTotal >= 0.7;
+    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && a.quizScore/a.quizTotal >= QUIZ_PASS;
     var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn());
     return quizOnly || ai;
   }
