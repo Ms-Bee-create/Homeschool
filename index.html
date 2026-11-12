@@ -5228,6 +5228,8 @@ function taskRow(a){
 var QUIZ_PASS = 0.66;
 function quizNeeded(total){ return (total||0) <= 2 ? 1 : Math.ceil(total * QUIZ_PASS - 1e-9); }   // 1-2 question checks: at least 1 right (Ryan has 100+ two-question checks); 3 -> 2, 4 -> 3, 5 -> 4
 function quizPassed(score, total){ return total>0 && score!=null && score >= quizNeeded(total); }
+/* Automatic approval (no one looks) is stricter than the turn-in bar on short checks: a 1-2 question check must be all right, because guessing gets 1 of 2 right about 4 times in 10. */
+function quizAutoOk(score, total){ return total>0 && score!=null && (total<=2 ? score>=total : quizPassed(score, total)); }
 function quizGateMessage(a, kidId){
   var cur = (a && a.id && state.assignments[a.id]) || a;
   if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
@@ -7867,7 +7869,7 @@ function autoApproveQuizOnly(){
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
-    if(!quizPassed(a.quizScore, a.quizTotal)) return;
+    if(!quizAutoOk(a.quizScore, a.quizTotal)) return;
     a.reviewStatus = "approved"; SG.afterSend(id, function(){ db.doc("assignments/"+id).update({reviewStatus:"approved"}); }); n++;
   });
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
@@ -8857,7 +8859,8 @@ function renderLessonDetail(){
             queueSkillReview(state.activeKid, a, item);
           } else {
             correctCount++;
-            if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+            if(xpEligible && !isRetryAttempt){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+            if(xpEligible && !isRetryAttempt && db && a.id){ var partial = {quizScore: correctCount}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = correctCount; db.doc("assignments/"+a.id).update(partial); }
           }
           if(answeredCount===items.length){
             if(db && a.id && (xpEligible || retryCounts)){
@@ -8866,6 +8869,7 @@ function renderLessonDetail(){
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
+            if(xpEligible && isRetryAttempt && correctCount>0){ grantXP(state.activeKid, 5*correctCount); toast("✅ +"+(5*correctCount)+" XP for the new Quick Check"); }
             if(!quizPassed(correctCount, items.length)){
               retryBtn.style.display = "block";
             } else if(xpEligible && isRetryAttempt && correctCount===items.length){
@@ -9698,7 +9702,7 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share; 1 right on a 1-2 question check) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share; both right on a 1-2 question check) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
   var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
   var qsCard = quickCheckScoresCard(); if(qsCard) els.view.appendChild(qsCard);
@@ -9740,7 +9744,7 @@ function renderLeaderArea(){
       var quizAced = a.quizScore===a.quizTotal, quizZero = a.quizScore===0 && a.quizTotal>0 && (!!a.done || !!a.quizRetryUsed);
       quizResultHtml =
         '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizZero?'var(--coral-soft)':quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
-          (quizZero ? '⚠️ None right on the first try, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' on the first try, then retried':'')+
+          (quizZero ? '⚠️ None right, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' on the first try, then retried':'')+
         '</div>';
     }
     var subHtml = quizResultHtml + (hasWork(a) ? '<div class="section-title" style="margin:6px 0 4px">Their work</div>' : '');
@@ -11168,8 +11172,8 @@ var SG = (function(){
   /* Evidence the two automatic reviewers must have (checked again here, so "auto" cannot be claimed by any other caller). */
   function autoEvidence(a){
     if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
-    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && quizPassed(a.quizScore, a.quizTotal);
-    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn());
+    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && quizAutoOk(a.quizScore, a.quizTotal);
+    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn() && !(a.quizScore===0 && a.quizTotal>0));
     return quizOnly || ai;
   }
   function auto(fn){ autoDepth++; try{ return fn(); } finally{ autoDepth--; } }
@@ -29285,7 +29289,7 @@ function autoCheckSweep(){
         live.aiCheck = saved;
         /* Automatic review (4 Nov 2026, Mom: the helper's choices are good): "looks good" is approved and "needs work" is sent back with the helper's note.
            "Not sure" stays in Mom's queue for her to look at. Leader can switch this off (familyGoal().autoReview === false). */
-        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work")){
+        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work") && !(r.verdict==="looks_good" && live.quizScore===0 && live.quizTotal>0)){
           saved.auto = true;
           var upd = r.verdict==="needs_work" ? flagFields(live, r.kidNote||"Please take another look at this one.")
                                              : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};

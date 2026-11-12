@@ -102,7 +102,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('undoing a turn-in is not held by the Quick Check rule (no gate message appears; whether a kid may undo submitted work at all is unchanged from before)', !/Quick Check first|Get [0-9]+ right/.test(undoMsg), undoMsg.slice(-160));
 
   /* 9. Mom's queue */
-  const q = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; try { window.__fa.renderReviewQueue ? window.__fa.renderReviewQueue() : window.__fa.renderView(); } catch (e) {} const t = document.body.innerText; return { zero: /None right on the first try/.test(t), card: /Quick Check scores/.test(t), anna: /Anna: \d+ Quick Check/.test(t), ryan: /Ryan: \d+ Quick Check/.test(t), t: t.slice(0, 300) }; });
+  const q = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; try { window.__fa.renderReviewQueue ? window.__fa.renderReviewQueue() : window.__fa.renderView(); } catch (e) {} const t = document.body.innerText; return { zero: /None right, worth a look/.test(t), card: /Quick Check scores/.test(t), anna: /Anna: \d+ Quick Check/.test(t), ryan: /Ryan: \d+ Quick Check/.test(t), t: t.slice(0, 300) }; });
   ok('Mom: the score card is on the review screen (if this fails the queue was not opened by the test)', q.card, q.t);
   ok('Mom: it has a line for each kid', q.anna && q.ryan, JSON.stringify(q));
   ok('Mom: a first try with none right is marked', q.zero, JSON.stringify(q));
@@ -132,7 +132,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('none right then a retry set: the retry still pays XP as it always did', xpR4b - xpR4a >= 15, xpR4a + ' -> ' + xpR4b);
   const mq = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView();
     const cards = [...document.querySelectorAll('.qz-card')]; const mk2 = cards.find(c => /Marker lesson/.test(c.textContent)); const t = document.body.innerText;
-    return { markerCard: !!mk2, markerFlagged: mk2 ? /None right on the first try/.test(mk2.textContent) : null, zeroList: /⚠️ Marker lesson/.test(t) }; });
+    return { markerCard: !!mk2, markerFlagged: mk2 ? /None right, worth a look/.test(mk2.textContent) : null, zeroList: /⚠️ Marker lesson/.test(t) }; });
   ok('UNFINISHED: a half-finished check is not marked "none right" in the review queue', mq.markerFlagged !== true, JSON.stringify(mq));
   ok('UNFINISHED: and is not listed under none-right in the score card', !mq.zeroList, JSON.stringify(mq));
 
@@ -146,6 +146,30 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await open('S4'); await doCheck([true, true, false, false]); await turnIn(); await sleep(500); s = await st('S4'); ok('4-question check: 2 right is not enough (needs 3)', !s.done, JSON.stringify(s));
   const needs = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 9].map(n => window.__fa.quizNeeded ? window.__fa.quizNeeded(n) : null));
   ok('the bar by length: 1->1, 2->1, 3->2, 4->3, 5->4, 6->4, 9->6 (exposed for the test)', needs[0] === null || JSON.stringify(needs) === JSON.stringify([1, 1, 2, 3, 4, 4, 6]), JSON.stringify(needs));
+
+  /* 12. Second review round */
+  const nowIso = new Date().toISOString();
+  store.al_assignments.push(
+    mk('P1', 'kid2', { title: 'Partial lesson', quiz: Q(3), quiz_retry: Q(3) }),
+    mk('P2', 'kid2', { title: 'Retry farm lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }),
+    mk('A1', 'kid2', { title: 'Auto one of two', quiz: Q(2), quiz_score: 1, quiz_total: 2, done: true, done_at: nowIso, submitted_at: nowIso }),
+    mk('A2', 'kid2', { title: 'Auto two of two', quiz: Q(2), quiz_score: 2, quiz_total: 2, done: true, done_at: nowIso, submitted_at: nowIso }),
+    mk('A3', 'kid2', { title: 'Auto two of three', quiz: Q(3), quiz_score: 2, quiz_total: 3, done: true, done_at: nowIso, submitted_at: nowIso }),
+    mk('A4', 'kid2', { title: 'Auto one of three', quiz: Q(3), quiz_score: 1, quiz_total: 3, done: true, done_at: nowIso, submitted_at: nowIso }));
+  await sync();
+  await open('P1'); await answer(0, true); await sleep(400); await answer(1, true); await sleep(600); await sync();
+  ok('PARTIAL: the score is saved as the kid goes (2 right so far), not left at 0', srv('P1').quiz_score === 2, String(srv('P1').quiz_score));
+  await open('P2'); await clickRetry(); await sleep(300);
+  const xpP2a = await page.evaluate(() => state.kids.kid2.xp || 0);
+  await answer(0, true); await sleep(300); await answer(1, true); await sleep(500);
+  const xpP2b = await page.evaluate(() => state.kids.kid2.xp || 0);
+  ok('RETRY XP: nothing is paid while the retry is only half done (stop and reopen cannot be farmed)', xpP2b === xpP2a, xpP2a + ' -> ' + xpP2b);
+  await answer(2, true); await sleep(700);
+  const xpP2c = await page.evaluate(() => state.kids.kid2.xp || 0);
+  ok('RETRY XP: finishing the retry pays 5 per right answer, once', xpP2c - xpP2a >= 15 && xpP2c - xpP2a <= 25, xpP2a + ' -> ' + xpP2c);
+  await page.evaluate(() => window.__fa.autoApproveQuizOnly()); await sleep(400);
+  const rs = await page.evaluate(() => ['A1', 'A2', 'A3', 'A4'].map(id => state.assignments[id].reviewStatus || null));
+  ok('AUTO-APPROVE: 1 of 2 stays for Mom, 2 of 2 and 2 of 3 are approved, 1 of 3 stays', JSON.stringify(rs) === JSON.stringify([null, 'approved', 'approved', null]), JSON.stringify(rs));
 
   const errors = o.errors || [];
   ok('no page errors', !errors.length, errors.slice(0, 3).join(' | '));
