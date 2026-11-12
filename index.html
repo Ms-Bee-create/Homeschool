@@ -1184,7 +1184,12 @@ function reviewPassageFor(src){
   out += "Show What You Know — "+(fam==="math" && src && src.kidId==="kid2" ? "Pick one problem from the game and explain to a grown-up, step by step, how you solved it and how you know your answer is right." : "Tell a grown-up one thing about "+topic+" that you remembered during the game.");
   return {passage:out, materials: online ? online.url : null, video: vid ? vid.url : null};
 }
+/* 11 Nov 2026 (Mom): the game-day mechanism is OFF. A missed quiz question used to start a "game day" review lesson three school days later (a miss on a game day started another game day for the
+   same lesson), which filled Ryan's Math days with repeats and crowded out the book. Nothing new is created while this is false; game days already on the schedule are left as they are.
+   Turn it back on only after the rework Mom asked for. The miss still shows its explanation and the kid can retry as before. */
+var REVIEW_QUEUE_ON = false;
 function queueSkillReview(kidId, sourceAssignment, item){
+  if(!REVIEW_QUEUE_ON) return;
   if(!db || !sourceAssignment) return;
   var src = (sourceAssignment.stage==="review" && sourceAssignment.reviewOf && state.assignments[sourceAssignment.reviewOf]) ? state.assignments[sourceAssignment.reviewOf] : sourceAssignment;
   var srcId = src.id || sourceAssignment.reviewOf || sourceAssignment.id;
@@ -2183,7 +2188,8 @@ function sdGatherOf(a){
   return m[1].split(/(?<=[a-z0-9)]\.)\s+(?=[A-Z])/).filter(function(x){ return !/^(Lab book|Take a screenshot|Use your notes|Read the)/i.test(x.trim()); }).join(" ").trim();
 }
 
-/* ---- Chores (read-only). Home Quest lives in the Momma Money tables of the same project; the app only reads the kid's chore list. ---- */
+/* ---- Chores. Home Quest lives in the Momma Money tables of the same project. The kid's chore list is read from home_jobs, and (11 Nov 2026, Mom) a chore is checked off right here: the app writes the
+   same one row to home_job_logs that Home Quest writes when a kid taps Done (status "submitted", the job's xp). Mom approves it in Momma Money as before; nothing is approved or paid from this app. ---- */
 var sdChores = {rows:null, iso:null, tried:0, loading:false};
 var SD_CHORE_LS = "al_sd_chores_v1";
 function sdChoreBlock(r){
@@ -2208,7 +2214,7 @@ function sdChoresLoad(){
   sdChores.tried = Date.now(); sdChores.loading = true;
   var ids = Object.keys(MM_MEMBERS).map(function(k){ return MM_MEMBERS[k]; });
   var p;
-  try{ p = sb.from("home_jobs").select("id,title,slot,time_label,days,active,member_id").in("member_id", ids); }catch(e){ sdChores.loading = false; return; }
+  try{ p = sb.from("home_jobs").select("id,title,slot,time_label,days,active,member_id,xp").in("member_id", ids); }catch(e){ sdChores.loading = false; return; }
   p.then(function(res){
     sdChores.loading = false;
     if(!res || res.error || !Array.isArray(res.data)) return;   // cannot read them: show nothing, no error
@@ -2217,25 +2223,75 @@ function sdChoresLoad(){
     sdRefreshIfIdle();
   }, function(){ sdChores.loading = false; });
 }
-function sdChoresFor(kidId, blockKey, dow){
+function sdChoreItems(kidId, blockKey, dow){
   var rows = sdChores.rows; if(!Array.isArray(rows)) return [];
   var mid = MM_MEMBERS[kidId];
   return rows.filter(function(r){
     if(r.member_id!==mid || r.active===false) return false;
-    if(Array.isArray(r.days) && r.days.length && r.days.indexOf(dow)<0) return false;
-    return sdChoreBlock(r)===blockKey;
-  }).map(function(r){ return String(r.title||"").trim(); }).filter(Boolean);
+    if(!Array.isArray(r.days) || r.days.indexOf(dow)<0) return false;   /* same as Home Quest: a chore with no days shows on no day */
+    return sdChoreBlock(r)===blockKey && String(r.title||"").trim();
+  }).map(function(r){ return {id:r.id, title:String(r.title||"").trim(), xp:Number(r.xp)||0, member_id:r.member_id}; });
+}
+function sdChoresFor(kidId, blockKey, dow){ return sdChoreItems(kidId, blockKey, dow).map(function(i){ return i.title; }); }
+/* Today's check-offs, from home_job_logs. Fetched when a chore card is drawn, at most every 2 minutes; a failed read just leaves the boxes unchecked. */
+var sdChoreLogs = {rows:[], at:0, loading:false}, sdChoreBusy = {};
+function sdChoreLogsLoad(force){
+  if(sdChoreLogs.loading || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID) return;
+  if(!force && Date.now()-sdChoreLogs.at < 120000) return;
+  sdChoreLogs.at = Date.now(); sdChoreLogs.loading = true;
+  var ids = Object.keys(MM_MEMBERS).map(function(k){ return MM_MEMBERS[k]; }), p;
+  try{ p = sb.from("home_job_logs").select("id,job_id,member_id,day,status").in("member_id", ids).eq("day", todayISO()); }catch(e){ sdChoreLogs.loading = false; return; }
+  p.then(function(res){
+    sdChoreLogs.loading = false;
+    if(!res || res.error || !Array.isArray(res.data)) return;
+    sdChoreLogs.rows = res.data; sdRefreshIfIdle();
+  }, function(){ sdChoreLogs.loading = false; });
+}
+function sdChoreLogFor(jobId){
+  var day = todayISO(), hit = null;
+  sdChoreLogs.rows.forEach(function(l){ if(l.job_id===jobId && l.day===day) hit = l; });
+  return hit;
+}
+/* Tap an unchecked chore: one row "submitted", exactly what Home Quest writes. A chore Mom sent back (rejected) is sent again by updating that row, as Home Quest does. Tapping a sent or approved one does nothing. */
+function sdChoreTap(item){
+  var log = sdChoreLogFor(item.id);
+  if(sdChoreBusy[item.id] || (log && log.status!=="rejected") || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID) return;
+  sdChoreBusy[item.id] = true;
+  var day = todayISO(), p, undo;
+  if(log){
+    var old = log.status; log.status = "submitted"; undo = function(){ log.status = old; };
+    p = sb.from("home_job_logs").update({status:"submitted", submitted_at:new Date().toISOString()}).eq("id", log.id).eq("status", "rejected");
+  } else {
+    var tmp = {id:"local-"+item.id, job_id:item.id, member_id:item.member_id, day:day, status:"submitted"};
+    sdChoreLogs.rows.push(tmp); undo = function(){ sdChoreLogs.rows = sdChoreLogs.rows.filter(function(l){ return l!==tmp; }); };
+    p = sb.from("home_job_logs").insert({household_id:HOUSEHOLD_ID, member_id:item.member_id, job_id:item.id, day:day, xp:item.xp, status:"submitted"});
+  }
+  renderView();
+  function finish(failed){
+    delete sdChoreBusy[item.id];
+    if(failed){ undo(); toast("Oops, that did not send yet. Tap it again!"); renderView(); return; }
+    sdChoreLogsLoad(true);
+  }
+  p.then(function(res){ finish(!!(res && res.error && res.error.code!=="23505")); }, function(){ finish(true); });   // 23505 = already checked today (another device): that is fine
 }
 function sdChoreCard(kidId, blockKey, dow){
-  var items = sdChoresFor(kidId, blockKey, dow);
+  var items = sdChoreItems(kidId, blockKey, dow);
   if(!items.length) return null;
+  sdChoreLogsLoad(false);
   var c = document.createElement("div"); c.className = "card sd-chores"; c.style.cssText = "margin:10px 0;padding:12px 14px";
-  c.innerHTML = '<div style="font-weight:800;margin-bottom:6px">🏠 Home Quest chores for this time</div>'+
-    items.map(function(t){ return '<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:15px"><span aria-hidden="true">☐</span><span>'+escapeHtml(t)+'</span></div>'; }).join("")+
-    '<div class="muted" style="font-size:12.5px;margin:6px 0">You check these off in Home Quest.</div>';
-  var a = document.createElement("a"); a.href = MM_URL; a.target = "_blank"; a.rel = "noopener";
-  a.className = "primary-btn"; a.style.cssText = "display:inline-block;text-decoration:none;padding:10px 16px;min-height:44px;box-sizing:border-box";
-  a.textContent = "Open Home Quest"; c.appendChild(a);
+  var h = document.createElement("div"); h.style.cssText = "font-weight:800;margin-bottom:6px"; h.textContent = "\uD83C\uDFE0 Home Quest chores for this time"; c.appendChild(h);
+  items.forEach(function(it){
+    var log = sdChoreLogFor(it.id), st = log ? log.status : "";
+    var b = document.createElement("button"); b.type = "button"; b.className = "sd-chore-row"; b.dataset.status = st || "open";
+    b.style.cssText = "display:flex;gap:10px;align-items:center;width:100%;min-height:44px;padding:6px 4px;margin:0;border:0;background:none;color:inherit;font:inherit;font-size:15px;text-align:left;cursor:"+(st && st!=="rejected" ? "default" : "pointer");
+    var icon = st==="approved" ? "\u2B50" : st==="submitted" ? "\u2705" : st==="rejected" ? "\u21A9\uFE0F" : "\u2610";
+    var note = st==="approved" ? " (approved)" : st==="submitted" ? " (sent to Mom)" : st==="rejected" ? " (Mom says try again)" : "";
+    b.innerHTML = '<span aria-hidden="true" style="font-size:22px;flex:none">'+icon+'</span><span>'+escapeHtml(it.title)+'<span class="muted" style="font-size:12.5px">'+note+'</span></span>';
+    b.setAttribute("aria-label", it.title+(st==="approved" ? ". Approved." : st==="submitted" ? ". Sent to Mom." : st==="rejected" ? ". Mom says try again. Tap when done." : ". Tap when done."));
+    if(st && st!=="rejected") b.setAttribute("aria-disabled", "true");
+    b.onclick = function(){ sdChoreTap(it); };
+    c.appendChild(b);
+  });
   return c;
 }
 /* Re-draw the screen when something loaded in the background, but never while a kid is typing, in a lesson or in a game. */
@@ -2912,7 +2968,7 @@ function sdStartTimers(){
 }
 /* Test hook: the audit harness exposes these (the real page does not use this). */
 function sdExpose(){
-  return {SD_BLOCKS:SD_BLOCKS, sdAssign:sdAssign, sdNeedsGrownUp:sdNeedsGrownUp, sdPlanNow:sdPlanNow, sdClock:sdClock, sdQuietGoal:sdQuietGoal, sdChoresFor:sdChoresFor, sdChoreBlock:sdChoreBlock,
+  return {SD_BLOCKS:SD_BLOCKS, sdAssign:sdAssign, sdNeedsGrownUp:sdNeedsGrownUp, sdPlanNow:sdPlanNow, sdClock:sdClock, sdQuietGoal:sdQuietGoal, sdChoresFor:sdChoresFor, sdChoreBlock:sdChoreBlock, sdChoreItems:sdChoreItems, sdChoreLogs:sdChoreLogs, sdChoreLogsLoad:sdChoreLogsLoad, sdChoreTap:sdChoreTap,
     sdHelpQueue:sdHelpQueue, sdHelpFlush:sdHelpFlush, sdHelpFetch:sdHelpFetch, sdHelpSend:sdHelpSend, sdLeaderCard:sdLeaderCard, sdLeaderTick:sdLeaderTick, sdChores:sdChores, sdHelp:sdHelp,
     sdBarEl:sdBarEl, sdAllChecked:sdAllChecked, sdChecked:sdChecked, sdSave:sdSave, sdOn:sdOn, sdSettings:sdSettings, planNow:planNow, sdChoresLoad:sdChoresLoad, sdCheckBanner:sdCheckBanner,
     sdTick:sdTick, sdLessonLadder:sdLessonLadder, sdPollTick:sdPollTick, sdLeftOf:sdLeftOf, sdUnitCounts:sdUnitCounts, sdTableMissing:sdTableMissing, setNetTimeout:function(ms){ SD_NET_TIMEOUT = ms; }, sdHelpHandled:sdHelpHandled, sdAutoStart:sdAutoStart};
@@ -6244,7 +6300,8 @@ function renderMorningLaunch(kidId, iso){
     var wc = mlCard("ml-wiggle", "💃", kidId==="kid1" ? "Sunny wiggle" : "Brain break", wl[dn % wl.length]);
     var wvs = (ex && ex.wiggleVideos) || [];
     if(wvs.length){
-      wvs.forEach(function(wv){
+      /* 11 Nov 2026 (Mom): Anna's Sunshine Start shows one video a day, not the whole list. It changes with the day, so over the week she still gets each song. Ryan's Brain break is unchanged. */
+      (kidId==="kid1" ? [wvs[dn % wvs.length]] : wvs).forEach(function(wv){
         var wa = document.createElement("a");
         wa.href = wv.url; wa.target = "_blank"; wa.rel = "noopener"; wa.className = "ml-link"; wa.textContent = "▶ "+wv.title;
         wc.appendChild(wa);
@@ -14443,7 +14500,7 @@ function fillAnnaCreativeStudio(){
     if(dow>=1 && dow<=4 && !annaStudioSeen[iso]){
       annaStudioSeen[iso] = true;
       var have = false, ordinal = 0, c = new Date(anchor);
-      Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId==="kid1" && a.date===iso && a.reviewStatus!=="retired" && (blockKeyFor(a)==="project" || isWarmup(a))) have = true; });
+      Object.keys(state.assignments).forEach(function(id){ var a = state.assignments[id]; if(a.kidId==="kid1" && a.date===iso && a.reviewStatus!=="retired" && blockKeyFor(a)==="project") have = true; });   /* Handwriting is her Sunshine Start warm-up, not her studio slot (11 Nov 2026) */
       if(!have){
         while(c<d){ c.setDate(c.getDate()+1); if(!isOffDate(c)) ordinal++; }
         var item = ANNA_STUDIO_POOL[ordinal % ANNA_STUDIO_POOL.length], id2 = stableUuid("anna-studio|"+iso);
@@ -29272,7 +29329,7 @@ function loadCounts(){
   var c = {};
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(a.kidId && a.date && a.skillId!=="offscreen-friday" && a.reviewStatus!=="retired"){ var k = a.kidId+"|"+a.date; c[k] = (c[k]||0)+1; }
+    if(a.kidId && a.date && a.skillId!=="offscreen-friday" && a.reviewStatus!=="retired" && !(a.kidId==="kid1" && isWarmup(a))){ var k = a.kidId+"|"+a.date; c[k] = (c[k]||0)+1; }
   });
   return c;
 }
@@ -29358,16 +29415,16 @@ function schedClass(a){ if(isWarmup(a)) return "warmup"; var k = subjKey(a); if(
 /* The weekly-flow subjects (Mom, 30 Oct and 10 Nov): every day gets exactly one lesson of each subject that belongs to it, whatever the lesson count says. The count limits only the extras (projects, warm-ups). */
 function schedCore(cls){ return cls==="Math" || cls==="ELA" || cls==="Faith" || cls==="Science" || cls==="Social Studies"; }
 /* Outside the daily lesson limit: Anna's one daily Math. The warm-ups only join her when WARMUP_PULL_FORWARD is on (below), because that is what moves Ryan's Thought Experiments forward. */
-function schedFree(kid, cls){ return schedCore(cls) || (cls==="warmup" && WARMUP_PULL_FORWARD); }
+function schedFree(kid, cls){ return schedCore(cls) || (cls==="warmup" && (kid==="kid1" || WARMUP_PULL_FORWARD)); }   /* 11 Nov 2026 (Mom): Anna's Handwriting is part of her Sunshine Start every school day, so it never uses up a slot of her day and never pushes another lesson */
 /* A teaching lesson counts toward the 2-a-day teach limit, except Anna's book Math: it is her one daily Math and must not push her other lessons around (10 Nov 2026). */
 function schedTeaches(kid, a){ return a.stage==="teach" && !(kid==="kid1" && schedClass(a)==="Math"); }
 /* Warm-ups. false (this release): they stay on the dates they have and count toward the daily limit exactly as before, so no other lesson moves and they only gain their place in Morning Launch.
    true: Ryan's Thought Experiments are pulled forward to fill gaps (they now start in Dec) and sit outside the daily limit; in testing that moved about 70 of Ryan's other lessons by 1 to 25 days. Mom decides. */
 var WARMUP_PULL_FORWARD = false;
-function schedPullable(a){ var c = schedClass(a); if(c==="warmup") return WARMUP_PULL_FORWARD && a.subject==="Live Lesson"; return c!=="project" && c!=="ELA-extra"; }   /* a project lesson (a live session such as JohnnyOS Launch Day included) is never pulled EARLIER than its date; only the flow subjects fill gaps */
+function schedPullable(a){ var c = schedClass(a); if(c==="warmup") return a.kidId==="kid1" || (WARMUP_PULL_FORWARD && a.subject==="Live Lesson"); return c!=="project" && c!=="ELA-extra"; }   /* a project lesson (a live session such as JohnnyOS Launch Day included) is never pulled EARLIER than its date; only the flow subjects fill gaps */
 function schedClassCap(kid, cls){
   if(cls==="project") return (BLOCK_DAY_CAP[kid]||{}).project || 2;
-  if(cls==="warmup") return 2;   /* the same room they had inside the project cap, now on their own */
+  if(cls==="warmup") return kid==="kid1" ? 1 : 2;   /* Anna: one Handwriting page a day (11 Nov 2026). Ryan: the same room as before */
   if(cls==="ELA-extra") return 3;
   return (SUBJECT_DAY_CAP[kid]||{})[cls] || 99;
 }
@@ -29381,12 +29438,14 @@ function schedDatedHere(a){
   var w = schedWritten[a.title];
   return !w || a.date===w || w>=todayISO();
 }
+function hwPageNo(a){ var m = /^Handwriting p\. (\d+)/.exec(String(a.title||"")); return m ? parseInt(m[1], 10) : 9999; }
 function planKid(kid, today){
   var occ = {}, queues = {}, items = [], fridayFixed = [];   // fridayFixed: finished or started project lessons dated on a Friday; they stay where they are and are only reported
   function day(iso){ return occ[iso] = occ[iso] || {n:0, cls:{}, teach:0}; }
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(a.kidId!==kid || !a.date || a.date<today || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
+    if(a.kidId!==kid || !a.date || a.reviewStatus==="retired" || a.skillId==="offscreen-friday") return;
+    if(a.date<today && !(kid==="kid1" && isWarmup(a) && !a.done && !hasWork(a))) return;   /* past dates are left alone, except Anna's unfinished Handwriting pages: they come back first, in page order (11 Nov 2026, Mom: "she didn't see them") */
     if(a.done || hasWork(a) || (RHYTHM_EXEMPT[a.skillId] && schedDatedHere(a)) || schedKeepHere(a)){
       if(isWeekendIso(a.date)) return;
       var o = day(a.date), c = schedClass(a);
@@ -29399,11 +29458,13 @@ function planKid(kid, today){
   });
   items.sort(function(x,y){ return (x.a.date||"").localeCompare(y.a.date||"") || String(x.a.createdAt||"").localeCompare(String(y.a.createdAt||"")) || String(x.a.title||"").localeCompare(String(y.a.title||"")) || x.id.localeCompare(y.id); });
   items.forEach(function(it){ (queues[it.cls] = queues[it.cls]||[]).push(it); });
+  if(kid==="kid1" && queues.warmup) queues.warmup.sort(function(x,y){ return hwPageNo(x.a) - hwPageNo(y.a); });   /* Handwriting goes in page order (a plain title sort put p. 10 before p. 8); the sort is stable, so equal pages keep their old order */
   var left = items.length, d = new Date(today+"T00:00:00"), guard = 0, changes = [], teachCap = TEACH_DAY_CAP[kid] || 99;
   while(left>0 && guard++<900){
     if(isOffDate(d)){ d.setDate(d.getDate()+1); continue; }
     var iso = isoDate(d), dow = d.getDay(), fri = dow===5, cap = dayCapFor(kid, iso), o = day(iso);
     SCHED_FILL_ORDER.forEach(function(cls){
+      if(fri && cls==="warmup" && kid==="kid1") return;   /* Anna's Handwriting is Monday to Thursday; Friday is Math, ELA/Reading and Faith */
       if(fri && cls==="project") return;   /* Friday is Math, ELA/Reading and Faith: a movable project never lands on a Friday, whether or not the flow lessons for that day exist (Mom, 10 Nov 2026). Missing Faith or Reading is reported, never filled with a project. */
       var q = queues[cls]; if(!q || !q.length) return;
       var free = schedFree(kid, cls);   // the flow subjects are never held back by the day's lesson count; the extras (projects, warm-ups) are
@@ -29452,7 +29513,7 @@ function schedMissing(kid, iso){
   /* Friday (Mom, 10 Nov 2026) is Math, ELA/Reading and Faith and no project; Monday to Thursday also ask for a project. */
   if(!have["Math"]) miss.push("Math");
   if(!have["ELA"]) miss.push("ELA");
-  if(dow!==5 && !have["project"] && !(kid==="kid1" && have["warmup"])){   /* Anna's Handwriting warm-up counts as her studio slot, exactly as fillAnnaCreativeStudio treats it */
+  if(dow!==5 && !have["project"]){   /* Anna's Handwriting is a warm-up in her Sunshine Start and does not stand in for Creative Studio (11 Nov 2026) */
     if(kid==="kid1") miss.push("Creative Studio");
     else { var rp = familyGoal().rp, dd = new Date(iso+"T00:00:00"); dd.setDate(dd.getDate()-((dow+6)%7)); if(rp && rp.week===isoDate(dd)) miss.push("Project"); }   // Ryan's project comes from his Monday pick; no pick yet is not a gap
   }
@@ -35271,7 +35332,7 @@ function lightPackDates(kidId, list, start){
   var counts = {};
   Object.keys(state.assignments).forEach(function(id){
     var x = state.assignments[id];
-    if(x.kidId===kidId && x.date && x.reviewStatus!=="retired"){ counts[x.date] = (counts[x.date]||0)+1; }
+    if(x.kidId===kidId && x.date && x.reviewStatus!=="retired" && !(kidId==="kid1" && isWarmup(x))){ counts[x.date] = (counts[x.date]||0)+1; }   /* Anna's Handwriting warm-up does not use up a slot (11 Nov 2026) */
   });
   var out = {}, prev = null, lastD = null, lastIso = null;
   list.slice().sort(function(p,q){ return (p.d||0)-(q.d||0); }).forEach(function(it){
@@ -36981,7 +37042,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-11.1";
+var APP_BUILD = "2026-11-11.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||Date.now())); }catch(e){ location.reload(); }
