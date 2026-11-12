@@ -8894,6 +8894,8 @@ function renderLessonDetail(){
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], helpUpd);
               Object.assign(a, helpUpd);
               SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(helpUpd); });
+              /* The grown-up is told: the same "help" row the Ask for Help button writes, so the Leader's open screen shows it and dings (the Leader screen checks about once a minute while it is open with sound on). */
+              try{ if(typeof sdHelpSend==="function") sdHelpSend(state.activeKid || a.kidId, a, "help", "Quick Check: every answer wrong twice. Please sit with them on this one."); }catch(e){}
               toast(annaLook ? "This one is tricky! I told Mom so she can help you. \uD83D\uDC9B" : "This one is tricky. I flagged it so Mom or Dad can help you with it.");
             }
             if(xpEligible && isRetryAttempt && correctCount>0){ grantXP(state.activeKid, 5*correctCount); toast("✅ +"+(5*correctCount)+" XP for the new Quick Check"); }

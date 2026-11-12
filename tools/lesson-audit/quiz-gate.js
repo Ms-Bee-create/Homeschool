@@ -184,7 +184,14 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await answer(1, true); await sleep(300); rs0 = await st('F1');
   ok('SLOW DOWN: the clock restarts after each answer (the next one tapped at once is held)', rs0.score === 1, JSON.stringify(rs0));
   await page.evaluate(() => { window.__noRushGuard = true; });
+  await page.evaluate(() => { window.__fa.sd.sdHelp.primed = false; window.__fa.sd.sdHelp.seen = {}; window.__sdDings.length = 0; }); await page.evaluate(() => window.__fa.sd.sdHelpFetch(true)); await sleep(700);
   await open('H1'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([false, false, false]); await sleep(500); await sync();
+  await sleep(1500);
+  const hr = (store.al_help_requests || []).filter(r => r.lesson_title === 'Help lesson');
+  ok('DING: a help request for that lesson reaches the table for the grown-up', hr.length === 1 && hr[0].kid_id === 'kid2' && /every answer wrong twice/.test(hr[0].message || ''), JSON.stringify(hr.map(r => [r.kind, r.message])));
+  await page.evaluate(() => window.__fa.sd.sdHelpFetch(true)); await sleep(900);
+  const dg = await page.evaluate(() => window.__sdDings.map(d => d.why));
+  ok('DING: the Leader screen dings when it picks that request up', dg.some(w => /^help:/.test(w)), JSON.stringify(dg));
   ok('HELP FLAG: all wrong, then all wrong on the one retry, flags the lesson for Mom', srv('H1').review_status === 'flagged' && /grown-up's help/.test(srv('H1').review_note || ''), srv('H1').review_status + ' | ' + srv('H1').review_note);
   await turnIn(); await sleep(700); s = await st('H1');
   ok('HELP HOLD: the kid CANNOT turn it in alone (a grown-up must come)', !s.done && s.onLesson, JSON.stringify(s));
