@@ -8800,6 +8800,13 @@ function renderLessonDetail(){
     quizWrap.id = "quickCheckWrap";
     card.appendChild(quizWrap);
 
+    /* Slow-down catch (Mom, 12 Nov 2026): a tap that comes before there was time to read the question and its choices is not counted. The clock starts when the check is drawn and restarts after every answer. */
+    var quizClock = Date.now();
+    function rushWait(item){
+      var words = String((item.q||"")+" "+(Array.isArray(item.choices) ? item.choices.join(" ") : "")).split(/\s+/).length;
+      var need = Math.min(9000, 2500 + 100*words) * (annaLook ? 1.3 : 1);
+      return need - (Date.now() - quizClock);
+    }
     var usingRetrySet = false;
     var hasRetrySet = Array.isArray(a.quizRetry) && a.quizRetry.length;
     function renderQuizItems(items, isRetryAttempt){
@@ -8835,6 +8842,7 @@ function renderLessonDetail(){
         /* Everything that happens once a question is answered, whichever question type it was. */
         function afterAnswer(correct){
           answeredCount++;
+          quizClock = Date.now();
           if(annaLook){
             var treat = petTreat(correct);
             if(correct && treatsEl) treatsEl.textContent += " "+treat;
@@ -8869,6 +8877,13 @@ function renderLessonDetail(){
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
+            if(retryCounts && correctCount===0 && db && a.id && !a.reviewStatus){
+              var helpUpd = flagFields(state.assignments[a.id] || a, "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.");
+              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], helpUpd);
+              Object.assign(a, helpUpd);
+              SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(helpUpd); });
+              toast(annaLook ? "This one is tricky! I told Mom so she can help you. \uD83D\uDC9B" : "This one is tricky. I flagged it so Mom or Dad can help you with it.");
+            }
             if(xpEligible && isRetryAttempt && correctCount>0){ grantXP(state.activeKid, 5*correctCount); toast("✅ +"+(5*correctCount)+" XP for the new Quick Check"); }
             if(!quizPassed(correctCount, items.length)){
               retryBtn.style.display = "block";
@@ -8896,6 +8911,7 @@ function renderLessonDetail(){
           btn.style.cssText = "text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer";
           btn.onclick = function(){
             if(answered) return;
+            if(!window.__noRushGuard && rushWait(item) > 0){ toast(annaLook ? "Slow down, little one! \uD83D\uDC22 Read it again, then pick." : "Slow down. \uD83D\uDC22 Read the question and every choice, then pick."); return; }
             answered = true;
             var correct = ci===item.answerIndex;
             btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";

@@ -8,6 +8,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
 (async () => {
   const o = await h.open(), page = o.page, store = o.store;
   await page.waitForTimeout(6000);
+  await page.evaluate(() => { window.__noRushGuard = true; });   // the slow-down catch is tested on its own below; everything else answers at robot speed
   const HID = h.HID, sleep = ms => page.waitForTimeout(ms);
   const sync = async () => { await page.evaluate(() => window.__fa.syncAll(true)); await sleep(800); };
   const srv = id => store.al_assignments.find(x => x.id === id);
@@ -170,6 +171,24 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await page.evaluate(() => window.__fa.autoApproveQuizOnly()); await sleep(400);
   const rs = await page.evaluate(() => ['A1', 'A2', 'A3', 'A4'].map(id => state.assignments[id].reviewStatus || null));
   ok('AUTO-APPROVE: 1 of 2 stays for Mom, 2 of 2 and 2 of 3 are approved, 1 of 3 stays', JSON.stringify(rs) === JSON.stringify([null, 'approved', 'approved', null]), JSON.stringify(rs));
+
+  /* 13. Slow-down catch and the help flag */
+  store.al_assignments.push(mk('F1', 'kid2', { title: 'Rush lesson', quiz: Q(3), quiz_retry: Q(3) }), mk('H1', 'kid2', { title: 'Help lesson', quiz: Q(3), quiz_retry: Q(3) }), mk('H2', 'kid2', { title: 'Not help lesson', quiz: Q(3), quiz_retry: Q(3) }));
+  await sync();
+  await open('F1'); await page.evaluate(() => { window.__noRushGuard = false; });
+  await answer(0, true); await sleep(300); let rs0 = await st('F1');
+  ok('SLOW DOWN: an answer tapped the instant the check appears is not counted', rs0.score == null || rs0.score === undefined, JSON.stringify(rs0));
+  ok('SLOW DOWN: the kid is told to slow down', /Slow down/.test(await toastText()), await toastText());
+  await sleep(4000); await answer(0, true); await sleep(500); rs0 = await st('F1');
+  ok('SLOW DOWN: after a moment to read, the same tap counts', rs0.score === 1, JSON.stringify(rs0));
+  await answer(1, true); await sleep(300); rs0 = await st('F1');
+  ok('SLOW DOWN: the clock restarts after each answer (the next one tapped at once is held)', rs0.score === 1, JSON.stringify(rs0));
+  await page.evaluate(() => { window.__noRushGuard = true; });
+  await open('H1'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([false, false, false]); await sleep(500); await sync();
+  ok('HELP FLAG: all wrong, then all wrong on the one retry, flags the lesson for Mom', srv('H1').review_status === 'flagged' && /grown-up's help/.test(srv('H1').review_note || ''), srv('H1').review_status + ' | ' + srv('H1').review_note);
+  await turnIn(); await sleep(900); s = await st('H1'); ok('HELP FLAG: the kid can still turn it in (nobody is stuck)', s.done, JSON.stringify(s));
+  await open('H2'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, false, false]); await sleep(500); await sync();
+  ok('HELP FLAG: one right on the retry is not flagged', !srv('H2').review_status, String(srv('H2').review_status));
 
   const errors = o.errors || [];
   ok('no page errors', !errors.length, errors.slice(0, 3).join(' | '));
