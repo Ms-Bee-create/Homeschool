@@ -1,9 +1,9 @@
 // Supabase Edge Function: the kids' home-page helper (Anna's fairy, Ryan's Clippy) for anything they want to talk about.
 // Separate from "troubleshoot" (lesson help) so the lesson helper keeps working as it is.
-// Deploy: supabase functions deploy kidhelper   (or paste this file into Edge Functions > New function "kidhelper")
+// Deploy from the repo root: supabase functions deploy kidhelper   (it imports ../_shared/safety.ts, so it cannot be pasted into the dashboard editor)
 // Needs the same secret as troubleshoot: ANTHROPIC_API_KEY. Chats are saved in al_ai_chats so the leader can read every one.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANNED, classify, flaggedTitle, pruneOldChats } from "../_shared/safety.ts";
+import { CANNED, classify, flaggedTitle, pruneOldChats, recentChildText, shouldPrune, UNCHECKED_MARK } from "../_shared/safety.ts";
 
 const DAILY_CAP = 40; // kid messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -148,14 +148,18 @@ Deno.serve(async (req) => {
 
     /* Separate safety check on what the child typed, before it reaches the helper. If the checker cannot be reached (null) the helper's own rules below still apply. */
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-    const inV = await classify(apiKey, MODEL, lastUser.content, "child");
+    /* Deleting old chats uses the function's own service-role key, so the kids' signed-in page never gets permission to delete. */
+    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const admin = svcKey ? createClient(Deno.env.get("SUPABASE_URL")!, svcKey) : null;
+    const inV = await classify(apiKey, MODEL, recentChildText(clean), "child");
+    let unchecked = inV === null;
     if (inV === "BLOCK" || inV === "TELL_MOM") {
       const t = flaggedTitle(TAG, inV, "off-limits topic, caught by the checker");
       await supa.from("al_ai_chats").insert([
         { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
         { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
       ]);
-      await pruneOldChats(supa, householdId);
+      if (shouldPrune(count)) await pruneOldChats(admin, householdId);
       return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
     }
 
@@ -174,14 +178,15 @@ Deno.serve(async (req) => {
     /* Separate safety check on what the helper wrote, before the child sees it. */
     let held = false;
     const outV = await classify(apiKey, MODEL, reply, "helper");
-    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED[outV]; held = true; }
+    if (outV === null) unchecked = true;
+    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = tellMom ? CANNED.TELL_MOM : CANNED.BLOCK; held = true; }
 
-    const title = held ? flaggedTitle(TAG, "BLOCK", "reply held back by the checker") : tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
+    const title = (held && !tellMom) ? flaggedTitle(TAG, "BLOCK", "reply held back by the checker") : tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : (unchecked ? TAG + UNCHECKED_MARK : TAG);
     await supa.from("al_ai_chats").insert([
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastUser.content },
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: reply },
     ]);
-    await pruneOldChats(supa, householdId);
+    if (shouldPrune(count)) await pruneOldChats(admin, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
   } catch (_e) {
     return json({ error: "server error" }, 500);

@@ -2,7 +2,7 @@
 // Deploy: supabase functions deploy troubleshoot
 // Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANNED, classify, flaggedTitle, pruneOldChats } from "../_shared/safety.ts";
+import { CANNED, classify, flaggedTitle, pruneOldChats, recentChildText, shouldPrune, UNCHECKED_MARK } from "../_shared/safety.ts";
 
 const DAILY_CAP = 30; // user messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -84,17 +84,22 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
       content: String(m.content ?? "").slice(0, 1500),
     }));
     const lastUser = clean[clean.length - 1];
+    if (!lastUser || lastUser.role !== "user") return json({ error: "bad request" }, 400);
 
     /* Separate safety check on what the child typed, before it reaches the helper. null = checker unreachable, helper rules still apply. */
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
-    const inV = lastUser && lastUser.role === "user" ? await classify(apiKey, MODEL, lastUser.content, "child") : null;
+    /* Deleting old chats uses the function's own service-role key, so the kids' signed-in page never gets permission to delete. */
+    const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const admin = svcKey ? createClient(Deno.env.get("SUPABASE_URL")!, svcKey) : null;
+    const inV = await classify(apiKey, MODEL, recentChildText(clean), "child");
+    let unchecked = inV === null;
     if (inV === "BLOCK" || inV === "TELL_MOM") {
       const t = flaggedTitle(assignmentTitle ?? "Lesson help", inV, "off-limits topic, caught by the checker");
       await supa.from("al_ai_chats").insert([
         { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
         { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
       ]);
-      await pruneOldChats(supa, householdId);
+      if (shouldPrune(count)) await pruneOldChats(admin, householdId);
       return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
     }
 
@@ -111,6 +116,8 @@ Rules:
 - Use the lesson's own example and words. If you are unsure, say so honestly instead of making something up.
 - Stay on this lesson. If asked about anything else, kindly steer back.
 - Never ask for personal information. Keep every activity safe for a young child; if something could be hot, sharp or risky, tell the kid to ask a grown-up.
+- Kid-friendly only. If asked about anything not for children (grown-up topics, violence, weapons, drugs, alcohol, gambling, dating, hacking, anything dangerous or illegal), give no information, say one kind short sentence like "That is not something I can help with. Ask Mom or Dad!", and steer back to the lesson.
+- If the kid says someone hurt or scared them, someone asked them to keep a secret from their parents, or they feel very sad, unsafe or hopeless, be gentle and calm and tell them clearly to go tell Mom or Dad right now.
 - If the kid seems frustrated, say it is okay to take a break and ask Mom or Dad.`;
     const system = mode === "lesson" ? lessonSystem + lessonRules : `You are a friendly, patient tech helper for a 9-10 year old boy named Ryan who is building retro computer projects (virtual machines, old Windows versions, QBasic programs) for school.
 He is working on the lesson: "${String(assignmentTitle ?? "").slice(0, 200)}".
@@ -123,6 +130,8 @@ Rules:
 - For programming, give hints and explain the idea; do not hand over a full finished program.
 - Stay on this lesson and his computer project. If asked about anything else, kindly steer back.
 - Never ask for personal information. Never suggest anything unsafe (no erasing real drives, no downloading from unknown sites, no sharing accounts). If a step could erase or change the family's real computer, tell him to get his parent first.
+- Kid-friendly only. If asked about anything not for children (grown-up topics, violence, weapons, drugs, alcohol, gambling, dating, hacking someone else, anything dangerous or illegal), give no information, say one kind short sentence like "That is not something I can help with. Ask Mom or Dad!", and steer back to the project.
+- If he says someone hurt or scared him, someone asked him to keep a secret from his parents, or he feels very sad, unsafe or hopeless, be gentle and calm and tell him clearly to go tell Mom or Dad right now.
 - If he seems frustrated or you can't solve it after a few tries, tell him it's okay to take a break and ask his parent for help.`;
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -141,13 +150,15 @@ Rules:
     /* Separate safety check on what the helper wrote, before the child sees it. */
     let chatTitle = assignmentTitle ?? null;
     const outV = await classify(apiKey, MODEL, reply, "helper");
-    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED[outV]; chatTitle = flaggedTitle(assignmentTitle ?? "Lesson help", "BLOCK", "reply held back by the checker"); }
+    if (outV === null) unchecked = true;
+    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED.BLOCK; chatTitle = flaggedTitle(assignmentTitle ?? "Lesson help", "BLOCK", "reply held back by the checker"); }
+    else if (unchecked) chatTitle = (assignmentTitle ?? "Lesson help") + UNCHECKED_MARK;
 
     await supa.from("al_ai_chats").insert([
       { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "user", content: lastUser.content },
       { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: reply },
     ]);
-    await pruneOldChats(supa, householdId);
+    if (shouldPrune(count)) await pruneOldChats(admin, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
   } catch (_e) {
     return json({ error: "server error" }, 500);
