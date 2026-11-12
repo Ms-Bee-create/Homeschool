@@ -3,6 +3,7 @@
 // Deploy: supabase functions deploy kidhelper   (or paste this file into Edge Functions > New function "kidhelper")
 // Needs the same secret as troubleshoot: ANTHROPIC_API_KEY. Chats are saved in al_ai_chats so the leader can read every one.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { CANNED, classify, flaggedTitle, pruneOldChats } from "../_shared/safety.ts";
 
 const DAILY_CAP = 40; // kid messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -145,9 +146,22 @@ Deno.serve(async (req) => {
     const lastUser = clean[clean.length - 1];
     if (!lastUser || lastUser.role !== "user") return json({ error: "bad request" }, 400);
 
+    /* Separate safety check on what the child typed, before it reaches the helper. If the checker cannot be reached (null) the helper's own rules below still apply. */
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+    const inV = await classify(apiKey, MODEL, lastUser.content, "child");
+    if (inV === "BLOCK" || inV === "TELL_MOM") {
+      const t = flaggedTitle(TAG, inV, "off-limits topic, caught by the checker");
+      await supa.from("al_ai_chats").insert([
+        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
+        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
+      ]);
+      await pruneOldChats(supa, householdId);
+      return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
+    }
+
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: MODEL, max_tokens: 350, system: WHO[kidId] + "\n" + RULES(kidId), messages: clean }),
     });
     if (!resp.ok) return json({ error: "ai unavailable" }, 502);
@@ -157,11 +171,17 @@ Deno.serve(async (req) => {
     const tellMom = /\[\[TELL_MOM\]\]/.test(reply), blocked = /\[\[BLOCKED\]\]/.test(reply);
     reply = reply.replace(/\[\[(TELL_MOM|BLOCKED)\]\]\s*/g, "").trim() || "Hmm, I am not sure. Can you ask Mom or Dad?";
 
-    const title = tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
+    /* Separate safety check on what the helper wrote, before the child sees it. */
+    let held = false;
+    const outV = await classify(apiKey, MODEL, reply, "helper");
+    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED[outV]; held = true; }
+
+    const title = held ? flaggedTitle(TAG, "BLOCK", "reply held back by the checker") : tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
     await supa.from("al_ai_chats").insert([
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastUser.content },
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: reply },
     ]);
+    await pruneOldChats(supa, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
   } catch (_e) {
     return json({ error: "server error" }, 500);

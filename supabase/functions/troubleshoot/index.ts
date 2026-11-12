@@ -2,6 +2,7 @@
 // Deploy: supabase functions deploy troubleshoot
 // Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { CANNED, classify, flaggedTitle, pruneOldChats } from "../_shared/safety.ts";
 
 const DAILY_CAP = 30; // user messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -84,6 +85,19 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
     }));
     const lastUser = clean[clean.length - 1];
 
+    /* Separate safety check on what the child typed, before it reaches the helper. null = checker unreachable, helper rules still apply. */
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
+    const inV = lastUser && lastUser.role === "user" ? await classify(apiKey, MODEL, lastUser.content, "child") : null;
+    if (inV === "BLOCK" || inV === "TELL_MOM") {
+      const t = flaggedTitle(assignmentTitle ?? "Lesson help", inV, "off-limits topic, caught by the checker");
+      await supa.from("al_ai_chats").insert([
+        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
+        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
+      ]);
+      await pruneOldChats(supa, householdId);
+      return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
+    }
+
     const lessonSystem = kidId === "kid1"
       ? `You are a kind, playful fairy helper for Anna, a 7-year-old in 2nd grade. Use short, simple words and 1-3 short sentences. Cheer her on. Be warm and encouraging.`
       : `You are Clippy, a friendly paperclip helper for Ryan, a 9-10 year old in 4th grade who loves computers, Minecraft and tech facts. Use plain words, 2-4 short sentences, and a light, fun tone.`;
@@ -114,7 +128,7 @@ Rules:
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
       },
@@ -122,12 +136,18 @@ Rules:
     });
     if (!resp.ok) return json({ error: "ai unavailable" }, 502);
     const out = await resp.json();
-    const reply = (out.content?.[0]?.text ?? "").trim() || "Hmm, I'm not sure. Can you tell me exactly what you see on the screen?";
+    let reply = (out.content?.[0]?.text ?? "").trim() || "Hmm, I'm not sure. Can you tell me exactly what you see on the screen?";
+
+    /* Separate safety check on what the helper wrote, before the child sees it. */
+    let chatTitle = assignmentTitle ?? null;
+    const outV = await classify(apiKey, MODEL, reply, "helper");
+    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED[outV]; chatTitle = flaggedTitle(assignmentTitle ?? "Lesson help", "BLOCK", "reply held back by the checker"); }
 
     await supa.from("al_ai_chats").insert([
-      { household_id: householdId, kid_id: kidId, assignment_title: assignmentTitle ?? null, role: "user", content: lastUser.content },
-      { household_id: householdId, kid_id: kidId, assignment_title: assignmentTitle ?? null, role: "assistant", content: reply },
+      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "user", content: lastUser.content },
+      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: reply },
     ]);
+    await pruneOldChats(supa, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
   } catch (_e) {
     return json({ error: "server error" }, 500);
