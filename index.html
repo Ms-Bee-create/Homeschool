@@ -29138,6 +29138,7 @@ function agendaHtml(){
   var dayNo = Math.floor((d - new Date(d.getFullYear(),0,0))/86400000);
   var w = agendaPick(AGENDA_WORDS, iso), mv = agendaPick(AGENDA_MOVES, iso), esc = escapeHtml, total = 0;
   function edition(kid, cls){
+    if(sdOn()) return editionTimed(kid, cls);
     var plan = worldTodayPlan(kid), kd = kidData(kid), h = '<div class="ed '+cls+'"><div class="kick">'+esc((kd.name||"Scholar")+"'s Edition")+(kd.grade!=null ? " · Grade "+esc(String(kd.grade)) : "")+'</div>';
     plan.blocks.forEach(function(b){
       var list = plan.by[b.key] || [], name = worldBlockName(kid, b);
@@ -29154,6 +29155,41 @@ function agendaHtml(){
     });
     return h+'</div>';
   }
+  /* Same windows and times as the Today screen (SD_BLOCKS + sdAssign), so the paper and the screen agree. */
+  function editionTimed(kid, cls){
+    var kd = kidData(kid), anna = kid==="kid1", clk = sdClock(), A = sdAssign(kid, assignmentsFor(kid, iso));
+    var h = '<div class="ed '+cls+'"><div class="kick">'+esc((kd.name||"Scholar")+"'s Edition")+(kd.grade!=null ? " · Grade "+esc(String(kd.grade)) : "")+'</div>';
+    SD_BLOCKS.forEach(function(b0){
+      var b = sdBlockFor(kid, b0.key), list = A.by[b0.key] || [], when = fmtClock(b.s)+" to "+fmtClock(b.e);
+      if(b.kind!=="work"){
+        h += '<div class="brk"><span class="tm">'+esc(when)+'</span> '+esc(b.label)+(b.kind==="break" && /^Check/.test(b0.label) ? " (Mom checks your work)" : "")+'</div>';
+        return;
+      }
+      h += '<div class="sec"><div class="hd"><span class="tm">'+esc(when)+'</span> '+esc(b.label)+'</div>';
+      if(b0.key==="sd_launch") h += '<div class="it">☐ Mood check and today\'s goal</div>';
+      if(b0.key==="sd_indep") h += '<div class="gather">Quiet hour: please do not interrupt Mom.</div>';
+      list.forEach(function(a){
+        total++;
+        h += '<div class="it">'+(a.done ? "☑ " : "☐ ")+esc(a.title||"")+(a.reviewStatus==="flagged" ? ' <span class="fl">sent back: try again</span>' : "")+'</div>';
+        var g = agendaGather(a); if(g) h += '<div class="gather">Gather: '+esc(g)+(/\.\.\.$/.test(g) ? '' : '.')+'</div>';
+      });
+      var chores = []; try{ chores = sdChoresFor(kid, b0.key, clk.dow) || []; }catch(e){}
+      chores.forEach(function(t){ h += '<div class="it">☐ Home Quest: '+esc(t)+'</div>'; });
+      if(!list.length && !chores.length && b0.key!=="sd_launch") h += '<div class="it gather">Nothing planned in this window.</div>';
+      h += '</div>';
+    });
+    return h+'</div>';
+  }
+  /* Ryan's pick for the week (the same pick as his Today card: familyGoal().rp) */
+  function projectBox(){
+    var wk = rpWeek(), rp = familyGoal().rp || null, proj = rp && rp.week===wk.mon ? RYAN_PROJECTS.filter(function(p){ return p.id===rp.id; })[0] : null;
+    if(!proj) return '<div class="box"><h3>Ryan\'s Project This Week</h3><div class="small">Not picked yet. Pick one on the Today screen to start it and finish it this week.</div></div>';
+    var ids = (rp.ids||[]).filter(function(id){ return state.assignments[id]; }), doneN = ids.filter(function(id){ return state.assignments[id].done; }).length;
+    var todayL = ids.filter(function(id){ return state.assignments[id].date===iso && !state.assignments[id].done; }).map(function(id){ return state.assignments[id].title; });
+    return '<div class="box"><h3>Ryan\'s Project This Week</h3><div class="word" style="font-size:19px">'+esc(proj.name)+'</div>'+
+      '<div class="small" style="text-align:center">'+doneN+' of '+ids.length+' lessons done'+(rp.finished || (ids.length && doneN===ids.length) ? ' · finished!' : '')+'</div>'+
+      (todayL.length ? '<div class="small" style="margin-top:3px">Today: '+todayL.map(esc).join('; ')+'</div>' : '')+'</div>';
+  }
   var k1 = edition("kid1","k1"), k2 = edition("kid2","k2");
   var gu = agendaGrownUp(), guHtml = gu.length ? gu.map(function(t){ return '<div class="it">☐ '+esc(t)+'</div>'; }).join("") : '<div class="it">Nothing is waiting for you today.</div>';
   return '<!doctype html><html><head><meta charset="utf-8"><title>The Christy Times</title><style>'+
@@ -29165,7 +29201,7 @@ function agendaHtml(){
    '.cols{display:grid;grid-template-columns:1fr 1fr .82fr;gap:0}.cols>div{padding:0 9px;border-left:1px solid #1a1a1a}.cols>div:first-child{border-left:0;padding-left:0}.cols>div:last-child{padding-right:0}'+
    '.kick{font:700 11px/1 Georgia,serif;text-transform:uppercase;letter-spacing:.14em;text-align:center;border-top:2px solid #1a1a1a;border-bottom:1px solid #1a1a1a;padding:4px 0;margin-bottom:5px}'+
    '.sec{margin-bottom:5px;break-inside:avoid}.hd{font-weight:700;font-size:13px;border-bottom:1px dotted #777;margin-bottom:1px}.it{font-size:12px}.gather{font-size:10.5px;color:#555;font-style:italic;margin-left:15px}'+
-   '.fl{background:#fff3cd;border:1px solid #c79a00;padding:0 4px;font-size:10.5px;font-style:normal}'+
+   '.tm{font-weight:400;font-size:10.5px;color:#444;font-style:italic}.brk{font-size:10.5px;color:#444;border-bottom:1px dotted #bbb;margin-bottom:2px}.fl{background:#fff3cd;border:1px solid #c79a00;padding:0 4px;font-size:10.5px;font-style:normal}'+
    '.box{border:2px solid #1a1a1a;padding:6px 8px;margin-bottom:8px;break-inside:avoid}.box h3{margin:0 0 3px;font:700 11px/1 Georgia,serif;text-transform:uppercase;letter-spacing:.12em;text-align:center;border-bottom:1px solid #1a1a1a;padding-bottom:3px}'+
    '.word{font-size:25px;font-weight:700;text-align:center;font-style:italic;margin:2px 0}.small{font-size:11.5px}.foot{border-top:3px double #1a1a1a;margin-top:10px;padding-top:4px;text-align:center;font-size:10.5px;font-style:italic}'+
    '</style></head><body>'+
@@ -29173,7 +29209,7 @@ function agendaHtml(){
    '<div class="mast">The Christy Times</div><div class="tag">All the news that is fit to learn</div>'+
    '<div class="head"><h2>Two Scholars, '+total+' Lessons, One Great Day</h2><p>Read your edition, tick the boxes, and bring a good attitude.</p></div>'+
    '<div class="cols"><div>'+k1+'</div><div>'+k2+'</div><div>'+
-   '<div class="box"><h3>Word of the Day</h3><div class="word">'+esc(w[0])+'</div><div class="small"><i>means</i> to '+esc(w[1])+'.</div><div class="small" style="margin-top:3px">“'+esc(w[2])+'” Use it once at breakfast!</div></div>'+
+   projectBox()+'<div class="box"><h3>Word of the Day</h3><div class="word">'+esc(w[0])+'</div><div class="small"><i>means</i> to '+esc(w[1])+'.</div><div class="small" style="margin-top:3px">“'+esc(w[2])+'” Use it once at breakfast!</div></div>'+
    '<div class="box"><h3>Morning Exercise</h3><div class="small">'+esc(mv[0])+'</div></div>'+
    '<div class="box"><h3>Brain Teaser</h3><div class="small">'+esc(mv[1])+'</div></div>'+
    '<div class="box"><h3>Grown-Up Notices</h3>'+guHtml+'</div>'+
