@@ -140,7 +140,7 @@ function setUnlocked(v){
 }
 addEventListener("message", function(ev){
   var m = ev.data || {};
-  if (m.forge === "unlock") setUnlocked(m.value !== false);
+  if (m.forge === "unlock" && parent !== window && ev.source === parent) setUnlocked(m.value === true);
   if (m.forge === "say") toast(m.text);
   if (m.forge === "follow") follow = m.id || null;
   if (m.forge === "deliveryState" && typeof m.left === "number") DELIV_LEFT = m.left;
@@ -330,7 +330,7 @@ addEventListener("keydown", function(e){
   if (SPEC && e.code === "Tab"){ e.preventDefault(); cycleFollow(); }
   if (e.code === "KeyE") useJob(); if (e.code === "KeyV") me.bird = !me.bird;
   if (e.code === "KeyF"){ me.flop = true; me.flopUntil = Date.now() + 1400; }
-  if (e.code === "KeyU") setUnlocked(!unlocked);   // for testing: opens or closes the gate
+
   var n = parseInt(e.key, 10); if (n >= 1 && n <= 6) emote(EMOTES[n - 1]);
 });
 addEventListener("keyup", function(e){ keys[e.code] = false; });
@@ -539,7 +539,7 @@ setUnlocked(unlocked);
 if (SPEC){ document.getElementById("start").style.display = "none"; started = true; me.x = 0; me.y = 16; me.z = 30; me.yaw = 0; me.pitch = 0.9; }
 document.getElementById("go").onclick = function(){ document.getElementById("start").style.display = "none"; started = true; sendFull(); try { renderer.domElement.requestPointerLock(); } catch (e) {} };
 requestAnimationFrame(frame);
-window.__town = {me:me, others:others, ME:ME, setUnlocked:setUnlocked, jobSpots:jobSpots, start:function(){ started = true; }};
+window.__town = {me:me, others:others, ME:ME, jobSpots:jobSpots, start:function(){ started = true; }};
 </script>
 </body>
 </html>

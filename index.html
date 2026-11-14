@@ -3357,6 +3357,7 @@ function worldJobBonus(kid){
 var WORLD_DELIVERY_DAILY = 5;
 function worldDeliveriesLeft(d){ return d.deliv.day===todayISO() ? Math.max(0, WORLD_DELIVERY_DAILY - d.deliv.n) : WORLD_DELIVERY_DAILY; }
 function worldDeliveryDone(kid, fast){
+  if(!worldUnlocked(kid)){ worldSay("Finish today's lessons first, then you can take deliveries."); return; }
   var d = worldData(kid), today = todayISO();
   if(d.deliv.day!==today) d.deliv = {day:today, n:0};
   if(d.deliv.n>=WORLD_DELIVERY_DAILY){ worldSay("No more deliveries today. Great work!"); try{ worldGame.frame.contentWindow.postMessage({forge:"deliveryState", left:0}, "*"); }catch(e){} return; }
@@ -7866,7 +7867,7 @@ function patchFlaggedStranded(){
   var n = 0;
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(!a.kidId || a.done || a.reviewStatus!=="flagged" || !hasWork(a)) return;
+    if(!a.kidId || a.done || a.reviewStatus!=="flagged" || quizGateMessage(a) || !hasWork(a)) return;
     var at = a.submittedAt || new Date().toISOString();
     a.done = true; a.doneAt = at; a.noteUnread = true;
     db.doc("assignments/"+id).update({done:true, doneAt:at, noteUnread:true}); n++;
@@ -10126,6 +10127,7 @@ function resetLeaderPin(){
    original install assignments already sitting in his data need to be marked done so he gets credit
    instead of leaving them open forever — console-only, one-time cleanup. */
 function markLegacyOsInstallsComplete(kidId){
+  if(!state.leaderUnlocked){ toast("Unlock Leader first."); return; }
   if(!db){ console.log("Not connected yet — try again in a moment"); return; }
   var titleMatches = [
     "start installing Windows 98", "Finish the Windows 98 install",

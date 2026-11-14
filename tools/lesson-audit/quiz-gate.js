@@ -216,6 +216,29 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   }, todayNY);
   ok('FORGE WORLD: opens when the only lesson left today is waiting for a grown-up', wr.onlyHeld === true, JSON.stringify(wr));
   ok('FORGE WORLD: stays shut if any other lesson today is still open', wr.withOther === false, JSON.stringify(wr));
+  const gateRepair = await page.evaluate(() => {
+    const held = state.assignments.H1;
+    held.workBlocks = [{ type: 'text', text: 'Fictional saved work' }];
+    const oldDate = held.date, today = window.__fa.todayISO();
+    held.date = today;
+    const other = state.assignments.H2;
+    const oldOtherDate = other.date;
+    other.date = today;
+    other.done = false;
+    const before = window.__fa.worldData('kid2').earned;
+    window.__fa.worldDeliveryDone('kid2', false);
+    const after = window.__fa.worldData('kid2').earned;
+    window.__fa.patchFlaggedStranded();
+    const result = { blockedReward: before === after, heldDone: held.done };
+    other.date = oldOtherDate;
+    held.date = oldDate;
+    return result;
+  });
+  ok('FORGE TOWN: an unfinished check blocks delivery rewards', gateRepair.blockedReward, JSON.stringify(gateRepair));
+  ok('HELP HOLD: startup repair cannot count saved work as done', !gateRepair.heldDone, JSON.stringify(gateRepair));
+  const townSource = require('fs').readFileSync('world/town/index.html', 'utf8');
+  ok('FORGE TOWN: no test keyboard shortcut toggles the gate', !townSource.includes('KeyU'));
+
   /* Leader clears it */
   const fresh = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView();
     const cards = [...document.querySelectorAll('.qz-card')].find(c => /Help lesson/.test(c.textContent)); const b = cards && [...cards.querySelectorAll('button')].find(x => /fresh Quick Check/.test(x.textContent)); const banner = /Waiting for a grown-up/.test(document.body.innerText); if (b) b.click(); return { hasCard: !!cards, hasBtn: !!b, banner }; });
