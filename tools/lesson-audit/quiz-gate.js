@@ -111,7 +111,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   /* 10. Review-round fixes: reopening, unfinished checks, held turn-ins leave no stamp, retry pays only after none right */
   store.al_assignments.push(
     mk('R1', 'kid2', { title: 'Reopen lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 1, quiz_total: 3 }),
-    mk('R2', 'kid2', { title: 'Marker lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }),
+    mk('R2', 'kid2', { title: 'Marker lesson', quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: null }),
     mk('R3', 'kid2', { title: 'Held lesson', quiz: Q(3), quiz_retry: Q(3) }),
     mk('R4', 'kid2', { title: 'Zero then retry', quiz: Q(3), quiz_retry: Q(3) }));
   await sync();
@@ -121,8 +121,8 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('REOPEN: finishing the retry marks it used (kid is not stuck)', s.retry, JSON.stringify(s));
   await turnIn(); await sleep(900); s = await st('R1'); ok('REOPEN: then Turn it in works', s.done, JSON.stringify(s));
   ok('1 of 3 then a perfect retry pays no extra XP (only a none-right first try earns retry XP)', xpR1b === xpR1a, xpR1a + ' -> ' + xpR1b);
-  await open('R2');
-  ok('UNFINISHED: a check saved as 0 (left half-way) also offers the retry button on reopening', await retryVisible());
+  await open('R2'); await answer(0, false); await sleep(400); await open('R2');
+  ok('UNFINISHED: a partial check cannot offer the retry button on reopening', !(await retryVisible()));
   await open('R3'); await page.evaluate(() => { const a = state.assignments.R3; a.workBlocks = [{ type: 'text', text: 'Some work typed before the check' }]; });
   await turnIn(); await sleep(900); await sync();
   s = await st('R3'); ok('HELD: a held turn-in is not done', !s.done, JSON.stringify(s));
@@ -160,6 +160,8 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await sync();
   await open('P1'); await answer(0, true); await sleep(400); await answer(1, true); await sleep(600); await sync();
   ok('PARTIAL: the score is saved as the kid goes (2 right so far), not left at 0', srv('P1').quiz_score === 2, String(srv('P1').quiz_score));
+  await open('P1'); await turnIn();
+  ok('PARTIAL: two correct answers do not unlock turn-in', !(await st('P1')).done && (await st('P1')).onLesson);
   await open('P2'); await clickRetry(); await sleep(300);
   const xpP2a = await page.evaluate(() => state.kids.kid2.xp || 0);
   await answer(0, true); await sleep(300); await answer(1, true); await sleep(500);

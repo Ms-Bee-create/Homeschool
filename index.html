@@ -8830,7 +8830,8 @@ function renderLessonDetail(){
       var correctCount = 0, answeredCount = 0;
       /* XP and money only on the first real attempt — reopening the lesson to re-tap answers
          is practice, not a second paycheck. */
-      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet && a.quizScore===0) : (a.quizScore==null);
+      var priorBest = !(a.quizTotal>0) ? (a.quizScore || 0) : 0;
+      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet && a.quizScore===0) : !(a.quizTotal>0);
       var retryCounts = isRetryAttempt && !a.quizRetryUsed;   // finishing the one allowed retry opens the gate, with or without XP
       if(!xpEligible){
         var repeatNote = document.createElement("div");
@@ -8862,9 +8863,9 @@ function renderLessonDetail(){
             if(answeredCount===1 && scratchNeeded && !blocks.some(function(b){ return b.type==="image"; })) setTimeout(function(){ petSay("Did you do your scratch work on paper? Show me a picture!"); }, 2600);
           }
           if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
-            var startUpdates = {quizScore: 0, quizTotal: items.length};
+            var startUpdates = {quizScore: priorBest, quizTotal: null};
             if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
-            a.quizScore = 0; a.quizTotal = items.length;
+            a.quizScore = priorBest; a.quizTotal = null;
             db.doc("assignments/"+a.id).update(startUpdates);
           }
           if(!correct){
@@ -8880,27 +8881,25 @@ function renderLessonDetail(){
             queueSkillReview(state.activeKid, a, item);
           } else {
             correctCount++;
-            if(xpEligible && !isRetryAttempt){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
-            if(xpEligible && !isRetryAttempt && db && a.id){ var partial = {quizScore: correctCount}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = correctCount; db.doc("assignments/"+a.id).update(partial); }
+            if(xpEligible && !isRetryAttempt && correctCount>priorBest){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+            if(xpEligible && !isRetryAttempt && correctCount>priorBest && db && a.id){ var partial = {quizScore: correctCount}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = correctCount; db.doc("assignments/"+a.id).update(partial); }
           }
           if(answeredCount===items.length){
+            var needsHelp = retryCounts && correctCount===0 && a.quizScore===0 && !a.reviewStatus;
             if(db && a.id && (xpEligible || retryCounts)){
               var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
+              if(needsHelp) Object.assign(quizUpdates, flagFields(a, HELP_HOLD_NOTE));
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
-            if(retryCounts && correctCount===0 && a.quizScore===0 && db && a.id && !a.reviewStatus){
-              var helpUpd = flagFields(state.assignments[a.id] || a, HELP_HOLD_NOTE);
-              if(state.assignments[a.id]) Object.assign(state.assignments[a.id], helpUpd);
-              Object.assign(a, helpUpd);
-              SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(helpUpd); });
+            if(needsHelp && db && a.id){
               /* The grown-up is told: the same "help" row the Ask for Help button writes, so the Leader's open screen shows it and dings (the Leader screen checks about once a minute while it is open with sound on). */
               try{ if(typeof sdHelpSend==="function") sdHelpSend(state.activeKid || a.kidId, a, "help", "Quick Check: every answer wrong twice. Please sit with them on this one."); }catch(e){}
               toast(annaLook ? "This one is tricky! I told Mom so she can help you. \uD83D\uDC9B" : "This one is tricky. I flagged it so Mom or Dad can help you with it.");
             }
             if(xpEligible && isRetryAttempt && correctCount>0){ grantXP(state.activeKid, 5*correctCount); toast("✅ +"+(5*correctCount)+" XP for the new Quick Check"); }
-            if(!quizPassed(correctCount, items.length)){
+            if(!isRetryAttempt && xpEligible && !quizPassed(correctCount, items.length)){
               retryBtn.style.display = "block";
             } else if(xpEligible && isRetryAttempt && correctCount===items.length){
               grantMommaMoney(state.activeKid, 1);
