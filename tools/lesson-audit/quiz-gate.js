@@ -121,7 +121,8 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('REOPEN: finishing the retry marks it used (kid is not stuck)', s.retry, JSON.stringify(s));
   await turnIn(); await sleep(900); s = await st('R1'); ok('REOPEN: then Turn it in works', s.done, JSON.stringify(s));
   ok('1 of 3 then a perfect retry pays no extra XP (only a none-right first try earns retry XP)', xpR1b === xpR1a, xpR1a + ' -> ' + xpR1b);
-  await open('R2'); await answer(0, false); await sleep(400); await open('R2');
+  await open('R2'); await answer(0, false); await sleep(400); await open('R2'); await turnIn();
+  ok('REOPEN: partial attempt starts at question one and stays blocked', (await st('R2')).onLesson && !(await st('R2')).done && await answer(0, true));
   ok('UNFINISHED: a partial check cannot offer the retry button on reopening', !(await retryVisible()));
   await open('R3'); await page.evaluate(() => { const a = state.assignments.R3; a.workBlocks = [{ type: 'text', text: 'Some work typed before the check' }]; });
   await turnIn(); await sleep(900); await sync();
@@ -162,6 +163,9 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('PARTIAL: the score is saved as the kid goes (2 right so far), not left at 0', srv('P1').quiz_score === 2, String(srv('P1').quiz_score));
   await open('P1'); await turnIn();
   ok('PARTIAL: two correct answers do not unlock turn-in', !(await st('P1')).done && (await st('P1')).onLesson);
+  const reopenedXp = kidRow('kid2').xp;
+  await doCheck([true, true, true]); await sleep(700); await sync();
+  ok('REOPEN: only the answer beyond the saved best pays XP', kidRow('kid2').xp === reopenedXp + 5);
   await open('P2'); await clickRetry(); await sleep(300);
   const xpP2a = await page.evaluate(() => state.kids.kid2.xp || 0);
   await answer(0, true); await sleep(300); await answer(1, true); await sleep(500);
@@ -187,7 +191,20 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('SLOW DOWN: the clock restarts after each answer (the next one tapped at once is held)', rs0.score === 1, JSON.stringify(rs0));
   await page.evaluate(() => { window.__noRushGuard = true; });
   await page.evaluate(() => { window.__fa.sd.sdHelp.primed = false; window.__fa.sd.sdHelp.seen = {}; window.__sdDings.length = 0; }); await page.evaluate(() => window.__fa.sd.sdHelpFetch(true)); await sleep(700);
-  await open('H1'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([false, false, false]); await sleep(500); await sync();
+  await open('H1'); await doCheck([false, false, false]); await sleep(700);
+  const holdWrites = [];
+  page.on('request', req => {
+    if (req.method() === 'PATCH' && req.url().includes('id=eq.H1')) holdWrites.push(req.postDataJSON());
+  });
+  o.net.failWrites = true;
+  await page.evaluate(() => window.db.doc('assignments/H1').update({workBlocks:[{type:'text',text:'Pending fictional work'}], reviewStatus:null, reviewNote:null}));
+  await sleep(200);
+  await clickRetry(); await sleep(300); await doCheck([false, false, false]);
+  o.net.failWrites = false;
+  await page.evaluate(() => { window.__fa.SG.retryNow(); return window.__fa.sd.sdHelpFlush(); }); await sleep(900); await sync();
+  ok('HELP HOLD: an earlier unsent save and the hold both reach storage', srv('H1').work_blocks?.[0]?.text === 'Pending fictional work' && srv('H1').review_status === 'flagged');
+  const completedRetries = holdWrites.filter(write => write.quiz_retry_used);
+  ok('HELP HOLD: retry result and hold travel in the same update', completedRetries.length > 0 && completedRetries.every(write => write.review_status === 'flagged' && /grown-up/.test(write.review_note)));
   await sleep(1500);
   const hr = (store.al_help_requests || []).filter(r => r.lesson_title === 'Help lesson');
   ok('DING: a help request for that lesson reaches the table for the grown-up', hr.length === 1 && hr[0].kid_id === 'kid2' && /every answer wrong twice/.test(hr[0].message || ''), JSON.stringify(hr.map(r => [r.kind, r.message])));
@@ -243,11 +260,14 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
 
   /* Leader clears it */
   const fresh = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView();
-    const cards = [...document.querySelectorAll('.qz-card')].find(c => /Help lesson/.test(c.textContent)); const b = cards && [...cards.querySelectorAll('button')].find(x => /fresh Quick Check/.test(x.textContent)); const banner = /Waiting for a grown-up/.test(document.body.innerText); if (b) b.click(); return { hasCard: !!cards, hasBtn: !!b, banner }; });
+    const cards = [...document.querySelectorAll('.qz-card')].find(c => /Help lesson/.test(c.textContent)); const b = cards && [...cards.querySelectorAll('button')].find(x => /fresh Quick Check/.test(x.textContent)); const banner = /Waiting for a grown-up/.test(document.body.innerText); const buttons = [...cards.querySelectorAll("button")].map(x => x.textContent); if (b) b.click(); return { hasCard: !!cards, hasBtn: !!b, banner, buttons }; });
   await sleep(700); await sync();
   ok('LEADER: the card shows who is waiting, and a "fresh Quick Check" button', fresh.hasCard && fresh.hasBtn && fresh.banner, JSON.stringify(fresh));
   ok('LEADER: that button clears the hold and gives a fresh check', !srv('H1').review_status && srv('H1').quiz_score == null && !srv('H1').quiz_retry_used, JSON.stringify([srv('H1').review_status, srv('H1').quiz_score, srv('H1').quiz_retry_used]));
   await page.evaluate(() => { state.leaderUnlocked = false; state.leaderMode = false; });
+  ok('LEADER: held card offers only approval and a fresh check', fresh.buttons.length === 2 && fresh.buttons.some(x => /Approve/.test(x)), JSON.stringify(fresh.buttons));
+  await open('H1'); await turnIn();
+  ok('FRESH CHECK: starts clean and requires a new first attempt', !(await retryVisible()) && !(await st('H1')).done && (await st('H1')).onLesson);
   await open('H2'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, false, false]); await sleep(500); await sync();
   ok('HELP FLAG: one right on the retry is not flagged', !srv('H2').review_status, String(srv('H2').review_status));
 
