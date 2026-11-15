@@ -5,7 +5,8 @@
 
    Rules (Mom): one lesson per subject per day; Math and ELA/Reading every day; Faith Mon/Wed/Fri; Science Tue/Thu; Social Studies Wed/Thu; ONE project a day Mon-Thu; Friday = Math,
    ELA/Reading, Faith and no project; a warm-up (Anna's Handwriting, Ryan's Thought Experiments) Mon-Thu; at most one game day a week, on Friday in place of that day's Math, never a
-   repeat of a lesson already reviewed; book Math first, project math sits in the project slot. Nothing is placed before its own written date if it is a project lesson. */
+   repeat of a lesson already reviewed (and only for a lesson that is done or placed on an earlier day); book Math first, project math sits in the project slot. Nothing is placed before its own written date if it is a project lesson.
+   B7 (14 Nov 2026): after planning, the WHOLE proposed day is checked, including lessons that keep their date and started/done work, and every problem is REPORTED (plan.conflicts, summary.txt, preview). Started or done work is never moved. Games whose link to the reviewed lesson is missing are held and reported (plan.uncertain). */
 const fs = require('fs'), path = require('path');
 const args = {}; for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const DATA = args.data, OUT = args.out, START = args.start || '2026-11-30', END = args.end || '2027-06-30';
@@ -39,6 +40,42 @@ function slotOf(kid, a) {
 }
 const SLOT_DAYS = { math: [1, 2, 3, 4, 5], ela: [1, 2, 3, 4, 5], faith: [1, 3, 5], sci: [2, 4], ss: [3, 4], project: [1, 2, 3, 4], warm: [1, 2, 3, 4] };
 
+/* B7: check the WHOLE proposed schedule, including lessons that keep their date and work that is started or done. Reports problems; never moves anything. */
+const SLOT_OF_SUBJECT = { Math: 'math', ELA: 'ela', Reading: 'ela', 'Social Studies': 'ss', Science: 'sci', Faith: 'faith' };
+function validate(kid, plan, live) {
+  const moved = {}; plan.moves.forEach(m => { moved[m.id] = m; });
+  const parked = new Set([...plan.holds.map(h => h.id), ...plan.old.map(o => o.id), ...plan.leftOver.map(l => l.id)]);
+  const dayOk = new Set(days.map(d => d.iso)), dowOf = {}; days.forEach(d => { dowOf[d.iso] = d.dow; });
+  const NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const items = [];
+  live.forEach(r => {
+    if (parked.has(r.id)) return;
+    const mv = moved[r.id], iso = mv ? mv.to : r.date;
+    if (iso < START || iso > END) return;
+    const started = !!(r.done || hasWork(r)), c = slotOf(kid, r);
+    const slot = mv ? mv.slot : (c === 'game' ? 'math' : c === 'fixed' ? (SLOT_OF_SUBJECT[r.subject] || 'project') : c);
+    items.push({ id: r.id, iso, slot, title: r.title, src: mv ? 'moved' : started ? (r.done ? 'done' : 'started') : 'kept' });
+  });
+  const out = [], add = (iso, type, slot, its, msg) => out.push({ iso, type, slot, msg, items: its.map(i => ({ id: i.id, title: i.title, src: i.src })), needsMom: its.some(i => i.src !== 'moved') });
+  // invariant: nothing started or done was given a new date
+  live.forEach(r => { if ((r.done || hasWork(r)) && moved[r.id] && moved[r.id].to !== r.date) add(moved[r.id].to, 'moved-started-work', moved[r.id].slot, [{ id: r.id, title: r.title, src: 'moved' }], 'BUG: started or done work was given a new date'); });
+  const byIso = {}; items.forEach(i => { (byIso[i.iso] = byIso[i.iso] || []).push(i); });
+  Object.keys(byIso).sort().forEach(iso => {
+    if (!dayOk.has(iso)) { const d = new Date(iso + 'T12:00:00').getDay(); add(iso, 'off-day', '', byIso[iso], (d === 0 || d === 6 ? 'weekend' : 'a day off (break)') + ': ' + byIso[iso].length + ' lesson(s) are dated here'); return; }
+    const dow = dowOf[iso], bySlot = {}; byIso[iso].forEach(i => { (bySlot[i.slot] = bySlot[i.slot] || []).push(i); });
+    Object.keys(bySlot).forEach(sl => {
+      const L = bySlot[sl];
+      if (L.length > 1) add(iso, sl === 'project' ? 'two-projects' : 'two-in-slot', sl, L, NAMES[dow] + ' has ' + L.length + ' ' + sl + ' lessons (rule: one per subject' + (sl === 'project' ? '; ONE project a day' : '') + ')');
+      if (SLOT_DAYS[sl] && !SLOT_DAYS[sl].includes(dow)) add(iso, dow === 5 && (sl === 'warm' || sl === 'project') ? 'friday-' + sl : 'wrong-day', sl, L, NAMES[dow] + ' has ' + sl + (dow === 5 && sl === 'warm' ? ' (Friday handwriting / warm-up)' : dow === 5 && sl === 'project' ? ' (Friday project)' : '') + ', which the weekly rule does not allow on that day');
+    });
+  });
+  // at most one game day a week
+  const weekGames = {};
+  live.forEach(r => { if (parked.has(r.id) || r.stage !== 'review') return; const mv = moved[r.id], iso = mv ? mv.to : r.date; if (iso < START || iso > END) return; const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const w = isoDate(d); (weekGames[w] = weekGames[w] || []).push({ id: r.id, title: r.title, src: mv ? 'moved' : (r.done || hasWork(r)) ? 'done' : 'kept' }); });
+  Object.keys(weekGames).sort().forEach(w => { if (weekGames[w].length > 1) add(w, 'two-games', 'math', weekGames[w], 'week of ' + w + ' has ' + weekGames[w].length + ' game days (rule: at most one a week)'); });
+  return out;
+}
+
 function build(kid) {
   const rows = JSON.parse(fs.readFileSync(path.join(DATA, 'assignments_' + kid + '.json'), 'utf8'));
   const live = rows.filter(r => r.review_status !== 'retired');
@@ -59,15 +96,24 @@ function build(kid) {
     if (r.date < START) { plan.keeps.push({ id: r.id, date: r.date, why: 'before the plan starts; left exactly as it is', title: r.title, cls, subject: r.subject }); return; }
     movable.push({ r, cls });
   });
-  // game days: one per lesson reviewed, never a repeat of one already done; the rest are held for Mom
-  const seenRev = new Set();
+  // game days: one per lesson reviewed (a review of a review counts as the same lesson), never a repeat of one already done; the rest are held for Mom.
+  // A game whose link to the lesson it reviews is missing cannot be checked for repeats: it is held and listed in plan.uncertain.
+  const byId = {}; live.forEach(r => { byId[r.id] = r; });
+  const rootOf = r => { let c = r, hops = 0; while (c && c.stage === 'review' && c.review_of && hops++ < 8) { const n = byId[c.review_of]; if (!n) return { id: c.review_of, row: null }; c = n; } return { id: c.id, row: c.stage === 'review' ? null : c }; };
+  const doneRoots = new Set(live.filter(r => r.stage === 'review' && r.done && r.review_of).map(r => rootOf(r).id));
+  const rootTitles = {}; live.filter(r => r.stage === 'review' && r.done && r.review_of).forEach(r => { const rt = rootOf(r); if (rt.row) rootTitles[repNorm(rt.row.title)] = rt.id; });
+  plan.uncertain = [];
+  const seenRoot = new Set();
   const game = [];
   movable.filter(x => x.cls === 'game').sort((a, b) => a.r.date.localeCompare(b.r.date) || nat(a.r.title, b.r.title)).forEach(x => {
-    const key = x.r.review_of || x.r.title;
-    if (doneReviewOf.has(key) || seenRev.has(key)) { plan.holds.push({ id: x.r.id, title: x.r.title, why: 'a game day for this lesson was already done or is already planned' }); return; }
-    seenRev.add(key); game.push(x);
+    const rt = rootOf(x.r);
+    if (!x.r.review_of || !rt.row) { const why = !x.r.review_of ? 'it has no link to the lesson it reviews' : 'the lesson it reviews is not in the export'; plan.uncertain.push({ id: x.r.id, title: x.r.title, why: why + ', so a repeat review cannot be ruled out' }); plan.holds.push({ id: x.r.id, title: x.r.title, why: 'game day held: ' + why }); return; }
+    if (doneRoots.has(rt.id) || seenRoot.has(rt.id)) { plan.holds.push({ id: x.r.id, title: x.r.title, why: 'a game day for this lesson was already done or is already planned' }); return; }
+    const tk = repNorm(rt.row.title); if (rootTitles[tk] && rootTitles[tk] !== rt.id) plan.uncertain.push({ id: x.r.id, title: x.r.title, why: 'the lesson it reviews has the same title as one already reviewed under a different id, so it may be a duplicate review' });
+    rootTitles[tk] = rootTitles[tk] || rt.id; seenRoot.add(rt.id); x.root = rt; game.push(x);
   });
   const q = { math: [], ela: [], faith: [], sci: [], ss: [], project: [], warm: [] };
+  const placedOn = {}; // lesson id -> the day it is planned for
   movable.forEach(x => { if (q[x.cls]) q[x.cls].push(x); });
   Object.keys(q).forEach(k => q[k].sort((a, b) => a.r.date.localeCompare(b.r.date) || String(a.r.created_at || '').localeCompare(String(b.r.created_at || '')) || nat(a.r.title, b.r.title)));
   // slots already taken by lessons that keep their dates
@@ -75,16 +121,18 @@ function build(kid) {
   const mark = (iso, slot) => { (taken[iso] = taken[iso] || {})[slot] = true; };
   plan.keeps.forEach(k => { const row = live.find(r => r.id === k.id); if (!row) return; const c = slotOf(kid, row); const sl = c === 'fixed' ? ({ Math: 'math', ELA: 'ela', 'Social Studies': 'ss', Science: 'sci', Faith: 'faith' }[row.subject] || 'project') : c; mark(k.date, sl); });
   live.filter(r => (r.done || hasWork(r)) && r.date >= START).forEach(r => { const c = slotOf(kid, r); mark(r.date, c === 'game' ? 'math' : c === 'fixed' ? 'project' : c); });
-  let weekKey = '', gameThisWeek = 0, gi = 0;
+  let weekKey = '', gameThisWeek = 0;
   days.forEach(({ iso, dow }) => {
     const d = new Date(iso + 'T12:00:00'); const mon = new Date(d); mon.setDate(d.getDate() - ((dow + 6) % 7)); const wk = isoDate(mon); if (wk !== weekKey) { weekKey = wk; gameThisWeek = 0; }
     const day = plan.byDay[iso] = {};
-    const put = (slot, x) => { day[slot] = x.r.title; mark(iso, slot); plan.moves.push({ id: x.r.id, from: x.r.date, to: iso, slot, title: x.r.title }); };
-    ['warm', 'math', 'ela', 'faith', 'sci', 'ss', 'project'].forEach(slot => {
+    const put = (slot, x) => { day[slot] = x.r.title; placedOn[x.r.id] = iso; mark(iso, slot); plan.moves.push({ id: x.r.id, from: x.r.date, to: iso, slot, title: x.r.title }); };
+    ['math', 'warm', 'ela', 'faith', 'sci', 'ss', 'project'].forEach(slot => { // Math is booked first
       if (!SLOT_DAYS[slot].includes(dow)) return;
       if (taken[iso] && taken[iso][slot]) { day[slot] = '(already there)'; return; }
       let pick = null;
-      if (slot === 'math' && dow === 5 && gameThisWeek < 1 && gi < game.length) { pick = game[gi++]; gameThisWeek++; }
+      // Friday game day: only a game for a lesson that is already done (or planned on an earlier day), and only if Friday's Math slot is still free
+      const gIdx = (slot === 'math' && dow === 5 && gameThisWeek < 1) ? game.findIndex(g => g.root.row.done || (placedOn[g.root.id] && placedOn[g.root.id] < iso)) : -1;
+      if (gIdx >= 0) { pick = game.splice(gIdx, 1)[0]; gameThisWeek++; }
       else {
         const L = q[slot];
         for (let i = 0; i < L.length; i++) { const x = L[i]; if (slot === 'project' && x.r.date > iso) continue; pick = L.splice(i, 1)[0]; break; }
@@ -93,8 +141,9 @@ function build(kid) {
     });
   });
   const left = []; Object.keys(q).forEach(k => q[k].forEach(x => left.push({ id: x.r.id, cls: k, date: x.r.date, title: x.r.title })));
-  game.slice(gi).forEach(x => left.push({ id: x.r.id, cls: 'game', date: x.r.date, title: x.r.title }));
+  game.forEach(x => left.push({ id: x.r.id, cls: 'game', date: x.r.date, title: x.r.title }));
   plan.leftOver = left;
+  plan.conflicts = validate(kid, plan, live);
   plan.changed = plan.moves.filter(m => m.from !== m.to).length;
   return plan;
 }
@@ -111,6 +160,12 @@ plans.forEach(p => {
   lines.push('### ' + nm);
   lines.push('placed: ' + p.moves.length + ' lessons (' + p.changed + ' get a new date); kept as dated: ' + p.keeps.length + '; held back: ' + p.holds.length + '; old unfinished before ' + START + ': ' + p.old.length + '; not placed by ' + END + ': ' + p.leftOver.length + ' ' + JSON.stringify(leftBy));
   p.holds.filter(h => h.repeat).forEach(h => lines.push('  REPEAT held: ' + h.date + ' ' + h.subject + ' | ' + h.title + '  <- ' + h.why));
+  const cb = {}; p.conflicts.forEach(c => { cb[c.type] = (cb[c.type] || 0) + 1; });
+  lines.push('CONFLICTS in the proposed schedule: ' + p.conflicts.length + (p.conflicts.length ? ' ' + JSON.stringify(cb) + ' (' + p.conflicts.filter(c => c.needsMom).length + ' involve work that keeps its date or is started/done: Mom decides, nothing is moved)' : ' (none)'));
+  p.conflicts.slice(0, 40).forEach(c => lines.push('  CONFLICT ' + c.iso + ' [' + c.type + '] ' + c.msg + ' | ' + c.items.map(i => i.src + ': ' + String(i.title).slice(0, 50)).join(' ; ')));
+  if (p.conflicts.length > 40) lines.push('  ... and ' + (p.conflicts.length - 40) + ' more in plan_' + p.kid + '.json');
+  lines.push('DUPLICATE-REVIEW uncertainty: ' + p.uncertain.length);
+  p.uncertain.forEach(u => lines.push('  UNSURE ' + String(u.title).slice(0, 60) + ' <- ' + u.why));
   lines.push('empty slots: ' + Object.keys(gapBy).map(k => k + ' ' + gapBy[k].length + ' (first ' + gapBy[k][0] + ', last ' + gapBy[k][gapBy[k].length - 1] + ')').join('; '));
 });
 fs.writeFileSync(path.join(OUT, 'summary.txt'), lines.join('\n'));
