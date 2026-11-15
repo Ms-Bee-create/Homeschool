@@ -44,7 +44,7 @@ const DAY = '2026-11-12';
   const pname = await page.evaluate(() => window.__fa.RYAN_PROJECTS[0].name);
   ok('picked: the box shows the project name', t.includes(pname.replace(/&/g, '&amp;')) || t.includes(pname), pname);
   ok('picked: shows 1 of 2 lessons done', /1 of 2 lessons done/.test(t));
-  ok('picked: shows what is on for today', /Today: Ryan Project step one/.test(t));
+  ok('picked: shows what is on for today', /Recap, today's project lesson .also listed in his day.: Ryan Project step one/.test(t));
   ok('picked: the not-picked line is gone', !/Not picked yet/.test(t));
 
   /* C. off switch falls back to the old block-order paper */
@@ -56,6 +56,23 @@ const DAY = '2026-11-12';
 
   /* D. nothing written */
   ok('printing the paper changes no lesson dates or ticks', JSON.stringify(store.al_assignments.map(r => [r.id, r.date, r.done])) === before);
+
+  /* E. parity with the Today screen (B5, 14 Nov 2026): same open/done test, same list */
+  const mathRow = L.find(r => r.title === 'Ryan Math practice'), stepTwo = L.find(r => r.title === 'Ryan Project step two');
+  mathRow.done = true; mathRow.review_status = 'flagged'; mathRow.review_note = 'try again';
+  stepTwo.review_status = 'flagged'; stepTwo.review_note = 'try again';
+  store.al_assignments.push(mk('kid1', 'Math', 'Anna Pick A', { choice_group: 'cgx', done: true }), mk('kid1', 'Math', 'Anna Pick B', { choice_group: 'cgx' }));
+  await sync(); t = await html();
+  const cnt = x => t.split(x).length - 1;
+  ok('PARITY: a sent-back (flagged) lesson shows unticked, like Today', t.includes('\u2610 Ryan Math practice') && !t.includes('\u2611 Ryan Math practice'));
+  ok('PARITY: and says it was sent back', /sent back: try again/.test(t));
+  ok('PARITY: a sent-back lesson still shows exactly once', cnt('Ryan Math practice') === 1, String(cnt('Ryan Math practice')));
+  ok('PARITY: a finished pick-one lesson is ticked', t.includes('\u2611 Anna Pick A'));
+  ok('PARITY: the other pick of that group is hidden once one is done, like Today', cnt('Anna Pick B') === 0, String(cnt('Anna Pick B')));
+  ok('PARITY: the headline counts the visible lessons only (7 + the one pick = 8)', /8 Lessons/.test(t), (t.match(/Two Scholars, \d+ Lessons/) || [''])[0]);
+  ok('PARITY: the project box does not count a sent-back lesson as done (0 of 2)', /0 of 2 lessons done/.test(t));
+  ok('PARITY: the box line is labeled as a recap of a lesson also in his day', /Recap, today's project lesson/.test(t) && cnt('Ryan Project step one') === 2, String(cnt('Ryan Project step one')));
+  ok('PARITY: an unfinished lesson is listed once in its own window (nothing carried twice)', cnt('Anna Reading time') === 1 && cnt('Ryan Reading apply') === 1);
 
   console.log(results.join('\n'));
   console.log('\n' + (results.length - failed) + ' passed, ' + failed + ' failed; page errors: ' + JSON.stringify(o.errors));
