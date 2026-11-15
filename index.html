@@ -5238,6 +5238,12 @@ function quizAutoOk(score, total){ return total>0 && score!=null && (total<=2 ? 
 function quizAllowsAiApproval(a){
   return !(a.quizTotal>0 || a.quizScore!=null || (Array.isArray(a.quiz) && a.quiz.length)) || quizAutoOk(a.quizScore, a.quizTotal);
 }
+/* B4: the saved Quick Check result as the server has it right now (null if it cannot be read: offline, or an error). */
+function quizFreshState(id){
+  try{
+    return sb.from("al_assignments").select("quiz_score,quiz_total,quiz_retry_used").eq("id", id).limit(1).then(function(r){ var d = r && !r.error ? r.data : null; if(Array.isArray(d)) d = d[0]; return d || null; }, function(){ return null; });
+  }catch(e){ return Promise.resolve(null); }
+}
 function quizGateMessage(a, kidId){
   var cur = (a && a.id && state.assignments[a.id]) || a;
   if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
@@ -8836,6 +8842,24 @@ function renderLessonDetail(){
       var priorBest = !(a.quizTotal>0) ? (a.quizScore || 0) : 0;
       var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet && a.quizScore===0) : !(a.quizTotal>0);
       var retryCounts = isRetryAttempt && !a.quizRetryUsed;   // finishing the one allowed retry opens the gate, with or without XP
+      /* B4 (pay once): ask the server, not this tab's copy, once per sitting whether another tab or device already finished or paid this Quick Check.
+         If so, this sitting is practice (no XP, no second write over the real result). Offline the local rule is kept unchanged. */
+      var freshDone = false, freshQueue = [];
+      function whenFresh(fn){
+        if(freshDone){ fn(); return; }
+        freshQueue.push(fn);
+        if(freshQueue.length>1) return;
+        quizFreshState(a.id).then(function(f){
+          if(f){
+            if(!isRetryAttempt){
+              if(f.quiz_total>0 || f.quiz_retry_used) xpEligible = false;
+              else if((f.quiz_score||0)>priorBest) priorBest = f.quiz_score;
+            } else if(f.quiz_retry_used){ xpEligible = false; retryCounts = false; }
+            else if(f.quiz_score!==0) xpEligible = false;
+          }
+          freshDone = true; var q = freshQueue; freshQueue = []; q.forEach(function(g){ g(); });
+        });
+      }
       if(!xpEligible){
         var repeatNote = document.createElement("div");
         repeatNote.style.cssText = "margin-bottom:8px;font-size:12.5px;color:var(--text-dim)";
@@ -8865,12 +8889,14 @@ function renderLessonDetail(){
             if(correct && treatsEl) treatsEl.textContent += " "+treat;
             if(answeredCount===1 && scratchNeeded && !blocks.some(function(b){ return b.type==="image"; })) setTimeout(function(){ petSay("Did you do your scratch work on paper? Show me a picture!"); }, 2600);
           }
-          if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
+          if(!isRetryAttempt && answeredCount===1) whenFresh(function(){
+          if(xpEligible && db && a.id){
             var startUpdates = {quizScore: priorBest, quizTotal: null};
             if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
             a.quizScore = priorBest; a.quizTotal = null;
             db.doc("assignments/"+a.id).update(startUpdates);
           }
+          });
           if(!correct){
             /* Corrective feedback given at the moment of the miss, not just marking it wrong —
                elementary kids need the "why" right then, while the question is still active in
@@ -8884,10 +8910,13 @@ function renderLessonDetail(){
             queueSkillReview(state.activeKid, a, item);
           } else {
             correctCount++;
-            if(xpEligible && !isRetryAttempt && correctCount>priorBest){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
-            if(xpEligible && !isRetryAttempt && correctCount>priorBest && db && a.id){ var partial = {quizScore: correctCount}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = correctCount; db.doc("assignments/"+a.id).update(partial); }
+            var cc = correctCount;
+            whenFresh(function(){
+              if(xpEligible && !isRetryAttempt && cc>priorBest){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+              if(xpEligible && !isRetryAttempt && cc>priorBest && db && a.id){ var partial = {quizScore: cc}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = cc; db.doc("assignments/"+a.id).update(partial); }
+            });
           }
-          if(answeredCount===items.length){
+          if(answeredCount===items.length) whenFresh(function(){
             var needsHelp = retryCounts && correctCount===0 && a.quizScore===0 && !a.reviewStatus;
             if(db && a.id && (xpEligible || retryCounts)){
               var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
@@ -8908,7 +8937,7 @@ function renderLessonDetail(){
               grantMommaMoney(state.activeKid, 1);
               toast("🌟 Aced the retry — +$1 Momma Money bonus!");
             }
-          }
+          });
         }
         if(item.type && INTERACTIVE_QUIZ[item.type]){
           INTERACTIVE_QUIZ[item.type](item, qRow, function(correct){

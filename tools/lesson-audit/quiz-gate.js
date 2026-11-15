@@ -271,6 +271,33 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await open('H2'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, false, false]); await sleep(500); await sync();
   ok('HELP FLAG: one right on the retry is not flagged', !srv('H2').review_status, String(srv('H2').review_status));
 
+  /* B4 (14 Nov 2026): pay once across a stale tab. The lesson is opened (this tab's copy says "not done yet"), then another tab/device finishes or pays it on the server;
+     finishing the check here must not pay again or overwrite the real result. */
+  const kidNow = () => page.evaluate(() => ({ xp: state.kids.kid2.xp || 0, mm: state.kids.kid2.mommaMoney || 0 }));
+  store.al_assignments.push(
+    mk('PO1', 'kid2', { quiz: Q(3) }),                                             // finished on another tab
+    mk('PO2', 'kid2', { quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }),   // retry already used on another tab
+    mk('PO3', 'kid2', { quiz: Q(3) }),                                             // another tab got 2 right and left
+    mk('PO4', 'kid2', { quiz: Q(3) }));                                            // control: nothing happened elsewhere
+  await sync();
+  let k0 = await kidNow();
+  await open('PO1'); srv('PO1').quiz_score = 3; srv('PO1').quiz_total = 3;
+  await doCheck([false, true, true]); await sleep(500); await sync();
+  let k1 = await kidNow();
+  ok('B4 STALE TAB: a check finished elsewhere pays no XP here', k1.xp === k0.xp, JSON.stringify([k0, k1]));
+  ok('B4 STALE TAB: the real result on the server is not overwritten', srv('PO1').quiz_score === 3 && srv('PO1').quiz_total === 3, JSON.stringify([srv('PO1').quiz_score, srv('PO1').quiz_total]));
+  await open('PO2'); ok('B4 STALE RETRY: the retry button shows on the stale copy', await retryVisible());
+  srv('PO2').quiz_retry_used = true;
+  await clickRetry(); await sleep(300); const kk0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync();
+  const kk1 = await kidNow();
+  ok('B4 STALE RETRY: a retry already used elsewhere pays no XP and no $1 ace bonus', kk1.xp === kk0.xp && kk1.mm === kk0.mm, JSON.stringify([kk0, kk1]));
+  await open('PO3'); srv('PO3').quiz_score = 2;
+  const p0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const p1 = await kidNow();
+  ok('B4 STALE TAB: answers another tab already paid for are not paid again (only the 3rd right answer pays)', p1.xp - p0.xp === 5, JSON.stringify([p0, p1]));
+  await open('PO4'); const c0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const c1 = await kidNow();
+  ok('B4 CONTROL: a normal first attempt still pays +5 per right answer', c1.xp - c0.xp === 15, JSON.stringify([c0, c1]));
+  ok('B4 CONTROL: and the result is saved', srv('PO4').quiz_score === 3 && srv('PO4').quiz_total === 3, JSON.stringify([srv('PO4').quiz_score, srv('PO4').quiz_total]));
+
   /* B3 (14 Nov 2026): the helper's automatic approval must follow the Quick Check rule (1-2 question checks need all right), and must re-check the lesson after the helper answers.
      The sweep runs on a pretend Tuesday 10:00 and the helper is answered by the test (always "looks good"); nothing reaches the real helper. */
   const nowB3 = new Date().toISOString();
