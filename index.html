@@ -29121,16 +29121,37 @@ function agendaGather(a){
   return t.length>110 ? t.slice(0,107)+"..." : t;
 }
 function agendaGrownUp(){
-  var out = [], flagged = 0, unsure = 0, waiting = 0;
+  var out = [], flagged = 0, unsure = 0, waiting = 0, back = {kid1:[], kid2:[]};
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id]; if(a.reviewStatus==="retired") return;
-    if(a.reviewStatus==="flagged") flagged++;
+    if(a.reviewStatus==="flagged"){ flagged++; if(back[a.kidId]) back[a.kidId].push(a.title||"Lesson"); }
     else if(a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null)){ if(a.aiCheck && a.aiCheck.verdict==="unsure") unsure++; else waiting++; }
   });
   if(unsure) out.push(unsure+" piece"+(unsure>1?"s":"")+" of work the helper was not sure about: look in Leader.");
-  if(flagged) out.push(flagged+" piece"+(flagged>1?"s":"")+" sent back for another try: sit with the kid.");
+  ["kid1","kid2"].forEach(function(k){
+    var l = back[k]; if(!l.length) return;
+    out.push(kidData(k).name+": "+l.length+" lesson"+(l.length>1?"s":"")+" sent back for another try ("+l.slice(0,3).join("; ")+(l.length>3?"; and "+(l.length-3)+" more":"")+"). Sit with "+(k==="kid1"?"her":"him")+".");
+  });
+  var other = flagged - back.kid1.length - back.kid2.length;
+  if(other>0) out.push(other+" other piece"+(other>1?"s":"")+" sent back for another try.");
   if(waiting) out.push(waiting+" piece"+(waiting>1?"s":"")+" of finished work waiting for your review.");
   return out;
+}
+/* "Who needs a hand": the last 14 days of Quick Check results under the pass bar and lessons sent back, grouped by subject, for each kid. A hint for the grown-up, never a grade and never shown to the kids. */
+function agendaNeedsHand(){
+  var iso = todayISO(), d0 = new Date(iso+"T00:00:00"); d0.setDate(d0.getDate()-14); var from = isoDate(d0), by = {kid1:{}, kid2:{}};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(a.reviewStatus==="retired" || !by[a.kidId] || !a.date || a.date<from || a.date>iso) return;
+    var low = a.quizScore!=null && a.quizTotal>0 && a.quizScore < (a.quizTotal<=2 ? 1 : a.quizTotal-1), back = a.reviewStatus==="flagged";
+    if(!low && !back) return;
+    var sj = a.subject || "Other", s = by[a.kidId][sj] = by[a.kidId][sj] || {low:0, back:0, names:[]};
+    if(low) s.low++; if(back) s.back++; if(s.names.length<2) s.names.push(a.title||"Lesson");
+  });
+  return ["kid1","kid2"].map(function(k){
+    var subs = Object.keys(by[k]).map(function(sj){ var s = by[k][sj]; return {sj:sj, n:s.low+s.back, low:s.low, back:s.back, names:s.names}; }).sort(function(x,y){ return y.n-x.n; }).slice(0,3);
+    return {name:kidData(k).name||"Scholar", subs:subs};
+  });
 }
 function agendaHtml(){
   var iso = todayISO(), d = new Date(iso+"T00:00:00");
@@ -29193,6 +29214,11 @@ function agendaHtml(){
       (todayL.length ? '<div class="small" style="margin-top:3px">Recap, today\'s project lesson (also listed in his day): '+todayL.map(esc).join('; ')+'</div>' : '')+'</div>';
   }
   var k1 = edition("kid1","k1"), k2 = edition("kid2","k2");
+  var nh = agendaNeedsHand(), nhHtml = nh.map(function(k){
+    return '<div class="small"><b>'+esc(k.name)+':</b> '+(k.subs.length ? k.subs.map(function(s){
+      return esc(s.sj)+' ('+[s.low ? s.low+" Quick Check"+(s.low>1?"s":"")+" under the bar" : "", s.back ? s.back+" sent back" : ""].filter(Boolean).join(", ")+': '+s.names.map(esc).join("; ")+')';
+    }).join(" · ") : 'nothing stands out.')+'</div>';
+  }).join("");
   var gu = agendaGrownUp(), guHtml = gu.length ? gu.map(function(t){ return '<div class="it">☐ '+esc(t)+'</div>'; }).join("") : '<div class="it">Nothing is waiting for you today.</div>';
   return '<!doctype html><html><head><meta charset="utf-8"><title>The Christy Times</title><style>'+
    '@page{size:letter;margin:.35in}*{box-sizing:border-box}body{font:12.5px/1.38 Georgia,"Times New Roman",serif;color:#1a1a1a;margin:0;padding:.25in;background:#fbf8ef}'+
@@ -29214,6 +29240,7 @@ function agendaHtml(){
    projectBox()+'<div class="box"><h3>Word of the Day</h3><div class="word">'+esc(w[0])+'</div><div class="small"><i>means</i> to '+esc(w[1])+'.</div><div class="small" style="margin-top:3px">“'+esc(w[2])+'” Use it once at breakfast!</div></div>'+
    '<div class="box"><h3>Morning Exercise</h3><div class="small">'+esc(mv[0])+'</div></div>'+
    '<div class="box"><h3>Brain Teaser</h3><div class="small">'+esc(mv[1])+'</div></div>'+
+   '<div class="box"><h3>Who Needs a Hand</h3>'+nhHtml+'<div class="small" style="font-style:italic;margin-top:3px">The last 2 weeks. A hint to look at, not a grade.</div></div>'+
    '<div class="box"><h3>Grown-Up Notices</h3>'+guHtml+'</div>'+
    '</div></div><div class="foot">The Christy Times is printed fresh every school morning at the kitchen table.</div></body></html>';
 }

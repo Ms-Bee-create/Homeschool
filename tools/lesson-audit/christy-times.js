@@ -63,7 +63,7 @@ const DAY = '2026-11-12';
   stepTwo.review_status = 'flagged'; stepTwo.review_note = 'try again';
   store.al_assignments.push(mk('kid1', 'Math', 'Anna Pick A', { choice_group: 'cgx', done: true }), mk('kid1', 'Math', 'Anna Pick B', { choice_group: 'cgx' }));
   await sync(); t = await html();
-  const cnt = x => t.split(x).length - 1;
+  const cnt = x => t.slice(0, t.indexOf('Who Needs a Hand')).split(x).length - 1; // the lists and project box only; the notices may name a lesson again on purpose
   ok('PARITY: a sent-back (flagged) lesson shows unticked, like Today', t.includes('\u2610 Ryan Math practice') && !t.includes('\u2611 Ryan Math practice'));
   ok('PARITY: and says it was sent back', /sent back: try again/.test(t));
   ok('PARITY: a sent-back lesson still shows exactly once', cnt('Ryan Math practice') === 1, String(cnt('Ryan Math practice')));
@@ -73,6 +73,24 @@ const DAY = '2026-11-12';
   ok('PARITY: the project box does not count a sent-back lesson as done (0 of 2)', /0 of 2 lessons done/.test(t));
   ok('PARITY: the box line is labeled as a recap of a lesson also in his day', /Recap, today's project lesson/.test(t) && cnt('Ryan Project step one') === 2, String(cnt('Ryan Project step one')));
   ok('PARITY: an unfinished lesson is listed once in its own window (nothing carried twice)', cnt('Anna Reading time') === 1 && cnt('Ryan Reading apply') === 1);
+
+  /* F. per-kid sent-back list and "who needs a hand" (14 Nov 2026) */
+  const readRow = L.find(r => r.title === 'Anna Reading time'), gameRow = L.find(r => r.title === 'Anna Math game');
+  readRow.quiz_score = 0; readRow.quiz_total = 3;                 // none right: under the bar
+  gameRow.quiz_score = 2; gameRow.quiz_total = 3;                 // 2 of 3 passes: must not be listed
+  store.al_assignments.push(mk('kid1', 'Science', 'Anna old miss', { date: '2026-10-01', quiz_score: 0, quiz_total: 3 }));  // older than 14 days: not listed
+  await sync(); t = await html();
+  const gu = t.slice(t.indexOf('Grown-Up Notices'));
+  const nh = t.slice(t.indexOf('Who Needs a Hand'), t.indexOf('Grown-Up Notices'));
+  ok('NOTICES: sent-back lessons are listed by kid with names', /Ryan: 2 lessons sent back/.test(gu) && gu.includes('Ryan Math practice') && gu.includes('Ryan Project step two'));
+  ok('NOTICES: a kid with nothing sent back is not listed there', !/Anna: \d+ lesson/.test(gu));
+  ok('HAND: the box is on the paper', t.includes('Who Needs a Hand') && /not a grade/.test(t));
+  ok('HAND: Anna shows ELA with one Quick Check under the bar and the lesson name', /Anna:<\/b> ELA \(1 Quick Check under the bar: Anna Reading time\)/.test(nh), nh.slice(0, 300));
+  ok('HAND: Ryan shows his sent-back lessons by subject', /Ryan:<\/b>/.test(nh) && /Math \(1 sent back: Ryan Math practice\)/.test(nh) && /Independent \(1 sent back: Ryan Project step two\)/.test(nh), nh.slice(0, 400));
+  ok('HAND: a 2-of-3 Quick Check is not listed', !nh.includes('Anna Math game'));
+  ok('HAND: a result older than two weeks is not listed', !nh.includes('Anna old miss'));
+  readRow.quiz_score = null; readRow.quiz_total = null; await sync(); t = await html();
+  ok('HAND: a kid with nothing under the bar shows "nothing stands out"', /Anna:<\/b> nothing stands out/.test(t.slice(t.indexOf('Who Needs a Hand'), t.indexOf('Grown-Up Notices'))));
 
   console.log(results.join('\n'));
   console.log('\n' + (results.length - failed) + ' passed, ' + failed + ' failed; page errors: ' + JSON.stringify(o.errors));
