@@ -271,6 +271,55 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await open('H2'); await doCheck([false, false, false]); await clickRetry(); await sleep(300); await doCheck([true, false, false]); await sleep(500); await sync();
   ok('HELP FLAG: one right on the retry is not flagged', !srv('H2').review_status, String(srv('H2').review_status));
 
+  /* B3 (14 Nov 2026): the helper's automatic approval must follow the Quick Check rule (1-2 question checks need all right), and must re-check the lesson after the helper answers.
+     The sweep runs on a pretend Tuesday 10:00 and the helper is answered by the test (always "looks good"); nothing reaches the real helper. */
+  const nowB3 = new Date().toISOString();
+  const wb = [{ type: 'text', text: 'my answer' }];
+  const b3 = (id, qn, score, total, extra) => mk(id, 'kid2', Object.assign({ quiz: Q(qn), quiz_score: score, quiz_total: total, done: true, done_at: nowB3, submitted_at: nowB3, work_blocks: wb }, extra || {}));
+  store.al_assignments.push(
+    b3('B3A', 2, 1, 2),                                                // 1 of 2: must stay in Mom's queue
+    b3('B3B', 2, 2, 2),                                                // 2 of 2: approves
+    b3('B3C', 3, 2, 3),                                                // 2 of 3: approves
+    b3('B3D', 3, 0, 3, { quiz_retry_used: true }),                     // none right: never
+    b3('B3E', 3, 0, 3, { quiz_retry_used: true, review_status: 'flagged', review_note: "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one." }),   // held: never
+    b3('B3F', 2, 2, 2),                                                // score changes while the helper answers
+    b3('B3G', 2, 2, 2),                                                // turn-in time changes while the helper answers
+    b3('B3H', 2, 2, 2),                                                // gets a hold while the helper answers
+    mk('B3I', 'kid2', { done: true, done_at: nowB3, submitted_at: nowB3, work_blocks: wb }));   // no Quick Check: unchanged, approves
+  await sync();
+  const mid = { B3F: "state.assignments.B3F.quizScore = 1", B3G: "state.assignments.B3G.submittedAt = new window.__RealDate(new window.__RealDate(state.assignments.B3G.submittedAt).getTime()+1000).toISOString()", B3H: "Object.assign(state.assignments.B3H, {reviewStatus:'flagged', reviewNote:\"Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.\"})" };
+  await page.route('**/fbrnxuargsilbyyjrjop.supabase.co/functions/v1/troubleshoot', async route => {
+    const hdr = { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'access-control-expose-headers': '*' };
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: hdr });
+    let title = ''; try { title = JSON.parse(route.request().postData() || '{}').assignmentTitle || ''; } catch (e) {}
+    const m = /B3([FGH])$/.exec(title); if (m) {   // another tab changes the lesson while the helper is answering: change the server row and this copy
+      const row = srv('B3' + m[1]), hold = "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.";
+      if (m[1] === 'F') row.quiz_score = 1; if (m[1] === 'G') row.submitted_at = new Date(Date.parse(row.submitted_at) + 1000).toISOString(); if (m[1] === 'H') { row.review_status = 'flagged'; row.review_note = hold; }
+      await page.evaluate(code => { eval(code); }, mid['B3' + m[1]]); await sleep(300); }
+    return route.fulfill({ status: 200, headers: hdr, body: JSON.stringify({ verdict: 'looks_good', kidNote: 'Nice work', momNote: 'Looks fine' }) });
+  });
+  await page.evaluate(() => {
+    Object.keys(state.assignments).forEach(id => { if (!/^B3/.test(id)) state.assignments[id].reviewStatus = state.assignments[id].reviewStatus || 'approved'; });   // keep the older test lessons out of this sweep (local only)
+    const Real = Date, fixed = new Real('2027-03-02T10:00:00').getTime();
+    window.__RealDate = Real; window.Date = class extends Real { constructor(...a) { if (a.length) super(...a); else super(fixed); } static now() { return fixed; } };
+    try { localStorage.removeItem('al_autocheck_hour'); } catch (e) {}
+    state.autoCheckBusy = false; window.__fa.autoCheckSweep();
+  });
+  for (let i = 0; i < 60; i++) { if (!(await page.evaluate(() => state.autoCheckBusy))) break; await sleep(500); }
+  await page.evaluate(() => { window.Date = window.__RealDate; });
+  await sleep(1200);
+  const b3st = id => srv(id).review_status || null;
+  ok('B3 AI APPROVAL: 1 of 2 right plus "looks good" stays in Mom\'s queue', b3st('B3A') === null && srv('B3A').ai_check && srv('B3A').ai_check.verdict === 'looks_good', JSON.stringify([b3st('B3A'), srv('B3A').ai_check]));
+  ok('B3 AI APPROVAL: 2 of 2 right plus "looks good" is approved', b3st('B3B') === 'approved', String(b3st('B3B')));
+  ok('B3 AI APPROVAL: 2 of 3 right plus "looks good" is approved', b3st('B3C') === 'approved', String(b3st('B3C')));
+  ok('B3 AI APPROVAL: none right is never approved, even after the retry', b3st('B3D') === null, String(b3st('B3D')));
+  ok('B3 AI APPROVAL: a lesson under the help hold is never approved or changed', b3st('B3E') === 'flagged' && /^Needs a grown-up's help/.test(srv('B3E').review_note || ''), JSON.stringify([b3st('B3E'), srv('B3E').review_note]));
+  ok('B3 AI APPROVAL: a lesson with no Quick Check is approved as before', b3st('B3I') === 'approved', String(b3st('B3I')));
+  ok('B3 AI APPROVAL: score changes while the helper answers: not approved', b3st('B3F') === null, String(b3st('B3F')));
+  ok('B3 AI APPROVAL: turn-in time changes while the helper answers: not approved', b3st('B3G') === null, String(b3st('B3G')));
+  ok('B3 AI APPROVAL: a hold appears while the helper answers: not approved', b3st('B3H') === 'flagged', String(b3st('B3H')));
+  ok('B3 AI APPROVAL: nothing was approved without a "looks good" and a passing check', ['B3A', 'B3D', 'B3F', 'B3G'].every(id => b3st(id) !== 'approved'));
+
   const errors = o.errors || [];
   ok('no page errors', !errors.length, errors.slice(0, 3).join(' | '));
   console.log(results.join('\n')); const bad = results.filter(r => r.startsWith('FAIL')).length;
