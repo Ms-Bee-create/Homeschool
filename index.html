@@ -5235,6 +5235,9 @@ function quizNeeded(total){ return (total||0) <= 2 ? 1 : Math.ceil(total * QUIZ_
 function quizPassed(score, total){ return total>0 && score!=null && score >= quizNeeded(total); }
 /* Automatic approval (no one looks) is stricter than the turn-in bar on short checks: a 1-2 question check must be all right, because guessing gets 1 of 2 right about 4 times in 10. */
 function quizAutoOk(score, total){ return total>0 && score!=null && (total<=2 ? score>=total : quizPassed(score, total)); }
+function quizAllowsAiApproval(a){
+  return !(a.quizTotal>0 || a.quizScore!=null || (Array.isArray(a.quiz) && a.quiz.length)) || quizAutoOk(a.quizScore, a.quizTotal);
+}
 function quizGateMessage(a, kidId){
   var cur = (a && a.id && state.assignments[a.id]) || a;
   if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
@@ -11223,7 +11226,7 @@ var SG = (function(){
   function autoEvidence(a){
     if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
     var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && quizAutoOk(a.quizScore, a.quizTotal);
-    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn() && !(a.quizScore===0 && a.quizTotal>0));
+    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn() && quizAllowsAiApproval(a));
     return quizOnly || ai;
   }
   function auto(fn){ autoDepth++; try{ return fn(); } finally{ autoDepth--; } }
@@ -29337,22 +29340,29 @@ function autoCheckSweep(){
       var live = state.assignments[a.id];
       if(!live || (live.aiCheck && live.aiCheck.sub===live.submittedAt) || live.reviewStatus) return;
       if(!live.done && quizGateMessage(live)) return;   // still held by the Quick Check: leave it for the kid to finish
-      a.kidName = kidData(a.kidId).name;
+      if(live.submittedAt!==a.submittedAt) return;
+      a = Object.assign({}, live, {id:a.id, kidName:kidData(live.kidId).name});
       return runAiCheck(a).then(function(){
         var r = state.aiChecks[a.id];
         if(!r || r.pending || !r.verdict) return;
         var saved = {verdict:r.verdict, kidNote:r.kidNote||"", momNote:r.momNote||"", sub:a.submittedAt, at:new Date().toISOString()};
-        live.aiCheck = saved;
+        SG.afterSend(a.id, function(){
+          var current = state.assignments[a.id];
+          if(!current || current.reviewStatus || current.submittedAt!==a.submittedAt ||
+             current.quizScore!==a.quizScore || current.quizTotal!==a.quizTotal ||
+             current.quizRetryUsed!==a.quizRetryUsed || (!current.done && quizGateMessage(current))) return;
+          current.aiCheck = saved;
         /* Automatic review (4 Nov 2026, Mom: the helper's choices are good): "looks good" is approved and "needs work" is sent back with the helper's note.
            "Not sure" stays in Mom's queue for her to look at. Leader can switch this off (familyGoal().autoReview === false). */
-        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work") && !(r.verdict==="looks_good" && live.quizScore===0 && live.quizTotal>0)){
+        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work") && (r.verdict!=="looks_good" || quizAllowsAiApproval(current))){
           saved.auto = true;
-          var upd = r.verdict==="needs_work" ? flagFields(live, r.kidNote||"Please take another look at this one.")
+          var upd = r.verdict==="needs_work" ? flagFields(current, r.kidNote||"Please take another look at this one.")
                                              : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
-          if(r.verdict==="looks_good" && !live.done) toggleAssignment(live);
-          Object.assign(live, upd);
-          SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd)); });
+          if(r.verdict==="looks_good" && !current.done) toggleAssignment(current);
+          Object.assign(current, upd);
+          db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd));
         } else db.doc("assignments/"+a.id).update({aiCheck:saved});
+        });
       });
     });
   });
