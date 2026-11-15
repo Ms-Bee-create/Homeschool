@@ -40,7 +40,8 @@ eq(await S.classify('k', 'm', 'x', 'child', mkFetch(() => ({ ok: false, json: as
 eq(await S.classify('k', 'm', 'x', 'child', async () => { throw new Error('net'); }), null, 'network error gives null');
 eq(await S.classify('k', 'm', 'x', 'child', mkFetch(() => reply('I think it is fine'))), null, 'unclear answer gives null');
 let called = 0; eq(await S.classify('k', 'm', '   ', 'child', mkFetch(() => { called++; return reply('OK'); })), 'OK', 'blank text is OK'); eq(called, 0, 'blank text makes no API call');
-let longSent = null; await S.classify('k', 'm', 'a'.repeat(5000), 'child', mkFetch((b) => { longSent = b; return reply('OK'); })); ok(longSent.messages[0].content.length < 1800, 'long text is cut before it is sent');
+let longSent = null; await S.classify('k', 'm', 'a'.repeat(5000), 'child', mkFetch((b) => { longSent = b; return reply('OK'); })); ok(longSent.messages[0].content.includes('a'.repeat(5000)), 'B6: a long child message is sent to the checker in full, never cut');
+let tooLong = 0; eq(await S.classify('k', 'm', 'a'.repeat(S.MAX_CHECK_CHARS + 1), 'child', mkFetch(() => { tooLong++; return reply('OK'); })), null, 'B6: text too long to read in full gives null (fail closed), not a guess from a cut'); eq(tooLong, 0, 'B6: and no call is made with a cut copy');
 
 /* retention */
 const dels = []; const fakeSupa = { from() { const q = { ops: [] }; const ch = new Proxy({}, { get(_, k) { if (k === 'then') return (r) => r({ error: null }); return (...a) => { q.ops.push([k, ...a]); if (k === 'delete') dels.push(q); return ch; }; } }); return ch; } };
@@ -70,7 +71,7 @@ async function load(name) { let h; globalThis.Deno = { serve: (fn) => { h = fn; 
 const khH = await load('kidhelper'), tsH = await load('troubleshoot');
 
 // scenario knobs
-let childV = 'OK', helperV = 'OK', modelText = 'Hi there, friend!', classifierDown = false;
+let r2, childV = 'OK', helperV = 'OK', modelText = 'Hi there, friend!', classifierDown = false;
 globalThis.fetch = async (url, init) => {
   const b = JSON.parse(init.body);
   if (/safety checker/.test(String(b.system))) {
@@ -102,7 +103,7 @@ for (const [name, handler, body] of [['kidhelper', khH, homeBody], ['troubleshoo
   eq(r.reply, S.CANNED.BLOCK, name + ': a bad helper reply is replaced before the child sees it'); ok(titles().every((t) => String(t).includes('reply held back')), name + ': held-back reply is flagged'); ok(!JSON.stringify(log.inserts).includes('Something bad'), name + ': the held-back text is not saved as what the child saw');
 
   reset(); classifierDown = true; r = await (await handler(req(body('hello')))).json();
-  eq(r.reply, 'Hi there, friend!', name + ': if the checker is down the helper still answers (its own rules still apply)'); ok(titles().every((t) => !String(t).startsWith(S.FLAG_MARK)), name + ': checker outage does not flag chats');
+  eq(r.reply, S.CANNED.UNCHECKED, name + ': B6 if the checker is down the child gets the safe "ask Mom or Dad" reply'); eq(log.modelCalls, 0, name + ': B6 and the helper is NEVER called (fail closed)'); ok(titles().length === 2 && titles().every((t) => String(t).startsWith(S.FLAG_MARK) && String(t).includes('could not be checked')), name + ': B6 the unchecked chat is flagged for Mom with the reason'); eq(log.inserts.flat()[0].content, 'hello', name + ': B6 and what the child typed is saved for Mom');
 
   reset(); log.count = 999; r = await (await handler(req(body('hello')))).json();
   eq(log.modelCalls + log.classCalls, 0, name + ': over the daily limit makes no AI calls at all');
@@ -125,8 +126,58 @@ eq(rr.reply, S.CANNED.BLOCK, 'troubleshoot: a follow-up is judged together with 
 reset(); let bad = await tsH(req({ kidId: 'kid2', mode: 'lesson', assignmentTitle: 'L', subject: 'Math', passage: 'p', messages: [{ role: 'user', content: 'BADTOPIC' }, { role: 'assistant', content: 'ok' }] })); eq(bad.status, 400, 'troubleshoot: a history that ends with the helper turn is refused'); eq(log.modelCalls + log.classCalls, 0, 'troubleshoot: and nothing runs');
 reset(); rr = await (await tsH(req({ kidId: 'kid2', mode: 'lesson', subject: 'Math', passage: 'p', messages: [{ role: 'user', content: 'hello' }] }))).json();
 eq(rr.reply, 'Hi there, friend!', 'troubleshoot: a lesson with no title still works'); ok(log.inserts.flat().every((r) => r.assignment_title === null), 'troubleshoot: a normal chat with no lesson title is saved with an empty title (and is still pruned by the null rule)');
-reset(); classifierDown = true; await khH(req(homeBody('hello'))); ok(titles().every((t) => String(t).endsWith(S.UNCHECKED_MARK)), 'kidhelper: a chat the checker could not look at is marked (unchecked) so Mom can tell');
-reset(); classifierDown = true; await tsH(req(lessonBody('hello'))); ok(titles().every((t) => String(t).endsWith(S.UNCHECKED_MARK)), 'troubleshoot: same for lesson help');
+// ===== B6 =====
+for (const [name, handler, body] of [['kidhelper', khH, homeBody], ['troubleshoot', tsH, lessonBody]]) {
+  // (1) the checker works on the child's message but cannot judge the helper's reply -> reply held back
+  reset(); helperV = 'maybe'; modelText = 'Some reply'; r2 = await (await handler(req(body('hello')))).json();
+  eq(r2.reply, S.CANNED.UNCHECKED, name + ': B6 a reply the checker could not judge is held back'); ok(!JSON.stringify(log.inserts).includes('Some reply'), name + ': B6 the unchecked reply text is not saved as what the child saw'); ok(titles().every((t) => String(t).includes('reply could not be checked')), name + ': B6 flagged for Mom');
+  // (2) the whole current message is judged, even a long one with the unsafe part at the very end
+  reset(); childV = (t) => (t.includes('BADTOPICEND') ? 'BLOCK' : 'OK');
+  r2 = await (await handler(req(body('please help me with this lesson. ' + 'blah '.repeat(500) + 'BADTOPICEND')))).json();
+  eq(r2.reply, S.CANNED.BLOCK, name + ': B6 unsafe text at the end of a long message is still caught'); eq(log.modelCalls, 0, name + ': B6 helper not called');
+  reset(); r2 = await (await handler(req(body('x'.repeat(S.MAX_CHECK_CHARS + 50))))).json();
+  eq(r2.reply, S.CANNED.UNCHECKED, name + ': B6 a message too long to check in full gets the safe reply'); eq(log.modelCalls, 0, name + ': B6 and the helper is not called');
+  // (5) identifying text never reaches a provider or the saved chat; Mom still sees it was flagged and why
+  reset(); r2 = await (await handler(req(body('my phone is 555-123-4567 and my email is kid@example.com')))).json();
+  eq(r2.reply, S.CANNED.PII, name + ': B6 sharing a phone or email gets the do-not-share reply'); eq(log.modelCalls + log.classCalls, 0, name + ': B6 and no provider call is made at all');
+  ok(!/555-123|kid@example/.test(JSON.stringify(log.inserts)), name + ': B6 the phone and email are not saved'); ok(JSON.stringify(log.inserts).includes('[phone removed]') && JSON.stringify(log.inserts).includes('[email removed]'), name + ': B6 the saved chat shows what was removed'); ok(titles().every((t) => String(t).startsWith(S.FLAG_MARK) && String(t).includes('personal information')), name + ': B6 flagged for Mom with the reason');
+  reset(); r2 = await (await handler(req(body('I live at 12 Maple Street ok')))).json(); eq(r2.reply, S.CANNED.PII, name + ': B6 a street address is caught'); eq(log.modelCalls + log.classCalls, 0, name + ': B6 no provider call for an address');
+  // identifying text in lesson details is replaced before it goes to the helper or is saved in a title
+  reset(); const seen = []; const f0 = globalThis.fetch; globalThis.fetch = async (u, i) => { seen.push(i.body); return f0(u, i); };
+  await handler(req({ kidId: 'kid2', mode: 'lesson', assignmentTitle: 'Call 555-123-4567 lesson', subject: 'Math', passage: 'email teacher@school.org', messages: [{ role: 'user', content: 'what is a pixel?' }] })); globalThis.fetch = f0;
+  ok(seen.length >= 1 && seen.every((b) => !/555-123|teacher@school/.test(b)), name + ': B6 phone/email in lesson details never reach a provider call'); ok(!/555-123/.test(JSON.stringify(log.inserts)), name + ': B6 and are not saved in the chat title');
+}
+// (4) urgent Tell-Mom stays Tell-Mom even if the checker cannot judge the reply
+reset(); modelText = '[[TELL_MOM]] Please tell Mom.'; helperV = 'maybe'; rr = await (await khH(req(homeBody('I feel sad')))).json();
+eq(rr.reply, S.CANNED.TELL_MOM, 'kidhelper: B6 an urgent Tell-Mom reply is never swallowed by an unclear checker answer'); ok(titles().some((t) => String(t).includes('told to tell Mom')), 'kidhelper: B6 and it is flagged as tell-Mom');
+reset(); childV = 'TELL_MOM'; classifierDown = false; rr = await (await tsH(req(lessonBody('someone scared me')))).json(); eq(rr.reply, S.CANNED.TELL_MOM, 'troubleshoot: B6 tell-Mom from the checker is still the urgent reply');
+// redaction pieces
+eq(S.redactPII('Call 555-123-4567 or (555) 123-4567 or +1 555 123 4567').count, 3, 'redact: three phone formats');
+eq(S.redactPII('mail me at a.b+c@mail.example.org').text, 'mail me at [email removed]', 'redact: email');
+eq(S.redactPII('I live at 123 Oak Street').text, 'I live at [address removed]', 'redact: street address');
+eq(S.redactPII('I go to Maple Elementary').text, 'I go to [school removed]', 'redact: school');
+eq(S.redactPII('my name is Sam Jones').text, 'my name is [name removed]', 'redact: full name when stated');
+eq(S.redactPII('my name is not very good at math').count, 0, 'redact: ordinary words after "my name is" are left alone');
+eq(S.redactPII('What is 5 + 3? Use the numbers 1,000,000 and 45').count, 0, 'redact: ordinary math is not touched');
+// the current message is always whole; the OLDEST context goes first
+const big = 'z'.repeat(5000);
+const rc = S.recentChildText([{ role: 'user', content: 'a'.repeat(3000) }, { role: 'user', content: 'b'.repeat(3000) }, { role: 'user', content: big }], 3, 6000);
+ok(rc.endsWith(big) && rc.length <= 6000 && !rc.includes('a'), 'recentChildText: a long current message stays whole and the oldest context is dropped first');
+ok(S.recentChildText([{ role: 'user', content: 'old' }, { role: 'user', content: 'new' }], 3, 6000) === 'old\nnew', 'recentChildText: short chats keep all their context');
+// (3) the automatic work review's note to the child gets the output check
+reset(); modelText = '{"verdict":"looks_good","kidNote":"Great job!","momNote":"fine"}';
+let rv2 = await (await tsH(req({ kidId: 'kid2', mode: 'review', assignmentTitle: 'L', work: [{ type: 'text', text: 'my answer' }] }))).json();
+eq(rv2.kidNote, 'Great job!', 'review: an OK note still reaches the child'); eq(rv2.verdict, 'looks_good', 'review: and the verdict is unchanged'); eq(log.classCalls, 1, 'review: the note was checked'); eq(log.inserts.length, 0, 'review: still saves no chat');
+reset(); modelText = '{"verdict":"looks_good","kidNote":"Something bad","momNote":"fine"}'; helperV = 'BLOCK';
+rv2 = await (await tsH(req({ kidId: 'kid2', mode: 'review', work: [{ type: 'text', text: 'x' }] }))).json();
+eq(rv2.kidNote, '', 'review: B6 a note the checker blocks is never shown'); eq(rv2.verdict, 'unsure', 'review: B6 the verdict becomes unsure so Mom looks (no automatic approval)'); ok(/held back/.test(rv2.momNote), 'review: B6 Mom is told why');
+reset(); modelText = '{"verdict":"looks_good","kidNote":"Nice","momNote":"fine"}'; classifierDown = true;
+rv2 = await (await tsH(req({ kidId: 'kid2', mode: 'review', work: [{ type: 'text', text: 'x' }] }))).json();
+eq(rv2.kidNote, '', 'review: B6 if the checker is down the note is held back'); eq(rv2.verdict, 'unsure', 'review: B6 and Mom looks'); ok(/could not be safety-checked/.test(rv2.momNote), 'review: B6 Mom is told the note could not be checked');
+reset(); modelText = '{"verdict":"looks_good","kidNote":"","momNote":"fine"}'; rv2 = await (await tsH(req({ kidId: 'kid2', mode: 'review', work: [{ type: 'text', text: 'x' }] }))).json(); eq(rv2.verdict, 'looks_good', 'review: an empty note needs no check and keeps its verdict'); eq(log.classCalls, 0, 'review: no checker call for an empty note');
+reset(); const seen3 = []; { const f1 = globalThis.fetch; globalThis.fetch = async (u, i) => { seen3.push(i.body); return f1(u, i); };
+  modelText = '{"verdict":"unsure","kidNote":"","momNote":"x"}'; await tsH(req({ kidId: 'kid2', mode: 'review', work: [{ type: 'text', text: 'call me at 555-123-4567' }] })); globalThis.fetch = f1; }
+ok(seen3.length === 1 && !/555-123-4567/.test(seen3[0]) && /phone removed/.test(seen3[0]), 'review: B6 a phone number in the kid\'s work is replaced before the provider call');
 reset(); log.count = 3; await khH(req(homeBody('hello'))); eq(log.deletes.length, 0, 'kidhelper: not every chat triggers the clean-up');
 reset(); env.SUPABASE_SERVICE_ROLE_KEY = ''; await khH(req(homeBody('hello'))); eq(log.deletes.length, 0, 'kidhelper: with no service key the clean-up is skipped and the chat still works'); env.SUPABASE_SERVICE_ROLE_KEY = 'svc';
 // work pre-check (mom's side) must be untouched

@@ -2,7 +2,7 @@
 // Deploy: supabase functions deploy troubleshoot
 // Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANNED, classify, flaggedTitle, pruneOldChats, recentChildText, shouldPrune, UNCHECKED_MARK } from "../_shared/safety.ts";
+import { CANNED, classify, flaggedTitle, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
 
 const DAILY_CAP = 30; // user messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -10,6 +10,8 @@ const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+/** Text that goes to the provider or is saved: identifying text replaced, then cut to size. */
+const rd = (v: unknown, n: number) => redactPII(String(v ?? "")).text.slice(0, n);
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
@@ -35,7 +37,7 @@ Deno.serve(async (req) => {
       const body = await reqBodyCache;
       const content: any[] = [];
       for (const b of (Array.isArray(body.work) ? body.work : []).slice(0, 6)) {
-        if (b?.type === "text" && b.text) content.push({ type: "text", text: "Kid wrote: " + String(b.text).slice(0, 2000) });
+        if (b?.type === "text" && b.text) content.push({ type: "text", text: "Kid wrote: " + rd(b.text, 2000) });
         else if (b?.type === "image" && typeof b.url === "string") {
           const m = b.url.match(/^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/);
           if (m && m[2].length < 4_000_000) content.push({ type: "image", source: { type: "base64", media_type: m[1], data: m[2] } });
@@ -47,9 +49,9 @@ Deno.serve(async (req) => {
       content.push({ type: "text", text: "Now give your verdict as JSON." });
       const kidName = kidId === "kid1" ? "Anna, age 7, 2nd grade" : "Ryan, age 9-10, 4th grade";
       const rsystem = `You help a homeschool parent check her child's finished work so she is not the bottleneck. The child is ${kidName}.
-Lesson: "${String(assignmentTitle ?? "").slice(0, 200)}" (${String(subject ?? "").slice(0, 60)}).
+Lesson: "${rd(assignmentTitle, 200)}" (${rd(subject, 60)}).
 Lesson text:
-${String(passage ?? "").slice(0, 3000)}
+${rd(passage, 3000)}
 Quick check result: ${String(body.quiz ?? "none")}
 
 Decide whether the work shows the child did the lesson's "Your Turn" steps and understands the idea. Be kind and generous: this is low-stakes and never a grade. Young kids' spelling and neatness do not matter.
@@ -65,8 +67,19 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
       const raw = String(rout.content?.[0]?.text ?? "");
       try {
         const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
-        const verdict = ["looks_good", "needs_work", "unsure"].includes(parsed.verdict) ? parsed.verdict : "unsure";
-        return json({ verdict, kidNote: String(parsed.kidNote ?? "").slice(0, 400), momNote: String(parsed.momNote ?? "").slice(0, 300) });
+        let verdict = ["looks_good", "needs_work", "unsure"].includes(parsed.verdict) ? parsed.verdict : "unsure";
+        let kidNote = String(parsed.kidNote ?? "").slice(0, 400);
+        let momNote = String(parsed.momNote ?? "").slice(0, 300);
+        /* The note is written TO the child, so it gets the same output check as the helper's chat replies before anything can show it. Not OK or no clear answer: the child sees no note and Mom looks herself. */
+        if (kidNote) {
+          const nv = await classify(Deno.env.get("ANTHROPIC_API_KEY")!, MODEL, kidNote, "helper");
+          if (nv !== "OK") {
+            kidNote = "";
+            verdict = "unsure";
+            momNote = (nv === null ? "The note for the child could not be safety-checked, so it was held back. " : "The helper's note for the child was held back by the safety checker. ") + "Please look yourself.";
+          }
+        }
+        return json({ verdict, kidNote, momNote });
       } catch (_e) {
         return json({ verdict: "unsure", kidNote: "", momNote: "The helper could not read this one. Please look yourself." });
       }
@@ -79,37 +92,41 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
       return json({ reply: "You've used all of today's helper messages. Ask your leader for help, or try again tomorrow!", remaining: 0 });
     }
 
-    const clean = messages.slice(-12).map((m: any) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content ?? "").slice(0, 1500),
-    }));
+    const prep = prepareChat(messages, 1500);
+    const clean = prep.clean;
     const lastUser = clean[clean.length - 1];
     if (!lastUser || lastUser.role !== "user") return json({ error: "bad request" }, 400);
+    const lastFull = prep.last.content.slice(0, 4000); // what Mom sees (already redacted)
+    const lessonTitle = assignmentTitle == null ? null : rd(assignmentTitle, 200);
 
-    /* Separate safety check on what the child typed, before it reaches the helper. null = checker unreachable, helper rules still apply. */
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
     /* Deleting old chats uses the function's own service-role key, so the kids' signed-in page never gets permission to delete. */
     const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const admin = svcKey ? createClient(Deno.env.get("SUPABASE_URL")!, svcKey) : null;
-    const inV = await classify(apiKey, MODEL, recentChildText(clean), "child");
-    let unchecked = inV === null;
-    if (inV === "BLOCK" || inV === "TELL_MOM") {
-      const t = flaggedTitle(assignmentTitle ?? "Lesson help", inV, "off-limits topic, caught by the checker");
+    const saveStop = async (title: string | null, canned: string) => {
       await supa.from("al_ai_chats").insert([
-        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
-        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
+        { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastFull },
+        { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: canned },
       ]);
       if (shouldPrune(count)) await pruneOldChats(admin, householdId);
-      return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
-    }
+      return json({ reply: canned, remaining: DAILY_CAP - (count ?? 0) - 1 });
+    };
+
+    /* Identifying text from the child: nothing goes to any provider; Mom sees the chat flagged with the text already replaced. */
+    if (prep.piiShared) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", "shared personal information, text removed"), CANNED.PII);
+
+    /* Separate safety check on the whole current message plus recent context, before it reaches the helper. No clear answer = fail closed: the helper is never called. */
+    const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child");
+    if (inV === null) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", "could not be checked, helper not used"), CANNED.UNCHECKED);
+    if (inV === "BLOCK" || inV === "TELL_MOM") return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", inV, "off-limits topic, caught by the checker"), CANNED[inV]);
 
     const lessonSystem = kidId === "kid1"
       ? `You are a kind, playful fairy helper for Anna, a 7-year-old in 2nd grade. Use short, simple words and 1-3 short sentences. Cheer her on. Be warm and encouraging.`
       : `You are Clippy, a friendly paperclip helper for Ryan, a 9-10 year old in 4th grade who loves computers, Minecraft and tech facts. Use plain words, 2-4 short sentences, and a light, fun tone.`;
     const lessonRules = `
-The lesson is: "${String(assignmentTitle ?? "").slice(0, 200)}" (${String(subject ?? "").slice(0, 60)}).
+The lesson is: "${rd(assignmentTitle, 200)}" (${rd(subject, 60)}).
 Lesson text (your main source of truth):
-${String(passage ?? "").slice(0, 3000)}
+${rd(passage, 3000)}
 
 Rules:
 - Give a hint or the next small step, never the final answer to a quiz or problem. Ask a guiding question.
@@ -120,9 +137,9 @@ Rules:
 - If the kid says someone hurt or scared them, someone asked them to keep a secret from their parents, or they feel very sad, unsafe or hopeless, be gentle and calm and tell them clearly to go tell Mom or Dad right now.
 - If the kid seems frustrated, say it is okay to take a break and ask Mom or Dad.`;
     const system = mode === "lesson" ? lessonSystem + lessonRules : `You are a friendly, patient tech helper for a 9-10 year old boy named Ryan who is building retro computer projects (virtual machines, old Windows versions, QBasic programs) for school.
-He is working on the lesson: "${String(assignmentTitle ?? "").slice(0, 200)}".
-Known fixes for this lesson ("${String(helpTitle ?? "").slice(0, 100)}"), use them as your main source of truth:
-${(Array.isArray(steps) ? steps : []).slice(0, 30).map((s: string, i: number) => `${i + 1}. ${String(s).slice(0, 700)}`).join("\n")}
+He is working on the lesson: "${rd(assignmentTitle, 200)}".
+Known fixes for this lesson ("${rd(helpTitle, 100)}"), use them as your main source of truth:
+${(Array.isArray(steps) ? steps : []).slice(0, 30).map((s: string, i: number) => `${i + 1}. ${rd(s, 700)}`).join("\n")}
 
 Rules:
 - Keep replies short (2-5 sentences), plain words, one step at a time. Ask what he sees on screen (exact wording of any message) before guessing when it is unclear.
@@ -147,16 +164,17 @@ Rules:
     const out = await resp.json();
     let reply = (out.content?.[0]?.text ?? "").trim() || "Hmm, I'm not sure. Can you tell me exactly what you see on the screen?";
 
-    /* Separate safety check on what the helper wrote, before the child sees it. */
-    let chatTitle = assignmentTitle ?? null;
+    /* Separate safety check on the WHOLE reply, before the child sees it. No clear answer = the reply is held back (fail closed). */
+    let chatTitle = lessonTitle;
     const outV = await classify(apiKey, MODEL, reply, "helper");
-    if (outV === null) unchecked = true;
-    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = CANNED.BLOCK; chatTitle = flaggedTitle(assignmentTitle ?? "Lesson help", "BLOCK", "reply held back by the checker"); }
-    else if (unchecked) chatTitle = (assignmentTitle ?? "Lesson help") + UNCHECKED_MARK;
+    if (outV !== "OK") {
+      reply = outV === null ? CANNED.UNCHECKED : CANNED.BLOCK;
+      chatTitle = flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker");
+    }
 
     await supa.from("al_ai_chats").insert([
-      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "user", content: lastUser.content },
-      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: reply },
+      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "user", content: lastFull },
+      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: outV === "OK" ? redactPII(reply).text : reply },
     ]);
     if (shouldPrune(count)) await pruneOldChats(admin, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });

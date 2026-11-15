@@ -14,7 +14,14 @@ export type Verdict = "OK" | "BLOCK" | "TELL_MOM";
 export const CANNED: Record<string, string> = {
   BLOCK: "That is not something I can help with. Ask Mom or Dad! Want to try something fun and safe instead?",
   TELL_MOM: "That sounds important. Please go tell Mom or Dad right now. They will want to help you.",
+  // the safety checker could not look at the text (down, unclear answer, or too long to read in full): fail closed, never guess
+  UNCHECKED: "I can't check that one right now, so I'm going to stay quiet to be safe. Please ask Mom or Dad, or try again in a little while.",
+  // the child typed a phone number, email, street address, school or full name
+  PII: "Please don't share personal things like phone numbers, addresses, emails, your school or your full name. A grown-up takes care of that. Let's get back to what we were doing!",
 };
+
+/** The checker reads the whole current message and the whole reply. Anything longer than this is NOT cut: it is refused (fail closed). */
+export const MAX_CHECK_CHARS = 6000;
 
 const CLASSIFIER_SYSTEM = `You are a safety checker for a learning app used by children ages 7 to 10. You read ONE piece of text and answer with exactly one word: OK, BLOCK or TELL_MOM. Nothing else.
 
@@ -39,19 +46,58 @@ export function parseVerdict(text: string): Verdict | null {
 }
 
 /** Text is wrapped in <text> tags before it is sent; remove any tags the writer typed so they cannot close the wrapper early. */
-export function cleanForChecker(text: string, from: "child" | "helper"): string {
-  return String(text ?? "").replace(/<\/?\s*text\s*>/gi, " ").trim().slice(0, from === "child" ? 1500 : 3000);
+export function cleanForChecker(text: string, _from?: "child" | "helper"): string {
+  return String(text ?? "").replace(/<\/?\s*text\s*>/gi, " ").trim(); // never cut: a cut could hide the unsafe part
 }
 
 /** The last few things the child typed, joined, so a follow-up like "yes, how do I do that?" is judged with what came before it. */
-export function recentChildText(messages: { role: string; content: string }[], n = 3): string {
-  return messages.filter((m) => m.role === "user").slice(-n).map((m) => m.content).join("\n");
+export function recentChildText(messages: { role: string; content: string }[], n = 3, max = MAX_CHECK_CHARS): string {
+  // The CURRENT message (the last one) is always included in full. If the context makes the text too long, the OLDEST earlier messages are dropped (or cut from their start) first.
+  const mine = messages.filter((m) => m.role === "user").slice(-n).map((m) => String(m.content ?? ""));
+  if (!mine.length) return "";
+  const current = mine[mine.length - 1];
+  let budget = max - current.length - 1;
+  const kept: string[] = [];
+  for (let i = mine.length - 2; i >= 0 && budget > 1; i--) {
+    const m = mine[i];
+    if (m.length + 1 <= budget) { kept.unshift(m); budget -= m.length + 1; }
+    else { kept.unshift(m.slice(m.length - (budget - 1))); budget = 0; }
+  }
+  return [...kept, current].join("\n");
 }
 
-/** Returns null when the checker could not be reached or did not answer clearly. Callers then fall back to the helper's own rules (fail open on purpose, so a checker outage does not break the helper) and mark the chat "(unchecked)". */
+/** Identifying text is replaced before anything is sent to a provider or saved: phone numbers, emails, street addresses, schools, and a full name the child states. `count` says how many things were replaced so the caller can flag the chat. */
+export function redactPII(text: string): { text: string; count: number } {
+  let count = 0;
+  const sub = (re: RegExp, to: string | ((...a: string[]) => string)) => { text = text.replace(re, (...a: any[]) => { count++; return typeof to === "string" ? to : to(...a); }); };
+  sub(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "[email removed]");
+  sub(/\+\d[\d\s().-]{8,}\d/g, "[phone removed]");
+  sub(/\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/g, "[phone removed]");
+  sub(/\b1?\d{10}\b/g, "[phone removed]");
+  sub(/\b\d{3}[-.]\d{4}\b/g, "[phone removed]");
+  sub(/\b\d{1,6}\s+(?:[A-Za-z0-9.'-]+\s+){1,4}(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|court|ct|boulevard|blvd|way|circle|cir|place|pl|trail|trl|terrace|ter|highway|hwy)\b\.?/gi, "[address removed]");
+  sub(/\b(?:[A-Z][\w'-]*\s+){1,4}(?:Elementary|Middle School|High School|Academy|School)\b/g, "[school removed]");
+  sub(/\b((?:[Mm]y (?:full |last )?name is)|(?:[Mm]y name's)|(?:[Ii] am called)|(?:[Ii]'m called)|(?:[Cc]all me))\s+[A-Z][a-z'-]+(?:\s+[A-Z][a-z'-]+)+/g,(_m: string, lead: string) => lead + " [name removed]");
+  return { text, count };
+}
+
+/** Shared by both kid-facing functions. `full` keeps every message whole (redacted) for the checker; `clean` is the same list cut for the helper model. */
+export function prepareChat(messages: any[], helperCap: number, dropLeadingAssistant = false) {
+  let full = messages.slice(-12).map((m: any) => {
+    const r = redactPII(String(m?.content ?? ""));
+    return { role: m?.role === "assistant" ? "assistant" : "user", content: r.text, hits: r.count };
+  });
+  if (dropLeadingAssistant && full[0] && full[0].role !== "user") full = full.slice(1);
+  const clean = full.map((m) => ({ role: m.role, content: m.content.slice(0, helperCap) }));
+  const last = full[full.length - 1];
+  return { full, clean, last, piiShared: !!last && last.role === "user" && last.hits > 0 };
+}
+
+/** Returns null when the checker could not be reached, did not answer clearly, or the text is too long to read in full. Callers MUST fail closed: show CANNED.UNCHECKED, do not call the helper, flag the chat. */
 export async function classify(apiKey: string, model: string, text: string, from: "child" | "helper", fetchFn: typeof fetch = fetch): Promise<Verdict | null> {
   const body = cleanForChecker(text, from);
   if (!body) return "OK";
+  if (body.length > MAX_CHECK_CHARS) { console.error("safety checker: text too long to check in full"); return null; }
   try {
     const resp = await fetchFn("https://api.anthropic.com/v1/messages", {
       method: "POST",

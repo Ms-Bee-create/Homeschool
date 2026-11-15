@@ -3,7 +3,7 @@
 // Deploy from the repo root: supabase functions deploy kidhelper   (it imports ../_shared/safety.ts, so it cannot be pasted into the dashboard editor)
 // Needs the same secret as troubleshoot: ANTHROPIC_API_KEY. Chats are saved in al_ai_chats so the leader can read every one.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANNED, classify, flaggedTitle, pruneOldChats, recentChildText, shouldPrune, UNCHECKED_MARK } from "../_shared/safety.ts";
+import { CANNED, classify, flaggedTitle, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
 
 const DAILY_CAP = 40; // kid messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -138,30 +138,32 @@ Deno.serve(async (req) => {
       return json({ reply: "You have used all of today's helper messages. Ask Mom or Dad, or come back tomorrow!", remaining: 0 });
     }
 
-    const clean = messages.slice(-12).map((m: any) => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content ?? "").slice(0, 800),
-    }));
-    if (clean[0].role !== "user") clean.shift();
+    const prep = prepareChat(messages, 800, true);
+    const clean = prep.clean;
     const lastUser = clean[clean.length - 1];
     if (!lastUser || lastUser.role !== "user") return json({ error: "bad request" }, 400);
+    const lastFull = prep.last.content.slice(0, 4000); // what Mom sees (already redacted)
 
-    /* Separate safety check on what the child typed, before it reaches the helper. If the checker cannot be reached (null) the helper's own rules below still apply. */
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY")!;
     /* Deleting old chats uses the function's own service-role key, so the kids' signed-in page never gets permission to delete. */
     const svcKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const admin = svcKey ? createClient(Deno.env.get("SUPABASE_URL")!, svcKey) : null;
-    const inV = await classify(apiKey, MODEL, recentChildText(clean), "child");
-    let unchecked = inV === null;
-    if (inV === "BLOCK" || inV === "TELL_MOM") {
-      const t = flaggedTitle(TAG, inV, "off-limits topic, caught by the checker");
+    const saveStop = async (title: string, canned: string) => {
       await supa.from("al_ai_chats").insert([
-        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "user", content: lastUser.content },
-        { household_id: householdId, kid_id: kidId, assignment_title: t, role: "assistant", content: CANNED[inV] },
+        { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastFull },
+        { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: canned },
       ]);
       if (shouldPrune(count)) await pruneOldChats(admin, householdId);
-      return json({ reply: CANNED[inV], remaining: DAILY_CAP - (count ?? 0) - 1 });
-    }
+      return json({ reply: canned, remaining: DAILY_CAP - (count ?? 0) - 1 });
+    };
+
+    /* The child typed a phone number, email, address, school or full name: nothing goes to any provider. Mom sees the chat flagged, with the identifying text already replaced. */
+    if (prep.piiShared) return saveStop(flaggedTitle(TAG, "BLOCK", "shared personal information, text removed"), CANNED.PII);
+
+    /* Separate safety check on what the child typed (the whole current message plus recent context), before it reaches the helper. No clear answer = fail closed: the helper is never called. */
+    const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child");
+    if (inV === null) return saveStop(flaggedTitle(TAG, "BLOCK", "could not be checked, helper not used"), CANNED.UNCHECKED);
+    if (inV === "BLOCK" || inV === "TELL_MOM") return saveStop(flaggedTitle(TAG, inV, "off-limits topic, caught by the checker"), CANNED[inV]);
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -175,16 +177,15 @@ Deno.serve(async (req) => {
     const tellMom = /\[\[TELL_MOM\]\]/.test(reply), blocked = /\[\[BLOCKED\]\]/.test(reply);
     reply = reply.replace(/\[\[(TELL_MOM|BLOCKED)\]\]\s*/g, "").trim() || "Hmm, I am not sure. Can you ask Mom or Dad?";
 
-    /* Separate safety check on what the helper wrote, before the child sees it. */
+    /* Separate safety check on the WHOLE reply, before the child sees it. No clear answer = the reply is held back (fail closed). An urgent Tell-Mom reply stays a Tell-Mom reply. */
     let held = false;
     const outV = await classify(apiKey, MODEL, reply, "helper");
-    if (outV === null) unchecked = true;
-    if (outV === "BLOCK" || outV === "TELL_MOM") { reply = tellMom ? CANNED.TELL_MOM : CANNED.BLOCK; held = true; }
+    if (outV !== "OK") { reply = tellMom ? CANNED.TELL_MOM : (outV === null ? CANNED.UNCHECKED : CANNED.BLOCK); held = true; }
 
-    const title = (held && !tellMom) ? flaggedTitle(TAG, "BLOCK", "reply held back by the checker") : tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : (unchecked ? TAG + UNCHECKED_MARK : TAG);
+    const title = (held && !tellMom) ? flaggedTitle(TAG, "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker") : tellMom ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
     await supa.from("al_ai_chats").insert([
-      { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastUser.content },
-      { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: reply },
+      { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastFull },
+      { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: redactPII(reply).text },
     ]);
     if (shouldPrune(count)) await pruneOldChats(admin, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
