@@ -57,13 +57,22 @@ function validate(kid, plan, live) {
     const slot = mv ? mv.slot : (c === 'game' ? 'math' : c === 'fixed' ? (SLOT_OF_SUBJECT[r.subject] || 'project') : c);
     items.push({ id: r.id, iso, slot, title: r.title, src: mv ? 'moved' : started ? (r.done ? 'done' : 'started') : 'kept' });
   });
-  const out = [], add = (iso, type, slot, its, msg) => out.push({ iso, type, slot, msg, items: its.map(i => ({ id: i.id, title: i.title, src: i.src })), needsMom: its.some(i => i.src !== 'moved') });
+  /* B7 review fix (15 Nov 2026): a lesson that is held back (a repeat, an uncertain game) or not placed is NOT removed from its old date by this plan. Until an apply step unschedules it, it is still on that day,
+     so it is checked there too, marked "held". A conflict that involves one disappears only when Mom approves unscheduling it. */
+  live.forEach(r => {
+    if (!parked.has(r.id) || r.done || hasWork(r) || r.date < START || r.date > END) return;
+    const c = slotOf(kid, r);
+    items.push({ id: r.id, iso: r.date, slot: c === 'game' ? 'math' : c === 'fixed' ? (SLOT_OF_SUBJECT[r.subject] || 'project') : c, title: r.title, src: 'held', isGame: c === 'game' });
+  });
+  live.forEach(r => { const it = items.find(i => i.id === r.id && i.src !== 'held'); if (it && slotOf(kid, r) === 'game') it.isGame = true; });
+  const out = [], add = (iso, type, slot, its, msg) => out.push({ iso, type, slot, msg, items: its.map(i => ({ id: i.id, title: i.title, src: i.src })), needsMom: its.some(i => i.src !== 'moved' && i.src !== 'held'), heldInPlace: its.some(i => i.src === 'held') });
   // invariant: nothing started or done was given a new date
   live.forEach(r => { if ((r.done || hasWork(r)) && moved[r.id] && moved[r.id].to !== r.date) add(moved[r.id].to, 'moved-started-work', moved[r.id].slot, [{ id: r.id, title: r.title, src: 'moved' }], 'BUG: started or done work was given a new date'); });
   const byIso = {}; items.forEach(i => { (byIso[i.iso] = byIso[i.iso] || []).push(i); });
   Object.keys(byIso).sort().forEach(iso => {
     if (!dayOk.has(iso)) { const d = new Date(iso + 'T12:00:00').getDay(); add(iso, 'off-day', '', byIso[iso], (d === 0 || d === 6 ? 'weekend' : 'a day off (break)') + ': ' + byIso[iso].length + ' lesson(s) are dated here'); return; }
     const dow = dowOf[iso], bySlot = {}; byIso[iso].forEach(i => { (bySlot[i.slot] = bySlot[i.slot] || []).push(i); });
+    const gms = byIso[iso].filter(i => i.isGame); if (dow !== 5 && gms.length) add(iso, 'game-not-friday', 'math', gms, NAMES[dow] + ' has a game day (rule: game day is Friday, in place of that day\'s Math)');
     Object.keys(bySlot).forEach(sl => {
       const L = bySlot[sl];
       if (L.length > 1) add(iso, sl === 'project' ? 'two-projects' : 'two-in-slot', sl, L, NAMES[dow] + ' has ' + L.length + ' ' + sl + ' lessons (rule: one per subject' + (sl === 'project' ? '; ONE project a day' : '') + ')');
@@ -118,13 +127,15 @@ function build(kid) {
     const rt = rootOf(x.r);
     if (!x.r.review_of || !rt.row) { const why = !x.r.review_of ? 'it has no link to the lesson it reviews' : 'the lesson it reviews is not in the export'; plan.uncertain.push({ id: x.r.id, title: x.r.title, why: why + ', so a repeat review cannot be ruled out' }); plan.holds.push({ id: x.r.id, title: x.r.title, why: 'game day held: ' + why }); return; }
     if (doneRoots.has(rt.id) || seenRoot.has(rt.id)) { plan.holds.push({ id: x.r.id, title: x.r.title, why: 'a game day for this lesson was already done or is already planned' }); return; }
-    const tk = repNorm(rt.row.title); if (rootTitles[tk] && rootTitles[tk] !== rt.id) plan.uncertain.push({ id: x.r.id, title: x.r.title, why: 'the lesson it reviews has the same title as one already reviewed under a different id, so it may be a duplicate review' });
+    const tk = repNorm(rt.row.title);
+    if (rootTitles[tk] && rootTitles[tk] !== rt.id) { const why = 'the lesson it reviews has the same title as one already reviewed under a different id, so it may be a duplicate review'; plan.uncertain.push({ id: x.r.id, title: x.r.title, why }); plan.holds.push({ id: x.r.id, title: x.r.title, why: 'game day held: ' + why }); return; }
     rootTitles[tk] = rootTitles[tk] || rt.id; seenRoot.add(rt.id); x.root = rt; game.push(x);
   });
   const q = { math: [], ela: [], faith: [], sci: [], ss: [], project: [], warm: [] };
   const placedOn = {}; // lesson id -> the day it is planned for
   movable.forEach(x => { if (q[x.cls]) q[x.cls].push(x); });
-  Object.keys(q).forEach(k => q[k].sort((a, b) => a.r.date.localeCompare(b.r.date) || String(a.r.created_at || '').localeCompare(String(b.r.created_at || '')) || nat(a.r.title, b.r.title)));
+  const bookRank = x => (x.cls === 'math' && /^Math Book/i.test(String(x.r.title || ''))) ? 0 : 1;   // the Math Book course is the spine of Math; project math is never in this queue
+  Object.keys(q).forEach(k => q[k].sort((a, b) => a.r.date.localeCompare(b.r.date) || (k === 'math' ? bookRank(a) - bookRank(b) : 0) || String(a.r.created_at || '').localeCompare(String(b.r.created_at || '')) || nat(a.r.title, b.r.title)));
   // slots already taken by lessons that keep their dates
   const taken = {}; // iso -> {slot:true}
   const mark = (iso, slot) => { (taken[iso] = taken[iso] || {})[slot] = true; };
@@ -172,6 +183,8 @@ plans.forEach(p => {
   const cb = {}; p.conflicts.forEach(c => { cb[c.type] = (cb[c.type] || 0) + 1; });
   (p.overrides || []).forEach(o => lines.push('MOM MOVE ' + (o.ok ? 'applied' : 'REFUSED (' + o.why + ')') + ': ' + (o.title || o.id) + (o.ok ? ' ' + o.from + ' -> ' + o.to : '')));
   lines.push('CONFLICTS in the proposed schedule: ' + p.conflicts.length + (p.conflicts.length ? ' ' + JSON.stringify(cb) + ' (' + p.conflicts.filter(c => c.needsMom).length + ' involve work that keeps its date or is started/done: Mom decides, nothing is moved)' : ' (none)'));
+  const heldN = p.conflicts.filter(c => c.heldInPlace).length;
+  if (heldN) lines.push('  NOTE: ' + heldN + ' of these involve a HELD-BACK lesson that still sits on its old date. They go away only if Mom approves unscheduling the held lessons in the apply step.');
   p.conflicts.slice(0, 40).forEach(c => lines.push('  CONFLICT ' + c.iso + ' [' + c.type + '] ' + c.msg + ' | ' + c.items.map(i => i.src + ': ' + String(i.title).slice(0, 50)).join(' ; ')));
   if (p.conflicts.length > 40) lines.push('  ... and ' + (p.conflicts.length - 40) + ' more in plan_' + p.kid + '.json');
   lines.push('DUPLICATE-REVIEW uncertainty: ' + p.uncertain.length);

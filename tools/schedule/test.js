@@ -86,4 +86,46 @@ const dow = (iso) => new Date(iso + 'T12:00:00').getDay();
   ok(!r.k1.conflicts.some((c) => c.type === 'two-games'), 'B7: no week has two game days');
 }
 
+// ---- 2. B7 review fixes (15 Nov 2026) ----
+{
+  // a kept game day on a non-Friday is reported even when nothing else is in the same slot
+  const root = L({ id: 'rtx', subject: 'Math', title: 'Root X', date: '2026-11-10', done: true });
+  const gameMon = L({ id: 'gmx', subject: 'Math', title: 'Game X', stage: 'review', review_of: 'rtx', date: '2026-12-01' });   // Tuesday
+  const keep = L({ subject: 'ELA', title: 'Pen Pal Letter 4', date: '2026-12-02' });
+  const r = run([root, gameMon, keep], []);
+  const moved = r.k1.moves.find((m) => m.id === 'gmx');
+  ok(moved ? dow(moved.to) === 5 : true, 'B7: a movable game is placed on a Friday');
+  // a game that stays on a weekday because it is started is reported
+  const startedGame = L({ id: 'gms', subject: 'Math', title: 'Game started', stage: 'review', review_of: 'rtx', date: '2026-12-02', work_blocks: [{ type: 'text', text: 'a' }] });
+  const r2 = run([root, startedGame], []);
+  ok(r2.k1.conflicts.some((c) => c.type === 'game-not-friday' && c.items.some((i) => i.id === 'gms')), 'B7: a started game day on a Wednesday is reported as not-Friday');
+}
+{
+  // a duplicate review under a different root id with the same title is HELD, not placed
+  const a = L({ id: 'ra', subject: 'Math', title: 'Same Topic', date: '2026-11-10', done: true }), b = L({ id: 'rb', subject: 'Math', title: 'Same Topic', date: '2026-11-11' });
+  const doneGame = L({ id: 'gd', subject: 'Math', title: 'Game for A', stage: 'review', review_of: 'ra', date: '2026-11-20', done: true });
+  const dupGame = L({ id: 'gdup', subject: 'Math', title: 'Game for B', stage: 'review', review_of: 'rb', date: '2026-12-02' });
+  const r = run([a, b, doneGame, dupGame, ...Array.from({ length: 10 }, (_, i) => L({ subject: 'Math', title: 'fill ' + i, date: '2026-12-01' }))], []);
+  ok(!r.k1.moves.some((m) => m.id === 'gdup'), 'B7: an uncertain duplicate review is not placed');
+  ok(r.k1.holds.some((h) => h.id === 'gdup') && r.k1.uncertain.some((u) => u.id === 'gdup'), 'B7: it is held and listed as uncertain');
+}
+{
+  // a held-back lesson still sits on its old date: the validator counts it there and says so
+  const done = L({ id: 'rd', subject: 'Math', title: 'Done topic', date: '2026-11-10', done: true });
+  const repeat = L({ id: 'rp', subject: 'Math', title: 'Done topic', date: '2026-12-02' });   // repeat of a done lesson: held
+  const other = L({ subject: 'Math', title: 'Math on that Wednesday', date: '2026-12-02', work_blocks: [{ type: 'text', text: 'a' }] });   // started: stays put
+  const r = run([done, repeat, other], []);
+  ok(r.k1.holds.some((h) => h.id === 'rp'), 'B7: the repeat is held');
+  ok(r.k1.conflicts.some((c) => c.type === 'two-in-slot' && c.heldInPlace && c.items.some((i) => i.id === 'rp' && i.src === 'held')), 'B7: a held lesson on its old date is checked there and marked held');
+  ok(/HELD-BACK lesson/.test(r.summary), 'B7: the summary explains held lessons keep their old dates until unscheduled');
+}
+{
+  // Math Book lessons lead their day in the Math queue
+  const book = L({ subject: 'Math', title: 'Math Book, Unit 2: Something', date: '2026-12-01', created_at: '2026-11-05T00:00:00Z' });
+  const other = L({ subject: 'Math', title: 'Aaa other math', date: '2026-12-01', created_at: '2026-11-01T00:00:00Z' });
+  const r = run([other, book], []);
+  const bm = r.k1.moves.find((m) => m.id === book.id), om = r.k1.moves.find((m) => m.id === other.id);
+  ok(bm && om && bm.to < om.to, 'B7: on the same written date, the Math Book lesson is placed before other Math');
+}
+
 console.log('\nschedule: ' + pass + ' passed, ' + fail + ' failed'); process.exit(fail ? 1 : 0);

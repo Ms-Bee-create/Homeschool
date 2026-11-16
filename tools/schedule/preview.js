@@ -16,7 +16,7 @@ let out = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="w
   p.gaps.forEach(g => { (cells[g.iso] = cells[g.iso] || {})[g.slot] = { t: 'empty', kind: 'e' }; });
   out += '<h2>' + names[k] + '</h2>';
   const cf = p.conflicts || [], bad = {}; cf.forEach(c => { bad[c.iso + '|' + c.slot] = 1; });
-  out += cf.length ? '<div class="warn"><b>' + cf.length + ' problem(s) to look at</b> (orange outline in the tables; nothing was moved):<ul>' + cf.slice(0, 30).map(c => '<li>' + esc(c.iso + ': ' + c.msg + ' (' + c.items.map(i => i.src + ': ' + String(i.title).slice(0, 40)).join('; ') + ')') + '</li>').join('') + '</ul></div>' : '<p class="note">No rule problems found in this plan.</p>';
+  out += cf.length ? '<div class="warn"><b>' + cf.length + ' problem(s) to look at</b> (orange outline in the tables; nothing was moved). Lessons marked <b>held</b> are held back by this plan but still sit on their OLD dates until you approve unscheduling them, so those problems go away only then:<ul>' + cf.slice(0, 30).map(c => '<li>' + esc(c.iso + ': ' + c.msg + ' (' + c.items.map(i => i.src + ': ' + String(i.title).slice(0, 40)).join('; ') + ')') + '</li>').join('') + '</ul></div>' : '<p class="note">No rule problems found in this plan.</p>';
   (p.uncertain || []).length && (out += '<div class="warn"><b>Game days held because a repeat review cannot be ruled out:</b><ul>' + p.uncertain.map(u => '<li>' + esc(u.title) + ': ' + esc(u.why) + '</li>').join('') + '</ul></div>');
   const d = new Date((opt.from || p.start) + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   const weeks = +opt.weeks || 8;
