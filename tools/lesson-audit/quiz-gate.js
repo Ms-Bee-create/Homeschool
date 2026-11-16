@@ -203,7 +203,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   o.net.failWrites = false;
   await page.evaluate(() => { window.__fa.SG.retryNow(); return window.__fa.sd.sdHelpFlush(); }); await sleep(900); await sync();
   ok('HELP HOLD: an earlier unsent save and the hold both reach storage', srv('H1').work_blocks?.[0]?.text === 'Pending fictional work' && srv('H1').review_status === 'flagged');
-  const completedRetries = holdWrites.filter(write => write.quiz_retry_used);
+  const completedRetries = holdWrites.filter(write => write.quiz_retry_used && Object.keys(write).length > 1);   // the one-field {quiz_retry_used} write is the atomic claim, not the result
   ok('HELP HOLD: retry result and hold travel in the same update', completedRetries.length > 0 && completedRetries.every(write => write.review_status === 'flagged' && /grown-up/.test(write.review_note)));
   await sleep(1500);
   const hr = (store.al_help_requests || []).filter(r => r.lesson_title === 'Help lesson');
@@ -293,10 +293,28 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('B4 STALE RETRY: a retry already used elsewhere pays no XP and no $1 ace bonus', kk1.xp === kk0.xp && kk1.mm === kk0.mm, JSON.stringify([kk0, kk1]));
   await open('PO3'); srv('PO3').quiz_score = 2;
   const p0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const p1 = await kidNow();
-  ok('B4 STALE TAB: answers another tab already paid for are not paid again (only the 3rd right answer pays)', p1.xp - p0.xp === 5, JSON.stringify([p0, p1]));
+  ok('B4 STALE TAB: a first attempt another sitting already started pays nothing here (atomic claim lost)', p1.xp - p0.xp === 0, JSON.stringify([p0, p1]));
   await open('PO4'); const c0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const c1 = await kidNow();
   ok('B4 CONTROL: a normal first attempt still pays +5 per right answer', c1.xp - c0.xp === 15, JSON.stringify([c0, c1]));
   ok('B4 CONTROL: and the result is saved', srv('PO4').quiz_score === 3 && srv('PO4').quiz_total === 3, JSON.stringify([srv('PO4').quiz_score, srv('PO4').quiz_total]));
+
+  /* B4 fix (15 Nov 2026): the claim is one atomic server write. Two sittings at the same moment: exactly one wins. */
+  store.al_assignments.push(mk('PC1', 'kid2', { quiz: Q(3) }), mk('PC2', 'kid2', { quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }), mk('PC3', 'kid2', { quiz: Q(3) }), mk('PC4', 'kid2', { quiz: Q(3), review_status: 'approved' }), mk('PC5', 'kid2', { quiz: Q(3) }));
+  await sync();
+  const race = await page.evaluate(async () => { const f = window.__fa.quizClaim, A = new Proxy(state.assignments, { get: (t, k) => Object.assign({ id: k }, t[k]) }); const first = await Promise.all([f(A.PC1, false, 0), f(A.PC1, false, 0), f(A.PC1, false, 0)]); const retry = await Promise.all([f(A.PC2, true, 0), f(A.PC2, true, 0)]); const appr = await f(A.PC4, false, 0); return { first, retry, appr }; });
+  ok('B4 RACE: three sittings claim a first attempt at once: exactly one wins', race.first.filter(x => x === 'won').length === 1 && race.first.filter(x => x === 'lost').length === 2, JSON.stringify(race.first));
+  ok('B4 RACE: two sittings claim the one retry at once: exactly one wins', race.retry.filter(x => x === 'won').length === 1 && race.retry.filter(x => x === 'lost').length === 1, JSON.stringify(race.retry));
+  ok('B4 RACE: an approved lesson is never claimed', race.appr === 'lost' && srv('PC4').quiz_score == null, JSON.stringify(race.appr));
+  /* offline / failed writes: nothing can be confirmed, so nothing is paid (no local fallback) */
+  await open('PC3'); const o0 = await kidNow(); o.net.failWrites = true; await doCheck([true, true, true]); o.net.failWrites = false; await sleep(300); const o1 = await kidNow();
+  ok('B4 OFFLINE: when the claim cannot reach the server, no XP is paid', o1.xp === o0.xp, JSON.stringify([o0, o1]));
+  ok('B4 OFFLINE: but the result itself is still kept for the grown-up (saved on this device and sent when back online)', await page.evaluate(() => state.assignments.PC3.quizScore === 3 && state.assignments.PC3.quizTotal === 3));
+  ok('B4 OFFLINE: the kid is told it was a practice round', await page.evaluate(() => /Practice round/.test(document.body.innerText)));
+  /* the learner is fixed when the check opens: switching kids while the claim is in flight pays the right kid */
+  await open('PC5'); const lk0 = await page.evaluate(() => ({ r: state.kids.kid2.xp || 0, a: state.kids.kid1.xp || 0 }));
+  await page.evaluate(() => { const b = [...document.querySelectorAll('#quickCheckWrap button')].find(x => /RIGHT 1/.test(x.textContent)); window.__noRushGuard = true; b.click(); state.activeKid = 'kid1'; });
+  await sleep(900); const lk1 = await page.evaluate(() => ({ r: state.kids.kid2.xp || 0, a: state.kids.kid1.xp || 0 }));
+  ok('B4 LEARNER: a kid switch right after the tap still pays the kid who did the check', lk1.r - lk0.r === 5 && lk1.a === lk0.a, JSON.stringify([lk0, lk1]));
 
   /* B3 (14 Nov 2026): the helper's automatic approval must follow the Quick Check rule (1-2 question checks need all right), and must re-check the lesson after the helper answers.
      The sweep runs on a pretend Tuesday 10:00 and the helper is answered by the test (always "looks good"); nothing reaches the real helper. */
