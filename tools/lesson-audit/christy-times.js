@@ -64,7 +64,7 @@ const DAY = '2026-11-12';
   stepTwo.review_status = 'flagged'; stepTwo.review_note = 'try again';
   store.al_assignments.push(mk('kid1', 'Math', 'Anna Pick A', { choice_group: 'cgx', done: true }), mk('kid1', 'Math', 'Anna Pick B', { choice_group: 'cgx' }));
   await sync(); t = await html();
-  const cnt = x => t.slice(0, t.indexOf('Grown-Up Notices')).split(x).length - 1; // the lists and project box only; the notices may name a lesson again on purpose
+  const cnt = x => t.split(x).length - 1; // the kids' paper has no notices box any more, so every mention counts
   ok('PARITY: a sent-back (flagged) lesson shows unticked, like Today', t.includes('\u2610 Ryan Math practice') && !t.includes('\u2611 Ryan Math practice'));
   ok('PARITY: and says it was sent back', /sent back: try again/.test(t));
   ok('PARITY: a sent-back lesson still shows exactly once', cnt('Ryan Math practice') === 1, String(cnt('Ryan Math practice')));
@@ -81,8 +81,9 @@ const DAY = '2026-11-12';
   gameRow.quiz_score = 2; gameRow.quiz_total = 3;                 // 2 of 3 passes: must not be listed
   store.al_assignments.push(mk('kid1', 'Science', 'Anna old miss', { date: '2026-10-01', quiz_score: 0, quiz_total: 3 }));  // older than 14 days: not listed
   await sync(); t = await html();
-  const gu = t.slice(t.indexOf('Grown-Up Notices'));
   const gp = await grownHtml();
+  const gu = gp.slice(gp.indexOf('Grown-Up Notices'));
+  ok('NOTICES: the notices box is NOT on the kids paper, only on the Grown-Up Page', !t.includes('Grown-Up Notices') && gp.includes('Grown-Up Notices'));
   const nh = gp.slice(gp.indexOf('Who Needs a Hand'), gp.indexOf('Grown-Up Notices'));
   ok('NOTICES: sent-back lessons are listed by kid with names', /Ryan: 2 lessons sent back/.test(gu) && gu.includes('Ryan Math practice') && gu.includes('Ryan Project step two'));
   ok('NOTICES: a kid with nothing sent back is not listed there', !/Anna: \d+ lesson/.test(gu));
