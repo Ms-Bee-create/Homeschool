@@ -2,7 +2,7 @@
 // Deploy: supabase functions deploy troubleshoot
 // Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANNED, classify, flaggedTitle, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
+import { CANNED, classify, flaggedTitle, inputStop, outputRoute, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
 
 const DAILY_CAP = 30; // user messages per kid per day
 const MODEL = "claude-haiku-4-5-20251001";
@@ -68,8 +68,8 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
       try {
         const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
         let verdict = ["looks_good", "needs_work", "unsure"].includes(parsed.verdict) ? parsed.verdict : "unsure";
-        let kidNote = String(parsed.kidNote ?? "").slice(0, 400);
-        let momNote = String(parsed.momNote ?? "").slice(0, 300);
+        let kidNote = redactPII(String(parsed.kidNote ?? "")).text.slice(0, 400);   // redacted before anything is checked or returned
+        let momNote = redactPII(String(parsed.momNote ?? "")).text.slice(0, 300);
         /* The note is written TO the child, so it gets the same output check as the helper's chat replies before anything can show it. Not OK or no clear answer: the child sees no note and Mom looks herself. */
         if (kidNote) {
           const nv = await classify(Deno.env.get("ANTHROPIC_API_KEY")!, MODEL, kidNote, "helper");
@@ -112,13 +112,11 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
       return json({ reply: canned, remaining: DAILY_CAP - (count ?? 0) - 1 });
     };
 
-    /* Identifying text from the child: nothing goes to any provider; Mom sees the chat flagged with the text already replaced. */
-    if (prep.piiShared) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", "shared personal information, text removed"), CANNED.PII);
-
     /* Separate safety check on the whole current message plus recent context, before it reaches the helper. No clear answer = fail closed: the helper is never called. */
     const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child");
-    if (inV === null) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", "could not be checked, helper not used"), CANNED.UNCHECKED);
-    if (inV === "BLOCK" || inV === "TELL_MOM") return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", inV, "off-limits topic, caught by the checker"), CANNED[inV]);
+    /* Identifying text is already replaced and still goes through this check, so an urgent message that also has a phone number or address keeps its Tell-Mom reply. Nothing goes to any provider either way. */
+    const stop = inputStop(inV, prep.piiShared);
+    if (stop) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", stop.verdict, stop.why), stop.canned);
 
     const lessonSystem = kidId === "kid1"
       ? `You are a kind, playful fairy helper for Anna, a 7-year-old in 2nd grade. Use short, simple words and 1-3 short sentences. Cheer her on. Be warm and encouraging.`
@@ -167,14 +165,16 @@ Rules:
     /* Separate safety check on the WHOLE reply, before the child sees it. No clear answer = the reply is held back (fail closed). */
     let chatTitle = lessonTitle;
     const outV = await classify(apiKey, MODEL, reply, "helper");
-    if (outV !== "OK") {
-      reply = outV === null ? CANNED.UNCHECKED : CANNED.BLOCK;
-      chatTitle = flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker");
+    const route = outputRoute(outV, false);
+    if (route.held) {
+      reply = route.reply!;
+      chatTitle = route.urgent ? flaggedTitle(lessonTitle ?? "Lesson help", "TELL_MOM", "") : flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker");
     }
+    reply = redactPII(reply).text;   // what the child sees is redacted exactly like what is saved
 
     await supa.from("al_ai_chats").insert([
       { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "user", content: lastFull },
-      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: outV === "OK" ? redactPII(reply).text : reply },
+      { household_id: householdId, kid_id: kidId, assignment_title: chatTitle, role: "assistant", content: reply },
     ]);
     if (shouldPrune(count)) await pruneOldChats(admin, householdId);
     return json({ reply, remaining: DAILY_CAP - (count ?? 0) - 1 });
