@@ -3357,6 +3357,7 @@ function worldJobBonus(kid){
 var WORLD_DELIVERY_DAILY = 5;
 function worldDeliveriesLeft(d){ return d.deliv.day===todayISO() ? Math.max(0, WORLD_DELIVERY_DAILY - d.deliv.n) : WORLD_DELIVERY_DAILY; }
 function worldDeliveryDone(kid, fast){
+  if(!worldUnlocked(kid)){ worldSay("Finish today's lessons first, then you can take deliveries."); return; }
   var d = worldData(kid), today = todayISO();
   if(d.deliv.day!==today) d.deliv = {day:today, n:0};
   if(d.deliv.n>=WORLD_DELIVERY_DAILY){ worldSay("No more deliveries today. Great work!"); try{ worldGame.frame.contentWindow.postMessage({forge:"deliveryState", left:0}, "*"); }catch(e){} return; }
@@ -3547,7 +3548,7 @@ function liveWorldCard(){
   b.onclick = function(){ var g = Object.assign({}, familyGoal(), {liveWorld:!on}); saveFamilyGoal(g, true); renderLeaderArea(); };
   c.appendChild(b); return c;
 }
-function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done; }); }
+function worldUnlocked(kid){ var l = assignmentsFor(kid, todayISO()); return !l.length || l.every(function(a){ return a.done || quizHelpHold(a); }); }
 function worldFrameUrl(kid, which){
   var d = worldData(kid), p = {id:kid, name:kidData(kid).name || "Explorer", look:d.look, wear:d.wear, unlocked:worldUnlocked(kid), jobs:worldJobsFor(kid),
     house:{items:d.house.items, floor:(kid==="kid1" ? "#f6cfe0" : "#c9a36b"), roof:d.look.outfit}, deliv:{left:worldDeliveriesLeft(d)}, brain:{left:worldBrainLeft(d)}, qs:worldQuestionPool(kid)};
@@ -5222,12 +5223,92 @@ function taskRow(a){
   return row;
 }
 
+/* Quick Check gate (Mom, 12 Nov 2026). A lesson with a Quick Check can be turned in once the kid has done the check and got at least 2 of 3 right (the same share for longer checks).
+   Below that they read the tips and try the new Quick Check once; after that one retry they may turn it in, and Mom sees the low first score (0 right is marked in her queue).
+   Leader is never blocked, and undoing a turn-in is never blocked. */
+var QUIZ_PASS = 0.66;
+/* Help hold (Mom, 12 Nov 2026): every answer wrong on the Quick Check AND on the one retry means a grown-up has to sit with the kid. The lesson cannot be turned in until a grown-up clears it
+   (Leader: Approve, or "fresh Quick Check"). It is not a punishment: Forge World stays open while they wait. */
+var HELP_HOLD_NOTE = "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one.";
+function quizHelpHold(a){ return !!a && a.reviewStatus==="flagged" && String(a.reviewNote||"").indexOf("Needs a grown-up's help") === 0; }
+function quizNeeded(total){ return (total||0) <= 2 ? 1 : Math.ceil(total * QUIZ_PASS - 1e-9); }   // 1-2 question checks: at least 1 right (Ryan has 100+ two-question checks); 3 -> 2, 4 -> 3, 5 -> 4
+function quizPassed(score, total){ return total>0 && score!=null && score >= quizNeeded(total); }
+/* Automatic approval (no one looks) is stricter than the turn-in bar on short checks: a 1-2 question check must be all right, because guessing gets 1 of 2 right about 4 times in 10. */
+function quizAutoOk(score, total){ return total>0 && score!=null && (total<=2 ? score>=total : quizPassed(score, total)); }
+function quizAllowsAiApproval(a){
+  return !(a.quizTotal>0 || a.quizScore!=null || (Array.isArray(a.quiz) && a.quiz.length)) || quizAutoOk(a.quizScore, a.quizTotal);
+}
+/* B4: the saved Quick Check result as the server has it right now (null if it cannot be read: offline, or an error). */
+function quizFreshState(id){
+  try{
+    return sb.from("al_assignments").select("quiz_score,quiz_total,quiz_retry_used").eq("id", id).limit(1).then(function(r){ var d = r && !r.error ? r.data : null; if(Array.isArray(d)) d = d[0]; return d || null; }, function(){ return null; });
+  }catch(e){ return Promise.resolve(null); }
+}
+/* B4 fix (15 Nov 2026): who gets paid is decided by ONE conditional write the server applies atomically, not by a read followed by a write.
+   First attempt: set quiz_score only where nothing was saved yet (quiz_score and quiz_total both empty). Retry: set quiz_retry_used only where it is not already true.
+   The row that comes back says who won. "won" pays; "lost" means another sitting already took it (practice only); "unknown" (offline or an error) pays nothing, because nothing can be confirmed. Never overwrites an approved lesson. */
+function quizClaim(a, isRetry, priorBest){
+  try{
+    var q = sb.from("al_assignments");
+    q = isRetry ? q.update({quiz_retry_used: true}).eq("id", a.id).or("quiz_retry_used.is.null,quiz_retry_used.eq.false")
+                : q.update({quiz_score: priorBest || 0}).eq("id", a.id).is("quiz_score", null).is("quiz_total", null);
+    q = q.or("review_status.is.null,review_status.neq.approved");
+    return q.select("id").then(function(r){
+      if(!r || r.error) return "unknown";
+      return (r.data && r.data.length) ? "won" : "lost";
+    }, function(){ return "unknown"; });
+  }catch(e){ return Promise.resolve("unknown"); }
+}
+function quizGateMessage(a, kidId){
+  var cur = (a && a.id && state.assignments[a.id]) || a;
+  if(!cur || !Array.isArray(cur.quiz) || !cur.quiz.length) return "";
+  var little = (kidId || cur.kidId)==="kid1";
+  if(quizHelpHold(cur)) return little ? "This one needs Mom or Dad to help you first. Your Garden School is open while you wait! \uD83C\uDF38" : "This one needs Mom or Dad to help you first. Forge World is open while you wait. \uD83C\uDF0D";
+  if(cur.quizScore==null || !(cur.quizTotal>0)) return little ? "Do your Quick Check first, then turn it in! \uD83C\uDFAF" : "Do the Quick Check first, then turn it in. \uD83C\uDFAF";
+  if(quizPassed(cur.quizScore, cur.quizTotal)) return "";
+  if(cur.quizRetryUsed) return "";
+  var need = quizNeeded(cur.quizTotal);
+  return little ? "Read the \uD83D\uDCA1 tips, then tap Try new treats! Get "+need+" right to finish!" : "Read the \uD83D\uDCA1 tips, then tap Try a new Quick Check. Get "+need+" right to finish.";
+}
+/* Leader only: how the Quick Checks are going, last 14 days, per kid. First-try score, retries, and the ones with none right. */
+function quickCheckScoresCard(){
+  var cutoff = new Date(Date.now() - 14*86400000).toISOString();
+  var card = document.createElement("div");
+  card.style.cssText = "margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border)";
+  var head = document.createElement("div"); head.style.cssText = "font-weight:800;font-size:14.5px;margin-bottom:6px"; head.textContent = "\uD83C\uDFAF Quick Check scores (last 14 days)"; card.appendChild(head);
+  var any = false;
+  var held = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(quizHelpHold);
+  if(held.length){
+    any = true;
+    var hb = document.createElement("div"); hb.style.cssText = "margin:4px 0 8px;padding:8px 10px;border-radius:8px;background:var(--coral-soft);color:var(--coral);font-size:13px;font-weight:700";
+    hb.textContent = "\uD83C\uDD98 Waiting for a grown-up: " + held.map(function(a){ return kidData(a.kidId).name+" - "+String(a.title||"").slice(0,50); }).join("; ");
+    card.appendChild(hb);
+  }
+  KIDS.forEach(function(k){
+    var rows = Object.keys(state.assignments).map(function(id){ return state.assignments[id]; }).filter(function(a){
+      return a.kidId===k.id && a.quizTotal>0 && a.quizScore!=null && a.reviewStatus!=="retired" && (a.done || a.quizRetryUsed) && (a.doneAt || a.submittedAt || a.date || "") >= (a.doneAt||a.submittedAt ? cutoff : cutoff.slice(0,10));
+    });
+    if(!rows.length) return;
+    any = true;
+    var pass = rows.filter(function(a){ return quizPassed(a.quizScore, a.quizTotal); }).length;
+    var retried = rows.filter(function(a){ return a.quizRetryUsed; }).length;
+    var zeros = rows.filter(function(a){ return a.quizScore===0; });
+    var pct = Math.round(100 * rows.reduce(function(n,a){ return n + a.quizScore/a.quizTotal; }, 0) / rows.length);
+    var line = document.createElement("div"); line.style.cssText = "font-size:13px;margin:4px 0";
+    line.textContent = kidData(k.id).name+": "+rows.length+" Quick Checks, average "+pct+"% on the first try, "+pass+" passed first time, "+retried+" needed the retry"+(zeros.length ? ", "+zeros.length+" with none right." : ".");
+    card.appendChild(line);
+    zeros.slice(0, 6).forEach(function(a){ var z = document.createElement("div"); z.style.cssText = "font-size:12.5px;margin:2px 0 2px 12px;color:var(--coral)"; z.textContent = "\u26A0\uFE0F "+String(a.title||"").slice(0,70)+" ("+(a.doneAt||a.submittedAt||a.date||"").slice(0,10)+")"; card.appendChild(z); });
+  });
+  if(!any){ var none = document.createElement("div"); none.className = "muted"; none.style.fontSize = "13px"; none.textContent = "No Quick Checks finished in the last 14 days."; card.appendChild(none); }
+  return card;
+}
 function toggleAssignment(a){
   if(!db) return;
   var cur0 = state.assignments[a.id] || a;
   if(SG.tapTooSoon(a.id)) return;   // a double tap is one tap
   if(cur0.reviewStatus==="approved" && cur0.done && !state.leaderUnlocked){ toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
   var willDone = !cur0.done;
+  if(willDone && !state.leaderUnlocked){ var qgMsg = quizGateMessage(cur0, a.kidId); if(qgMsg){ toast(qgMsg); return; } }
   var doneAt = willDone ? new Date().toISOString() : null;
   if(state.assignments[a.id]){ state.assignments[a.id].done = willDone; state.assignments[a.id].doneAt = doneAt; renderView(); }
   db.doc("assignments/"+a.id).update({done: willDone, doneAt: doneAt});
@@ -7810,14 +7891,14 @@ function patchFlaggedStranded(){
   var n = 0;
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(!a.kidId || a.done || a.reviewStatus!=="flagged" || !hasWork(a)) return;
+    if(!a.kidId || a.done || a.reviewStatus!=="flagged" || quizGateMessage(a) || !hasWork(a)) return;
     var at = a.submittedAt || new Date().toISOString();
     a.done = true; a.doneAt = at; a.noteUnread = true;
     db.doc("assignments/"+id).update({done:true, doneAt:at, noteUnread:true}); n++;
   });
   if(n) console.log("patchFlaggedStranded: counted "+n+" lesson(s) the kid had worked on");
 }
-/* Quiz-only lessons the kid finished with 70% or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
+/* Quiz-only lessons the kid finished with 2 of 3 right (the Quick Check bar, QUIZ_PASS) or better are approved automatically (the quiz already checks and explains). Mom's queue keeps the
    lessons with real work to look at, and the quizzes the kid struggled with. */
 function autoApproveQuizOnly(){
   if(!db) return;
@@ -7825,7 +7906,7 @@ function autoApproveQuizOnly(){
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
     if(!a.kidId || !a.done || a.reviewStatus || hasWork(a) || a.quizScore==null || !(a.quizTotal>0)) return;
-    if(a.quizScore/a.quizTotal < 0.7) return;
+    if(!quizAutoOk(a.quizScore, a.quizTotal)) return;
     a.reviewStatus = "approved"; SG.afterSend(id, function(){ db.doc("assignments/"+id).update({reviewStatus:"approved"}); }); n++;
   });
   if(n) console.log("autoApproveQuizOnly: approved "+n+" quiz-only lesson(s)");
@@ -8753,16 +8834,57 @@ function renderLessonDetail(){
     retryBtn.textContent = annaLook ? "\uD83D\uDD04 Try new treats!" : "🔄 Try a new Quick Check";
     retryBtn.style.cssText = "display:none;margin-top:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;font-weight:600";
     quizWrap.appendChild(retryBtn);
+    quizWrap.id = "quickCheckWrap";
     card.appendChild(quizWrap);
 
+    /* Slow-down catch (Mom, 12 Nov 2026): a tap that comes before there was time to read the question and its choices is not counted. The clock starts when the check is drawn and restarts after every answer. */
+    var quizClock = Date.now();
+    function rushWait(item){
+      var words = String((item.q||"")+" "+(Array.isArray(item.choices) ? item.choices.join(" ") : "")).split(/\s+/).length;
+      var need = Math.min(9000, 2500 + 100*words) * (annaLook ? 1.3 : 1);
+      return need - (Date.now() - quizClock);
+    }
     var usingRetrySet = false;
+    var hasRetrySet = Array.isArray(a.quizRetry) && a.quizRetry.length;
     function renderQuizItems(items, isRetryAttempt){
       quizBody.innerHTML = "";
-      retryBtn.style.display = "none";
+      /* Offered from what is SAVED, not only from this sitting: a kid who reopens a lesson below the bar (or left a check unfinished, saved as 0) still sees the button. */
+      var belowBar = !isRetryAttempt && a.quizScore!=null && a.quizTotal>0 && !quizPassed(a.quizScore, a.quizTotal) && !a.quizRetryUsed;
+      retryBtn.style.display = belowBar ? "block" : "none";
       var correctCount = 0, answeredCount = 0;
       /* XP and money only on the first real attempt — reopening the lesson to re-tap answers
          is practice, not a second paycheck. */
-      var xpEligible = isRetryAttempt ? !a.quizRetryUsed : (a.quizScore==null);
+      var priorBest = !(a.quizTotal>0) ? (a.quizScore || 0) : 0;
+      var xpEligible = isRetryAttempt ? (!a.quizRetryUsed && hasRetrySet && a.quizScore===0) : !(a.quizTotal>0);
+      var retryCounts = isRetryAttempt && !a.quizRetryUsed;   // finishing the one allowed retry opens the gate, with or without XP
+      /* B4 (pay once): the first answer makes ONE atomic claim on the server (see quizClaim). Only the sitting that wins is paid; a sitting that loses, or cannot reach the server, is practice.
+         A sitting in this same tab that already won (reload mid-check) resumes without a second claim. The learner is fixed now, so a slow answer cannot pay the wrong kid. */
+      var kidNow = state.activeKid || a.kidId;
+      var canSave = xpEligible || retryCounts;   // may this sitting write its result? Lost claim: no. Unreachable server: yes (the result and the help hold are safety records, not rewards), but nothing is paid.
+      var claimDone = false, claimQueue = [], claimStarted = false, resumeKey = "al_qc_claim_"+(a.id||"")+(isRetryAttempt?"_r":"");
+      function showPracticeNote(unconfirmed){
+        if(quizBody.querySelector(".qc-practice")) return;
+        var n = document.createElement("div"); n.className = "qc-practice";
+        n.style.cssText = "margin-bottom:8px;font-size:12.5px;color:var(--text-dim)";
+        n.textContent = unconfirmed ? "Practice round — we could not check the connection, so no XP this time. Great for remembering!" : "Practice round — no XP this time, but great for remembering!";
+        quizBody.insertBefore(n, quizBody.firstChild);
+      }
+      function whenFresh(fn){
+        if(claimDone){ fn(); return; }
+        claimQueue.push(fn);
+        if(claimStarted) return;
+        claimStarted = true;
+        var done = function(){ claimDone = true; var q = claimQueue; claimQueue = []; q.forEach(function(g){ g(); }); };
+        if(!(xpEligible || retryCounts) || !db || !a.id){ done(); return; }
+        var resumed = false; try{ resumed = sessionStorage.getItem(resumeKey)==="1"; }catch(e){}
+        if(resumed){ done(); return; }
+        quizClaim(a, isRetryAttempt, priorBest).then(function(r){
+          if(r==="won"){ try{ sessionStorage.setItem(resumeKey, "1"); }catch(e){} }
+          else if(r==="lost"){ xpEligible = false; retryCounts = false; canSave = false; showPracticeNote(false); }
+          else { xpEligible = false; showPracticeNote(true); }
+          done();
+        });
+      }
       if(!xpEligible){
         var repeatNote = document.createElement("div");
         repeatNote.style.cssText = "margin-bottom:8px;font-size:12.5px;color:var(--text-dim)";
@@ -8786,17 +8908,19 @@ function renderLessonDetail(){
         /* Everything that happens once a question is answered, whichever question type it was. */
         function afterAnswer(correct){
           answeredCount++;
+          quizClock = Date.now();
           if(annaLook){
             var treat = petTreat(correct);
             if(correct && treatsEl) treatsEl.textContent += " "+treat;
             if(answeredCount===1 && scratchNeeded && !blocks.some(function(b){ return b.type==="image"; })) setTimeout(function(){ petSay("Did you do your scratch work on paper? Show me a picture!"); }, 2600);
           }
-          if(xpEligible && !isRetryAttempt && answeredCount===1 && db && a.id){
-            var startUpdates = {quizScore: 0, quizTotal: items.length};
+          if(answeredCount===1) whenFresh(function(){
+          if(canSave && !isRetryAttempt && db && a.id){
+            var startUpdates = {quizScore: priorBest, quizTotal: null};
             if(state.assignments[a.id]) Object.assign(state.assignments[a.id], startUpdates);
-            a.quizScore = 0; a.quizTotal = items.length;
-            db.doc("assignments/"+a.id).update(startUpdates);
+            a.quizScore = priorBest; a.quizTotal = null;
           }
+          });
           if(!correct){
             /* Corrective feedback given at the moment of the miss, not just marking it wrong —
                elementary kids need the "why" right then, while the question is still active in
@@ -8807,25 +8931,37 @@ function renderLessonDetail(){
               explainRow.textContent = "💡 " + item.explain;
               qRow.appendChild(explainRow);
             }
-            queueSkillReview(state.activeKid, a, item);
+            queueSkillReview(kidNow, a, item);
           } else {
             correctCount++;
-            if(xpEligible){ grantXP(state.activeKid, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+            var cc = correctCount;
+            whenFresh(function(){
+              if(xpEligible && !isRetryAttempt && cc>priorBest){ grantXP(kidNow, 5); toast("✅ +5 XP"); } else { toast("✅ Correct!"); }
+              if(xpEligible && !isRetryAttempt && cc>priorBest && db && a.id){ var partial = {quizScore: cc}; if(state.assignments[a.id]) Object.assign(state.assignments[a.id], partial); a.quizScore = cc; db.doc("assignments/"+a.id).update(partial); }
+            });
           }
-          if(answeredCount===items.length){
-            if(db && a.id && xpEligible){
+          if(answeredCount===items.length) whenFresh(function(){
+            var needsHelp = retryCounts && correctCount===0 && a.quizScore===0 && !a.reviewStatus;
+            if(db && a.id && canSave){
               var quizUpdates = isRetryAttempt ? {quizRetryUsed: true} : {quizScore: correctCount, quizTotal: items.length};
+              if(needsHelp) Object.assign(quizUpdates, flagFields(a, HELP_HOLD_NOTE));
               if(state.assignments[a.id]) Object.assign(state.assignments[a.id], quizUpdates);
               Object.assign(a, quizUpdates);
               db.doc("assignments/"+a.id).update(quizUpdates);
             }
-            if(correctCount===0 && Array.isArray(a.quizRetry) && a.quizRetry.length){
+            if(needsHelp && db && a.id){
+              /* The grown-up is told: the same "help" row the Ask for Help button writes, so the Leader's open screen shows it and dings (the Leader screen checks about once a minute while it is open with sound on). */
+              try{ if(typeof sdHelpSend==="function") sdHelpSend(kidNow, a, "help", "Quick Check: every answer wrong twice. Please sit with them on this one."); }catch(e){}
+              toast(annaLook ? "This one is tricky! I told Mom so she can help you. \uD83D\uDC9B" : "This one is tricky. I flagged it so Mom or Dad can help you with it.");
+            }
+            if(xpEligible && isRetryAttempt && correctCount>0){ grantXP(kidNow, 5*correctCount); toast("✅ +"+(5*correctCount)+" XP for the new Quick Check"); }
+            if(!isRetryAttempt && xpEligible && !quizPassed(correctCount, items.length)){
               retryBtn.style.display = "block";
             } else if(xpEligible && isRetryAttempt && correctCount===items.length){
-              grantMommaMoney(state.activeKid, 1);
+              grantMommaMoney(kidNow, 1);
               toast("🌟 Aced the retry — +$1 Momma Money bonus!");
             }
-          }
+          });
         }
         if(item.type && INTERACTIVE_QUIZ[item.type]){
           INTERACTIVE_QUIZ[item.type](item, qRow, function(correct){
@@ -8845,6 +8981,7 @@ function renderLessonDetail(){
           btn.style.cssText = "text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font:inherit;font-size:13.5px;cursor:pointer";
           btn.onclick = function(){
             if(answered) return;
+            if(!window.__noRushGuard && rushWait(item) > 0){ toast(annaLook ? "Slow down, little one! \uD83D\uDC22 Read it again, then pick." : "Slow down. \uD83D\uDC22 Read the question and every choice, then pick."); return; }
             answered = true;
             var correct = ci===item.answerIndex;
             btn.style.background = correct ? "var(--success-soft)" : "var(--coral-soft)";
@@ -8866,7 +9003,7 @@ function renderLessonDetail(){
     renderQuizItems(a.quiz.map(shuffleQuestionChoices), false);
     retryBtn.onclick = function(){
       usingRetrySet = !usingRetrySet;
-      renderQuizItems((usingRetrySet ? a.quizRetry : a.quiz).map(shuffleQuestionChoices), usingRetrySet);
+      renderQuizItems((usingRetrySet && hasRetrySet ? a.quizRetry : a.quiz).map(shuffleQuestionChoices), usingRetrySet);
     };
   }
 
@@ -9212,7 +9349,7 @@ function renderLessonDetail(){
     if(live0.reviewStatus==="approved" && !state.leaderUnlocked){ savedNote.textContent = "\uD83D\uDD12 Already approved, so it can't be changed"; toast("\uD83D\uDD12 This was already checked and approved, so it can't be changed."); return; }
     var now = new Date().toISOString();
     var updates = {workBlocks: blocks, submittedAt: now};
-    if(a.reviewStatus==="flagged"){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
+    if(a.reviewStatus==="flagged" && !quizHelpHold(a)){ updates.reviewStatus = null; updates.reviewNote = null; a.reviewStatus = null; a.reviewNote = null; var fb = card.querySelector("#flagBanner"); if(fb) fb.innerHTML = ""; }
     a.workBlocks = blocks; draftSnap = JSON.stringify(blocks);
     if(state.assignments[a.id]) Object.assign(state.assignments[a.id], {workBlocks: blocks, submittedAt: now, reviewStatus: a.reviewStatus, reviewNote: a.reviewNote});
     db.doc("assignments/"+a.id).update(updates);
@@ -9333,7 +9470,12 @@ function renderLessonDetail(){
   doneBtn.className = "primary-btn";
   doneBtn.style.width = "100%";
   doneBtn.textContent = a.done ? "✓ Turned in — tap to undo" : "✅ Save and turn it in";
-  doneBtn.onclick = function(){ saveWork(); toggleAssignment(a); state.lessonDetailId = null; renderView(); };
+  doneBtn.onclick = function(){
+    /* Held turn-in: no saveWork() here, so the lesson is NOT stamped as submitted (that would put it in Mom's queue and the helper's auto-check). Typing is already kept as a draft as it happens. */
+    if(!a.done && !state.leaderUnlocked){ var qg = quizGateMessage(a, state.activeKid); if(qg){ toast(qg); var qw = document.getElementById("quickCheckWrap"); if(qw && qw.scrollIntoView) qw.scrollIntoView({behavior:"smooth", block:"center"}); return; } }
+    saveWork();
+    toggleAssignment(a); state.lessonDetailId = null; renderView();
+  };
   if(a.done && a.reviewStatus==="flagged"){
     /* Sent back with a note but still counted: fixing it should never undo the credit. */
     doneBtn.textContent = "💾 Save my fixes (your credit stays)";
@@ -9646,9 +9788,10 @@ function renderLeaderArea(){
   var intro = document.createElement("p");
   intro.className = "muted";
   intro.style.cssText = "font-size:13px;margin:2px 0 14px";
-  intro.textContent = "Quizzes finished with 70% or better are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
+  intro.textContent = "Quizzes finished with 2 of 3 right (or the same share; both right on a 1-2 question check) are approved automatically, so what is here is real work to look at and quizzes a kid struggled with. Review submitted work and screenshots from both kids. Approve to mark it complete, or flag it with a note if something needs fixing; a flagged lesson keeps its credit, and the kid sees your note under Mom left you a note on Today. End every day with Show & Teach (top of the Leader's Guide) — he thrives when he thinks he's fixing or teaching something, not just checking a box.";
   els.view.appendChild(intro);
   var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
+  var qsCard = quickCheckScoresCard(); if(qsCard) els.view.appendChild(qsCard);
 
   var all = [];
   KIDS.forEach(function(k){
@@ -9671,6 +9814,7 @@ function renderLeaderArea(){
     var card = document.createElement("div");
     card.className = "qz-card";
     card.style.marginBottom = "14px";
+    var heldForHelp = quizHelpHold(a);
     var statusChip = a.reviewStatus==="approved"
       ? '<span class="chip" style="background:var(--success-soft);color:var(--success)">✅ approved</span>'
       : a.reviewStatus==="flagged"
@@ -9684,10 +9828,10 @@ function renderLeaderArea(){
       '<p class="qz-q" style="font-size:16px;margin-bottom:10px">'+escapeHtml(a.title)+'</p>';
     var quizResultHtml = "";
     if(a.quizScore!=null && a.quizTotal!=null){
-      var quizAced = a.quizScore===a.quizTotal;
+      var quizAced = a.quizScore===a.quizTotal, quizZero = a.quizScore===0 && a.quizTotal>0 && (!!a.done || !!a.quizRetryUsed);
       quizResultHtml =
-        '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
-          '🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' (on retry)':'')+
+        '<div style="margin-bottom:10px;padding:8px 10px;border-radius:8px;background:'+(quizZero?'var(--coral-soft)':quizAced?'var(--success-soft)':'var(--gold-soft)')+';font-size:13px;font-weight:600">'+
+          (quizZero ? '⚠️ None right, worth a look. ' : '')+'🎯 Quick Check: '+a.quizScore+'/'+a.quizTotal+' correct'+(a.quizRetryUsed?' on the first try, then retried':'')+
         '</div>';
     }
     var subHtml = quizResultHtml + (hasWork(a) ? '<div class="section-title" style="margin:6px 0 4px">Their work</div>' : '');
@@ -9727,13 +9871,27 @@ function renderLeaderArea(){
         renderLeaderArea();
       };
       btnRow.appendChild(approveBtn);
-      if(!a.done || a.reviewStatus==="flagged"){
+      if(quizHelpHold(a)){
+        var freshBtn = document.createElement("button");
+        freshBtn.className = "reward-skip"; freshBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
+        freshBtn.textContent = "\uD83D\uDD01 I helped: give a fresh Quick Check";
+        freshBtn.onclick = function(){
+          if(!db) return;
+          var fresh = {reviewStatus:null, reviewNote:null, noteUnread:false, quizScore:null, quizTotal:null, quizRetryUsed:false};
+          if(state.assignments[a.id]) Object.assign(state.assignments[a.id], fresh);
+          db.doc("assignments/"+a.id).update(fresh);
+          renderLeaderArea();
+        };
+        btnRow.appendChild(freshBtn);
+      }
+      if(!heldForHelp && (!a.done || a.reviewStatus==="flagged")){
         var halfBtn = document.createElement("button");
         halfBtn.className = "reward-skip";
         halfBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
         halfBtn.textContent = "👍 Count it (partly done)";
         halfBtn.onclick = function(){
           if(!db) return;
+          if(quizHelpHold(state.assignments[a.id])) return;
           var note = window.prompt("Optional note for "+a.kidName+" (what to add next time):", a.reviewNote||"");
           if(note===null) return;
           var upd = {reviewStatus:"approved", reviewNote:note||null, noteUnread:!!note};
@@ -9751,7 +9909,7 @@ function renderLeaderArea(){
       }
     }
 
-    if(!isCompleted){
+    if(!isCompleted && !heldForHelp){
       var aiBox = document.createElement("div");
       aiBox.style.cssText = "margin-top:8px";
       function renderAiCheck(){
@@ -9775,6 +9933,7 @@ function renderLeaderArea(){
             bt.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)"; bt.textContent = label;
             bt.onclick = function(){
               if(!db) return;
+              if(quizHelpHold(state.assignments[a.id])) return;
               var upd = flagIt ? flagFields(a, r.kidNote||"Please take another look at this one.")
                                : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
               if(!flagIt && !a.done) toggleAssignment(a);
@@ -9801,11 +9960,13 @@ function renderLeaderArea(){
       renderAiCheck();
     }
 
+    if(heldForHelp){ card.appendChild(btnRow); return card; }
     var noteBtn = document.createElement("button");
     noteBtn.className = "reward-skip";
     noteBtn.style.cssText = "flex:1;opacity:1;font-weight:700;border:1px solid var(--border)";
     noteBtn.textContent = a.reviewNote ? "📝 Edit Note" : "📝 Add Note";
     noteBtn.onclick = function(){
+      if(quizHelpHold(state.assignments[a.id])) return;
       var note = window.prompt("Leave a note or bit of feedback for them to read:", a.reviewNote||"");
       if(note===null) return;
       if(!db) return;
@@ -9821,6 +9982,7 @@ function renderLeaderArea(){
     flagBtn.style.cssText = "flex:1;color:var(--coral);opacity:1;font-weight:700;border:1px solid var(--coral)";
     flagBtn.textContent = "🚩 Flag for revision";
     flagBtn.onclick = function(){
+      if(quizHelpHold(state.assignments[a.id])) return;
       var note = window.prompt("What should they fix or double-check?", a.reviewNote||"");
       if(note===null) return;
       if(!db) return;
@@ -9850,7 +10012,7 @@ function renderLeaderArea(){
     oldBtn.textContent = "Clear the backlog: approve the "+oldPending.length+" finished lessons older than a week";
     oldBtn.onclick = function(){
       if(!window.confirm("Approve "+oldPending.length+" finished lessons from more than a week ago without looking at each one? Anything you flagged stays flagged.")) return;
-      oldPending.forEach(function(a){ if(state.assignments[a.id]) state.assignments[a.id].reviewStatus = "approved"; db.doc("assignments/"+a.id).update({reviewStatus:"approved"}); });
+      oldPending.forEach(function(a){ if(quizHelpHold(state.assignments[a.id])) return; if(state.assignments[a.id]) state.assignments[a.id].reviewStatus = "approved"; db.doc("assignments/"+a.id).update({reviewStatus:"approved"}); });
       renderLeaderArea();
     };
     els.view.appendChild(oldBtn);
@@ -10026,6 +10188,7 @@ function resetLeaderPin(){
    original install assignments already sitting in his data need to be marked done so he gets credit
    instead of leaving them open forever — console-only, one-time cleanup. */
 function markLegacyOsInstallsComplete(kidId){
+  if(!state.leaderUnlocked){ toast("Unlock Leader first."); return; }
   if(!db){ console.log("Not connected yet — try again in a moment"); return; }
   var titleMatches = [
     "start installing Windows 98", "Finish the Windows 98 install",
@@ -11087,7 +11250,7 @@ window.db = db;
    waits, then kept as "Send again" (never dropped). After a reload the unsent copies are laid back over what the server returned, so a lesson never
    looks undone while its turn-in is still waiting.
    APPROVAL. An approved lesson is locked for its round: a kid session cannot change its work, answers or done mark, and a send-back (flag) is the only way
-   to a new round. Only a grown-up (Leader PIN unlocked) can write reviewStatus "approved"; the two automatic reviewers (quiz-only at 70% and the helper's
+   to a new round. Only a grown-up (Leader PIN unlocked) can write reviewStatus "approved"; the two automatic reviewers (quiz-only at the Quick Check bar, 2 of 3, and the helper's
    "looks good") pass through SG.auto() and are checked against their evidence here, so no other caller can claim to be "auto". The server also refuses to
    overwrite an approved row with a kid copy (the update carries a "not approved" filter).
    LIMITS (see RELEASE_HANDOFF_SAVING.md): the app signs every device in with one household login, so this is a guard inside the app, not a server rule. */
@@ -11115,8 +11278,8 @@ var SG = (function(){
   /* Evidence the two automatic reviewers must have (checked again here, so "auto" cannot be claimed by any other caller). */
   function autoEvidence(a){
     if(!a || a.reviewStatus==="flagged" || a.reviewStatus==="retired") return false;
-    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && a.quizScore/a.quizTotal >= 0.7;
-    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn());
+    var quizOnly = !!a.done && !hasWork(a) && a.quizScore!=null && a.quizTotal>0 && quizAutoOk(a.quizScore, a.quizTotal);
+    var ai = !!(a.aiCheck && a.aiCheck.auto && a.aiCheck.verdict==="looks_good" && a.aiCheck.sub===a.submittedAt && a.submittedAt && autoReviewOn() && quizAllowsAiApproval(a));
     return quizOnly || ai;
   }
   function auto(fn){ autoDepth++; try{ return fn(); } finally{ autoDepth--; } }
@@ -11200,6 +11363,12 @@ var SG = (function(){
       });
     });
   }
+  function waitsForHoldOrder(e, index){
+    return e.coll==="assignments" && box.slice(0,index).some(function(prior){
+      return prior.coll===e.coll && prior.id===e.id && (prior.status==="queued" || prior.status==="needs_attention") &&
+        (quizHelpHold(prior.partial) || quizHelpHold(e.partial));
+    });
+  }
   function remove(e){ box = box.filter(function(x){ return x!==e; }); }
   var sentSome = false;
   function flush(){
@@ -11210,7 +11379,7 @@ var SG = (function(){
     running = true; sentSome = false;
     (function next(){
       var now = Date.now();
-      var e = box.filter(function(x){ return x.status==="queued" && (x.nextAt||0)<=now; })[0];
+      var e = box.find(function(x,i){ return x.status==="queued" && (x.nextAt||0)<=now && !waitsForHoldOrder(x,i); });
       if(!e){ running = false; inflight = null; finish(); return; }
       inflight = e; renderStatus();
       var p; try{ p = deliver(e); }catch(err){ e.err = String(err && err.message || err); p = Promise.resolve("retry"); }
@@ -11232,7 +11401,7 @@ var SG = (function(){
   function later(ms){ clearTimeout(timer); timer = setTimeout(flush, ms); }
   function finish(){
     renderStatus(); runWaiters();
-    var waits = box.filter(function(x){ return x.status==="queued"; }).map(function(x){ return Math.max(500, (x.nextAt||0) - Date.now()); });
+    var waits = box.filter(function(x,i){ return x.status==="queued" && !waitsForHoldOrder(x,i); }).map(function(x){ return Math.max(500, (x.nextAt||0) - Date.now()); });
     if(waits.length) later(Math.min.apply(null, waits));
     if(sentSome){ sentSome = false; syncSoon(); }
   }
@@ -11275,7 +11444,10 @@ var SG = (function(){
   function statusText(){
     var n = unsent().length; if(!n) return null;
     if(memOnly) return {txt:"💾 Saved in this window only. Please keep this page open until it sends.", again:false};
-    if(unsent().some(function(x){ return x.status==="needs_attention"; })) return {txt:"💾 Saved on this device, but it has not sent yet.", again:true};
+    if(unsent().some(function(x){ return x.status==="needs_attention"; })){
+      var held = box.some(function(x,i){ return x.status==="queued" && waitsForHoldOrder(x,i); });   // a grown-up help request that must wait its turn behind an earlier copy
+      return {txt:"💾 Saved on this device, but it has not sent yet."+(held ? " A request for a grown-up is waiting behind it." : ""), again:true};
+    }
     if(typeof navigator!=="undefined" && navigator.onLine===false) return {txt:"💾 Saved on this device. It will send when you are back online.", again:false};
     return {txt:"💾 Saved on this device · sending…", again:false};
   }
@@ -11313,7 +11485,8 @@ var SG = (function(){
       var left = document.createElement("div"); left.style.flex = "1";
       var state2 = e.status==="gone" ? "Could not be sent: that lesson no longer exists. Tap Hide to clear it."
         : e.status==="refused" ? "Not saved: this lesson was already approved, so this copy was kept out of the record."
-        : e.status==="needs_attention" ? "Did not send yet. Tap Send again." : "Waiting to send.";
+        : e.status==="needs_attention" ? "Did not send yet. Tap Send again."
+        : waitsForHoldOrder(e, box.indexOf(e)) ? "A grown-up help request is waiting behind an earlier copy that did not send. Tap Send again and both will go." : "Waiting to send.";
       left.innerHTML = "<b>" + escapeHtml(d.who ? d.who + ": " : "") + escapeHtml(d.title) + "</b><br><span class='muted'>" + escapeHtml(state2) + "</span>";
       row.appendChild(left);
       var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
@@ -29099,7 +29272,7 @@ function seeItPictureSvg(text){
 function runAiCheck(a){
   state.aiChecks = state.aiChecks || {};
   state.aiChecks[a.id] = {pending:true};
-  var quiz = a.quizScore!=null ? (a.quizScore+" of "+a.quizTotal+" right"+(a.quizRetryUsed?" (on retry)":"")) : "none";
+  var quiz = a.quizScore!=null && a.quizTotal>0 ? (a.quizScore+" of "+a.quizTotal+" right"+(a.quizRetryUsed?" (on retry)":"")) : "none";
   return sb.functions.invoke("troubleshoot", {body:{
     mode:"review", kidId:a.kidId, assignmentTitle:a.title, subject:a.subject||"", passage:String(a.passage||"").slice(0,3000), quiz:quiz,
     work: normalizeBlocks(a).filter(function(b){ return (b.type==="text" && b.text) || b.url; })
@@ -29287,7 +29460,7 @@ function autoCheckSweep(){
   var hourStamp = Math.floor(now.getTime()/3600000);
   try{ if(localStorage.getItem("al_autocheck_hour")===String(hourStamp)) return; }catch(e){}
   var todo = Object.keys(state.assignments).map(function(id){ return Object.assign({id:id}, state.assignments[id]); }).filter(function(a){
-    return a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null) && !(a.aiCheck && a.aiCheck.sub===a.submittedAt);
+    return a.submittedAt && !a.reviewStatus && (hasWork(a) || a.quizScore!=null) && !(a.aiCheck && a.aiCheck.sub===a.submittedAt) && !(!a.done && quizGateMessage(a));
   }).slice(0, 8);
   try{ localStorage.setItem("al_autocheck_hour", String(hourStamp)); }catch(e){}
   if(!todo.length) return;
@@ -29297,22 +29470,30 @@ function autoCheckSweep(){
     chain = chain.then(function(){
       var live = state.assignments[a.id];
       if(!live || (live.aiCheck && live.aiCheck.sub===live.submittedAt) || live.reviewStatus) return;
-      a.kidName = kidData(a.kidId).name;
+      if(!live.done && quizGateMessage(live)) return;   // still held by the Quick Check: leave it for the kid to finish
+      if(live.submittedAt!==a.submittedAt) return;
+      a = Object.assign({}, live, {id:a.id, kidName:kidData(live.kidId).name});
       return runAiCheck(a).then(function(){
         var r = state.aiChecks[a.id];
         if(!r || r.pending || !r.verdict) return;
         var saved = {verdict:r.verdict, kidNote:r.kidNote||"", momNote:r.momNote||"", sub:a.submittedAt, at:new Date().toISOString()};
-        live.aiCheck = saved;
+        SG.afterSend(a.id, function(){
+          var current = state.assignments[a.id];
+          if(!current || current.reviewStatus || current.submittedAt!==a.submittedAt ||
+             current.quizScore!==a.quizScore || current.quizTotal!==a.quizTotal ||
+             current.quizRetryUsed!==a.quizRetryUsed || (!current.done && quizGateMessage(current))) return;
+          current.aiCheck = saved;
         /* Automatic review (4 Nov 2026, Mom: the helper's choices are good): "looks good" is approved and "needs work" is sent back with the helper's note.
            "Not sure" stays in Mom's queue for her to look at. Leader can switch this off (familyGoal().autoReview === false). */
-        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work")){
+        if(autoReviewOn() && (r.verdict==="looks_good" || r.verdict==="needs_work") && (r.verdict!=="looks_good" || quizAllowsAiApproval(current))){
           saved.auto = true;
-          var upd = r.verdict==="needs_work" ? flagFields(live, r.kidNote||"Please take another look at this one.")
+          var upd = r.verdict==="needs_work" ? flagFields(current, r.kidNote||"Please take another look at this one.")
                                              : {reviewStatus:"approved", reviewNote:r.kidNote||null, noteUnread:!!r.kidNote};
-          if(r.verdict==="looks_good" && !live.done) toggleAssignment(live);
-          Object.assign(live, upd);
-          SG.afterSend(a.id, function(){ db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd)); });
+          if(r.verdict==="looks_good" && !current.done) toggleAssignment(current);
+          Object.assign(current, upd);
+          db.doc("assignments/"+a.id).update(Object.assign({aiCheck:saved}, upd));
         } else db.doc("assignments/"+a.id).update({aiCheck:saved});
+        });
       });
     });
   });
