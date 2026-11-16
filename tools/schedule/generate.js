@@ -11,6 +11,7 @@ const fs = require('fs'), path = require('path');
 const args = {}; for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const DATA = args.data, OUT = args.out, START = args.start || '2026-11-30', END = args.end || '2027-06-30';
 if (!DATA || !OUT) { console.error('need --data and --out'); process.exit(1); }
+const MOVES = args.moves ? JSON.parse(fs.readFileSync(path.resolve(args.moves), 'utf8')) : null;
 fs.mkdirSync(OUT, { recursive: true });
 const DAYS_OFF = [{ from: '2026-11-23', to: '2026-11-27', label: 'Thanksgiving week' }, { from: '2026-12-21', to: '2027-01-08', label: 'Winter break' }];
 const html = fs.readFileSync(path.resolve(__dirname, '../../index.html'), 'utf8');
@@ -80,6 +81,14 @@ function build(kid) {
   const rows = JSON.parse(fs.readFileSync(path.join(DATA, 'assignments_' + kid + '.json'), 'utf8'));
   const live = rows.filter(r => r.review_status !== 'retired');
   const plan = { kid, start: START, end: END, moves: [], keeps: [], holds: [], old: [], gaps: [], notes: [], byDay: {} };
+  // Mom's decisions (--moves <file>): give a lesson a new date BEFORE planning. Only a lesson that is not started or done; anything else is refused and reported.
+  plan.overrides = [];
+  ((MOVES && MOVES[kid]) || []).forEach(o => {
+    const r = live.find(x => x.id === o.id);
+    if (!r) { plan.overrides.push({ id: o.id, ok: false, why: 'lesson not found' }); return; }
+    if (r.done || hasWork(r)) { plan.overrides.push({ id: o.id, title: r.title, ok: false, why: 'started or done, not moved' }); return; }
+    plan.overrides.push({ id: o.id, title: r.title, ok: true, from: r.date, to: o.to, why: o.why }); r.date = o.to;
+  });
   const doneReviewOf = new Set(live.filter(r => r.done && r.review_of).map(r => r.review_of));
   const movable = [];
   // repeats: same subject + same title as a lesson already done (ignoring emoji and a "Boss Battle" / "Game Day" tag); parked in holds, never deleted
@@ -161,6 +170,7 @@ plans.forEach(p => {
   lines.push('placed: ' + p.moves.length + ' lessons (' + p.changed + ' get a new date); kept as dated: ' + p.keeps.length + '; held back: ' + p.holds.length + '; old unfinished before ' + START + ': ' + p.old.length + '; not placed by ' + END + ': ' + p.leftOver.length + ' ' + JSON.stringify(leftBy));
   p.holds.filter(h => h.repeat).forEach(h => lines.push('  REPEAT held: ' + h.date + ' ' + h.subject + ' | ' + h.title + '  <- ' + h.why));
   const cb = {}; p.conflicts.forEach(c => { cb[c.type] = (cb[c.type] || 0) + 1; });
+  (p.overrides || []).forEach(o => lines.push('MOM MOVE ' + (o.ok ? 'applied' : 'REFUSED (' + o.why + ')') + ': ' + (o.title || o.id) + (o.ok ? ' ' + o.from + ' -> ' + o.to : '')));
   lines.push('CONFLICTS in the proposed schedule: ' + p.conflicts.length + (p.conflicts.length ? ' ' + JSON.stringify(cb) + ' (' + p.conflicts.filter(c => c.needsMom).length + ' involve work that keeps its date or is started/done: Mom decides, nothing is moved)' : ' (none)'));
   p.conflicts.slice(0, 40).forEach(c => lines.push('  CONFLICT ' + c.iso + ' [' + c.type + '] ' + c.msg + ' | ' + c.items.map(i => i.src + ': ' + String(i.title).slice(0, 50)).join(' ; ')));
   if (p.conflicts.length > 40) lines.push('  ... and ' + (p.conflicts.length - 40) + ' more in plan_' + p.kid + '.json');

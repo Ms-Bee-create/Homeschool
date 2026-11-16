@@ -1,0 +1,37 @@
+{
+  "_about": "Mom's decisions of 15 Nov 2026 on the six conflicts. Each entry gives a lesson a new date BEFORE planning. Matched by id, only if the lesson is not started or done. Reviewed by Mom before anything is applied.",
+  "kid1": [
+    {
+      "id": "9811650f-ffa0-4f69-9f5a-ec8cc97da8c9",
+      "to": "2026-12-07",
+      "why": "Shop Friday was not meant for a Friday; project goes on a Monday"
+    },
+    {
+      "id": "455830d7-5b06-4282-9c77-40e5e20382f1",
+      "to": "2026-12-02",
+      "why": "Georgia Hero Jackie Robinson: Social Studies is Wed/Thu, first free fit"
+    },
+    {
+      "id": "13780bd4-8dcb-4696-a45f-5a288dbc5c46",
+      "to": "2026-12-09",
+      "why": "Mom: Wed 9 Dec"
+    },
+    {
+      "id": "ccbb0beb-6998-439a-bf95-51425e3af08c",
+      "to": "2026-12-10",
+      "why": "Mom: Thu 10 Dec"
+    },
+    {
+      "id": "6b48a1a9-561f-4148-999b-734916ee6e2b",
+      "to": "2027-01-20",
+      "why": "Book Adventurer 4 after Book Adventurer 3 (one Reading lesson a day)"
+    }
+  ],
+  "kid2": [
+    {
+      "id": "fb1d6530-c78c-407a-bc30-5d42093b7b92",
+      "to": "2026-12-03",
+      "why": "Mom approved: Stopwatch Stats to Thu 3 Dec (no Friday project)"
+    }
+  ]
+}
