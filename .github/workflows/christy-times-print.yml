@@ -1,0 +1,39 @@
+name: Christy Times morning print
+on:
+  schedule:
+    # 12:00 and 13:00 UTC, weekdays. The script only sends when it is 8am in New York, so daylight saving needs no edits.
+    - cron: '0 12 * * 1-5'
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'test = email a copy to your own inbox; print = send to the printer now'
+        type: choice
+        options: [test, print]
+        default: test
+permissions:
+  contents: read
+concurrency:
+  group: christy-times-print
+  cancel-in-progress: false
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install helpers
+        run: npm install --no-save --no-audit --no-fund playwright-core@1.49.1 nodemailer@6.9.16
+      - name: Make and send the paper
+        env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'scheduled' }}
+          APP_EMAIL: ${{ secrets.APP_EMAIL }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          PRINT_TO: ${{ secrets.PRINT_TO }}
+          TEST_TO: ${{ secrets.TEST_TO }}
+        run: node tools/christy-mail/send.js

@@ -37388,7 +37388,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-16.3";
+var APP_BUILD = "2026-11-16.4";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
@@ -37568,6 +37568,12 @@ document.getElementById("loginForm").addEventListener("submit", function(e){
   });
 });
 tryRestoreSession();
+/* Morning print job only (?christyprint=1): lets the scheduled job read the finished paper. It returns null until today's lessons have loaded. Does nothing on a normal visit. */
+if(/[?&]christyprint=1(&|$)/.test(location.search)){
+  window.__christyPrint = function(){
+    try{ if(!state || !state.assignments || !Object.keys(state.assignments).length) return null; return {html: agendaHtml(), iso: todayISO()}; }catch(e){ return null; }
+  };
+}
 
 })();
 </script>
