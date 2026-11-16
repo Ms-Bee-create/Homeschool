@@ -43,6 +43,10 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   ok('the project card now points at the first five lessons', rp && rp.id === 'johnnyos' && rp.ids.length === 5 && !rp.finished, JSON.stringify(rp));
   const todayRows = J.filter(r => r.date === today);
   ok('a JohnnyOS lesson is on today (if today is a school day)', [0, 6].includes(new Date(today + 'T00:00:00').getDay()) || todayRows.length >= 1, String(todayRows.length));
+  const card = await page.evaluate(() => { const c = window.__fa.johnnyRestartCard(); return c ? c.textContent : null; });
+  ok('the Leader tab card exists with the restart button', !!card && /Restart JohnnyOS from today/.test(card), String(card));
+  const kidCard = await page.evaluate(() => { window.__fa.state.leaderUnlocked = true; const c = window.__fa.ryanProjectCard(); return c ? c.textContent : ''; });
+  ok("Ryan's own card carries no Leader restart button", !/restart JohnnyOS/i.test(kidCard));
   console.log(results.join('\n')); const bad = results.filter(r => r.startsWith('FAIL')).length;
   console.log('\njohnny-restart: ' + (results.length - bad) + ' passed, ' + bad + ' failed; page errors: ' + JSON.stringify(o.errors || []));
   await o.browser.close(); process.exit(bad ? 1 : 0);

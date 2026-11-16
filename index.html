@@ -5898,10 +5898,6 @@ function ryanProjectCard(){
       ch.textContent = "Leader: let him pick again";
       ch.onclick = function(){ var g3 = Object.assign({}, familyGoal()); g3.rp = {wins:(g3.rp && g3.rp.wins) || []}; saveFamilyGoal(g3, true); renderView(); };
       c.appendChild(ch);
-      var rj = document.createElement("button"); rj.type = "button"; rj.className = "reward-skip"; rj.style.cssText = "opacity:1;margin:8px 0 0 6px;font-size:12px;border:1px solid var(--border);padding:5px 9px";
-      rj.textContent = "Leader: restart JohnnyOS from today";
-      rj.onclick = restartJohnnyOS;
-      c.appendChild(rj);
     }
     return c;
   }
@@ -9786,6 +9782,7 @@ function renderLeaderArea(){
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
+  els.view.appendChild(johnnyRestartCard());
   els.view.appendChild(whatTheyKnowCard());
   els.view.appendChild(ahgTrackerCard());
   els.view.appendChild(tlTrackerCard());
@@ -30501,6 +30498,16 @@ function agoText(iso){
   var m = Math.round((Date.now()-new Date(iso).getTime())/60000);
   return m<2 ? "just now" : m<90 ? m+" min ago" : m<2880 ? Math.round(m/60)+" hours ago" : Math.round(m/1440)+" days ago";
 }
+/* Leader tab card (16 Nov 2026): restart Ryan's JohnnyOS project from today. Lives here because opening a kid's screen locks Leader, so a Leader button on his own card never showed. */
+function johnnyRestartCard(){
+  var wrap = document.createElement("div"); wrap.className = "card"; wrap.style.marginBottom = "10px";
+  var h = document.createElement("div"); h.style.cssText = "font-weight:700"; h.textContent = "Ryan: restart JohnnyOS from today";
+  var n = document.createElement("div"); n.className = "muted"; n.style.cssText = "font-size:12.5px;margin:6px 0 8px";
+  n.textContent = "Puts every JohnnyOS lesson back to not done, clears his saved work and Quick Check scores on them, and schedules one per school day starting today. Other lessons are not touched. A copy of the old state is kept on this device.";
+  var b = document.createElement("button"); b.type = "button"; b.className = "primary-btn"; b.textContent = "Restart JohnnyOS from today"; b.onclick = restartJohnnyOS;
+  wrap.appendChild(h); wrap.appendChild(n); wrap.appendChild(b);
+  return wrap;
+}
 function devicesCard(){
   var devs = familyGoal().devices || {}, ids = Object.keys(devs).sort(function(a,b){ return String(devs[b].at).localeCompare(String(devs[a].at)); });
   var behind = ids.filter(function(k){ return buildCmp(devs[k].b, APP_BUILD)<0; }).length;
@@ -37381,7 +37388,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-16.2";
+var APP_BUILD = "2026-11-16.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
