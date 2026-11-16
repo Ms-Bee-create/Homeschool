@@ -21,7 +21,7 @@ eq(S.parseVerdict('OK'), 'OK', 'parse OK'); eq(S.parseVerdict(' block '), 'BLOCK
 eq(S.parseVerdict('TELL_MOM'), 'TELL_MOM', 'parse tell mom'); eq(S.parseVerdict('Sure! OK'), null, 'chatty answer is not trusted'); eq(S.parseVerdict(''), null, 'empty'); eq(S.parseVerdict(undefined), null, 'undefined');
 // the warning mark must be the very same characters the old code and the Leader view use
 const kh = fs.readFileSync(path.join(fnDir, 'kidhelper/index.ts'), 'utf8');
-ok(kh.includes('`' + S.FLAG_MARK + ' ${TAG} (told to tell Mom)`'), 'FLAG_MARK matches the mark kidhelper already used');
+eq(S.flaggedTitle('X', 'TELL_MOM', ''), S.FLAG_MARK + ' X (told to tell Mom)', 'FLAG_MARK matches the mark kidhelper already used (no alert tier)');
 ok(S.isFlaggedTitle(S.flaggedTitle('T', 'BLOCK', 'x')), 'flaggedTitle is recognised'); ok(!S.isFlaggedTitle('Plain'), 'plain title is not flagged'); ok(!S.isFlaggedTitle(null), 'null title is not flagged');
 ok(S.flaggedTitle('T', 'TELL_MOM', 'x').includes('told to tell Mom'), 'tell mom title');
 const c = S.cutoffs(new Date('2026-11-12T12:00:00Z'));
@@ -166,6 +166,17 @@ for (const [name, handler, body] of [['kidhelper', khH, homeBody], ['troubleshoo
 reset(); modelText = '{"verdict":"looks_good","kidNote":"Mail me at kid@example.com","momNote":"call 555-123-4567 to talk"}';
 let rv3 = await (await tsH(req({ kidId: 'kid2', mode: 'review', assignmentTitle: 'L', work: [{ type: 'text', text: 'my answer' }] }))).json();
 ok(!/kid@example|555-123/.test(JSON.stringify(rv3)) && /\[email removed\]/.test(rv3.kidNote) && /\[phone removed\]/.test(rv3.momNote), 'review: B6 identifying text in the notes is removed before they are returned');
+// Gemini safety tiers (16 Nov 2026): log / flag / alert
+eq(S.alertTier('OK', false), 'log', 'tier: an ordinary message is log only'); eq(S.alertTier('BLOCK', false), 'flag', 'tier: an off-limits topic is flagged for Mom to see'); eq(S.alertTier('TELL_MOM', false), 'alert', 'tier: an urgent message is an alert');
+eq(S.alertTier('OK', true), 'alert', 'tier: shared personal information is an alert'); eq(S.alertTier(null, false), 'flag', 'tier: an unchecked message is flagged');
+ok(/ · ALERT\)$/.test(S.flaggedTitle('X', 'BLOCK', 'why', 'alert')) && !/ALERT/.test(S.flaggedTitle('X', 'BLOCK', 'why', 'flag')) && S.flaggedTitle('X', 'TELL_MOM', '', 'alert').startsWith(S.FLAG_MARK), 'tier: only the alert tier marks the title ALERT, and it still starts with the flag mark');
+for (const [name, handler, body] of [['kidhelper', khH, homeBody], ['troubleshoot', tsH, lessonBody]]) {
+  reset(); childV = 'TELL_MOM'; await (await handler(req(body('someone scared me')))).json(); ok(titles().some((t) => /ALERT/.test(String(t))), name + ': tier an urgent message is saved as an ALERT');
+  reset(); await (await handler(req(body('my phone is 555-123-4567')))).json(); ok(titles().some((t) => /ALERT/.test(String(t))), name + ': tier shared personal information is saved as an ALERT');
+  reset(); childV = 'BLOCK'; await (await handler(req(body('something off limits')))).json(); ok(titles().length > 0 && titles().every((t) => !/ALERT/.test(String(t))) && titles().every((t) => String(t).startsWith(S.FLAG_MARK)), name + ': tier a plain off-limits topic is flagged but is not an ALERT');
+  reset(); modelText = 'Fun plan for your volcano explosion!'; await (await handler(req(body('how do I make my volcano explosion bigger')))).json(); ok(titles().every((t) => !String(t).startsWith(S.FLAG_MARK)), name + ': tier a builder-word chat that the checker passes stays quiet (log only)');
+}
+ok(/volcano|Minecraft/i.test(S.CLASSIFIER_SYSTEM) && /Do NOT block these just for the word/.test(S.CLASSIFIER_SYSTEM) && /break into someone else's account/.test(S.CLASSIFIER_SYSTEM), 'checker instructions: builder words in a game, science demo or programming are OK, real hazards stay blocked');
 // (4) urgent Tell-Mom stays Tell-Mom even if the checker cannot judge the reply
 reset(); modelText = '[[TELL_MOM]] Please tell Mom.'; helperV = 'maybe'; rr = await (await khH(req(homeBody('I feel sad')))).json();
 eq(rr.reply, S.CANNED.TELL_MOM, 'kidhelper: B6 an urgent Tell-Mom reply is never swallowed by an unclear checker answer'); ok(titles().some((t) => String(t).includes('told to tell Mom')), 'kidhelper: B6 and it is flagged as tell-Mom');

@@ -116,7 +116,7 @@ Never invent details you cannot see. Reply with ONLY JSON: {"verdict":"looks_goo
     const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child");
     /* Identifying text is already replaced and still goes through this check, so an urgent message that also has a phone number or address keeps its Tell-Mom reply. Nothing goes to any provider either way. */
     const stop = inputStop(inV, prep.piiShared);
-    if (stop) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", stop.verdict, stop.why), stop.canned);
+    if (stop) return saveStop(flaggedTitle(lessonTitle ?? "Lesson help", stop.verdict, stop.why, stop.tier), stop.canned);
 
     const lessonSystem = kidId === "kid1"
       ? `You are a kind, playful fairy helper for Anna, a 7-year-old in 2nd grade. Use short, simple words and 1-3 short sentences. Cheer her on. Be warm and encouraging.`
@@ -168,7 +168,7 @@ Rules:
     const route = outputRoute(outV, false);
     if (route.held) {
       reply = route.reply!;
-      chatTitle = route.urgent ? flaggedTitle(lessonTitle ?? "Lesson help", "TELL_MOM", "") : flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker");
+      chatTitle = route.urgent ? flaggedTitle(lessonTitle ?? "Lesson help", "TELL_MOM", "", "alert") : flaggedTitle(lessonTitle ?? "Lesson help", "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker");
     }
     reply = redactPII(reply).text;   // what the child sees is redacted exactly like what is saved
 

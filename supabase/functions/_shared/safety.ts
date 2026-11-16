@@ -10,6 +10,13 @@ export const FLAG_MARK = "⚠️";
 export const UNCHECKED_MARK = " (unchecked)"; // added to a chat's title when the checker could not be reached, so Mom can tell
 
 export type Verdict = "OK" | "BLOCK" | "TELL_MOM";
+/** What a grown-up needs to know and how fast. "log": nothing unusual, saved quietly. "flag": Mom sees it in the chat log next time she looks. "alert": real-time, goes to the phone alert route when that exists (urgent Tell-Mom, shared personal information). */
+export type Tier = "log" | "flag" | "alert";
+export function alertTier(v: Verdict | null, piiShared: boolean): Tier {
+  if (v === "TELL_MOM" || piiShared) return "alert";
+  if (v === "BLOCK" || v === null) return "flag";
+  return "log";
+}
 
 export const CANNED: Record<string, string> = {
   BLOCK: "That is not something I can help with. Ask Mom or Dad! Want to try something fun and safe instead?",
@@ -23,7 +30,7 @@ export const CANNED: Record<string, string> = {
 /** The checker reads the whole current message and the whole reply. Anything longer than this is NOT cut: it is refused (fail closed). */
 export const MAX_CHECK_CHARS = 6000;
 
-const CLASSIFIER_SYSTEM = `You are a safety checker for a learning app used by children ages 7 to 10. You read ONE piece of text and answer with exactly one word: OK, BLOCK or TELL_MOM. Nothing else.
+export const CLASSIFIER_SYSTEM = `You are a safety checker for a learning app used by children ages 7 to 10. You read ONE piece of text and answer with exactly one word: OK, BLOCK or TELL_MOM. Nothing else.
 
 The text comes either from a CHILD or from the HELPER (an AI that talks to the child).
 
@@ -35,6 +42,8 @@ For text from a CHILD:
 For text from the HELPER, answer only OK or BLOCK:
 - BLOCK: the helper gives anything not for children (the list above), asks the child for personal information, tells the child to keep a secret from parents, suggests meeting a stranger or chatting with strangers, or tells the child to download, install, buy or sign up for something WITHOUT a grown-up.
 - OK: everything else. A gentle reply that tells the child to go tell Mom or Dad is OK. Telling the child to ask a grown-up to download, install or update something for a lesson is OK.
+
+Builder words are OK when the context is clearly a game, a science demo, a story, a craft or programming the child is doing: "explosion" in a volcano or baking-soda demo, TNT, creepers or cannons in Minecraft, a catapult or "weapon" in a history or building project, "hack" meaning to fix or tweak code or a game level the child made, "bomb" in a bath bomb or a game, "fire" in a campfire story. Do NOT block these just for the word. They stay BLOCK when the child wants real instructions to hurt a person or animal, make a real explosive or weapon, break into someone else's account or device, or do something truly dangerous at home.
 
 These are always OK in either direction: school subjects, history (including wars and hard events told for children), Minecraft, computers, and the child's virtual machine projects (downloading or installing VirtualBox, disk image or ISO files with a grown-up, installing old operating systems, QBasic, formatting or erasing a VIRTUAL disk, kill a process, crash, boot, attack in a game), crafts, and feelings like bored or nervous.
 
@@ -48,12 +57,13 @@ export function parseVerdict(text: string): Verdict | null {
 
 /** Input side, shared by both kid-facing functions. The checker ALWAYS reads the (redacted) message first, so an urgent disclosure is never lost because it also contained identifying details.
  *  Returns null when the message may go on to the helper. */
-export function inputStop(inV: Verdict | null, piiShared: boolean): { canned: string; verdict: Verdict; why: string } | null {
+export function inputStop(inV: Verdict | null, piiShared: boolean): { canned: string; verdict: Verdict; why: string; tier: Tier } | null {
+  const tier = alertTier(inV, piiShared);
   const pii = piiShared ? " and shared personal information, text removed" : "";
-  if (inV === null) return { canned: CANNED.UNCHECKED, verdict: "BLOCK", why: "could not be checked, helper not used" + (piiShared ? "; also shared personal information, text removed" : "") };
-  if (inV === "TELL_MOM") return { canned: CANNED.TELL_MOM, verdict: "TELL_MOM", why: "told to tell Mom" + (piiShared ? "; also shared personal information, text removed" : "") };
-  if (inV === "BLOCK") return { canned: CANNED.BLOCK, verdict: "BLOCK", why: "off-limits topic, caught by the checker" + pii };
-  if (piiShared) return { canned: CANNED.PII, verdict: "BLOCK", why: "shared personal information, text removed" };
+  if (inV === null) return { canned: CANNED.UNCHECKED, verdict: "BLOCK", tier, why: "could not be checked, helper not used" + (piiShared ? "; also shared personal information, text removed" : "") };
+  if (inV === "TELL_MOM") return { canned: CANNED.TELL_MOM, verdict: "TELL_MOM", tier, why: "told to tell Mom" + (piiShared ? "; also shared personal information, text removed" : "") };
+  if (inV === "BLOCK") return { canned: CANNED.BLOCK, verdict: "BLOCK", tier, why: "off-limits topic, caught by the checker" + pii };
+  if (piiShared) return { canned: CANNED.PII, verdict: "BLOCK", tier, why: "shared personal information, text removed" };
   return null;
 }
 
@@ -137,8 +147,9 @@ export async function classify(apiKey: string, model: string, text: string, from
   }
 }
 
-export function flaggedTitle(base: string | null, v: Verdict, whyShort: string): string {
-  return `${FLAG_MARK} ${base ?? "Helper"} (${v === "TELL_MOM" ? "told to tell Mom" : whyShort})`;
+export function flaggedTitle(base: string | null, v: Verdict, whyShort: string, tier?: Tier): string {
+  /* "ALERT" in the title is what a phone alert route (not built yet) will look for. The title still starts with the flag mark, so the Leader chat log shows it the same way. */
+  return `${FLAG_MARK} ${base ?? "Helper"} (${v === "TELL_MOM" ? "told to tell Mom" : whyShort}${tier === "alert" ? " · ALERT" : ""})`;
 }
 
 export function isFlaggedTitle(t: string | null | undefined): boolean {

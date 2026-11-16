@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
     const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child");
     /* If the child also typed a phone number, email, address, school or full name, that text is already replaced and still goes through this check, so an urgent message is never lost; nothing goes to any provider either way. */
     const stop = inputStop(inV, prep.piiShared);
-    if (stop) return saveStop(flaggedTitle(TAG, stop.verdict, stop.why), stop.canned);
+    if (stop) return saveStop(flaggedTitle(TAG, stop.verdict, stop.why, stop.tier), stop.canned);
 
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     if (route.held) { reply = route.reply!; held = true; }
     reply = redactPII(reply).text;   // what the child sees is redacted exactly like what is saved
 
-    const title = (held && !route.urgent) ? flaggedTitle(TAG, "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker") : route.urgent ? `⚠️ ${TAG} (told to tell Mom)` : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
+    const title = (held && !route.urgent) ? flaggedTitle(TAG, "BLOCK", outV === null ? "reply could not be checked, held back" : "reply held back by the checker") : route.urgent ? flaggedTitle(TAG, "TELL_MOM", "", "alert") : blocked ? `⚠️ ${TAG} (off-limits topic)` : TAG;
     await supa.from("al_ai_chats").insert([
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "user", content: lastFull },
       { household_id: householdId, kid_id: kidId, assignment_title: title, role: "assistant", content: reply },
