@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Notification test</title>
+<style>body{font:18px system-ui;max-width:30rem;margin:2rem auto;padding:0 1rem}button{font:inherit;padding:.7rem 1rem;margin:.3rem 0;display:block;width:100%}#log{white-space:pre-wrap;background:#eee;padding:.6rem;margin-top:1rem}</style></head>
+<body>
+<h1>Notification test</h1>
+<p>A private test page. It sends nothing to any server. Tap 1, allow it, then tap 2.</p>
+<button id="b1">1. Allow notifications</button>
+<button id="b2">2. Show a test notification now</button>
+<button id="b3">3. Show one in 20 seconds (lock the phone, or switch to another tab)</button>
+<div id="log"></div>
+<script>
+var log=function(t){document.getElementById('log').textContent+=t+'\n'};
+log('Notification support: '+('Notification' in window)+' | secure page: '+window.isSecureContext+' | current permission: '+(window.Notification?Notification.permission:'n/a'));
+function show(){
+  var o={body:'Check the log. (Test only.)',tag:'forge-test'};
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('notify-test-sw.js').then(function(){return navigator.serviceWorker.ready}).then(function(r){return r.showNotification('Forge Academy test',o)}).then(function(){log('Shown through the service worker.')}).catch(function(e){log('Service worker failed: '+e.message);try{new Notification('Forge Academy test',o);log('Shown directly.')}catch(e2){log('Direct failed: '+e2.message)}});
+  } else { try{new Notification('Forge Academy test',o);log('Shown directly.')}catch(e){log('Direct failed: '+e.message)} }
+}
+document.getElementById('b1').onclick=function(){Notification.requestPermission().then(function(p){log('Permission: '+p)})};
+document.getElementById('b2').onclick=show;
+document.getElementById('b3').onclick=function(){log('Waiting 20 seconds...');setTimeout(show,20000)};
+</script></body></html>
