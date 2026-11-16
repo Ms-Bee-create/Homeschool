@@ -8664,7 +8664,7 @@ function renderLessonDetail(){
     var aiWrap = document.createElement("div");
     aiWrap.style.cssText = "margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--border)";
     aiWrap.innerHTML = '<div style="font-weight:700;margin-bottom:4px">💬 Ask the helper</div>'+
-      '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Tell me what you see on the screen (the exact words help!). I\'ll walk you through it one step at a time. Your leader can read this chat.</div>';
+      '<div class="muted" style="font-size:12.5px;margin-bottom:8px">Tell me what you see on the screen (the exact words help!). I\'ll walk you through it one step at a time. I am a computer helper, not a person. Your leader can read this chat.</div>';
     var aiLog = document.createElement("div");
     aiLog.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
     var aiRow = document.createElement("div");
@@ -8762,8 +8762,8 @@ function renderLessonDetail(){
     hDet.appendChild(hSum);
     var hNote = document.createElement("div");
     hNote.className = "muted"; hNote.style.cssText = "font-size:12.5px;margin:8px 0";
-    hNote.textContent = isAnna ? "Type or tap the mic and tell me what is tricky. I will give you a hint! Your leader can read this chat."
-                               : "Type or tap the mic and tell me where you are stuck. I will give hints, not answers. Your leader can read this chat.";
+    hNote.textContent = isAnna ? "Type or tap the mic and tell me what is tricky. I will give you a hint! I am a computer helper, not a real person. Your leader can read this chat."
+                               : "Type or tap the mic and tell me where you are stuck. I will give hints, not answers. I am a computer helper, not a person. Your leader can read this chat.";
     hDet.appendChild(hNote);
     var hLog = document.createElement("div");
     hLog.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
@@ -30253,8 +30253,8 @@ function kidHelperCard(kidId){
   sum.textContent = isAnna ? "🧚 Ask your fairy anything" : "📎 Ask Clippy anything";
   det.appendChild(sum);
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
-  note.textContent = isAnna ? "I can help with a card, a gift idea, a letter to your pen pal, or something you are curious about. Mom and Dad can read our chat!"
-                            : "Ask me about a project, an idea, or something you are curious about. Mom and Dad can read our chat.";
+  note.textContent = isAnna ? "I can help with a card, a gift idea, a letter to your pen pal, or something you are curious about. I am a computer helper, not a real person. Mom and Dad can read our chat!"
+                            : "Ask me about a project, an idea, or something you are curious about. I am a computer helper, not a person. Mom and Dad can read our chat.";
   det.appendChild(note);
   var log = document.createElement("div"); log.style.cssText = "display:flex;flex-direction:column;gap:6px;margin-bottom:8px";
   function bubble(role, text){
