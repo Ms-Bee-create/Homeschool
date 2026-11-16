@@ -5845,6 +5845,32 @@ function rpPick(proj){
   toast("Locked in: "+proj.name+"! Finish it this week.");
   renderView();
 }
+/* Leader only (16 Nov 2026): start Ryan's JohnnyOS project over. All 20 lessons go back to not done with their saved work, Quick Check scores and review notes cleared, and are scheduled one per school day starting today
+   (the day numbers the project was written with). The old state of every lesson is kept in this browser (al_johnny_restart_backup) in case something looks wrong. Nothing else is touched. */
+function restartJohnnyOS(){
+  if(!db){ toast("Not connected yet. Try again in a moment."); return; }
+  var titles = RYAN_JOHNNY_BUILD.map(function(x){ return x.title; });
+  var rows = Object.keys(state.assignments).map(function(id){ return {id:id, a:state.assignments[id]}; })
+    .filter(function(r){ return r.a.kidId==="kid2" && r.a.skillId==="ryan-linux-birthday-build" && titles.indexOf(r.a.title)>=0; });
+  if(!rows.length){ toast("No JohnnyOS lessons found."); return; }
+  if(!window.confirm("Start JohnnyOS over from today for Ryan? All "+rows.length+" lessons go back to not done and his saved work and Quick Check scores for them are cleared. A copy is kept on this device.")) return;
+  var backup = rows.map(function(r){ var a = r.a; return {id:r.id, date:a.date, done:a.done, doneAt:a.doneAt||null, quizScore:a.quizScore==null?null:a.quizScore, quizTotal:a.quizTotal==null?null:a.quizTotal, quizRetryUsed:!!a.quizRetryUsed, reviewStatus:a.reviewStatus||null, reviewNote:a.reviewNote||null, workBlocks:a.workBlocks||null, submission:a.submission||null, screenshotUrl:a.screenshotUrl||null, submittedAt:a.submittedAt||null}; });
+  try{ localStorage.setItem("al_johnny_restart_backup", JSON.stringify({at:new Date().toISOString(), rows:backup})); }catch(e){}
+  var start = new Date(todayISO()+"T00:00:00"); while(isOffDate(start)) start.setDate(start.getDate()+1);
+  var ids = [];
+  rows.forEach(function(r){
+    var i = titles.indexOf(r.a.title), iso = isoDate(addSchoolDays(start, RYAN_JOHNNY_BUILD[i].d));
+    var upd = {date:iso, done:false, doneAt:null, quizScore:null, quizTotal:null, quizRetryUsed:false, reviewStatus:null, reviewNote:null, noteUnread:false, workBlocks:[], submittedAt:null};
+    Object.assign(r.a, upd); db.doc("assignments/"+r.id).update(upd);
+    ids.push({id:r.id, i:i});
+  });
+  ids.sort(function(x, y){ return x.i-y.i; });
+  var wk = rpWeek(), g = Object.assign({}, familyGoal());
+  g.rp = {week:wk.mon, id:"johnnyos", ids:ids.slice(0,5).map(function(x){ return x.id; }), finished:false, wins:(g.rp && g.rp.wins) || []};
+  saveFamilyGoal(g, true);
+  toast("JohnnyOS restarted from today: "+rows.length+" lessons.");
+  renderView();
+}
 var rpFinishing = false;
 function ryanProjectCard(){
   var wk = rpWeek(), g = familyGoal(), rp = g.rp || null, wins = (rp && rp.wins) || [];
@@ -5872,6 +5898,10 @@ function ryanProjectCard(){
       ch.textContent = "Leader: let him pick again";
       ch.onclick = function(){ var g3 = Object.assign({}, familyGoal()); g3.rp = {wins:(g3.rp && g3.rp.wins) || []}; saveFamilyGoal(g3, true); renderView(); };
       c.appendChild(ch);
+      var rj = document.createElement("button"); rj.type = "button"; rj.className = "reward-skip"; rj.style.cssText = "opacity:1;margin:8px 0 0 6px;font-size:12px;border:1px solid var(--border);padding:5px 9px";
+      rj.textContent = "Leader: restart JohnnyOS from today";
+      rj.onclick = restartJohnnyOS;
+      c.appendChild(rj);
     }
     return c;
   }
