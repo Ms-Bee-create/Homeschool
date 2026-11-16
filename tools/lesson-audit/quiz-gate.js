@@ -316,6 +316,26 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await sleep(900); const lk1 = await page.evaluate(() => ({ r: state.kids.kid2.xp || 0, a: state.kids.kid1.xp || 0 }));
   ok('B4 LEARNER: a kid switch right after the tap still pays the kid who did the check', lk1.r - lk0.r === 5 && lk1.a === lk0.a, JSON.stringify([lk0, lk1]));
 
+  /* B2 follow-up (15 Nov 2026): a help hold that must wait behind an earlier unsent copy is SHOWN, and Send again delivers both. */
+  store.al_assignments.push(mk('SB1', 'kid2', { quiz: Q(3), quiz_retry: Q(3), quiz_score: 0, quiz_total: 3 }));
+  await sync(); await open('SB1');
+  const sgBox = () => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('al_outbox_v1') || '[]'); } catch (e) { return null; } });
+  const untilT = async (fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < (ms || 8000)) { if (await fn()) return true; await sleep(150); } return false; };
+  o.net.failWrites = true;
+  await page.evaluate(() => window.db.doc('assignments/SB1').update({ workBlocks: [{ type: 'text', text: 'Earlier unsent work' }] }));
+  ok('B2 STUCK: the earlier copy reaches "did not send yet"', await untilT(async () => { const b = (await sgBox()).filter(e => e.id === 'SB1'); return b.length && b.every(e => e.status === 'needs_attention'); }, 25000), JSON.stringify(await sgBox()));
+  await page.evaluate(() => window.db.doc('assignments/SB1').update({ workBlocks: [{ type: 'text', text: 'Fixed after it was sent back' }], reviewStatus: null, reviewNote: null }));   // a sent-back lesson being fixed starts a new round, so the next copy is separate from the stuck one
+  await page.evaluate(() => window.db.doc('assignments/SB1').update({ quizRetryUsed: true, reviewStatus: 'flagged', reviewNote: "Needs a grown-up's help: every Quick Check answer was wrong, twice. Please sit with this one." }));
+  await sleep(500);
+  const chipTxt = await page.evaluate(() => (document.getElementById('sgStatus') || {}).textContent || '');
+  ok('B2 STUCK: the status says a request for a grown-up is waiting behind the unsent copy, with Send again', /request for a grown-up is waiting/.test(chipTxt) && /Send again/.test(chipTxt), chipTxt);
+  const blockedLeader = await page.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; state.tab = 'leader'; window.__fa.renderView(); const c = document.getElementById('sgLeaderCard'); return c ? c.textContent : ''; });
+  ok('B2 STUCK: the Leader card names the waiting help request', /help request is waiting behind an earlier copy/.test(blockedLeader), blockedLeader.slice(0, 300));
+  ok('B2 STUCK: nothing reached the server while it is stuck', !srv('SB1').review_status && srv('SB1').work_blocks == null, JSON.stringify([srv('SB1').review_status, srv('SB1').work_blocks]));
+  o.net.failWrites = false; await page.evaluate(() => window.__fa.SG.retryNow());
+  ok('B2 STUCK: after Send again both copies are delivered and the hold reaches the server', await untilT(async () => srv('SB1').review_status === 'flagged' && Array.isArray(srv('SB1').work_blocks) && (await sgBox()).filter(e => e.id === 'SB1').length === 0, 15000), JSON.stringify([srv('SB1').review_status, srv('SB1').work_blocks, await sgBox()]));
+  await page.evaluate(() => { state.leaderUnlocked = false; state.leaderMode = false; });
+
   /* B3 (14 Nov 2026): the helper's automatic approval must follow the Quick Check rule (1-2 question checks need all right), and must re-check the lesson after the helper answers.
      The sweep runs on a pretend Tuesday 10:00 and the helper is answered by the test (always "looks good"); nothing reaches the real helper. */
   const nowB3 = new Date().toISOString();

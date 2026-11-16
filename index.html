@@ -11444,7 +11444,10 @@ var SG = (function(){
   function statusText(){
     var n = unsent().length; if(!n) return null;
     if(memOnly) return {txt:"💾 Saved in this window only. Please keep this page open until it sends.", again:false};
-    if(unsent().some(function(x){ return x.status==="needs_attention"; })) return {txt:"💾 Saved on this device, but it has not sent yet.", again:true};
+    if(unsent().some(function(x){ return x.status==="needs_attention"; })){
+      var held = box.some(function(x,i){ return x.status==="queued" && waitsForHoldOrder(x,i); });   // a grown-up help request that must wait its turn behind an earlier copy
+      return {txt:"💾 Saved on this device, but it has not sent yet."+(held ? " A request for a grown-up is waiting behind it." : ""), again:true};
+    }
     if(typeof navigator!=="undefined" && navigator.onLine===false) return {txt:"💾 Saved on this device. It will send when you are back online.", again:false};
     return {txt:"💾 Saved on this device · sending…", again:false};
   }
@@ -11482,7 +11485,8 @@ var SG = (function(){
       var left = document.createElement("div"); left.style.flex = "1";
       var state2 = e.status==="gone" ? "Could not be sent: that lesson no longer exists. Tap Hide to clear it."
         : e.status==="refused" ? "Not saved: this lesson was already approved, so this copy was kept out of the record."
-        : e.status==="needs_attention" ? "Did not send yet. Tap Send again." : "Waiting to send.";
+        : e.status==="needs_attention" ? "Did not send yet. Tap Send again."
+        : waitsForHoldOrder(e, box.indexOf(e)) ? "A grown-up help request is waiting behind an earlier copy that did not send. Tap Send again and both will go." : "Waiting to send.";
       left.innerHTML = "<b>" + escapeHtml(d.who ? d.who + ": " : "") + escapeHtml(d.title) + "</b><br><span class='muted'>" + escapeHtml(state2) + "</span>";
       row.appendChild(left);
       var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip";
