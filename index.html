@@ -3143,13 +3143,15 @@ function renderSchoolDone(kidId){
     '<div style="font-size:16px;line-height:1.5;max-width:520px;margin:0 auto 6px">'+
       (anna ? "You worked so hard. Your brain needs a rest from the screen now." : "Good work today. Your brain does its best thinking after a break from the screen.")+'</div>'+
     (left ? '<div class="muted" style="font-size:14px;margin-bottom:6px">'+left+' thing'+(left===1?"":"s")+' will be waiting for you. No stress, you can start there next time.</div>' : '')+
-    '<div class="section-title" style="text-align:left">Pick something screen-free</div>'+
+    '<button class="primary-btn" id="sdWorld" type="button" style="margin:6px 0 10px">'+(anna ? "🚪 Open My Garden School" : "🗺️ Open Forge World")+'</button>'+
+    '<div class="section-title" style="text-align:left">Or pick something screen-free</div>'+
     '<div class="ideas" style="text-align:left">'+ideas.map(function(i){ return '<div class="idea"><small>'+escapeHtml(i.tag)+'</small>'+escapeHtml(i.text)+'</div>'; }).join("")+'</div>'+
     '<button class="primary-btn" id="sdMore" type="button" style="margin-top:14px">Show me different ideas</button>'+
     '<div class="muted" style="margin-top:14px;font-size:13px">Want more learning time? Ask Mom or Dad. They can add extra time.</div>';
   var knd = kidNotesCard(kidId); if(knd){ knd.style.marginTop = "12px"; els.view.appendChild(knd); }
   els.view.appendChild(wrap);
   wrap.querySelector("#sdMore").onclick = function(){ renderSchoolDone(kidId); };
+  wrap.querySelector("#sdWorld").onclick = function(){ state.world = true; renderView(); };
   if(sdOn()){ var sdc = sdClock(); if(sdc.mins>=SD_END_WORK && sdc.mins<885) wrap.appendChild(sdPingPanel(kidId)); }   // hour two: "Ping the school"
   var khd = kidHelperCard(kidId); if(khd){ khd.style.marginTop = "12px"; els.view.appendChild(khd); }
 }
@@ -4241,7 +4243,7 @@ function renderViewCore(){
   syncTabs();
   if(state.leaderMode){ cleanupMiniGame(); return renderLeaderArea(); }
   petViewTip(state.lessonDetailId!=null ? "lesson" : (state.quiz||state.miniGame) ? "game" : state.tab);
-  if(planIsOver(state.activeKid) && !(state.noteOverride && state.lessonDetailId!=null)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
+  if(planIsOver(state.activeKid) && !(state.noteOverride && state.lessonDetailId!=null) && !(state.world && state.lessonDetailId==null)){ cleanupMiniGame(); return renderSchoolDone(state.activeKid); }
   if(state.lore && state.activeKid==="kid2") return renderLore();
   if(state.world && state.lessonDetailId==null) return renderWorld();
   updateFocusModeTabVisibility();
@@ -37388,7 +37390,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-16.5";
+var APP_BUILD = "2026-11-16.6";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
