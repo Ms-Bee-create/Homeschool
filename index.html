@@ -29137,13 +29137,17 @@ function agendaGrownUp(){
   if(waiting) out.push(waiting+" piece"+(waiting>1?"s":"")+" of finished work waiting for your review.");
   return out;
 }
-/* "Who needs a hand": the last 14 days of Quick Check results under the pass bar and lessons sent back, grouped by subject, for each kid. A hint for the grown-up, never a grade and never shown to the kids. */
+/* The Quick Check pass bar, the same rule the lesson gate uses: 1-2 questions need 1 right, longer checks need 66% rounded up (3 -> 2, 4 -> 3, 5 -> 4, 6 -> 4). When the gate code is in this build it is used directly, so the two can never drift apart. */
+function agendaQuizNeeded(total){ return typeof quizNeeded==="function" ? quizNeeded(total) : ((total||0) <= 2 ? 1 : Math.ceil(total * 0.66 - 1e-9)); }
+/* "Who needs a hand": the 14 days ending today (today and the 13 days before it), by the day the work was DONE (the scheduled date if it is not done yet), Quick Check results under the pass bar and lessons sent back, grouped by subject, for each kid.
+   A hint for the grown-up, never a grade. It is on its own Grown-Up Page, not on the paper the kids read. */
 function agendaNeedsHand(){
-  var iso = todayISO(), d0 = new Date(iso+"T00:00:00"); d0.setDate(d0.getDate()-14); var from = isoDate(d0), by = {kid1:{}, kid2:{}};
+  var iso = todayISO(), d0 = new Date(iso+"T00:00:00"); d0.setDate(d0.getDate()-13); var from = isoDate(d0), by = {kid1:{}, kid2:{}};
   Object.keys(state.assignments).forEach(function(id){
     var a = state.assignments[id];
-    if(a.reviewStatus==="retired" || !by[a.kidId] || !a.date || a.date<from || a.date>iso) return;
-    var low = a.quizScore!=null && a.quizTotal>0 && a.quizScore < (a.quizTotal<=2 ? 1 : a.quizTotal-1), back = a.reviewStatus==="flagged";
+    var when = a.doneAt ? isoDate(new Date(a.doneAt)) : a.date;
+    if(a.reviewStatus==="retired" || !by[a.kidId] || !when || when<from || when>iso) return;
+    var low = a.quizScore!=null && a.quizTotal>0 && a.quizScore < agendaQuizNeeded(a.quizTotal), back = a.reviewStatus==="flagged";
     if(!low && !back) return;
     var sj = a.subject || "Other", s = by[a.kidId][sj] = by[a.kidId][sj] || {low:0, back:0, names:[]};
     if(low) s.low++; if(back) s.back++; if(s.names.length<2) s.names.push(a.title||"Lesson");
@@ -29153,7 +29157,7 @@ function agendaNeedsHand(){
     return {name:kidData(k).name||"Scholar", subs:subs};
   });
 }
-function agendaHtml(){
+function agendaHtml(which){
   var iso = todayISO(), d = new Date(iso+"T00:00:00");
   var dateStr = d.toLocaleDateString("en-US", {weekday:"long", month:"long", day:"numeric", year:"numeric"});
   var dayNo = Math.floor((d - new Date(d.getFullYear(),0,0))/86400000);
@@ -29220,7 +29224,8 @@ function agendaHtml(){
     }).join(" · ") : 'nothing stands out.')+'</div>';
   }).join("");
   var gu = agendaGrownUp(), guHtml = gu.length ? gu.map(function(t){ return '<div class="it">☐ '+esc(t)+'</div>'; }).join("") : '<div class="it">Nothing is waiting for you today.</div>';
-  return '<!doctype html><html><head><meta charset="utf-8"><title>The Christy Times</title><style>'+
+  var nhBox = '<div class="box"><h3>Who Needs a Hand</h3>'+nhHtml+'<div class="small" style="font-style:italic;margin-top:3px">The last 2 weeks (14 days ending today). A hint to look at, not a grade.</div></div>';
+  var out = '<!doctype html><html><head><meta charset="utf-8"><title>The Christy Times</title><style>'+
    '@page{size:letter;margin:.35in}*{box-sizing:border-box}body{font:12.5px/1.38 Georgia,"Times New Roman",serif;color:#1a1a1a;margin:0;padding:.25in;background:#fbf8ef}'+
    '.top{display:flex;justify-content:space-between;font:700 10.5px/1 Georgia,serif;letter-spacing:.12em;text-transform:uppercase;border-top:3px double #1a1a1a;border-bottom:1px solid #1a1a1a;padding:4px 2px}'+
    '.mast{text-align:center;font-family:"Old English Text MT","UnifrakturMaguntia",Georgia,serif;font-size:50px;font-weight:700;line-height:1.05;margin:6px 0 0;letter-spacing:.01em}'+
@@ -29240,16 +29245,21 @@ function agendaHtml(){
    projectBox()+'<div class="box"><h3>Word of the Day</h3><div class="word">'+esc(w[0])+'</div><div class="small"><i>means</i> to '+esc(w[1])+'.</div><div class="small" style="margin-top:3px">“'+esc(w[2])+'” Use it once at breakfast!</div></div>'+
    '<div class="box"><h3>Morning Exercise</h3><div class="small">'+esc(mv[0])+'</div></div>'+
    '<div class="box"><h3>Brain Teaser</h3><div class="small">'+esc(mv[1])+'</div></div>'+
-   '<div class="box"><h3>Who Needs a Hand</h3>'+nhHtml+'<div class="small" style="font-style:italic;margin-top:3px">The last 2 weeks. A hint to look at, not a grade.</div></div>'+
    '<div class="box"><h3>Grown-Up Notices</h3>'+guHtml+'</div>'+
    '</div></div><div class="foot">The Christy Times is printed fresh every school morning at the kitchen table.</div></body></html>';
+  if(which==="grown"){
+    var gi = out.indexOf('<div class="head">'), fi = out.indexOf('<div class="foot">');
+    out = out.slice(0, gi) + '<div class="head"><h2>Grown-Up Page</h2><p>For the grown-ups only. Please keep it off the kids\' table.</p></div><div style="max-width:6.2in;margin:0 auto">'+nhBox+'<div class="box"><h3>Grown-Up Notices</h3>'+guHtml+'</div></div>' + out.slice(fi).replace("printed fresh every school morning at the kitchen table", "for the grown-ups, printed on request");
+  }
+  return out;
 }
 function openAgenda(autoPrint){
   var ov = document.createElement("div"); ov.style.cssText = "position:fixed;left:0;top:0;right:0;bottom:0;z-index:9999;background:#fff;display:flex;flex-direction:column";
   var bar = document.createElement("div"); bar.style.cssText = "display:flex;gap:10px;padding:8px 10px;background:#111a33";
-  function mk(label, fn, bg){ var b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "background:"+bg+";color:#222;border:3px solid #000;border-radius:10px;padding:5px 14px;font-weight:800;cursor:pointer;font-family:inherit"; b.onclick = fn; bar.appendChild(b); }
+  function mk(label, fn, bg){ var b = document.createElement("button"); b.type = "button"; b.textContent = label; b.style.cssText = "background:"+bg+";color:#222;border:3px solid #000;border-radius:10px;padding:5px 14px;font-weight:800;cursor:pointer;font-family:inherit"; b.onclick = fn; bar.appendChild(b); return b; }
   var fr = document.createElement("iframe"); fr.style.cssText = "flex:1;border:0;width:100%"; fr.srcdoc = agendaHtml();
   mk("🖨️ Print", function(){ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Could not open the print window"); } }, "#ffd23f");
+  var showingGrown = false, gbtn = mk("Grown-up page", function(){ showingGrown = !showingGrown; fr.srcdoc = agendaHtml(showingGrown ? "grown" : ""); gbtn.textContent = showingGrown ? "Back to the paper" : "Grown-up page"; }, "#cfe8ff");
   mk("Close", function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }, "#fff");
   ov.appendChild(bar); ov.appendChild(fr); document.body.appendChild(ov);
   if(autoPrint) fr.onload = function(){ setTimeout(function(){ try{ fr.contentWindow.print(); }catch(e){} }, 400); };

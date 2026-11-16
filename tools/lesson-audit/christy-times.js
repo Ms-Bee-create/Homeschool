@@ -22,6 +22,7 @@ const DAY = '2026-11-12';
   await at('08:30'); await sync();
   const before = JSON.stringify(store.al_assignments.map(r => [r.id, r.date, r.done]));
   const html = () => page.evaluate(() => window.__fa.agendaHtml());
+  const grownHtml = () => page.evaluate(() => window.__fa.agendaHtml('grown'));
 
   /* A. times and windows */
   let t = await html();
@@ -63,7 +64,7 @@ const DAY = '2026-11-12';
   stepTwo.review_status = 'flagged'; stepTwo.review_note = 'try again';
   store.al_assignments.push(mk('kid1', 'Math', 'Anna Pick A', { choice_group: 'cgx', done: true }), mk('kid1', 'Math', 'Anna Pick B', { choice_group: 'cgx' }));
   await sync(); t = await html();
-  const cnt = x => t.slice(0, t.indexOf('Who Needs a Hand')).split(x).length - 1; // the lists and project box only; the notices may name a lesson again on purpose
+  const cnt = x => t.slice(0, t.indexOf('Grown-Up Notices')).split(x).length - 1; // the lists and project box only; the notices may name a lesson again on purpose
   ok('PARITY: a sent-back (flagged) lesson shows unticked, like Today', t.includes('\u2610 Ryan Math practice') && !t.includes('\u2611 Ryan Math practice'));
   ok('PARITY: and says it was sent back', /sent back: try again/.test(t));
   ok('PARITY: a sent-back lesson still shows exactly once', cnt('Ryan Math practice') === 1, String(cnt('Ryan Math practice')));
@@ -81,16 +82,33 @@ const DAY = '2026-11-12';
   store.al_assignments.push(mk('kid1', 'Science', 'Anna old miss', { date: '2026-10-01', quiz_score: 0, quiz_total: 3 }));  // older than 14 days: not listed
   await sync(); t = await html();
   const gu = t.slice(t.indexOf('Grown-Up Notices'));
-  const nh = t.slice(t.indexOf('Who Needs a Hand'), t.indexOf('Grown-Up Notices'));
+  const gp = await grownHtml();
+  const nh = gp.slice(gp.indexOf('Who Needs a Hand'), gp.indexOf('Grown-Up Notices'));
   ok('NOTICES: sent-back lessons are listed by kid with names', /Ryan: 2 lessons sent back/.test(gu) && gu.includes('Ryan Math practice') && gu.includes('Ryan Project step two'));
   ok('NOTICES: a kid with nothing sent back is not listed there', !/Anna: \d+ lesson/.test(gu));
-  ok('HAND: the box is on the paper', t.includes('Who Needs a Hand') && /not a grade/.test(t));
+  ok('HAND: the box is on the Grown-Up Page', gp.includes('Who Needs a Hand') && /not a grade/.test(gp) && /Grown-Up Page/.test(gp));
+  ok('HAND: and NOT on the paper the kids read', !t.includes('Who Needs a Hand'));
   ok('HAND: Anna shows ELA with one Quick Check under the bar and the lesson name', /Anna:<\/b> ELA \(1 Quick Check under the bar: Anna Reading time\)/.test(nh), nh.slice(0, 300));
   ok('HAND: Ryan shows his sent-back lessons by subject', /Ryan:<\/b>/.test(nh) && /Math \(1 sent back: Ryan Math practice\)/.test(nh) && /Independent \(1 sent back: Ryan Project step two\)/.test(nh), nh.slice(0, 400));
   ok('HAND: a 2-of-3 Quick Check is not listed', !nh.includes('Anna Math game'));
   ok('HAND: a result older than two weeks is not listed', !nh.includes('Anna old miss'));
   readRow.quiz_score = null; readRow.quiz_total = null; await sync(); t = await html();
-  ok('HAND: a kid with nothing under the bar shows "nothing stands out"', /Anna:<\/b> nothing stands out/.test(t.slice(t.indexOf('Who Needs a Hand'), t.indexOf('Grown-Up Notices'))));
+  const gp2 = await grownHtml();
+  ok('HAND: a kid with nothing under the bar shows "nothing stands out"', /Anna:<\/b> nothing stands out/.test(gp2.slice(gp2.indexOf('Who Needs a Hand'), gp2.indexOf('Grown-Up Notices'))));
+  /* B5 review fixes (15 Nov 2026): the pass bar is the Quick Check rule, and the 14 days are counted by the day the work was done */
+  const baseIso = await page.evaluate(() => window.__fa.todayISO());   // the app's own idea of today (the test may pretend a date)
+  const dayAgo = n => { const d = new Date(baseIso + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString(); };
+  const lo = (title, score, total, ago) => { const r = mk('kid2', 'Science', title, { date: '2026-10-01', quiz_score: score, quiz_total: total, done: true, done_at: dayAgo(ago) }); store.al_assignments.push(r); return r; };
+  lo('Bar 4 of 6', 4, 6, 1); lo('Bar 3 of 6', 3, 6, 1); lo('Bar 3 of 5', 3, 5, 1); lo('Bar 1 of 2', 1, 2, 1); lo('Bar 0 of 2', 0, 2, 1);
+  lo('Edge day 13', 0, 3, 13); lo('Edge day 14', 0, 3, 14);
+  await sync(); const names3 = await page.evaluate(() => window.__fa.agendaNeedsHand().find(k => k.name === 'Ryan').subs.reduce((all, x) => all.concat(x), []).map(x => x.names.join('|')).join('|')); const ryanScience = await page.evaluate(() => window.__fa.agendaNeedsHand().find(k => k.name === 'Ryan').subs.find(x => x.sj === 'Science'));
+  const sci = ryanScience ? ryanScience : { low: 0, names: [] };
+  const lowCount = async (title) => page.evaluate((tt) => { const a = Object.values(state.assignments).find(x => x.title === tt); return a; }, title);
+  const flagged = await page.evaluate(() => { const iso = window.__fa.todayISO(); const out = {}; Object.values(state.assignments).filter(a => /^(Bar|Edge)/.test(a.title)).forEach(a => { const need = (a.quizTotal || 0) <= 2 ? 1 : Math.ceil(a.quizTotal * 0.66 - 1e-9); out[a.title] = { low: a.quizScore < need, when: a.doneAt && new Date(a.doneAt).toISOString().slice(0, 10) }; }); return out; });
+  ok('HAND BAR: the pass bar rule used here says 4 of 6 passes, 3 of 6, 3 of 5 and 0 of 2 are under, 1 of 2 passes', !flagged['Bar 4 of 6'].low && flagged['Bar 3 of 6'].low && flagged['Bar 3 of 5'].low && !flagged['Bar 1 of 2'].low && flagged['Bar 0 of 2'].low, JSON.stringify(flagged));
+  ok('HAND BAR: the box counts exactly the under-the-bar Science checks (3 of 6, 3 of 5, 0 of 2) plus the two edge cases on the right side of the window', sci.low === 4, JSON.stringify(sci));
+  ok('HAND BAR: 4 of 6 and 1 of 2 are not among the listed names', !(sci.names || []).concat(names3.split('|')).some(n => n === 'Bar 4 of 6' || n === 'Bar 1 of 2'));
+  ok('HAND DAYS: work done 13 days ago counts and work done 14 days ago does not (4 = 3 of 6 + 3 of 5 + 0 of 2 + day 13)', sci.low === 4, JSON.stringify(sci));
 
   console.log(results.join('\n'));
   console.log('\n' + (results.length - failed) + ' passed, ' + failed + ' failed; page errors: ' + JSON.stringify(o.errors));
