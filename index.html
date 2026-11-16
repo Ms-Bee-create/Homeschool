@@ -714,7 +714,7 @@ body.ryan-skin .idea{border-radius:0}
 <div class="login-wrap" id="loginGate">
   <div class="login-card">
     <h1>Forge Academy</h1>
-    <p>Sign in with your Momma Money account to sync Anna &amp; Ryan's progress.</p>
+    <p>Sign in with your Momma Money account to sync your family's progress.</p>
     <form id="loginForm">
       <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" required>
       <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" required>
@@ -37388,7 +37388,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-16.4";
+var APP_BUILD = "2026-11-16.5";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
