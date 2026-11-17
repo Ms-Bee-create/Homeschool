@@ -27,6 +27,22 @@ const DAY = '2026-11-16';
     ok('paper fits on one page', pages === 1, 'pages: ' + pages);
     require('fs').writeFileSync(process.env.PDF_OUT || 'christy-mail-test.pdf', pdf);
   }
-  console.log(results.join('\n')); console.log(failed ? failed + ' FAILED' : 'ALL PASSED (' + results.length + ')');
+  /* 17 Nov re-review: signed out, the hook gives nothing (no paper without a signed-in household) */
+  await page.context().addInitScript(() => { try { localStorage.removeItem('sb-fbrnxuargsilbyyjrjop-auth-token'); } catch (e) { } });
+  await page.goto(url); await page.waitForTimeout(4000);
+  const signedOut = await page.evaluate(() => window.__christyPrint ? window.__christyPrint() : 'no hook');
+  ok('signed out: the hook returns nothing (null), not a paper', signedOut === null, JSON.stringify(signedOut).slice(0, 80));
+  /* the read-only guard used by the morning job: only reads and the password sign-in may reach the database */
+  const S = require(process.cwd() + '/tools/christy-mail/send.js');
+  const DB = 'https://fbrnxuargsilbyyjrjop.supabase.co';
+  ok('guard: reads are allowed', !S.isBlockedWrite(DB + '/rest/v1/al_assignments?select=*', 'GET'));
+  ok('guard: the password sign-in is allowed', !S.isBlockedWrite(DB + '/auth/v1/token?grant_type=password', 'POST'));
+  ok('guard: saving a lesson (PATCH) is stopped', S.isBlockedWrite(DB + '/rest/v1/al_assignments?id=eq.x', 'PATCH'));
+  ok('guard: inserting (POST) is stopped', S.isBlockedWrite(DB + '/rest/v1/al_ai_chats', 'POST'));
+  ok('guard: deleting is stopped', S.isBlockedWrite(DB + '/rest/v1/al_assignments?id=eq.x', 'DELETE'));
+  ok('guard: calling a function (POST) is stopped', S.isBlockedWrite(DB + '/functions/v1/kidhelper', 'POST'));
+  ok('guard: a token refresh is stopped', S.isBlockedWrite(DB + '/auth/v1/token?grant_type=refresh_token', 'POST'));
+  ok('guard: other sites are not touched', !S.isBlockedWrite('https://example.com/x', 'POST'));
+  console.log(results.join('\n')); console.log(failed ?failed + ' FAILED' : 'ALL PASSED (' + results.length + ')');
   await o.browser.close(); process.exit(failed ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

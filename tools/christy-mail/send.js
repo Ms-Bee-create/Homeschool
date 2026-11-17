@@ -17,6 +17,11 @@ function nyNow() {
   return { wd: g('weekday'), hour: parseInt(g('hour'), 10) % 24 };
 }
 
+/* True for any request to the database that could change data: everything except reads and the password sign-in itself. */
+exports.isBlockedWrite = function (url, method) {
+  return /supabase\.co/.test(url) && !['GET', 'HEAD', 'OPTIONS'].includes(String(method).toUpperCase()) && !/\/auth\/v1\/token\?grant_type=password/.test(url);
+};
+
 exports.renderPdf = async function (page) {
   const html = await page.evaluate(() => window.__christyPrint && window.__christyPrint());
   return html;
@@ -32,6 +37,17 @@ async function main() {
   const nodemailer = require('nodemailer');
   const browser = await chromium.launch({ channel: process.env.CHROME_CHANNEL || 'chrome' });
   const ctx = await browser.newContext({ timezoneId: 'America/New_York', locale: 'en-US', viewport: { width: 1200, height: 900 } });
+  /* Read-only (17 Nov re-review): the job may sign in and read, but it must never change the family's data. Every request to the database that is not a read
+     (the app's start-up migrations, planning, saves, function calls) is stopped here, and only the sign-in itself is allowed through. The count is logged, never the content. */
+  const blocked = [];
+  await ctx.route('**/*', route => {
+    const rq = route.request(), u = rq.url(), mth = rq.method();
+    if (exports.isBlockedWrite(u, mth)) {
+      blocked.push(mth + ' ' + new URL(u).pathname.split('/').slice(1, 3).join('/'));
+      return route.abort();
+    }
+    return route.continue();
+  });
   const page = await ctx.newPage();
   await page.goto(APP + '?christyprint=1');
   await page.fill('#loginEmail', need('APP_EMAIL'));
@@ -44,7 +60,7 @@ async function main() {
   got = await page.evaluate(() => window.__christyPrint()) || got;
   const m = got.html.match(/Two Scholars, (\d+) Lessons/);
   const lessons = m ? parseInt(m[1], 10) : -1;
-  console.log('Date ' + got.iso + ', ' + lessons + ' lessons, mode ' + MODE);
+  console.log('Date ' + got.iso + ', ' + lessons + ' lessons, mode ' + MODE + '. Database writes stopped by the read-only guard: ' + blocked.length + (blocked.length ? ' (' + [...new Set(blocked)].join(', ') + ')' : ''));
   if (lessons === 0 && MODE === 'scheduled') { console.log('No lessons today. Not printing.'); await browser.close(); return; }
   const pp = await ctx.newPage();
   await pp.setContent(got.html, { waitUntil: 'load' });
