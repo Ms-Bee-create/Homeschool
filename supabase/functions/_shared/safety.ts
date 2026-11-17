@@ -70,7 +70,7 @@ export function inputStop(inV: Verdict | null, piiShared: boolean): { canned: st
 /** Output side, shared by both kid-facing functions: what the child sees when the helper's reply is checked. An urgent Tell-Mom state (the helper said so, or the checker says so) is always the Tell-Mom reply. */
 export function outputRoute(outV: Verdict | null, urgentMarker: boolean): { held: boolean; urgent: boolean; reply: string | null } {
   const urgent = urgentMarker || outV === "TELL_MOM";
-  if (outV === "OK") return { held: false, urgent, reply: null };
+  if (outV === "OK" && !urgent) return { held: false, urgent: false, reply: null };   // the urgent marker is authoritative: an OK verdict never lets a marked reply through
   return { held: true, urgent, reply: urgent ? CANNED.TELL_MOM : outV === null ? CANNED.UNCHECKED : CANNED.BLOCK };
 }
 

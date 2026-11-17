@@ -110,9 +110,16 @@ for (const [name, handler, body] of [['kidhelper', khH, homeBody], ['troubleshoo
 
   reset(); r = await (await handler(new Request('http://x', { method: 'POST', body: JSON.stringify(body('hi')) }))).json().catch(() => ({})); eq(log.modelCalls, 0, name + ': not signed in -> nothing runs');
 }
+/* 17 Nov re-review: the urgent marker is authoritative even when the checker says OK */
+{ const r = S.outputRoute('OK', true); eq([r.held, r.urgent, r.reply], [true, true, S.CANNED.TELL_MOM], 'outputRoute: OK plus urgent marker is held and becomes the Tell-Mom reply'); }
+{ const r = S.outputRoute('OK', false); eq([r.held, r.urgent, r.reply], [false, false, null], 'outputRoute: OK without the marker passes the reply through'); }
+{ const r = S.outputRoute('TELL_MOM', false); eq([r.held, r.urgent, r.reply], [true, true, S.CANNED.TELL_MOM], 'outputRoute: checker TELL_MOM is the Tell-Mom reply'); }
+{ const r = S.outputRoute(null, true); eq([r.held, r.urgent, r.reply], [true, true, S.CANNED.TELL_MOM], 'outputRoute: unchecked plus urgent marker is still Tell-Mom'); }
+{ const r = S.outputRoute(null, false); eq([r.held, r.urgent, r.reply], [true, false, S.CANNED.UNCHECKED], 'outputRoute: unchecked is held'); }
+{ const r = S.outputRoute('BLOCK', false); eq([r.held, r.urgent, r.reply], [true, false, S.CANNED.BLOCK], 'outputRoute: BLOCK is held'); }
 // existing behaviour that must still work
 reset(); modelText = '[[TELL_MOM]] Please tell Mom.'; let rr = await (await khH(req(homeBody('I feel sad')))).json();
-ok(!/\[\[/.test(rr.reply) && rr.reply.includes('Please tell Mom'), 'kidhelper: the helper\'s own [[TELL_MOM]] marker still works and is hidden'); ok(titles().some((t) => String(t).includes('told to tell Mom')), 'kidhelper: and is still flagged');
+ok(!/\[\[/.test(rr.reply) && rr.reply === S.CANNED.TELL_MOM, 'kidhelper: the helper\'s own [[TELL_MOM]] marker is hidden and the child gets the fixed Tell-Mom reply (17 Nov: the marker is authoritative even if the checker says OK)'); ok(titles().some((t) => String(t).includes('told to tell Mom')), 'kidhelper: and is still flagged');
 reset(); modelText = '[[BLOCKED]] Not for kids.'; rr = await (await khH(req(homeBody('x')))).json(); ok(titles().some((t) => String(t).includes('off-limits topic')), 'kidhelper: the helper\'s own [[BLOCKED]] marker is still flagged');
 // review-round fixes
 reset(); helperV = 'BLOCK'; modelText = '[[TELL_MOM]] Please tell Mom.'; rr = await (await khH(req(homeBody('I feel like nobody would miss me')))).json();
