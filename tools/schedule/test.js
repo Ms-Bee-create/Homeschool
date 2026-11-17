@@ -8,12 +8,12 @@ const eq = (a, b, m) => ok(JSON.stringify(a) === JSON.stringify(b), m + ' (got '
 let n = 0;
 const L = (o) => Object.assign({ id: 'r' + (++n), date: '2026-12-01', subject: 'Math', title: 'Lesson ' + n, done: false, stage: 'teach', review_of: null, review_status: null, skill_id: 'x', created_at: '2026-11-01T00:00:00Z', work_blocks: [], submitted_at: null, submission: null }, o);
 
-function run(kid1, kid2) {
+function run(kid1, kid2, moves) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sched-test-')), out = path.join(dir, 'out');
   fs.writeFileSync(path.join(dir, 'assignments_kid1.json'), JSON.stringify(kid1));
   fs.writeFileSync(path.join(dir, 'assignments_kid2.json'), JSON.stringify(kid2));
   fs.writeFileSync(path.join(dir, 'settings.json'), '{}');
-  cp.execFileSync('node', [path.join(__dirname, 'generate.js'), '--data', dir, '--out', out, '--start', '2026-11-30', '--end', '2026-12-18'], { stdio: 'pipe' });
+  cp.execFileSync('node', [path.join(__dirname, 'generate.js'), '--data', dir, '--out', out, '--start', '2026-11-30', '--end', '2026-12-18'].concat(moves ? ['--moves', (() => { const f = path.join(dir, 'moves.json'); fs.writeFileSync(f, JSON.stringify(moves)); return f; })()] : []), { stdio: 'pipe' });
   return { k1: JSON.parse(fs.readFileSync(path.join(out, 'plan_kid1.json'), 'utf8')), k2: JSON.parse(fs.readFileSync(path.join(out, 'plan_kid2.json'), 'utf8')), summary: fs.readFileSync(path.join(out, 'summary.txt'), 'utf8') };
 }
 const dow = (iso) => new Date(iso + 'T12:00:00').getDay();
@@ -128,4 +128,16 @@ const dow = (iso) => new Date(iso + 'T12:00:00').getDay();
   ok(bm && om && bm.to < om.to, 'B7: on the same written date, the Math Book lesson is placed before other Math');
 }
 
+{
+  // 17 Nov re-review: a Mom move keeps the lesson's REAL saved date as 'from', and the report says where the lesson really ends up
+  const a = L({ subject: 'Math', title: 'Math Book, Unit 1: Ones', date: '2026-12-01' });
+  const b = L({ subject: 'Math', title: 'Math Book, Unit 1: Tens', date: '2026-12-01' });
+  const r = run([a, b], [], { kid1: [{ id: b.id, to: '2026-12-03', why: 'test' }] });
+  const mv = r.k1.moves.find((m) => m.id === b.id), ov = r.k1.overrides.find((o) => o.id === b.id);
+  ok(mv && mv.from === '2026-12-01', 'B7: moves.from is the date saved in the database, not the date after Mom move (got ' + (mv && mv.from) + ')');
+  ok(ov && ov.ok && ov.from === '2026-12-01' && ov.to === '2026-12-03', 'B7: the Mom move records the saved date and the asked date');
+  ok(ov && typeof ov.honored === 'boolean' && ov.final === (mv ? mv.to : null), 'B7: the Mom move records where the lesson really ends up (' + (ov && ov.final) + ')');
+  ok(ov.honored || r.k1.conflicts.some((c) => c.type === 'override-not-honored' && c.items.some((i) => i.id === b.id)), 'B7: if the plan puts it somewhere else, that is reported as a conflict for Mom');
+  ok(ov.honored ? /final: same day/.test(r.summary) : /FINAL:/.test(r.summary), 'B7: the summary line says whether the move was honored');
+}
 console.log('\nschedule: ' + pass + ' passed, ' + fail + ' failed'); process.exit(fail ? 1 : 0);
