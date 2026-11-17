@@ -5304,6 +5304,78 @@ function quickCheckScoresCard(){
   if(!any){ var none = document.createElement("div"); none.className = "muted"; none.style.fontSize = "13px"; none.textContent = "No Quick Checks finished in the last 14 days."; card.appendChild(none); }
   return card;
 }
+/* Leader only (17 Nov 2026, Phase A of Mom's "did it land" idea; reads only, no database change).
+   Quick Check results for the last 6 weeks, per kid, grouped by unit (the subject) and topic (the lesson set:
+   skillId, else the standard, else the start of the title). Uses the FIRST try of each check (retry results are not saved yet).
+   Not yet = the newest check in the topic missed the bar, or a grown-up help hold is open.
+   Getting there = the newest check passed but an earlier one missed. Landed = every check passed on the first try. */
+function whatLandedTopic(a){
+  if(a.skillId){
+    if(REVIEW_TOPICS[a.skillId]) return REVIEW_TOPICS[a.skillId];
+    var s = String(a.skillId).replace(/^(anna|ryan|kid1|kid2)-/i, "").replace(/^(math|sci|science|ela|ss|reading|writing)-/i, "");
+    return s.split("-").filter(Boolean).map(function(w){ return w.charAt(0).toUpperCase()+w.slice(1); }).join(" ") || String(a.skillId);
+  }
+  if(a.standard) return "Standard "+a.standard;
+  var t = String(a.title||"").replace(/^[^:]{1,20}:\s*/, "").split(/\s+-\s+/)[0].trim();
+  return t.slice(0, 40) || "Other";
+}
+function whatLandedRows(kidId, nowMs){
+  var cutoff = new Date((nowMs||Date.now()) - 42*86400000).toISOString().slice(0,10);
+  var groups = {};
+  Object.keys(state.assignments).forEach(function(id){
+    var a = state.assignments[id];
+    if(!a || a.kidId!==kidId || a.reviewStatus==="retired") return;
+    if(!(a.quizTotal>0) || a.quizScore==null) return;
+    var held = quizHelpHold(a);
+    if(!(a.done || a.quizRetryUsed || held)) return;
+    var when = String(a.doneAt || a.submittedAt || a.date || "").slice(0,10);
+    if(!when || when < cutoff) return;
+    var unit = a.subject || "Other", topic = whatLandedTopic(a), key = unit+"\u0001"+topic;
+    var g = groups[key] || (groups[key] = {unit: unit, topic: topic, checks: []});
+    g.checks.push({when: when, pass: quizPassed(a.quizScore, a.quizTotal), held: held});
+  });
+  var rank = {notyet:0, getting:1, landed:2};
+  return Object.keys(groups).map(function(k){
+    var g = groups[k];
+    g.checks.sort(function(x,y){ return x.when<y.when ? -1 : x.when>y.when ? 1 : 0; });
+    var last = g.checks[g.checks.length-1];
+    g.passed = g.checks.filter(function(c){ return c.pass; }).length;
+    g.last = last.when;
+    g.status = (!last.pass || g.checks.some(function(c){ return c.held; })) ? "notyet" : (g.passed===g.checks.length ? "landed" : "getting");
+    return g;
+  }).sort(function(x,y){ return (rank[x.status]-rank[y.status]) || (x.unit<y.unit ? -1 : x.unit>y.unit ? 1 : 0) || (x.last<y.last ? 1 : x.last>y.last ? -1 : 0); });
+}
+function whatLandedCard(){
+  var card = document.createElement("details");
+  card.id = "whatLandedCard";
+  card.style.cssText = "margin:0 0 14px;padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--border)";
+  var sum = document.createElement("summary"); sum.style.cssText = "font-weight:800;font-size:14.5px;cursor:pointer";
+  var body = document.createElement("div");
+  var parts = [];
+  KIDS.forEach(function(k){
+    var rows = whatLandedRows(k.id);
+    if(!rows.length) return;
+    var name = kidData(k.id).name;
+    var ny = rows.filter(function(g){ return g.status==="notyet"; }).length;
+    parts.push(name+": "+(ny ? ny+" not yet" : "nothing flagged"));
+    var kh = document.createElement("div"); kh.className = "wl-kid"; kh.style.cssText = "font-weight:800;font-size:13.5px;margin:10px 0 4px"; kh.textContent = name; body.appendChild(kh);
+    rows.forEach(function(g){
+      var line = document.createElement("div"); line.className = "wl-row"; line.style.cssText = "font-size:13px;margin:3px 0 3px 8px";
+      var mark = g.status==="notyet" ? "\uD83D\uDD34 Not yet" : g.status==="getting" ? "\uD83D\uDFE1 Getting there" : "\uD83D\uDFE2 Landed";
+      if(g.status==="notyet") line.style.color = "var(--coral)";
+      line.textContent = mark+": "+g.unit+" - "+g.topic+" ("+g.passed+" of "+g.checks.length+" passed on the first try, last "+g.last+")";
+      body.appendChild(line);
+    });
+  });
+  sum.textContent = "\uD83D\uDCDA What landed, by topic (last 6 weeks)" + (parts.length ? " \u00B7 " + parts.join("; ") : "");
+  card.appendChild(sum);
+  if(!parts.length){ var none = document.createElement("div"); none.className = "muted"; none.style.cssText = "font-size:13px;margin-top:6px"; none.textContent = "No Quick Checks finished in the last 6 weeks."; card.appendChild(none); return card; }
+  card.appendChild(body);
+  var foot = document.createElement("div"); foot.className = "muted"; foot.style.cssText = "font-size:12px;margin-top:8px";
+  foot.textContent = "From the first try of each Quick Check (retry results are not saved yet). Not yet: the newest check in that topic missed, or a grown-up help hold is open. Getting there: the newest passed after an earlier miss. Unit is the subject; topic is the lesson set.";
+  card.appendChild(foot);
+  return card;
+}
 function toggleAssignment(a){
   if(!db) return;
   var cur0 = state.assignments[a.id] || a;
@@ -9821,6 +9893,7 @@ function renderLeaderArea(){
   els.view.appendChild(intro);
   var sgCard = SG.leaderCard(); if(sgCard) els.view.appendChild(sgCard);
   var qsCard = quickCheckScoresCard(); if(qsCard) els.view.appendChild(qsCard);
+  var wlCard = whatLandedCard(); if(wlCard) els.view.appendChild(wlCard);
 
   var all = [];
   KIDS.forEach(function(k){
