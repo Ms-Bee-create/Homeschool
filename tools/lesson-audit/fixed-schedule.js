@@ -8,12 +8,12 @@ const h = require(process.cwd() + '/tools/lesson-audit/harness.js');
 const results = []; let failed = 0;
 const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '  ' + (x || ''))); if (!p) failed++; };
 (async () => {
-  const o = await h.open(), page = o.page, net = o.net;
+  const o = await h.open({fixedSchedule:true}), page = o.page, net = o.net;
   await page.waitForTimeout(8000);   // past the planner run the app schedules 5 seconds after opening
   const firstAdds = net.log.filter(x => x.table === 'al_assignments' && (x.method === 'POST' || x.method === 'DELETE')).length;
   ok('a fresh open with the schedule fixed adds and removes no lessons (the one-time packs and fillers wait)', firstAdds === 0, 'writes: ' + firstAdds);
   const st = await page.evaluate(() => ({ v: window.__fa.familyGoal().fixedSchedule, on: window.__fa.scheduleFixed() }));
-  ok('with nothing saved the schedule is fixed', st.v === undefined && st.on === true, JSON.stringify(st));
+  ok('with the switch saved on, the schedule is fixed', st.v === true && st.on === true, JSON.stringify(st));
 
   /* Made-up lessons in the fake database: one on the coming Saturday (the weekend mover would move it), plus a thin week the planner would fill. */
   const days = await page.evaluate(() => {
@@ -73,6 +73,17 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   await page.evaluate(() => window.__fa.runAutoMigrations()); await page.waitForTimeout(2500);
   const s4 = await snap();
   ok('switched back on, opening changes nothing again', same(s3, s4), diff(s3, s4));
+
+  /* Nothing saved: the schedule becomes fixed on Mon 30 Nov 2026 (Mom, 18 Nov), not before. */
+  const o2 = await h.open(), p2 = o2.page;
+  await p2.waitForTimeout(3000);
+  const chk = async d => { await p2.clock.setFixedTime(new Date(d + 'T12:00:00-05:00')); return p2.evaluate(() => ({ v: window.__fa.familyGoal().fixedSchedule, on: window.__fa.scheduleFixed() })); };
+  const a = await chk('2026-11-29'); ok('nothing saved, Sun 29 Nov: not fixed yet (fillers still run)', a.v === undefined && a.on === false, JSON.stringify(a));
+  const b = await chk('2026-11-30'); ok('nothing saved, Mon 30 Nov: fixed', b.on === true, JSON.stringify(b));
+  const c = await chk('2026-12-15'); ok('nothing saved, later in December: still fixed', c.on === true, JSON.stringify(c));
+  await p2.evaluate(() => window.__fa.saveFamilyGoal(Object.assign({}, window.__fa.familyGoal(), { fixedSchedule: false })));
+  const d2 = await chk('2026-12-15'); ok('Mom switching it off after 30 Nov wins', d2.on === false, JSON.stringify(d2));
+  await o2.browser.close();
 
   const errs = o.errors || [];
   ok('no page errors', !errs.length, JSON.stringify(errs).slice(0, 300));

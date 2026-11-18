@@ -25,8 +25,8 @@ exports.open = async function(opts){
     {id:'kid1',household_id:HID,name:'Anna',grade:2}, {id:'kid2',household_id:HID,name:'Ryan',grade:4}
   ] };
   seedStore(store);
-  /* The schedule is fixed by default (18 Nov 2026), so opening the app adds no lessons. A check of what a new install adds on open passes {fixedSchedule:false}. */
-  if(opts && opts.fixedSchedule===false) store.al_settings = [{household_id:HID, family_goal:{fixedSchedule:false}}];
+  /* The schedule becomes fixed by default on 30 Nov 2026 (before that the planners run as before). Pass {fixedSchedule:true} or {fixedSchedule:false} to force it. */
+  if(opts && (opts.fixedSchedule===false || opts.fixedSchedule===true)) store.al_settings = [{household_id:HID, family_goal:{fixedSchedule:opts.fixedSchedule}}];
   const b = await chromium.launch({executablePath:CHROME, args:['--no-sandbox']});
   const ctx = await b.newContext({viewport:{width:420,height:900}, timezoneId:'America/New_York'});
   await ctx.addInitScript(([hid])=>{

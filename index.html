@@ -30231,7 +30231,8 @@ function familyGoal(){
    While it is on (the default), opening the app on any device never moves a lesson date and never adds, retires or removes a lesson: the planner, the fillers (Anna's daily basics,
    daily-math loop and Creative Studio), the weekend mover and the one-time lesson packs all wait. Lessons change only when Mom moves one or asks (Leader > Week check > Re-plan the
    weeks now, or days off). Leader > Week check can turn it off. Kept in family settings (fixedSchedule), so there is no new database column. */
-function scheduleFixed(){ return familyGoal().fixedSchedule!==false; }
+var FIXED_SCHEDULE_FROM = "2026-11-30";   /* Mom, 18 Nov 2026: the fillers and planners keep running until Mon 30 Nov, then the schedule is fixed. A switch Mom sets in Leader (true or false) always wins. */
+function scheduleFixed(){ var v = familyGoal().fixedSchedule; if(v===true || v===false) return v; return todayISO() >= FIXED_SCHEDULE_FROM; }
 function saveFamilyGoal(g, quiet){
   var cur = familyGoal();
   if(g.daysOff===undefined && cur.daysOff!==undefined) g = Object.assign({}, g, {daysOff:cur.daysOff});
