@@ -17,7 +17,7 @@ const TITLES = {
 const words = s => (s.match(/\S+/g) || []).length;
 const sents = s => s.split(/(?<=[.!?])\s+/).filter(x => x.trim());
 (async () => {
-  const o = await h.open(), page = o.page, store = o.store;
+  const o = await h.open({ fixedSchedule: false }), page = o.page, store = o.store;   // checks what a new install adds on open, so the fixed schedule is off here
   await page.waitForTimeout(6000);
   const sleep = ms => page.waitForTimeout(ms);
   const sync = async () => { await page.evaluate(() => window.__fa.syncAll(true)); await sleep(800); };
