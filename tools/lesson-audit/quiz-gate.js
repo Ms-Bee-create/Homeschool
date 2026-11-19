@@ -294,6 +294,7 @@ const results = []; const ok = (name, pass, extra) => results.push((pass ? 'PASS
   await open('PO3'); srv('PO3').quiz_score = 2;
   const p0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const p1 = await kidNow();
   ok('B4 STALE TAB: a first attempt another sitting already started pays nothing here (atomic claim lost)', p1.xp - p0.xp === 0, JSON.stringify([p0, p1]));
+  ok('STUCK SAVE (19 Nov): a started-but-unfinished check can save its result on a later sitting, with no XP', srv('PO3').quiz_score === 3 && srv('PO3').quiz_total === 3, JSON.stringify([srv('PO3').quiz_score, srv('PO3').quiz_total]));
   await open('PO4'); const c0 = await kidNow(); await doCheck([true, true, true]); await sleep(500); await sync(); const c1 = await kidNow();
   ok('B4 CONTROL: a normal first attempt still pays +5 per right answer', c1.xp - c0.xp === 15, JSON.stringify([c0, c1]));
   ok('B4 CONTROL: and the result is saved', srv('PO4').quiz_score === 3 && srv('PO4').quiz_total === 3, JSON.stringify([srv('PO4').quiz_score, srv('PO4').quiz_total]));
