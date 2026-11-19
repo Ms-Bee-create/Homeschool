@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI School</title>
+<meta name="robots" content="noindex">
+<style>
+/* Look: Option A, Retro-Tech Workbench (Claude's pick, 16 Nov). Every colour is a token on :root so the look can be swapped when the chosen mock-up arrives. */
+:root{
+  --bg:#14110f; --panel:#201a15; --panel2:#2a221b; --line:#4a3b2d; --ink:#f3e9d2; --muted:#b9a98c;
+  --accent:#ffb000; --accent-ink:#1a1100; --ok:#5cff8a; --warn:#ff6b4a; --radius:14px;
+  --font: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; --mono: ui-monospace, Consolas, "Courier New", monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:18px;line-height:1.45}
+body{min-height:100vh;padding:16px;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:21px;margin:0 0 8px}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted);font-size:16px}
+.card{background:var(--panel);border:2px solid var(--line);border-radius:var(--radius);padding:16px;margin:14px 0}
+label{display:block;font-weight:700;margin:12px 0 6px}
+input[type=text],input[type=email],input[type=password],textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:12px;min-height:48px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input[type=range]{width:100%;min-height:36px;accent-color:var(--accent)}
+button{font:inherit;font-weight:700;min-height:48px;padding:10px 18px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.feels{display:grid;grid-template-columns:1fr;gap:8px}
+.feel{display:flex;gap:10px;align-items:flex-start;text-align:left;font-weight:400}
+.feel[aria-pressed=true]{border-color:var(--accent);background:#3a2c12}
+.feel b{display:block}
+.err{color:var(--warn);min-height:1.4em;margin-top:8px}
+.badge{display:inline-block;font-family:var(--mono);font-size:13px;padding:2px 8px;border-radius:99px;border:1px solid var(--muted);color:var(--muted);vertical-align:middle}
+.meter{height:20px;border-radius:10px;background:var(--panel2);border:2px solid var(--line);overflow:hidden}
+.meter i{display:block;height:100%;width:100%;background:repeating-linear-gradient(90deg,var(--ok) 0 14px,#3fcf6e 14px 16px)}
+.dice{font-size:22px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.navs{display:flex;gap:4px 14px;flex-wrap:wrap}
+.navs a{display:inline-flex;align-items:center;min-height:44px}
+.top a,.link{color:var(--accent);background:none;border:none;min-height:44px;padding:8px 4px;font:inherit;text-decoration:underline;cursor:pointer}
+#log,.tlog{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px}
+.msg{padding:10px 12px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:#3a2c12;border:1px solid var(--accent)}
+.msg.ai{align-self:flex-start;background:var(--panel2);border:1px solid var(--line)}
+.msg.sys{align-self:center;color:var(--muted);font-size:15px;text-align:center}
+.msg small{display:block;color:var(--muted);font-size:13px;margin-bottom:2px}
+.tlog:empty{display:none}
+.chip{min-height:40px;padding:4px 12px;font-weight:400}
+.stoplist{margin:6px 0 10px;padding-left:22px}
+#trail h3{margin:0 0 6px;font-size:19px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div id="loading" class="card"><h1>AI School</h1><p class="muted">Starting up…</p></div>
+
+  <section id="login" hidden>
+    <h1>AI School</h1>
+    <p class="muted">Sign in with your Momma Money account.</p>
+    <form id="loginForm" class="card" autocomplete="on">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="username" required>
+      <label for="loginPass">Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password" required>
+      <div class="err" id="loginError" role="alert"></div>
+      <button class="primary" id="loginBtn" type="submit">Log In</button>
+    </form>
+  </section>
+
+  <section id="naming" hidden>
+    <h1>Meet your AI partner</h1>
+    <p class="muted">Pick a name and a feel, then choose how it sounds. You can change all of this later.</p>
+    <div class="card">
+      <label for="pName">Its name</label>
+      <input id="pName" type="text" maxlength="24" value="J.A.R.V.I.S." autocomplete="off">
+      <label id="feelLabel">How should it act?</label>
+      <div class="feels" role="group" aria-labelledby="feelLabel" id="feels"></div>
+    </div>
+    <div class="card">
+      <h2>Its voice</h2>
+      <label for="pVoice">Voice</label>
+      <select id="pVoice"></select>
+      <div class="muted" id="voiceNote"></div>
+      <label for="pRate">Speed</label>
+      <input id="pRate" type="range" min="0.6" max="1.4" step="0.05" value="0.92">
+      <label for="pPitch">Deepness (lower is deeper)</label>
+      <input id="pPitch" type="range" min="0.5" max="1.5" step="0.05" value="0.8">
+      <div class="row" style="margin-top:12px">
+        <button id="hearIt" type="button">🔊 Hear it</button>
+        <label style="margin:0;font-weight:400"><input id="pMute" type="checkbox"> No voice, text only</label>
+      </div>
+    </div>
+    <div class="err" id="nameError" role="alert"></div>
+    <button class="primary" id="saveNaming" type="button" style="width:100%">Meet <span id="saveName">J.A.R.V.I.S.</span></button>
+  </section>
+
+  <section id="home" hidden>
+    <div class="top">
+      <span class="badge">AI SCHOOL · early build</span>
+      <nav class="navs" aria-label="AI School"><a href="../">Forge Academy</a><button class="link" id="changePartner" type="button">Change partner</button><button class="link" id="signOut" type="button">Sign out</button></nav>
+    </div>
+    <h1 id="greet" style="margin-top:14px">Good morning</h1>
+    <p class="muted" id="hello"></p>
+
+    <div class="card" aria-labelledby="meterLabel">
+      <div class="top"><b id="meterLabel">Power</b><span class="badge">example only, not real yet</span></div>
+      <div class="meter" role="img" aria-label="Power meter example, full"><i></i></div>
+      <p class="muted" style="margin:8px 0 0">Later this shows how much AI time is left today. It does not count anything yet.</p>
+    </div>
+
+    <div class="card">
+      <h2>What's on your mind?</h2>
+      <label for="topic">A topic, a question, or something you want to build</label>
+      <textarea id="topic" rows="3" maxlength="300" placeholder="Type here"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="dice" class="dice" type="button" aria-label="Surprise me">🎲 Surprise me</button>
+        <button id="today" type="button" disabled>What do we have today?</button>
+        <button id="go" class="primary" type="button">Go</button>
+      </div>
+      <p id="rule" style="margin:12px 0 0"><b>You get 100 messages a day. Make each one count.</b> Say what you already tried and what you want to know.</p>
+      <p class="muted" id="goNote" role="status" style="margin-bottom:0">Your partner is an AI, a computer coach. Your grown-ups can read this chat.</p>
+    </div>
+
+    <div class="card" id="chatCard" hidden aria-labelledby="chatTitle">
+      <div class="top"><h2 id="chatTitle" style="margin:0"><span id="chatName">Your partner</span></h2><span class="badge" id="left" aria-live="polite">100 messages a day</span></div>
+      <div id="log" role="log" aria-live="polite" aria-label="Chat"></div>
+      <form id="chatForm" class="row" style="margin-top:12px;flex-wrap:nowrap" autocomplete="off">
+        <label for="chatInput" class="muted" style="position:absolute;left:-9999px">Your message</label>
+        <input id="chatInput" type="text" maxlength="500" placeholder="Say something" style="flex:1">
+        <button id="chatSend" class="primary" type="submit">Send</button>
+      </form>
+    </div>
+
+    <div class="card" id="trailsCard">
+      <h2>Trails</h2>
+      <p id="trailHook" style="margin:0 0 6px"></p>
+      <p class="muted" id="trailMeta" style="margin:0 0 10px"></p>
+      <button id="trailGo" class="primary" type="button">Start the trail</button>
+      <p class="muted" style="margin:10px 0 0">Learn it, teach it back, build it, find what is broken, show a grown-up.</p>
+    </div>
+  </section>
+
+  <section id="trail" hidden><div id="trailBox"></div></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="trails/town-server.js"></script>
+<script src="trail-engine.js"></script>
+<script>
+(function(){
+"use strict";
+/* AI School shell, build 1 (18 Nov 2026). Standalone page: it shares the Forge Academy login (same site, same Supabase project) and READS only.
+   It writes nothing to the database itself. Chat goes only through the aipartner function, which checks every message and saves the log for the grown-ups. The partner's name, feel and voice live on this device only for now
+   (key aiSchool.partner.<account id>); they move to the database when the AI School tables are approved. */
+var SUPABASE_URL = "https://fbrnxuargsilbyyjrjop.supabase.co";
+var SUPABASE_ANON_KEY = "sb_publishable_Mone0y3izX-PRYKO_Y8CEg_jhclQ4WN";
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+var FEELS = [
+  {id:"butler", label:"Butler", text:"Formal and dry, calm under pressure, a little witty."},
+  {id:"coach",  label:"Calm coach", text:"Steady and encouraging. Asks good questions."},
+  {id:"hype",   label:"Hype buddy", text:"Big energy, celebrates every win."},
+  {id:"sidekick", label:"Dry-joke sidekick", text:"Laid back, jokes a lot, still helps."}
+];
+var DICE = ["Build a tiny game and make it harder on purpose", "Explain how a web page reaches your screen", "Fix a machine that is secretly broken", "Design a game level for a player who is afraid of the dark", "Teach me something using only numbers", "Invent a rule for a game and test if it is fair"];
+var $ = function(id){ return document.getElementById(id); };
+var uid = null, kidName = "", feel = "butler";
+
+function show(which){ ["loading","login","naming","home","trail"].forEach(function(x){ $(x).hidden = (x !== which); }); window.scrollTo(0,0); }
+function key(){ return "aiSchool.partner." + uid; }
+function getPartner(){ try{ var v = JSON.parse(localStorage.getItem(key())||"null"); return (v && v.name) ? v : null; }catch(e){ return null; } }
+function setPartner(p){ try{ localStorage.setItem(key(), JSON.stringify(p)); return true; }catch(e){ return false; } }
+
+/* ---- voices ---- */
+var voices = [];
+function loadVoices(){
+  if(!("speechSynthesis" in window)) { voices = []; return; }
+  voices = window.speechSynthesis.getVoices().filter(function(v){ return /^en/i.test(v.lang); });
+}
+function butlerGuess(){
+  /* a British male voice if the device has one; otherwise any British voice, otherwise any English voice */
+  var gb = voices.filter(function(v){ return /en[-_]GB/i.test(v.lang) || /United Kingdom|British/i.test(v.name); });
+  var male = gb.filter(function(v){ return /male|daniel|george|ryan|arthur|oliver|brian|thomas|alfie/i.test(v.name) && !/female|hazel|susan|libby|sonia|maisie|serena|kate/i.test(v.name); });
+  return (male[0] || gb[0] || voices[0] || {}).voiceURI || "";
+}
+function isGB(v){ return /en[-_]GB/i.test(v.lang) || /United Kingdom|British/i.test(v.name); }
+function fillVoices(selected){
+  loadVoices();
+  /* British voices first (J.A.R.V.I.S. is British), then the rest */
+  voices.sort(function(a,b){ return (isGB(b)?1:0) - (isGB(a)?1:0); });
+  var sel = $("pVoice"); sel.innerHTML = "";
+  if(!voices.length){
+    var o = document.createElement("option"); o.value = ""; o.textContent = "No voices found on this device"; sel.appendChild(o);
+    $("voiceNote").textContent = "This device has no speaking voices to pick from. The partner will use text. You can try again on another device.";
+    $("hearIt").disabled = true; return;
+  }
+  $("hearIt").disabled = false;
+  voices.forEach(function(v){ var o = document.createElement("option"); o.value = v.voiceURI; o.textContent = (isGB(v) ? "🇬🇧 " : "") + v.name + " (" + v.lang + ")"; sel.appendChild(o); });
+  var pick = selected && voices.some(function(v){ return v.voiceURI === selected; }) ? selected : butlerGuess();
+  sel.value = pick;
+  var gb = voices.some(isGB);
+  $("voiceNote").textContent = gb
+    ? "British voices are listed first. Voices come from this device, so the list is different on a phone, a tablet, or the laptop."
+    : "This device has no British voice installed, so J.A.R.V.I.S. will sound American here. A grown-up can add one: on Windows, Settings > Time & language > Speech > Add voices > English (United Kingdom). On a Samsung phone, Settings > General management > Text-to-speech > the gear next to Google > Install voice data > English (United Kingdom).";
+}
+function speak(text, p){
+  if(!("speechSynthesis" in window) || (p && p.mute)) return;
+  try{
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    var v = voices.filter(function(x){ return p && x.voiceURI === p.voice; })[0]; if(v) u.voice = v;
+    u.rate = p ? p.rate : 1; u.pitch = p ? p.pitch : 1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function readForm(){
+  return { name: $("pName").value.trim(), feel: feel, voice: $("pVoice").value, rate: parseFloat($("pRate").value), pitch: parseFloat($("pPitch").value), mute: $("pMute").checked };
+}
+
+/* ---- naming screen ---- */
+function drawFeels(){
+  var box = $("feels"); box.innerHTML = "";
+  FEELS.forEach(function(f){
+    var b = document.createElement("button"); b.type = "button"; b.className = "feel"; b.setAttribute("aria-pressed", f.id === feel ? "true" : "false"); b.dataset.feel = f.id;
+    b.innerHTML = "<span><b></b><span class='muted'></span></span>"; b.querySelector("b").textContent = f.label; b.querySelector(".muted").textContent = f.text;
+    b.onclick = function(){ feel = f.id; drawFeels(); };
+    box.appendChild(b);
+  });
+}
+function openNaming(existing){
+  var p = existing || {name:"J.A.R.V.I.S.", feel:"butler", voice:"", rate:0.92, pitch:0.8, mute:false};
+  feel = p.feel || "butler";
+  $("pName").value = p.name; $("saveName").textContent = p.name;
+  $("pRate").value = p.rate; $("pPitch").value = p.pitch; $("pMute").checked = !!p.mute;
+  drawFeels(); fillVoices(p.voice); $("nameError").textContent = "";
+  show("naming");
+}
+$("pName").addEventListener("input", function(){ $("saveName").textContent = $("pName").value.trim() || "your partner"; });
+$("hearIt").onclick = function(){ var p = readForm(); speak("Hello. I am " + (p.name || "your partner") + ". What's on your mind?", p); };
+$("saveNaming").onclick = function(){
+  var p = readForm();
+  if(!p.name){ $("nameError").textContent = "Give your partner a name first."; return; }
+  if(!setPartner(p)){ $("nameError").textContent = "This device would not save it. Check that private browsing is off."; return; }
+  openHome(p, true);
+};
+
+/* ---- home ---- */
+function openHome(p, justMet){
+  var h = new Date().getHours();
+  $("greet").textContent = h < 12 ? "Good morning" : (h < 17 ? "Good afternoon" : "Good evening");
+  $("hello").textContent = "Your partner is " + p.name + (/[.!?]$/.test(p.name) ? "" : ".") + (kidName ? " Ready when you are, " + kidName + "." : "");
+  $("goNote").textContent = "Your partner is an AI, a computer coach. Your grown-ups can read this chat.";
+  chat = []; $("log").innerHTML = ""; $("chatCard").hidden = true;
+  refreshTrails();
+  show("home");
+  if(justMet) speak("Hello. I am " + p.name + ". Let's get to work.", p);
+}
+function refreshTrails(){
+  var st = window.AIS_ENGINE && window.AIS_ENGINE.status("town-server");
+  $("trailsCard").hidden = !st; if(!st) return;
+  $("trailHook").textContent = st.title + ". " + st.hook;
+  $("trailMeta").textContent = "About " + st.minutes + " minutes. " + (st.done ? st.done + " of " + st.total + " stops done." : "Not started yet.");
+  $("trailGo").textContent = st.done ? (st.done === st.total ? "Look at it again" : "Continue the trail") : "Start the trail";
+}
+$("trailGo").onclick = function(){ if(window.AIS_ENGINE) window.AIS_ENGINE.open("town-server"); };
+$("dice").onclick = function(){ $("topic").value = DICE[Math.floor(Math.random()*DICE.length)]; };
+/* ---- chat (calls the aipartner function; every message is checked and logged on the server) ---- */
+var chat = [], busy = false, FN_FAIL = "I can't reach my brain right now. Try again in a minute, or ask a grown-up.";
+function addMsg(kind, text, who){
+  var d = document.createElement("div"); d.className = "msg " + kind;
+  if(who){ var sm = document.createElement("small"); sm.textContent = who; d.appendChild(sm); }
+  d.appendChild(document.createTextNode(text));
+  $("log").appendChild(d); $("log").scrollTop = $("log").scrollHeight; return d;
+}
+function sendChat(text){
+  text = (text || "").trim();
+  if(!text || busy) return;
+  var p = getPartner(); if(!p) return;
+  busy = true; $("chatSend").disabled = true; $("chatCard").hidden = false; $("chatName").textContent = p.name;
+  chat.push({role:"user", content:text}); addMsg("me", text, "You");
+  var wait = addMsg("sys", p.name + " is thinking…");
+  sb.functions.invoke("aipartner", {body:{kidId:"kid2", partner:{name:p.name, feel:p.feel}, messages: chat.slice(-12)}}).then(function(res){
+    wait.remove();
+    var r = res && res.data;
+    if(res.error || !r || typeof r.reply !== "string"){ chat.pop(); addMsg("sys", FN_FAIL); return; }
+    chat.push({role:"assistant", content:r.reply}); addMsg("ai", r.reply, p.name);
+    speak(r.reply, p);
+    if(typeof r.remaining === "number"){ $("left").textContent = r.remaining + (r.remaining === 1 ? " message left today" : " messages left today"); }
+    if(r.remaining === 0) addMsg("sys", "That is all the AI time for today.");
+  }, function(){ wait.remove(); chat.pop(); addMsg("sys", FN_FAIL); }).then(function(){ busy = false; $("chatSend").disabled = false; $("chatInput").focus(); });
+}
+$("chatForm").addEventListener("submit", function(e){ e.preventDefault(); var v = $("chatInput").value; $("chatInput").value = ""; sendChat(v); });
+$("go").onclick = function(){
+  var t = $("topic").value.trim();
+  if(!t){ $("goNote").textContent = "Type something, or tap Surprise me."; return; }
+  $("goNote").textContent = "Your partner is an AI, a computer coach. Your grown-ups can read this chat.";
+  $("topic").value = ""; sendChat(t);
+};
+if(window.AIS_ENGINE) window.AIS_ENGINE.init({
+  sb: sb, uid: function(){ return uid; }, getPartner: getPartner, speak: speak, show: show,
+  goHome: function(){ openHome(getPartner(), false); },
+  setLeft: function(n){ $("left").textContent = n + (n === 1 ? " message left today" : " messages left today"); }
+});
+$("changePartner").onclick = function(){ openNaming(getPartner()); };
+$("signOut").onclick = function(){ sb.auth.signOut().then(function(){ uid = null; kidName = ""; show("login"); }); };
+
+/* ---- sign-in and start (read only) ---- */
+function afterSignIn(session){
+  uid = session.user.id;
+  /* read the kids to greet by first name; a failure just means no name */
+  sb.from("al_kids").select("id,name").eq("household_id", uid).then(function(res){
+    var rows = (res && res.data) || [];
+    var r = rows.filter(function(k){ return k.id === "kid2"; })[0];
+    kidName = r && r.name ? String(r.name).split(" ")[0] : "";
+  }, function(){}).then(function(){
+    var p = getPartner();
+    if(p){ loadVoices(); openHome(p, false); } else openNaming(null);
+  });
+}
+$("loginForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  var btn = $("loginBtn"), err = $("loginError"); err.textContent = ""; btn.disabled = true; btn.textContent = "Connecting…";
+  sb.auth.signInWithPassword({email: $("loginEmail").value.trim(), password: $("loginPass").value}).then(function(res){
+    btn.disabled = false; btn.textContent = "Log In";
+    if(res.error){ err.textContent = res.error.message; return; }
+    afterSignIn(res.data.session);
+  });
+});
+if("speechSynthesis" in window){ window.speechSynthesis.onvoiceschanged = function(){ if(!$("naming").hidden) fillVoices($("pVoice").value); }; }
+sb.auth.getSession().then(function(res){
+  var s = res.data && res.data.session;
+  if(s) afterSignIn(s); else show("login");
+}, function(){ show("login"); });
+})();
+</script>
+</body>
+</html>

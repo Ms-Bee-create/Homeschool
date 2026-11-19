@@ -70,7 +70,7 @@ export function inputStop(inV: Verdict | null, piiShared: boolean): { canned: st
 /** Output side, shared by both kid-facing functions: what the child sees when the helper's reply is checked. An urgent Tell-Mom state (the helper said so, or the checker says so) is always the Tell-Mom reply. */
 export function outputRoute(outV: Verdict | null, urgentMarker: boolean): { held: boolean; urgent: boolean; reply: string | null } {
   const urgent = urgentMarker || outV === "TELL_MOM";
-  if (outV === "OK") return { held: false, urgent, reply: null };
+  if (outV === "OK" && !urgent) return { held: false, urgent: false, reply: null };   // the urgent marker is authoritative: an OK verdict never lets a marked reply through
   return { held: true, urgent, reply: urgent ? CANNED.TELL_MOM : outV === null ? CANNED.UNCHECKED : CANNED.BLOCK };
 }
 
@@ -123,7 +123,7 @@ export function prepareChat(messages: any[], helperCap: number, dropLeadingAssis
 }
 
 /** Returns null when the checker could not be reached, did not answer clearly, or the text is too long to read in full. Callers MUST fail closed: show CANNED.UNCHECKED, do not call the helper, flag the chat. */
-export async function classify(apiKey: string, model: string, text: string, from: "child" | "helper", fetchFn: typeof fetch = fetch): Promise<Verdict | null> {
+export async function classify(apiKey: string, model: string, text: string, from: "child" | "helper", fetchFn: typeof fetch = fetch, context = ""): Promise<Verdict | null> {
   const body = cleanForChecker(text, from);
   if (!body) return "OK";
   if (body.length > MAX_CHECK_CHARS) { console.error("safety checker: text too long to check in full"); return null; }
@@ -133,7 +133,7 @@ export async function classify(apiKey: string, model: string, text: string, from
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model, max_tokens: 8, system: CLASSIFIER_SYSTEM,
-        messages: [{ role: "user", content: `Text from the ${from === "child" ? "CHILD" : "HELPER (an AI talking to a child)"}:\n<text>\n${body}\n</text>\nOne word:` }],
+        messages: [{ role: "user", content: `${context ? context + "\n" : ""}Text from the ${from === "child" ? "CHILD" : "HELPER (an AI talking to a child)"}:\n<text>\n${body}\n</text>\nOne word:` }],
       }),
     });
     if (!resp.ok) { console.error("safety checker HTTP", resp.status); return null; }
