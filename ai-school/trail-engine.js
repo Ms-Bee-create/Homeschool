@@ -243,7 +243,7 @@ function rNote(s, c) {
   var ta = h("textarea"); ta.id = "noteText"; ta.rows = 4; ta.maxLength = 500; ta.setAttribute("aria-label", "What you changed and how you checked");
   var lab = h("label", ""); lab.style.fontWeight = "400"; var cb = h("input"); cb.type = "checkbox"; cb.id = "noteSeen"; lab.appendChild(cb); lab.appendChild(document.createTextNode(" A grown-up looked at it with me"));
   var err = h("div", "err"); err.id = "noteErr"; err.setAttribute("role", "alert");
-  var go = btn("Finish the trail", "primary", function () {
+  var go = btn("Finish the mission", "primary", function () {
     if (words(ta.value) < s.minWords) { err.textContent = "Say a little more: what did you change, and how did you check it?"; return; }
     if (!cb.checked) { err.textContent = "Show a grown-up first, then tick the box."; return; }
     st.ready = true; complete(s.id, { note: ta.value.trim(), grownupSaw: true, ready: true });
@@ -264,7 +264,7 @@ function render() {
   T.stops.forEach(function (s, i) { var li = h("li", "", (st.done[s.id] ? "✓ " : "") + s.title); if (i === cur) { li.setAttribute("aria-current", "step"); li.style.fontWeight = "700"; } ol.appendChild(li); });
   root.appendChild(ol);
   if (cur < 0) {
-    var c = h("div", "card"); c.id = "trailDone"; c.appendChild(h("h2", "", "Trail complete"));
+    var c = h("div", "card"); c.id = "trailDone"; c.appendChild(h("h2", "", "Mission complete"));
     var rs = st.v.restate || {}, bg = st.v.bugs || {};
     c.appendChild(h("p", "", "You designed a server, taught it back, caught " + (rs.caught || 0) + " of " + ((rs.rounds || []).length) + " restatements, and fixed " + (bg.fixed || 0) + " broken rules."));
     c.appendChild(h("p", "", st.ready ? "This is marked ready for Mom to look at." : ""));

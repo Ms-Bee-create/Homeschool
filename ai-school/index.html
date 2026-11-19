@@ -136,10 +136,10 @@ button:disabled{opacity:.55;cursor:not-allowed}
     </div>
 
     <div class="card" id="trailsCard">
-      <h2>Trails</h2>
+      <h2>Missions</h2>
       <p id="trailHook" style="margin:0 0 6px"></p>
       <p class="muted" id="trailMeta" style="margin:0 0 10px"></p>
-      <button id="trailGo" class="primary" type="button">Start the trail</button>
+      <button id="trailGo" class="primary" type="button">Start the mission</button>
       <p class="muted" style="margin:10px 0 0">Learn it, teach it back, build it, find what is broken, show a grown-up.</p>
     </div>
   </section>
@@ -264,7 +264,7 @@ function refreshTrails(){
   $("trailsCard").hidden = !st; if(!st) return;
   $("trailHook").textContent = st.title + ". " + st.hook;
   $("trailMeta").textContent = "About " + st.minutes + " minutes. " + (st.done ? st.done + " of " + st.total + " stops done." : "Not started yet.");
-  $("trailGo").textContent = st.done ? (st.done === st.total ? "Look at it again" : "Continue the trail") : "Start the trail";
+  $("trailGo").textContent = st.done ? (st.done === st.total ? "Look at it again" : "Continue the mission") : "Start the mission";
 }
 $("trailGo").onclick = function(){ if(window.AIS_ENGINE) window.AIS_ENGINE.open("town-server"); };
 $("dice").onclick = function(){ $("topic").value = DICE[Math.floor(Math.random()*DICE.length)]; };
