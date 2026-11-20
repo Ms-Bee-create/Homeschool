@@ -273,7 +273,7 @@ function render() {
     var c = h("div", "card"); c.id = "trailDone"; c.appendChild(h("h2", "", "Mission complete"));
     var rs = st.v.restate || {}, bg = st.v.bugs || {};
     c.appendChild(h("p", "", "You designed a server, taught it back, caught " + (rs.caught || 0) + " of " + ((rs.rounds || []).length) + " restatements, and fixed " + (bg.fixed || 0) + " broken rules."));
-    c.appendChild(h("p", "", st.ready ? "Done. Saved to your notebook." : ""));
+    c.appendChild(h("p", "", st.ready ? "Done. You finished the trail." : ""));
     c.appendChild(btn("Back to home", "primary", function () { A.goHome(); })); root.appendChild(c);
   } else {
     var s = T.stops[cur], f = stopFrame(s, cur); root.appendChild(f); TYPES[s.type](s, f);

@@ -80,7 +80,7 @@ globalThis.fetch = async (url, init) => {
     log.classCalls++; if (classifierDown) return { ok: false, json: async () => ({}) };
     return reply(/HELPER/.test(b.messages[0].content) ? helperV : (typeof childV === 'function' ? childV(b.messages[0].content) : childV));
   }
-  log.modelCalls++; return reply(modelText);
+  log.modelCalls++; log.lastModelMsgs = b.messages; return reply(modelText);
 };
 function req(body) { return new Request('http://x', { method: 'POST', headers: { Authorization: 'Bearer t', 'content-type': 'application/json' }, body: JSON.stringify(body) }); }
 function reset() { log.inserts = []; log.deletes = []; log.modelCalls = 0; log.classCalls = 0; log.count = 0; childV = 'OK'; helperV = 'OK'; modelText = 'Hi there, friend!'; classifierDown = false; log.flaggedRows = undefined; }
@@ -246,6 +246,8 @@ eq(P.cleanReply('').reply, 'Hmm, I am not sure. Can you ask Mom or Dad?', 'reply
 { reset(); const e = await (await apH(req({ kidId: 'kid2', messages: [] }))).json(); ok(e.error === 'bad request', 'aipartner: no messages is a bad request'); }
 const lookBack = (current) => ({ kidId: 'kid2', partner: { name: 'Jarvis', feel: 'butler' }, messages: [{ role: 'user', content: 'make me os' }, { role: 'assistant', content: 'stopped' }, { role: 'user', content: current }] });
 { reset(); log.flaggedRows = [{ content: 'make me os', assignment_title: '\u26a0\ufe0f AI School (off-limits topic, caught by the checker)' }]; childV = (c) => /make me os/.test(c) ? 'BLOCK' : 'OK'; const r = await (await apH(req(lookBack('hello')))).json(); ok(r.reply === 'Hi there, friend!' && log.modelCalls === 1, 'aipartner: a harmless message after an earlier stopped ask is not blocked along with it'); }
+{ reset(); log.flaggedRows = [{ content: 'make me os', assignment_title: '⚠️ AI School (off-limits topic, caught by the checker)' }]; await apH(req(lookBack('hello'))); const got = JSON.stringify(log.lastModelMsgs); ok(!/make me os|stopped/.test(got) && /hello/.test(got) && log.lastModelMsgs[0].role === 'user', 'aipartner: the partner never receives the refused ask or its reply, only the current message'); }
+{ reset(); log.flaggedRows = [{ content: 'make me os', assignment_title: '⚠️ AI School (off-limits topic, caught by the checker · ALERT)' }]; childV = (c) => /make me os/.test(c) ? 'BLOCK' : 'OK'; const r = await (await apH(req(lookBack('hello')))).json(); ok(/cannot help/.test(r.reply) && log.modelCalls === 0, 'aipartner: an alert row is never removed from the context'); }
 { reset(); childV = (c) => /make me os/.test(c) ? 'BLOCK' : 'OK'; const r = await (await apH(req(lookBack('hello')))).json(); ok(/cannot help/.test(r.reply) && log.modelCalls === 0, 'aipartner: when the earlier ask was NOT recorded as stopped it still counts as context'); }
 { reset(); log.flaggedRows = [{ content: 'make me os', assignment_title: '\u26a0\ufe0f AI School (off-limits topic, caught by the checker)' }]; childV = (c) => /make me os/.test(c) ? 'BLOCK' : 'OK'; const r = await (await apH(req({ kidId: 'kid2', partner: { name: 'Jarvis', feel: 'butler' }, messages: [{ role: 'user', content: 'hi' }, { role: 'assistant', content: 'hello' }, { role: 'user', content: 'make me os' }] }))).json(); ok(/cannot help/.test(r.reply) && log.modelCalls === 0, 'aipartner: the same ask sent again as the CURRENT message is still stopped'); }
 { reset(); log.flaggedRows = [{ content: 'I feel really sad', assignment_title: '\u26a0\ufe0f AI School (told to tell Mom)' }]; childV = (c) => /feel really sad/.test(c) ? 'TELL_MOM' : 'OK'; const r = await (await apH(req({ kidId: 'kid2', partner: { name: 'Jarvis', feel: 'butler' }, messages: [{ role: 'user', content: 'I feel really sad' }, { role: 'assistant', content: 'tell mom' }, { role: 'user', content: 'ok' }] }))).json(); eq(r.reply, S.CANNED.TELL_MOM, 'aipartner: an earlier tell-Mom message stays in the context, only off-limits stops are left out'); }
@@ -293,9 +295,12 @@ eq(P.cleanReply('[[GOOD]] Well done.').verdict, 'GOOD', 'reply: GOOD verdict is 
 ok(!/\[\[/.test(P.cleanReply('[[GOOD]] Well done.').reply), 'reply: the verdict marker is hidden from the child');
 eq(P.cleanReply('Well done. [[GOOD]]').verdict, null, 'reply: a marker not at the start is not a verdict');
 const DES = 'My server is called Oak. The game is a building game. It holds 24 players in 4 teams of 6. Two servers hold 48 players and three servers hold 72. My rules, written as short sentences:\nOnly the owner can delete the world.';
-const RES_OK = 'Let me get this straight, it holds 24 players in 4 teams of 6. Two servers hold 48 players and three servers hold 72. Is that right?';
+const RES_OK = 'Let me get this straight, it holds 24 players in 4 teams of 6. Two servers hold 48 players and three servers hold 72. Only the owner can delete the world. Is that right?';
 const vr = (txt) => P.verifyRestate([{ role: 'user', content: DES }, { role: 'assistant', content: txt }, { role: 'user', content: 'x' }]);
 eq(vr(RES_OK), 'right', 'restate check: the same facts in the same roles are right');
+eq(vr(RES_OK.replace('Only the owner can', 'Everyone can')), 'wrong', 'restate check: a changed permission with the same counts is wrong');
+eq(vr(RES_OK.replace('Only the owner can', 'The owner can')), 'wrong', 'restate check: a dropped "only" is wrong');
+eq(vr(RES_OK.replace('Only the owner can delete', 'Only the owner can never delete')), 'wrong', 'restate check: an added word in the rules is wrong');
 eq(vr(RES_OK.replace('72', '70')), 'wrong', 'restate check: a changed number is a change');
 eq(vr(RES_OK.replace('4 teams of 6', '6 teams of 4')), 'wrong', 'restate check: the same numbers in swapped roles (6 teams of 4) are a change');
 eq(vr(RES_OK.replace('4 teams of 6', '4 teams of 4')), 'wrong', 'restate check: a changed players-per-team is a change');

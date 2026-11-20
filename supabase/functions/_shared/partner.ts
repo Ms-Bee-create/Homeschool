@@ -46,7 +46,16 @@ export function verifyRestate(messages: unknown): "wrong" | "right" | null {
   const same = (Object.keys(d) as (keyof Facts)[]).every((k) => d[k] === r[k]);
   const seen = new Set(dt.match(/\d+/g) ?? []);
   const added = (rt.match(/\d+/g) ?? []).some((n) => !seen.has(n));
-  return same && !added ? "right" : "wrong";
+  /* The rules are words, not just numbers. A restatement is only "right" if it brings in no word the design did not have (apart from the framing words) and keeps every
+     qualifier the design had (only, all, not, never, no, always, any, cannot...). Anything else is "wrong", so a changed permission cannot be signed as right. */
+  const words = (t: string) => (t.toLowerCase().match(/[a-z0-9']+/g) ?? []);
+  const dw = new Set(words(dt)), rw = words(rt);
+  const FRAME = new Set(["let", "me", "get", "this", "straight", "is", "that", "right", "so", "and", "the", "a", "an"]);
+  const QUAL = ["only", "all", "not", "never", "no", "always", "any", "cannot", "cant", "can't", "nobody", "everyone", "must", "none", "just"];
+  const extra = rw.some((w) => !dw.has(w) && !FRAME.has(w));
+  const rws = new Set(rw);
+  const lostQual = QUAL.some((q) => dw.has(q) && !rws.has(q));
+  return same && !added && !extra && !lostQual ? "right" : "wrong";
 }
 /* Binds one restatement to its round: the server signs (truth, design, reply) when it makes the restatement and checks the signature when the child answers,
    so the page cannot choose or edit what was changed. The key never leaves the server. */
