@@ -24,7 +24,7 @@ async function open(b, o) {
   const errors = [], writes = [], fnCalls = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.route('**/cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(SBJS, 'utf8') }));
-  await page.route('**/fbrnxuargsilbyyjrjop.supabase.co/**', r => {
+  await page.route('**/fbrnxuargsilbyyjrjop.supabase.co/**', async r => {
     const m = r.request().method(), u = new URL(r.request().url());
     const h = { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'access-control-expose-headers': '*' };
     if (m === 'OPTIONS') return r.fulfill({ status: 204, headers: h });
@@ -33,6 +33,7 @@ async function open(b, o) {
       const f = R.fn ? R.fn(body, fnCalls.length) : { status: 200, body: { reply: 'And what does the server do then?', remaining: 80 } };
       return r.fulfill({ status: f.status, headers: h, body: JSON.stringify(f.body) });
     }
+    if (m !== 'GET' && R.holdNb && /al_ai_notebook/.test(u.pathname)) await R.holdNb;
     if (m !== 'GET') { writes.push({ m, p: u.pathname, body: r.request().postData() || '' }); if (!R.tables) return r.fulfill({ status: 404, headers: h, body: JSON.stringify({ message: 'relation does not exist' }) }); return r.fulfill({ status: 201, headers: h, body: '[]' }); }
     if (u.pathname.includes('/rest/v1/al_kids')) return r.fulfill({ status: 200, headers: h, body: JSON.stringify([{ id: 'kid2', name: 'Sam Test' }]) });
     return r.fulfill({ status: 200, headers: h, body: '[]' });
@@ -98,7 +99,7 @@ const txt = (p, sel) => p.locator(sel).innerText();
   await p.click('.chip >> nth=0');
   ok('the bug-word chips add a word to the test plan', /stuck/.test(await p.inputValue('#f_test')));
   const calls0 = o.fnCalls.length;
-  o.fn = (body) => body.mode === 'restate' ? { status: 200, body: { reply: 'Let me get this straight, your server is Oak Town. Is that right?', remaining: 60 } } : { status: 200, body: { reply: 'You looked closely.', verdict: o.verdict, remaining: 59 } };
+  o.fn = (body) => body.mode === 'restate' ? { status: 200, body: { reply: 'Let me get this straight, your server is Oak Town. Is that right?', usable: true, sig: 'SIG1', remaining: 60 } } : { status: 200, body: { reply: 'You looked closely.', verdict: o.verdict, remaining: 59 } };
   await fill(base); await p.click('#buildGo'); await p.waitForTimeout(300);
   ok('a good design moves to Let me get this straight', /Stop 4 of 6: Let me get this straight/.test(await txt(p, '#trailBox')));
 
@@ -115,11 +116,22 @@ const txt = (p, sel) => p.locator(sel).innerText();
   o.verdict = 'GOOD';
   await p.fill('#rsWhy', 'the numbers all match what I wrote'); await p.click('#rsGo'); await p.waitForTimeout(700);
   const j1 = o.fnCalls[o.fnCalls.length - 1];
-  ok('judging sends the restatement, his answer and what the partner did (right or wrong)', j1.mode === 'judge' && j1.restateWas === r1.restateWas && j1.messages.length === 3 && j1.messages[1].role === 'assistant' && /I say it is right/.test(j1.messages[2].content), JSON.stringify(j1.messages.map(m => m.role)));
+  ok('judging sends the restatement, his answer and what the partner did (right or wrong)', j1.mode === 'judge' && j1.sig === 'SIG1' && !('restateWas' in j1) && j1.messages.length === 3 && j1.messages[1].role === 'assistant' && /I say it is right/.test(j1.messages[2].content), JSON.stringify(j1.messages.map(m => m.role)));
   ok('a GOOD verdict is told kindly and Next round appears', /you caught it/i.test(await txt(p, '#rsVerdict')) && await p.locator('#rsNext').count() === 1);
+  const goodFn = o.fn;
+  o.fn = (body) => body.mode === 'restate' ? { status: 200, body: { reply: 'Let me get this straight, you built a thing. Is that right?', usable: false, sig: null, remaining: 58 } } : goodFn(body);
   await p.click('#rsNext'); await p.waitForTimeout(700);
-  const r2 = o.fnCalls.filter(x => x.mode === 'restate')[1];
+  ok('a restatement the server could not use opens no answer controls', await p.locator('#rsGo').count() === 0 && await p.locator('#rsRight').count() === 0);
+  ok('and offers Try again', /Try again/.test(await txt(p, '#trailBox')));
+  o.fn = goodFn;
+  await p.getByRole('button', { name: 'Try again' }).click(); await p.waitForTimeout(700);
+  const rs = o.fnCalls.filter(x => x.mode === 'restate');
+  ok('Try again asks for the same kind of round again', rs.length === 3 && rs[2].restateWas === rs[1].restateWas, JSON.stringify(rs.map(x => x.restateWas)));
+  const r2 = rs[1];
   ok('round 2 is never the same kind as round 1', r2 && r2.restateWas !== r1.restateWas, JSON.stringify([r1.restateWas, r2 && r2.restateWas]));
+  o.verdict = 'HINT';
+  await p.click('#rsWrong'); await p.fill('#rsWhy', 'the team count looks off to me'); await p.click('#rsGo'); await p.waitForTimeout(700);
+  ok('a reply that is not a grade leaves the round unscored', /not scored/.test(await txt(p, '#rsErr')) && await p.locator('#rsVerdict').count() === 0 && await p.locator('#rsGo').isEnabled());
   o.verdict = 'MISSED';
   await p.click('#rsWrong'); await p.fill('#rsWhy', 'the team count looks off to me'); await p.click('#rsGo'); await p.waitForTimeout(700);
   ok('a MISSED verdict is also kind and honest', /Not this time/.test(await txt(p, '#rsVerdict')));
@@ -174,6 +186,14 @@ const txt = (p, sel) => p.locator(sel).innerText();
   await o.page.goto(PAGE); await o.page.waitForTimeout(2000);
   await o.page.click('#trailGo'); for (let i = 0; i < 4; i++) await o.page.click('#cardNext'); await o.page.waitForTimeout(800);
   ok('when the tables exist the page says saved to the notebook', /Saved to your notebook/.test(await txt(o.page, '#trailSaveNote')));
+  await o.ctx.close();
+  o = await open(b, { tables: true });
+  let release; o.holdNb = new Promise(res => { release = res; });
+  await o.page.goto(PAGE); await o.page.waitForTimeout(2000);
+  await o.page.click('#trailGo'); for (let i = 0; i < 4; i++) await o.page.click('#cardNext'); await o.page.waitForTimeout(800);
+  ok('while the notebook save is still waiting the page does not say it is saved there', !/Saved to your notebook/.test(await txt(o.page, '#trailSaveNote')) && /Saved on this device/.test(await txt(o.page, '#trailSaveNote')), await txt(o.page, '#trailSaveNote'));
+  release(); await o.page.waitForTimeout(800);
+  ok('once the notebook save lands the page says so', /Saved to your notebook/.test(await txt(o.page, '#trailSaveNote')));
   await o.page.reload(); await o.page.waitForTimeout(2000);
   ok('a half-done trail says how far he got and Continue', /1 of 6/.test(await o.page.textContent('#trailMeta')) && /Continue the mission/.test(await o.page.textContent('#trailGo')));
   await o.page.click('#trailGo'); await o.page.waitForTimeout(300);

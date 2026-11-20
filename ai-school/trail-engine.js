@@ -16,28 +16,31 @@ function fresh() { return { done: {}, v: {}, ready: false }; }
 function load() { try { var v = JSON.parse(localStorage.getItem(keyOf()) || "null"); if (v && v.done && v.v) return v; } catch (e) {} return fresh(); }
 
 /* ---- saving: device first, database best effort ---- */
-var dest = { device: false, progress: false, notebook: null }; /* the outcome of the latest save, one per destination */
+/* One record PER SAVE: a slow answer from an older save can never change what the note says about a newer one. */
+var cur = { device: false, progress: false, notebook: null };
 function note() {
   var n = $("trailSaveNote"); if (!n) return;
-  var db = dest.progress && dest.notebook !== false;
-  n.textContent = db ? "Saved to your notebook." : dest.device ? "Saved on this device." : "Could not save. Tell a grown-up.";
+  var db = cur.progress === true && cur.notebook === true; /* a request still pending is NOT saved yet */
+  n.textContent = db ? "Saved to your notebook." : cur.device ? "Saved on this device." : "Could not save. Tell a grown-up.";
 }
-function remote(table, row, upsert, key) {
+function remote(d, table, row, upsert, key) {
+  function done(ok) { d[key] = ok; if (d === cur) note(); }
   try {
     var q = A.sb.from(table);
     var p = upsert ? q.upsert(row, { onConflict: "household_id,kid_id,trail_id" }) : q.insert(row);
-    p.then(function (r) { dest[key] = !(r && r.error); note(); }, function () { dest[key] = false; note(); });
-  } catch (e) { dest[key] = false; note(); }
+    p.then(function (r) { done(!(r && r.error)); }, function () { done(false); });
+  } catch (e) { done(false); }
 }
-function save() {
-  try { localStorage.setItem(keyOf(), JSON.stringify(st)); dest.device = true; } catch (e) { dest.device = false; }
-  dest.progress = false; dest.notebook = null;
-  remote("al_ai_trail_progress", { household_id: A.uid(), kid_id: "kid2", trail_id: T.id, state: st, updated_at: new Date().toISOString() }, true, "progress");
-  note();
+function save(withNotebook) {
+  var d = { device: false, progress: false, notebook: withNotebook ? null : true }; cur = d;
+  try { localStorage.setItem(keyOf(), JSON.stringify(st)); d.device = true; } catch (e) { d.device = false; }
+  remote(d, "al_ai_trail_progress", { household_id: A.uid(), kid_id: "kid2", trail_id: T.id, state: st, updated_at: new Date().toISOString() }, true, "progress");
+  note(); return d;
 }
 function complete(stopId, entry) {
-  st.done[stopId] = true; st.v[stopId] = entry; save();
-  remote("al_ai_notebook", { household_id: A.uid(), kid_id: "kid2", trail_id: T.id, stop_id: stopId, entry: entry }, false, "notebook");
+  st.done[stopId] = true; st.v[stopId] = entry;
+  var d = save(true);
+  remote(d, "al_ai_notebook", { household_id: A.uid(), kid_id: "kid2", trail_id: T.id, stop_id: stopId, entry: entry }, false, "notebook");
   render();
 }
 
@@ -46,6 +49,7 @@ function call(extra, msgs) {
   var pt = A.getPartner();
   var body = { kidId: "kid2", partner: { name: pt.name, feel: pt.feel }, messages: msgs.slice(-12), mode: extra.mode, trail: T.id };
   if (extra.restateWas) body.restateWas = extra.restateWas;
+  if (extra.sig) body.sig = extra.sig;
   if (extra.ruleIndex != null) body.ruleIndex = extra.ruleIndex;
   return A.sb.functions.invoke("aipartner", { body: body }).then(function (res) {
     var r = res && res.data;
@@ -165,18 +169,22 @@ function rForm(s, c) {
 function rRestate(s, c) {
   var design = summary(st.v.build || {}), pt = A.getPartner(), round = 0, was = null, results = [], prev = null;
   var body = h("div"); c.appendChild(body);
-  function next() {
-    body.innerHTML = ""; was = prev ? (prev === "wrong" ? "right" : "wrong") : (Math.random() < 0.5 ? "wrong" : "right"); prev = was;
+  function retry() { next(true); }
+  function next(keep) {
+    body.innerHTML = ""; if (keep !== true) { was = prev ? (prev === "wrong" ? "right" : "wrong") : (Math.random() < 0.5 ? "wrong" : "right"); prev = was; }
     body.appendChild(h("p", "muted", "Round " + (round + 1) + " of " + s.rounds));
     var line = h("div", "tlog"); line.id = "rsLog"; body.appendChild(line);
     var w = logMsg(line, "sys", pt.name + " is thinking…");
     call({ mode: "restate", restateWas: was }, [{ role: "user", content: design }]).then(function (r) {
       w.remove();
-      if (!r) { logMsg(line, "sys", FN_FAIL); body.appendChild(btn("Try again", "", next)); return; }
-      logMsg(line, "ai", r.reply, pt.name); answer(r.reply, line);
+      if (!r) { logMsg(line, "sys", FN_FAIL); body.appendChild(btn("Try again", "", retry)); return; }
+      logMsg(line, "ai", r.reply, pt.name);
+      /* Only a restatement the server could read, that changed what it was asked to change, and was not held back, opens the answer controls. */
+      if (r.usable !== true || typeof r.sig !== "string") { logMsg(line, "sys", "That one could not be used. Let's try the round again."); body.appendChild(btn("Try again", "", retry)); return; }
+      answer(r.reply, line, r.sig);
     });
   }
-  function answer(restated, line) {
+  function answer(restated, line, sig) {
     var choice = null, bR = btn("That is right", "feel"), bW = btn("Something is wrong", "feel");
     bR.id = "rsRight"; bW.id = "rsWrong";
     function pick(x) { choice = x; bR.setAttribute("aria-pressed", x === "right"); bW.setAttribute("aria-pressed", x === "wrong"); }
@@ -190,16 +198,16 @@ function rRestate(s, c) {
       if (busy) return; busy = true; go.disabled = true; err.textContent = "";
       var said = "I say it is " + choice + ". " + ta.value.trim();
       logMsg(line, "me", said, "You");
-      call({ mode: "judge", restateWas: was }, [{ role: "user", content: design }, { role: "assistant", content: restated }, { role: "user", content: said }]).then(function (r) {
+      call({ mode: "judge", sig: sig }, [{ role: "user", content: design }, { role: "assistant", content: restated }, { role: "user", content: said }]).then(function (r) {
         busy = false;
         if (!r) { go.disabled = false; err.textContent = FN_FAIL; return; }
         logMsg(line, "ai", r.reply, pt.name);
-        if (!r.verdict) { go.disabled = false; err.textContent = "That one was not scored. Try again, or ask a grown-up."; return; } // held, over the limit or no grade: leave the round unscored
-        results.push({ was: was, said: choice, verdict: r.verdict === "GOOD" ? "GOOD" : "MISSED" });
+        if (r.verdict !== "GOOD" && r.verdict !== "MISSED") { go.disabled = false; err.textContent = "That one was not scored. Try again, or ask a grown-up."; return; } // held, over the limit or no grade: leave the round unscored
+        results.push({ was: was, said: choice, verdict: r.verdict });
         var vd = h("p", "", r.verdict === "GOOD" ? "You checked it, and you caught it." : "Not this time. Checking what someone says back to you is a habit worth practicing."); vd.id = "rsVerdict";
         row.remove(); ta.remove(); go.remove(); err.remove();
         body.appendChild(vd); round++;
-        if (round < s.rounds) { var nx = btn("Next round", "primary", next); nx.id = "rsNext"; body.appendChild(nx); }
+        if (round < s.rounds) { var nx = btn("Next round", "primary", function () { next(); }); nx.id = "rsNext"; body.appendChild(nx); }
         else { var fin = btn("Finish this stop", "primary", function () { complete(s.id, { rounds: results, caught: results.filter(function (x) { return x.verdict === "GOOD"; }).length }); }); fin.id = "rsFinish"; body.appendChild(fin); }
       });
     }); go.id = "rsGo";

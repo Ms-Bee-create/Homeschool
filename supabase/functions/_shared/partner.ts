@@ -25,16 +25,36 @@ export function stripLinks(reply: string): string {
   return reply.replace(/(?:https?:\/\/|www\.)[^\s)>\]]+/gi, "(ask Mom for a link)");
 }
 
-/* The judge is told whether the partner changed a detail. Do not take the page's word for it: if the restatement
-   (the assistant message) holds a number the design (first message) never had, a detail WAS changed; otherwise not. */
-export function verifyRestate(messages: unknown, claimed: unknown): "wrong" | "right" {
-  const fallback = String(claimed) === "wrong" ? "wrong" : "right";
-  if (!Array.isArray(messages) || messages.length < 3) return fallback;
+/* The restatement is graded here, not on the page. The design (the child's first message) and the partner's restatement are each read for the same
+   five facts WITH their roles: players, teams, players per team, what two servers hold, what three servers hold. If the facts differ in any role (so "4 teams of 6"
+   said back as "6 teams of 4" is a change), or the restatement holds a number the design never had, a detail WAS changed. If either side cannot be read for all
+   five facts the round is unusable (null) and is never graded. */
+export type Facts = { players: string; teams: string; size: string; two: string; three: string };
+export function parseFacts(text: string): Facts | null {
+  const a = text.match(/(\d+)\s+players\s+in\s+(\d+)\s+teams?\s+of\s+(\d+)/i);
+  const b = text.match(/two\s+servers\s+hold\s+(\d+)/i), c = text.match(/three\s+servers\s+hold\s+(\d+)/i);
+  if (!a || !b || !c) return null;
+  return { players: a[1], teams: a[2], size: a[3], two: b[1], three: c[1] };
+}
+export function verifyRestate(messages: unknown): "wrong" | "right" | null {
+  if (!Array.isArray(messages) || messages.length < 2) return null;
   const a = messages[0], b = messages[1];
-  if (!a || !b || a.role !== "user" || b.role !== "assistant") return fallback;
-  const seen = new Set(String(a.content ?? "").match(/\d+/g) ?? []);
-  const added = (String(b.content ?? "").match(/\d+/g) ?? []).some((n) => !seen.has(n));
-  return added ? "wrong" : "right";
+  if (!a || !b || a.role !== "user" || b.role !== "assistant") return null;
+  const dt = String(a.content ?? ""), rt = String(b.content ?? "");
+  const d = parseFacts(dt), r = parseFacts(rt);
+  if (!d || !r) return null;
+  const same = (Object.keys(d) as (keyof Facts)[]).every((k) => d[k] === r[k]);
+  const seen = new Set(dt.match(/\d+/g) ?? []);
+  const added = (rt.match(/\d+/g) ?? []).some((n) => !seen.has(n));
+  return same && !added ? "right" : "wrong";
+}
+/* Binds one restatement to its round: the server signs (truth, design, reply) when it makes the restatement and checks the signature when the child answers,
+   so the page cannot choose or edit what was changed. The key never leaves the server. */
+export async function signRound(secret: string, design: string, reply: string, truth: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(truth + "|" + design.length + "|" + design + "|" + reply));
+  return Array.from(new Uint8Array(sig)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
 export function cleanReply(raw: unknown): { reply: string; tellMom: boolean; blocked: boolean; verdict: "GOOD" | "MISSED" | "HINT" | null } {
@@ -133,8 +153,8 @@ If an answer is very short or vague, ask them to say more instead of moving on. 
     return `${know}
 
 LET ME GET THIS STRAIGHT MODE. The child's first message describes the game server they designed. Say it back in 2 to 3 sentences that begin with "Let me get this straight," and end with "Is that right?" ${wrong
-      ? "This time change exactly ONE NUMBER he gave (for example 4 teams becomes 5 teams, 6 players per team becomes 7, or 72 becomes 70) so that it is clearly different from what he wrote. Say everything else exactly as he wrote it. Do not hint at which number, and do not say that you changed anything."
-      : "This time say it back exactly right, with every number and every rule the same as he wrote it. Do not add or drop words such as only or all. Do not say that it is exactly right."} Do not praise or explain.`;
+      ? "This time change exactly ONE NUMBER he gave (for example 4 teams becomes 5 teams, 6 players per team becomes 7, or 72 becomes 70) so that it is clearly different from what he wrote. Say everything else exactly as he wrote it, in the same sentences and the same order, including 'players in N teams of N', 'two servers hold N' and 'three servers hold N'. Do not hint at which number, and do not say that you changed anything."
+      : "This time say it back exactly right, with every number and every rule the same as he wrote it, in the same sentences and the same order, including 'players in N teams of N', 'two servers hold N' and 'three servers hold N'. Do not add or drop words such as only or all. Do not say that it is exactly right."} Do not praise or explain.`;
   }
   if (mode === "judge") {
     const wrong = String(opts.restateWas) === "wrong";

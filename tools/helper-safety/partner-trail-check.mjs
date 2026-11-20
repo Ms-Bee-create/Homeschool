@@ -48,7 +48,7 @@ async function turn(mode, extra, messages) {
   const outV = await S.classify(KEY, MODEL, c.reply, 'helper'); const r = S.outputRoute(outV, c.tellMom);
   if (r.held) return { final: r.reply, verdict: null, route: 'reply held back' };
   const keepVerdict = mode === 'judge' || mode === 'bugfix';
-  return { final: S.redactPII(c.reply).text, verdict: keepVerdict ? (c.verdict ?? (mode === 'judge' ? 'MISSED' : 'HINT')) : null, route: 'delivered' };
+  return { final: S.redactPII(c.reply).text, verdict: !keepVerdict ? null : mode === 'judge' ? ((c.verdict === 'GOOD' || c.verdict === 'MISSED') ? c.verdict : null) : (c.verdict ?? 'HINT'), route: 'delivered' };
 }
 
 const DESIGN = 'My server is called Oak Town. The game is a building game. It holds 24 players in 4 teams of 6. Two servers hold 48 players and three servers hold 72. My rules, written as informational:\nWelcome to Oak Town, a building server.\nBe kind to everyone.\nNo deleting the world.\nWait your turn to build.\nBuilders may build.';
