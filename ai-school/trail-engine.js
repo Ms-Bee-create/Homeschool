@@ -245,18 +245,16 @@ function rBugs(s, c) {
   c.appendChild(tally); c.appendChild(fin); count();
 }
 
-/* ---- stop: show a grown-up ---- */
+/* ---- stop: turn it in (nothing waits on a grown-up) ---- */
 function rNote(s, c) {
   c.appendChild(h("p", "", s.prompt));
   var ta = h("textarea"); ta.id = "noteText"; ta.rows = 4; ta.maxLength = 500; ta.setAttribute("aria-label", "What you changed and how you checked");
-  var lab = h("label", ""); lab.style.fontWeight = "400"; var cb = h("input"); cb.type = "checkbox"; cb.id = "noteSeen"; lab.appendChild(cb); lab.appendChild(document.createTextNode(" A grown-up looked at it with me"));
   var err = h("div", "err"); err.id = "noteErr"; err.setAttribute("role", "alert");
   var go = btn("Finish the mission", "primary", function () {
     if (words(ta.value) < s.minWords) { err.textContent = "Say a little more: what did you change, and how did you check it?"; return; }
-    if (!cb.checked) { err.textContent = "Show a grown-up first, then tick the box."; return; }
-    st.ready = true; complete(s.id, { note: ta.value.trim(), grownupSaw: true, ready: true });
+    st.ready = true; complete(s.id, { note: ta.value.trim(), ready: true });
   }); go.id = "noteGo";
-  c.appendChild(ta); c.appendChild(lab); c.appendChild(err); c.appendChild(go);
+  c.appendChild(ta); c.appendChild(err); c.appendChild(go);
 }
 
 var TYPES = { cards: rCards, teachback: rTeach, form: rForm, restate: rRestate, bugs: rBugs, note: rNote };
@@ -275,7 +273,7 @@ function render() {
     var c = h("div", "card"); c.id = "trailDone"; c.appendChild(h("h2", "", "Mission complete"));
     var rs = st.v.restate || {}, bg = st.v.bugs || {};
     c.appendChild(h("p", "", "You designed a server, taught it back, caught " + (rs.caught || 0) + " of " + ((rs.rounds || []).length) + " restatements, and fixed " + (bg.fixed || 0) + " broken rules."));
-    c.appendChild(h("p", "", st.ready ? "This is marked ready for Mom to look at." : ""));
+    c.appendChild(h("p", "", st.ready ? "Done. Saved to your notebook." : ""));
     c.appendChild(btn("Back to home", "primary", function () { A.goHome(); })); root.appendChild(c);
   } else {
     var s = T.stops[cur], f = stopFrame(s, cur); root.appendChild(f); TYPES[s.type](s, f);

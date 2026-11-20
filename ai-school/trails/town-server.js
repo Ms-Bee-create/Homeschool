@@ -49,7 +49,7 @@ window.AIS_TRAILS["town-server"] = {
         "Players may share private details about themselves in chat so friends can visit.",
         "If a rule is unclear, do whatever the loudest player says."
       ], needGood: 3, words: ["stuck", "crashes", "wrong answer", "too slow", "unfair"] },
-    { id: "grownup", type: "note", title: "Show a grown-up", minutes: 5,
-      prompt: "Show your page to a grown-up. Then write what you changed. Say how you checked it.", minWords: 8 }
+    { id: "grownup", type: "note", title: "Turn it in", minutes: 5,
+      prompt: "Look over your page one last time. Then write what you changed. Say how you checked it.", minWords: 8 }
   ]
 };

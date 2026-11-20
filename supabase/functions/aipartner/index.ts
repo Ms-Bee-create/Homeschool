@@ -5,10 +5,12 @@
 // Deploy from the repo root: supabase functions deploy aipartner   (it imports ../_shared/safety.ts and ../_shared/partner.ts, so it cannot be pasted into the dashboard)
 // Needs the same secret as the other helpers: ANTHROPIC_API_KEY.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { classify, flaggedTitle, inputStop, outputRoute, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
+import { FLAG_MARK, classify, flaggedTitle, inputStop, outputRoute, prepareChat, pruneOldChats, recentChildText, redactPII, shouldPrune } from "../_shared/safety.ts";
 import { cleanFeel, cleanMode, cleanPartnerName, cleanReply, cleanTrailId, partnerSystem, signRound, trailAddendum, verifyRestate } from "../_shared/partner.ts";
 
 const TRAIL_CONTEXT = "Context: this is a child's school lesson about fixing a broken rule or explaining how a game server works. Short or vague answers are normal, and talking ABOUT whether a rule is safe (for example sharing private details) is fine. Real violations still count: answer BLOCK or TELL_MOM exactly as you would anywhere else.";
+const FREE_CONTEXT = "Context: this is AI School, a tinkering partner for a 10 year old who builds and experiments with operating systems, virtual machines, code and games on his own computers (a MacBook and an old Chromebook) with his parents' knowledge. Asking to build or write an operating system, use a virtual machine, run a terminal command, or pasting an error log from his own project is normal and fine. Real violations still count: answer BLOCK or TELL_MOM exactly as you would anywhere else for malware, getting into other people's computers or accounts, cracks or keygens, private information, self-harm, sex, weapons or anything dangerous.";
+const AI_BLOCK_REPLY = "I cannot help with that one, sir. If you tell me what you are trying to build, I may be able to help with a safe way to do it. If it is something real, such as changing your actual computer, Mom or Dad should be in on it.";
 const DAILY_CAP = 100; // child messages per day (Mom, 18 Nov 2026). Replaced by the power meter later; Mom sets the real caps.
 const MODEL = "claude-haiku-4-5-20251001";
 const TAG = "AI School";
@@ -67,9 +69,21 @@ Deno.serve(async (req) => {
     let truth: "wrong" | "right" | null = null;
 
     /* What the child typed is checked first. No clear answer = fail closed: the partner is never called. */
-    const inV = await classify(apiKey, MODEL, recentChildText(prep.full), "child", fetch, tMode === "free" ? "" : TRAIL_CONTEXT);
+    /* Earlier messages that were already stopped as off-limits (not the tell-Mom kind) are left out of what the checker looks back at, so a harmless "hello" afterwards is not blocked
+       just because of the ask before it. The CURRENT message is always checked in full. If the lookup fails, nothing is left out (fail closed). */
+    const stoppedBefore = new Set<string>();
+    try {
+      const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+      const { data: fl } = await supa.from("al_ai_chats").select("content, assignment_title")
+        .eq("kid_id", KID).eq("role", "user").like("assignment_title", `${FLAG_MARK}%`).gte("created_at", since);
+      for (const r of (fl ?? []) as { content?: string; assignment_title?: string }[]) {
+        if (!/tell mom/i.test(String(r?.assignment_title ?? ""))) stoppedBefore.add(String(r?.content ?? ""));
+      }
+    } catch (_) { /* nothing is left out */ }
+    const forCheck = prep.full.filter((m, i) => i === prep.full.length - 1 || !(m.role === "user" && stoppedBefore.has(m.content.slice(0, 4000))));
+    const inV = await classify(apiKey, MODEL, recentChildText(forCheck), "child", fetch, tMode === "free" ? FREE_CONTEXT : TRAIL_CONTEXT);
     const stop = inputStop(inV, prep.piiShared);
-    if (stop) return save(flaggedTitle(TAG, stop.verdict, stop.why, stop.tier), stop.canned);
+    if (stop) return save(flaggedTitle(TAG, stop.verdict, stop.why, stop.tier), stop.verdict === "BLOCK" && inV === "BLOCK" ? AI_BLOCK_REPLY : stop.canned);
 
     /* Judge mode is graded against what the SERVER knows: the restatement must carry this server's signature, and what was changed is read from the facts.
        A missing or wrong signature, or a restatement that cannot be read, is never graded and the partner is not called. (This runs after the safety check of what the child typed, so an urgent message is never skipped.) */

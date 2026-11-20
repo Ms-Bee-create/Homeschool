@@ -159,15 +159,15 @@ const txt = (p, sel) => p.locator(sel).innerText();
   await p.fill('#bug3', 'it shares private things so I would remove that and test chat'); await p.click('#bugGo3'); await p.waitForTimeout(600);
   ok('three fixed turns Finish on', !(await p.isDisabled('#bugFinish')));
   await p.click('#bugFinish'); await p.waitForTimeout(300);
-  ok('finishing the broken rules opens Show a grown-up', /Stop 6 of 6: Show a grown-up/.test(await txt(p, '#trailBox')));
+  ok('finishing the broken rules opens Turn it in', /Stop 6 of 6: Turn it in/.test(await txt(p, '#trailBox')));
 
   /* stop 6 */
   await p.fill('#noteText', 'short'); await p.click('#noteGo');
   ok('a short note is refused', /a little more/.test(await txt(p, '#noteErr')));
   await p.fill('#noteText', 'I changed my rule about building and I tested it by joining as a new player'); await p.click('#noteGo');
-  ok('without the grown-up box ticked it is refused', /Show a grown-up first/.test(await txt(p, '#noteErr')));
-  await p.check('#noteSeen'); await p.click('#noteGo'); await p.waitForTimeout(300);
-  ok('the trail ends with a done screen that says it is ready for Mom', await p.locator('#trailDone').count() === 1 && /ready for Mom/.test(await txt(p, '#trailDone')));
+  await p.waitForTimeout(300);
+  ok('there is no grown-up checkbox on the last stop', await p.locator('#noteSeen').count() === 0);
+  ok('the trail ends with a done screen and nothing waits on a grown-up', await p.locator('#trailDone').count() === 1 && /Done/.test(await txt(p, '#trailDone')));
   ok('the done screen says what he did', /caught 1 of 2/.test(await txt(p, '#trailDone')) && /fixed 3 broken/.test(await txt(p, '#trailDone')), await txt(p, '#trailDone'));
 
   /* saving */
