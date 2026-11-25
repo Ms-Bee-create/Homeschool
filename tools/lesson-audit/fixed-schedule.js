@@ -50,7 +50,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
 
   /* Mom's own Re-plan still works while the schedule is fixed. */
   const rp = await page.evaluate(() => { try { return { n: window.__fa.planSchedule() }; } catch (e) { return { err: String(e) }; } });
-  ok("Mom's Re-plan the weeks now still runs while the schedule is fixed", !rp.err && typeof rp.n === 'number', JSON.stringify(rp));
+  ok("the planner function still runs for Days off while the schedule is fixed", !rp.err && typeof rp.n === 'number', JSON.stringify(rp));
   await page.waitForTimeout(2500);   // let the planner's own saves finish before the row is put back (a race otherwise, GPT 25 Nov)
   o.store.al_assignments.find(a => a.id === 'W1').date = rows.sat;   // put it back for the switch-off check
   await page.evaluate(() => window.__fa.syncAll()); await page.waitForTimeout(1000);
