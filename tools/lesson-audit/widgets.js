@@ -167,7 +167,7 @@ function t(name, fn) { try { fn(); ok(name, true); } catch (e) { ok(name, false,
 
   /* ---------- part 2: the real page with the fake database ---------- */
   const h = require(process.cwd() + '/tools/lesson-audit/harness.js');
-  const o = await h.open(), pg = o.page, store = o.store, net = o.net;
+  const o = await h.open({fixedSchedule:false}), pg = o.page, store = o.store, net = o.net;
   await pg.waitForTimeout(8000);
   await pg.evaluate(() => { __fa.runAutoMigrations(); }); await pg.waitForTimeout(1500);
   const wf = mod.WIDGET_FOR;

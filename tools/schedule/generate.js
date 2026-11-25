@@ -96,7 +96,7 @@ function build(kid) {
     const r = live.find(x => x.id === o.id);
     if (!r) { plan.overrides.push({ id: o.id, ok: false, why: 'lesson not found' }); return; }
     if (r.done || hasWork(r)) { plan.overrides.push({ id: o.id, title: r.title, ok: false, why: 'started or done, not moved' }); return; }
-    plan.overrides.push({ id: o.id, title: r.title, ok: true, from: r.date, to: o.to, why: o.why }); r.date = o.to;
+    plan.overrides.push({ id: o.id, title: r.title, ok: true, from: r.date, to: o.to, why: o.why }); r.savedDate = r.date; r.date = o.to;   // savedDate keeps the date the lesson really has in the database
   });
   const doneReviewOf = new Set(live.filter(r => r.done && r.review_of).map(r => r.review_of));
   const movable = [];
@@ -145,7 +145,7 @@ function build(kid) {
   days.forEach(({ iso, dow }) => {
     const d = new Date(iso + 'T12:00:00'); const mon = new Date(d); mon.setDate(d.getDate() - ((dow + 6) % 7)); const wk = isoDate(mon); if (wk !== weekKey) { weekKey = wk; gameThisWeek = 0; }
     const day = plan.byDay[iso] = {};
-    const put = (slot, x) => { day[slot] = x.r.title; placedOn[x.r.id] = iso; mark(iso, slot); plan.moves.push({ id: x.r.id, from: x.r.date, to: iso, slot, title: x.r.title }); };
+    const put = (slot, x) => { day[slot] = x.r.title; placedOn[x.r.id] = iso; mark(iso, slot); plan.moves.push({ id: x.r.id, from: x.r.savedDate || x.r.date, to: iso, slot, title: x.r.title }); };
     ['math', 'warm', 'ela', 'faith', 'sci', 'ss', 'project'].forEach(slot => { // Math is booked first
       if (!SLOT_DAYS[slot].includes(dow)) return;
       if (taken[iso] && taken[iso][slot]) { day[slot] = '(already there)'; return; }
@@ -164,6 +164,12 @@ function build(kid) {
   game.forEach(x => left.push({ id: x.r.id, cls: 'game', date: x.r.date, title: x.r.title }));
   plan.leftOver = left;
   plan.conflicts = validate(kid, plan, live);
+  /* 17 Nov re-review: a Mom move only sets the earliest date; the planner can still place the lesson elsewhere. Say what really happens to each one. */
+  (plan.overrides || []).filter(o => o.ok).forEach(o => {
+    const mv = plan.moves.find(m => m.id === o.id), kp = plan.keeps.find(k => k.id === o.id);
+    o.final = mv ? mv.to : kp ? kp.date : null; o.finalKind = mv ? 'placed' : kp ? 'kept' : 'parked'; o.honored = o.final === o.to;
+    if (!o.honored) plan.conflicts.push({ iso: o.to, type: 'override-not-honored', slot: '', msg: 'Mom move not honored: "' + o.title + '" was set to ' + o.to + ' but the plan ' + (o.final ? 'puts it on ' + o.final : 'does not place it (parked)'), items: [{ id: o.id, title: o.title, src: 'moved' }], needsMom: true, heldInPlace: false });
+  });
   plan.changed = plan.moves.filter(m => m.from !== m.to).length;
   return plan;
 }
@@ -181,7 +187,7 @@ plans.forEach(p => {
   lines.push('placed: ' + p.moves.length + ' lessons (' + p.changed + ' get a new date); kept as dated: ' + p.keeps.length + '; held back: ' + p.holds.length + '; old unfinished before ' + START + ': ' + p.old.length + '; not placed by ' + END + ': ' + p.leftOver.length + ' ' + JSON.stringify(leftBy));
   p.holds.filter(h => h.repeat).forEach(h => lines.push('  REPEAT held: ' + h.date + ' ' + h.subject + ' | ' + h.title + '  <- ' + h.why));
   const cb = {}; p.conflicts.forEach(c => { cb[c.type] = (cb[c.type] || 0) + 1; });
-  (p.overrides || []).forEach(o => lines.push('MOM MOVE ' + (o.ok ? 'applied' : 'REFUSED (' + o.why + ')') + ': ' + (o.title || o.id) + (o.ok ? ' ' + o.from + ' -> ' + o.to : '')));
+  (p.overrides || []).forEach(o => lines.push('MOM MOVE ' + (o.ok ? 'applied' : 'REFUSED (' + o.why + ')') + ': ' + (o.title || o.id) + (o.ok ? ' ' + o.from + ' -> ' + o.to + (o.honored ? ' (final: same day)' : ' (FINAL: ' + (o.final || 'not placed') + ')') : '')));
   lines.push('CONFLICTS in the proposed schedule: ' + p.conflicts.length + (p.conflicts.length ? ' ' + JSON.stringify(cb) + ' (' + p.conflicts.filter(c => c.needsMom).length + ' involve work that keeps its date or is started/done: Mom decides, nothing is moved)' : ' (none)'));
   const heldN = p.conflicts.filter(c => c.heldInPlace).length;
   if (heldN) lines.push('  NOTE: ' + heldN + ' of these involve a HELD-BACK lesson that still sits on its old date. They go away only if Mom approves unscheduling the held lessons in the apply step.');
