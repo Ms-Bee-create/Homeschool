@@ -46,7 +46,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
 
   const card = await page.evaluate(() => { const c = window.__fa.weekCheckCard(); return { text: c.textContent, btn: [...c.querySelectorAll('button')].map(b => b.textContent) }; });
   ok('Leader > Week check says the schedule is fixed', /The schedule is fixed: opening the app never moves or adds a lesson/.test(card.text), card.text.slice(0, 200));
-  ok('and has the switch', card.btn.indexOf('Fixed schedule: on (turn off)') >= 0, JSON.stringify(card.btn));
+  ok('and there is no switch to turn it off (25 Nov, Mom)', !card.btn.some(x => /Fixed schedule/.test(x)), JSON.stringify(card.btn));
 
   /* Mom's own Re-plan still works while the schedule is fixed. */
   const rp = await page.evaluate(() => { try { return { n: window.__fa.planSchedule() }; } catch (e) { return { err: String(e) }; } });
@@ -70,14 +70,6 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   ok('and the Week check no longer says the planner runs on open', /Opening the app no longer re-plans the weeks/.test(card2));
   ok('with the switch off, opening the app still does not delete repeated lessons (the cleanup no longer runs on open, 24 Nov)', ('D1' in s2) && ('D2' in s2), JSON.stringify(Object.keys(s2)));
 
-  /* A shared save that fails must not claim the schedule is fixed for every device (24 Nov review). */
-  net.failWrites = true;
-  await page.evaluate(() => { const b = [...window.__fa.weekCheckCard().querySelectorAll('button')].find(x => /turn on/.test(x.textContent)); b.click(); });
-  await page.waitForTimeout(800);
-  const tt = await page.evaluate(() => { const t = document.getElementById('toast'); return t ? t.textContent : ''; });
-  net.failWrites = false;
-  ok('a failed shared save says so and does not claim the schedule is fixed for everyone', /this device only/.test(tt) && !/Fixed schedule is on/.test(tt), tt);
-
   /* Switched back on: a new Saturday lesson stays. */
   await page.evaluate(() => window.__fa.saveFamilyGoal(Object.assign({}, window.__fa.familyGoal(), { fixedSchedule: true })));
   o.store.al_assignments.push(mk('W2', 'kid1', 'Math', 'Saturday Math 2 (made up)', rows.sat));
@@ -95,7 +87,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   const b = await chk('2026-11-30'); ok('nothing saved, Mon 30 Nov: fixed', b.on === true, JSON.stringify(b));
   const c = await chk('2026-12-15'); ok('nothing saved, later in December: still fixed', c.on === true, JSON.stringify(c));
   await p2.evaluate(() => window.__fa.saveFamilyGoal(Object.assign({}, window.__fa.familyGoal(), { fixedSchedule: false })));
-  const d2 = await chk('2026-12-15'); ok('Mom switching it off after 30 Nov wins', d2.on === false, JSON.stringify(d2));
+  const d2 = await chk('2026-12-15'); ok('a saved off is ignored after 30 Nov: it cannot be turned off', d2.on === true, JSON.stringify(d2));
   await o2.browser.close();
 
   const errs = o.errors || [];
