@@ -74,6 +74,13 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   await setSO({ [id]: '2026-12-01T09:00:00.000Z', all: '2026-12-01T13:00:00.000Z', allFrom: id });
   r = reloaded(); await page.evaluate(() => window.__fa.forcedSignOutCheck());
   ok('"all other devices" sent from this device does not sign this device out', (await r) === false);
+  /* sign-out must be local scope, and a failed sign-out must not be recorded as handled (25 Nov review) */
+  await page.evaluate(() => { const f = window.__fa; window.__soArgs = []; f.sb.auth.signOut = function (o) { window.__soArgs.push(o); return Promise.resolve({ error: { message: 'nope' } }); }; });
+  await setSO({ [id]: '2026-12-01T13:30:00.000Z' });
+  r = reloaded(); await page.evaluate(() => window.__fa.forcedSignOutCheck());
+  ok('a sign-out that fails does not reload or mark the request as handled', (await r) === false && (await page.evaluate(() => localStorage.getItem('al_signout_seen'))) === '2026-12-01T09:00:00.000Z', await page.evaluate(() => localStorage.getItem('al_signout_seen')));
+  ok('and it asked for local scope only', await page.evaluate(() => JSON.stringify(window.__soArgs[0])) === '{"scope":"local"}', await page.evaluate(() => JSON.stringify(window.__soArgs)));
+  await page.evaluate(() => { window.__fa.sb.auth.signOut = function (o) { window.__soArgs.push(o); return Promise.resolve({ error: null }); }; });
   await setSO({ [id]: '2026-12-01T14:00:00.000Z' });
   r = reloaded(); await page.evaluate(() => window.__fa.forcedSignOutCheck());
   ok('a newer request for this device signs it out (the app reloads to the login)', (await r) === true);

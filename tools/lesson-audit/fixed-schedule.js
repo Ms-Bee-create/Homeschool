@@ -51,6 +51,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   /* Mom's own Re-plan still works while the schedule is fixed. */
   const rp = await page.evaluate(() => { try { return { n: window.__fa.planSchedule() }; } catch (e) { return { err: String(e) }; } });
   ok("Mom's Re-plan the weeks now still runs while the schedule is fixed", !rp.err && typeof rp.n === 'number', JSON.stringify(rp));
+  await page.waitForTimeout(2500);   // let the planner's own saves finish before the row is put back (a race otherwise, GPT 25 Nov)
   o.store.al_assignments.find(a => a.id === 'W1').date = rows.sat;   // put it back for the switch-off check
   await page.evaluate(() => window.__fa.syncAll()); await page.waitForTimeout(1000);
 
@@ -66,7 +67,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   const dow = new Date(s2.W1 + 'T00:00:00').getDay();
   ok('with the switch off, opening the app still does not move the Saturday lesson (the weekend mover no longer runs on open, 24 Nov)', s2.W1 === rows.sat, s2.W1);
   const card2 = await page.evaluate(() => window.__fa.weekCheckCard().textContent);
-  ok('and the Week check says the planner runs on open', /each time the app opens/.test(card2));
+  ok('and the Week check no longer says the planner runs on open', /Opening the app no longer re-plans the weeks/.test(card2));
   ok('with the switch off, opening the app still does not delete repeated lessons (the cleanup no longer runs on open, 24 Nov)', ('D1' in s2) && ('D2' in s2), JSON.stringify(Object.keys(s2)));
 
   /* A shared save that fails must not claim the schedule is fixed for every device (24 Nov review). */

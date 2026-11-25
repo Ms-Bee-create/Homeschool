@@ -29563,8 +29563,10 @@ function autoReviewStats(){
     if(!same) out.changes.push({id:id, title:String(a.title||"").slice(0,70), kid:kidData(a.kidId).name||"", said:c.verdict, mom:momSaid, auto:!!c.auto, at:c.at||""});
   });
   out.changes.sort(function(x,y){ return String(y.at).localeCompare(String(x.at)); });
-  var agree = out.auto.kept + out.manual.agreed, all = agree + out.auto.changed + out.manual.differed;
-  out.total = all; out.rate = all ? Math.round(agree*100/all) : null;
+  /* The percentage uses only calls Mom made herself: an automatic call she never looked at is not agreement (25 Nov review). Automatic calls are shown separately. */
+  var all = out.manual.agreed + out.manual.differed, autoAll = out.auto.kept + out.auto.changed;
+  out.total = all; out.rate = all ? Math.round(out.manual.agreed*100/all) : null;
+  out.autoTotal = autoAll; out.autoRate = autoAll ? Math.round(out.auto.kept*100/autoAll) : null;
   return out;
 }
 function autoReviewCard(){
@@ -29575,12 +29577,11 @@ function autoReviewCard(){
   b.textContent = on ? "Turn it off" : "Turn it on";
   b.onclick = function(){ var g = Object.assign({}, familyGoal(), {autoReview:!on}); saveFamilyGoal(g, true); renderLeaderArea(); };
   var st = autoReviewStats(), sm = document.createElement("div"); sm.className = "muted"; sm.style.cssText = "font-size:12.5px;margin:8px 0";
-  if(!st.total) sm.textContent = "How often you agree with it: nothing to count yet. It fills in as work gets reviewed.";
+  if(!st.total && !st.autoTotal) sm.textContent = "How often you agree with it: nothing to count yet. It fills in as work gets reviewed.";
   else {
-    sm.innerHTML = "<b>How often you agree with it: "+st.rate+"%</b> ("+(st.total-st.auto.changed-st.manual.differed)+" of "+st.total+" calls). "+
-      "Handled automatically: "+st.auto.kept+" left alone, "+st.auto.changed+" you changed. "+
-      "Looked at by you: "+st.manual.agreed+" agreed, "+st.manual.differed+" differed."+
-      (st.total<20 ? " (Too few to trust yet.)" : "");
+    sm.innerHTML = (st.total ? "<b>When you looked yourself, you agreed with it "+st.rate+"% of the time</b> ("+st.manual.agreed+" of "+st.total+")."+(st.total<20 ? " (Too few to trust yet.)" : "")
+                             : "<b>You have not looked at any of its calls yourself yet.</b>")+
+      " Handled automatically: "+st.auto.kept+" left alone, "+st.auto.changed+" you changed"+(st.autoTotal ? " ("+st.autoRate+"% left alone, but untouched does not always mean you checked)." : ".");
   }
   c.appendChild(sm);
   if(st.changes.length){
@@ -29939,7 +29940,7 @@ function weekCheckCard(){
   });
   var log = (state.fillLog||[]).filter(function(x){ return x.to>=today; }).slice(-6);
   wrap.innerHTML = '<div style="font-weight:700">\uD83D\uDDD3\uFE0F Week check: '+(thin ? '<span style="color:#c0392b">'+thin+' thin day'+(thin===1?"":"s")+'</span>' : '<span style="color:var(--green,#2a9d5c)">every day looks full \u2713</span>')+'</div>'+
-    '<div class="muted" style="font-size:12.5px;margin-top:4px">The next 5 school days. '+(scheduleFixed() ? 'The schedule is fixed: opening the app never moves or adds a lesson. Re-plan the weeks now is the only way the planner runs. The weekly rhythm it uses:' : 'The planner places every day\'s lessons by the weekly rhythm each time the app opens:')+' Math and ELA/Reading every day, Faith Mon/Wed/Fri, Science Tue/Thu, Social Studies Wed/Thu, and projects Mon to Thu. Red means a lesson that belongs to the day is missing or the day is short. Orange means the minute estimates are over the budget (a guess; nothing is moved for it).</div>'+rows+
+    '<div class="muted" style="font-size:12.5px;margin-top:4px">The next 5 school days. '+(scheduleFixed() ? 'The schedule is fixed: opening the app never moves or adds a lesson. The planner only runs when you tap Re-plan the weeks now or change Days off. The weekly rhythm it uses:' : 'Opening the app no longer re-plans the weeks. The planner runs when you tap Re-plan the weeks now or change Days off, but opening the app can still add one-time lessons and fillers while the schedule is not fixed. The weekly rhythm it uses:')+' Math and ELA/Reading every day, Faith Mon/Wed/Fri, Science Tue/Thu, Social Studies Wed/Thu, and projects Mon to Thu. Red means a lesson that belongs to the day is missing or the day is short. Orange means the minute estimates are over the budget (a guess; nothing is moved for it).</div>'+rows+
     (log.length ? '<div class="muted" style="font-size:12px;margin-top:8px"><b>Moved in just now:</b> '+log.map(function(x){ return escapeHtml(String(x.title||"").slice(0,40))+' (from '+x.from.slice(5)+' to '+x.to.slice(5)+')'; }).join("; ")+'</div>' : '');
   var fx = document.createElement("button"); fx.type = "button"; fx.className = "reward-skip"; fx.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;margin-top:8px;margin-right:8px;color:var(--ink)";
   fx.textContent = scheduleFixed() ? "Fixed schedule: on (turn off)" : "Fixed schedule: off (turn on)";
@@ -30650,8 +30651,12 @@ function forcedSignOutCheck(){
     var seen = null; try{ seen = localStorage.getItem("al_signout_seen"); }catch(e){}
     if(seen===null){ try{ localStorage.setItem("al_signout_seen", cut || "0"); }catch(e){} return; }
     if(!cut || cut<=seen) return;
-    try{ localStorage.setItem("al_signout_seen", cut); sessionStorage.removeItem("al_leader_unlocked"); }catch(e){}
-    Promise.resolve(sb.auth.signOut()).then(function(){ location.reload(); }, function(){ location.reload(); });
+    /* Local scope only: the default (global) would end every device's session, including the one that sent "all other devices" (25 Nov review). The marker is saved only once the sign-out worked, so a failed one is tried again at the next sync. */
+    Promise.resolve(sb.auth.signOut({scope:"local"})).then(function(res){
+      if(res && res.error) return;
+      try{ localStorage.setItem("al_signout_seen", cut); sessionStorage.removeItem("al_leader_unlocked"); }catch(e){}
+      location.reload();
+    }, function(){});
   }catch(e){ console.error(e); }
 }
 function requestSignOut(target){

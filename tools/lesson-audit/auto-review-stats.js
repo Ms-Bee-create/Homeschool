@@ -27,9 +27,9 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   const s = r.s;
   ok('automatic kept / changed', s.auto.kept === 2 && s.auto.changed === 2, JSON.stringify(s.auto));
   ok('manual agreed / differed', s.manual.agreed === 1 && s.manual.differed === 1, JSON.stringify(s.manual));
-  ok('rate is 50% of 6 calls', s.total === 6 && s.rate === 50, s.total + ' ' + s.rate);
+  ok('agreement rate counts only manual calls (1 of 2 = 50%); automatic shown apart', s.total === 2 && s.rate === 50 && s.autoTotal === 4 && s.autoRate === 50, JSON.stringify([s.total, s.rate, s.autoTotal, s.autoRate]));
   ok('three changes listed', s.changes.length === 3, JSON.stringify(s.changes));
-  ok('card shows the rate and the list', /agree with it: 50%/.test(r.card) && /Where you changed its call \(3\)/.test(r.card) && /Too few to trust/.test(r.card), r.card.slice(0, 300));
+  ok('card shows the rate and the list', /agreed with it 50% of the time/.test(r.card) && /2 left alone, 2 you changed/.test(r.card) && /Where you changed its call \(3\)/.test(r.card) && /Too few to trust/.test(r.card), r.card.slice(0, 300));
   const empty = await page.evaluate(() => { const f = window.__fa; f.state.assignments = {}; return f.autoReviewCard().textContent; });
   ok('empty state says nothing to count yet', /nothing to count yet/.test(empty), empty);
   ok('no page errors', o.errors.length === 0, o.errors.slice(0, 3).join(' | '));
