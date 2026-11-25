@@ -5915,7 +5915,6 @@ function rpPick(proj){
   var g = Object.assign({}, familyGoal());
   g.rp = {week:wk.mon, id:proj.id, ids:take.map(function(r){ return r.id; }), finished:false, wins:(g.rp && g.rp.wins) || []};
   saveFamilyGoal(g, true);
-  try{ if(!scheduleFixed()){ balanceFutureLoad(); fillThinDays("kid2"); } }catch(e){ console.error(e); }   // re-check the limits and full days right away, not at the next app open (not while the schedule is fixed, 18 Nov 2026)
   toast("Locked in: "+proj.name+"! Finish it this week.");
   renderView();
 }
@@ -9856,19 +9855,14 @@ function renderLeaderArea(){
   els.view.appendChild(lockRow);
 
   els.view.appendChild(sdLeaderCard());
-  els.view.appendChild(leaderGuideCard());
-  els.view.appendChild(renderWeekendExtrasSettingsCard());
   els.view.appendChild(materialsCard());
   els.view.appendChild(dayPlanCard());
-  els.view.appendChild(leaderStreakCard());
   els.view.appendChild(quickLogCard());
   els.view.appendChild(skipSwapCard());
   els.view.appendChild(contentPacksCard());
-  els.view.appendChild(johnnyRestartCard());
   els.view.appendChild(whatTheyKnowCard());
   els.view.appendChild(ahgTrackerCard());
   els.view.appendChild(tlTrackerCard());
-  els.view.appendChild(scheduleCopyCard());
   els.view.appendChild(weekReportCard());
   els.view.appendChild(weekCheckCard());
   els.view.appendChild(agendaCard());
@@ -9876,14 +9870,12 @@ function renderLeaderArea(){
   els.view.appendChild(liveWorldCard());
   els.view.appendChild(widgetsLeaderCard());
   els.view.appendChild(spectateCard());
-  els.view.appendChild(catchUpCard());
   els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
   els.view.appendChild(familyGoalLeaderCard());
   els.view.appendChild(daysOffCard());
   els.view.appendChild(devicesCard());
   els.view.appendChild(helperChatsCard());
-  els.view.appendChild(leaderFutureIdeasCard());
 
   /* Today's actual work (the review queue) comes first — that's what a leader checks daily.
      Tracking/stats (hours, family overview, per-kid quest logs) move to the bottom since they're
@@ -29616,7 +29608,6 @@ function runAutoMigrations(){
      fixes still run. The repeated-lesson cleanup DELETES lessons, so it waits too (24 Nov review). */
   var hold = scheduleFixed();
   /* Repeated lessons are cleaned first and on their own, so a problem in any other patch below can never stop it. */
-  if(!hold){ try{ patchDuplicateLessons(); }catch(e){ console.error("duplicate cleanup error", e); } }
   try{
     patchFaithRetag("kid1"); patchFaithRetag("kid2");
     patchAnnaCreativeStudioRetag();
@@ -29624,8 +29615,6 @@ function runAutoMigrations(){
     patchAnnaLessonContent();
     if(!hold) retireAnnaFillerLessons();
     patchKid2Content();
-    if(!hold) moveWeekendLessonsToMonday();
-    if(!hold) patchDuplicateLessons();
     patchFlaggedStranded();
     autoApproveQuizOnly();
     if(!hold) retireAnnaMathLoop();
@@ -29657,7 +29646,6 @@ function runAutoMigrations(){
     patchRyanGameDays();
     if(!hold) autoAddOffScreenFridays();
     if(!hold) autoAddScooterTrack();
-    if(!hold) planSchedule();
     if(!hold) patchTrimAnnaSs();
   }catch(e){ console.error("auto-migration error", e); }
 }
@@ -29873,7 +29861,6 @@ function planSchedule(kidFilter){
   if(moved){ state.fillLog = (state.fillLog||[]).concat(log).slice(-30); console.log("planSchedule: placed "+moved+" lesson(s) on their days"); }
   return moved;
 }
-function fillThinDays(kidFilter){ return planSchedule(kidFilter); }   // old name kept for the callers; the planner does both jobs
 /* Which of the template's slots a day is missing (used by the Week check). "ok" days have everything the weekly rhythm asks for. */
 function schedMissing(kid, iso){
   var dow = new Date(iso+"T00:00:00").getDay(), have = {}, miss = [];
@@ -29928,7 +29915,6 @@ function weekCheckCard(){
   return wrap;
 }
 /* restoreDatedCivics() was removed on 10 Nov 2026: the election-week civics lessons follow the weekly rhythm now, so nothing puts them back on a written date. */
-function balanceFutureLoad(){ return planSchedule(); }   // the planner (above) replaced the old balancer
 
 /* ---------- Leader: Helper chats (what Ryan asked the AI troubleshooter) ---------- */
 function helperChatsCard(){
@@ -30508,7 +30494,7 @@ function familyGoalLeaderCard(){
 function daysOffApply(list, msg){
   var g = Object.assign({}, familyGoal(), {daysOff:list});
   saveFamilyGoal(g).then(function(){
-    moveWeekendLessonsToMonday(); balanceFutureLoad(); fillThinDays();
+    moveWeekendLessonsToMonday(); planSchedule();
     toast(msg); renderLeaderArea();
   });
 }
@@ -37450,7 +37436,7 @@ function syncAll(force){
     KIDS.forEach(function(k){ if(state.kids[k.id]) stampAttendance(k.id); });
     if(!changed) return;
     updateLibraryTabVisibility();
-    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); setTimeout(function(){ try{ if(!scheduleFixed()) planSchedule(); }catch(e){ console.error(e); } }, 5000); noteDeviceBuild(); }   // plan again once the lessons the migrations just added have landed
+    if(!state.migrationsRan){ state.migrationsRan = true; runAutoMigrations(); noteDeviceBuild(); }   // plan again once the lessons the migrations just added have landed
     renderKidbar(); renderXpBar();
     if(whoGateEl.style.display!=="none") renderWhoGate();
     /* Never re-render out from under someone mid-keystroke — the poll still refreshes the
