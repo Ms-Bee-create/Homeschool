@@ -5328,16 +5328,16 @@ function whatLandedRows(kidId, nowMs){
     if(!(a.quizTotal>0) || a.quizScore==null) return;
     var held = quizHelpHold(a);
     if(!(a.done || a.quizRetryUsed || held)) return;
-    var when = String(a.doneAt || a.submittedAt || a.date || "").slice(0,10);
+    var whenFull = String(a.doneAt || a.submittedAt || a.date || ""), when = whenFull.slice(0,10);
     if(!when || when < cutoff) return;
     var unit = a.subject || "Other", topic = whatLandedTopic(a), key = unit+"\u0001"+topic;
     var g = groups[key] || (groups[key] = {unit: unit, topic: topic, checks: []});
-    g.checks.push({when: when, pass: quizPassed(a.quizScore, a.quizTotal), held: held});
+    g.checks.push({when: when, at: whenFull, pass: quizPassed(a.quizScore, a.quizTotal), held: held});
   });
   var rank = {notyet:0, getting:1, landed:2};
   return Object.keys(groups).map(function(k){
     var g = groups[k];
-    g.checks.sort(function(x,y){ return x.when<y.when ? -1 : x.when>y.when ? 1 : 0; });
+    g.checks.sort(function(x,y){ return x.at<y.at ? -1 : x.at>y.at ? 1 : 0; });   // full timestamps, so two checks on one day keep their real order
     var last = g.checks[g.checks.length-1];
     g.passed = g.checks.filter(function(c){ return c.pass; }).length;
     g.last = last.when;
@@ -29613,10 +29613,10 @@ function runAutoMigrations(){
   if(!db) return;
   if(location.hash==="#print-agenda" && !state.agendaPrinted){ state.agendaPrinted = true; setTimeout(function(){ try{ openAgenda(true); }catch(e){ console.error(e); } }, 3000); }   // for a scheduled print on a home computer
   /* Fixed schedule (18 Nov 2026, Mom): while it is on, the patches that move, add, retire or remove lessons wait (if(!hold)); lesson text, video, tag and standard
-     fixes still run, and so does the repeated-lesson cleanup. */
+     fixes still run. The repeated-lesson cleanup DELETES lessons, so it waits too (24 Nov review). */
   var hold = scheduleFixed();
   /* Repeated lessons are cleaned first and on their own, so a problem in any other patch below can never stop it. */
-  try{ patchDuplicateLessons(); }catch(e){ console.error("duplicate cleanup error", e); }
+  if(!hold){ try{ patchDuplicateLessons(); }catch(e){ console.error("duplicate cleanup error", e); } }
   try{
     patchFaithRetag("kid1"); patchFaithRetag("kid2");
     patchAnnaCreativeStudioRetag();
@@ -29625,7 +29625,7 @@ function runAutoMigrations(){
     if(!hold) retireAnnaFillerLessons();
     patchKid2Content();
     if(!hold) moveWeekendLessonsToMonday();
-    patchDuplicateLessons();
+    if(!hold) patchDuplicateLessons();
     patchFlaggedStranded();
     autoApproveQuizOnly();
     if(!hold) retireAnnaMathLoop();
@@ -29917,7 +29917,7 @@ function weekCheckCard(){
   fx.onclick = function(){
     var on = scheduleFixed();
     if(on && !window.confirm("Turn the fixed schedule off? Then every time the app opens, the planner and the fillers can move and add lessons again.")) return;
-    saveFamilyGoal(Object.assign({}, familyGoal(), {fixedSchedule: !on})).then(function(){ toast(on ? "Fixed schedule is off" : "Fixed schedule is on"); renderLeaderArea(); });
+    saveFamilyGoal(Object.assign({}, familyGoal(), {fixedSchedule: !on})).then(function(ok){ toast(ok ? (on ? "Fixed schedule is off" : "Fixed schedule is on") : "Saved on this device only: other devices may still move lessons until it is saved for all of them"); renderLeaderArea(); });
   };
   wrap.appendChild(fx);
   if(thin){

@@ -27,7 +27,9 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   o.store.al_assignments = (o.store.al_assignments || []).concat([
     mk('W1', 'kid2', 'Math', 'Saturday Math (made up)', days.sat),
     mk('T1', 'kid2', 'Science', 'Science later (made up)', days.t1),
-    mk('T2', 'kid1', 'ELA', 'Anna ELA later (made up)', days.t2)
+    mk('T2', 'kid1', 'ELA', 'Anna ELA later (made up)', days.t2),
+    Object.assign(mk('D1', 'kid2', 'Independent', 'Repeated series lesson (made up)', days.t1), { skillId: 'ryan-virtual-phones' }),
+    Object.assign(mk('D2', 'kid2', 'Independent', 'Repeated series lesson (made up)', days.t2), { skillId: 'ryan-virtual-phones' })
   ]);
   await page.evaluate(() => window.__fa.syncAll()); await page.waitForTimeout(1500);
   /* What is saved in the (fake) database: lesson id -> date */
@@ -39,6 +41,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   const s1 = await snap();
   ok('opening again (all migrations) moves no date and adds or removes no lesson', same(s0, s1), diff(s0, s1));
   ok('the Saturday lesson stays on Saturday while the schedule is fixed', s1.W1 === rows.sat, s1.W1);
+  ok('a repeated series lesson on two future dates is NOT deleted while the schedule is fixed (24 Nov review)', ('D1' in s1) && ('D2' in s1), JSON.stringify(Object.keys(s1)));
   ok('no lesson is added or deleted in the database', !net.log.some(x => x.table === 'al_assignments' && (x.method === 'POST' || x.method === 'DELETE')), JSON.stringify(net.log.slice(0, 5)));
 
   const card = await page.evaluate(() => { const c = window.__fa.weekCheckCard(); return { text: c.textContent, btn: [...c.querySelectorAll('button')].map(b => b.textContent) }; });
@@ -64,6 +67,15 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   ok('with the switch off, opening moves the Saturday lesson to a school day as before', s2.W1 !== rows.sat && dow >= 1 && dow <= 5, s2.W1);
   const card2 = await page.evaluate(() => window.__fa.weekCheckCard().textContent);
   ok('and the Week check says the planner runs on open', /each time the app opens/.test(card2));
+  ok('with the switch off, the repeated-lesson cleanup runs again as before', ('D1' in s2) && !('D2' in s2), JSON.stringify(Object.keys(s2)));
+
+  /* A shared save that fails must not claim the schedule is fixed for every device (24 Nov review). */
+  net.failWrites = true;
+  await page.evaluate(() => { const b = [...window.__fa.weekCheckCard().querySelectorAll('button')].find(x => /turn on/.test(x.textContent)); b.click(); });
+  await page.waitForTimeout(800);
+  const tt = await page.evaluate(() => { const t = document.getElementById('toast'); return t ? t.textContent : ''; });
+  net.failWrites = false;
+  ok('a failed shared save says so and does not claim the schedule is fixed for everyone', /this device only/.test(tt) && !/Fixed schedule is on/.test(tt), tt);
 
   /* Switched back on: a new Saturday lesson stays. */
   await page.evaluate(() => window.__fa.saveFamilyGoal(Object.assign({}, window.__fa.familyGoal(), { fixedSchedule: true })));

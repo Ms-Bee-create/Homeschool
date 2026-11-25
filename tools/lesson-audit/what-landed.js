@@ -60,6 +60,13 @@ const ago = n => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
   await page.waitForTimeout(1500);
   const bt = JSON.parse(before), changed = Object.keys(store).filter(k => JSON.stringify(store[k]) !== JSON.stringify(bt[k]));
   ok('showing the card writes nothing to the database', !changed.length, 'changed: ' + changed.join(',') + ' ' + changed.map(k => JSON.stringify(store[k]).slice(0, 300) + ' WAS ' + String(JSON.stringify(bt[k])).slice(0, 300)).join(' | '));
+  /* Two checks on the SAME day: a miss at 14:00 and a pass at 16:00 (pass listed first). The newest by clock time is the pass = Getting there, not Not yet (24 Nov review). */
+  await load([
+    { id: 'S1', kidId: 'kid1', subject: 'Math', skillId: 'anna-math-sameday', title: 'Same day pass', quizScore: 3, quizTotal: 3, done: true, doneAt: ago(1) + 'T16:00:00Z' },
+    { id: 'S2', kidId: 'kid1', subject: 'Math', skillId: 'anna-math-sameday', title: 'Same day miss', quizScore: 0, quizTotal: 3, done: true, quizRetryUsed: true, doneAt: ago(1) + 'T14:00:00Z' }
+  ]);
+  const sd = await leader();
+  ok('two checks on one day are ordered by time: a miss at 14:00 then a pass at 16:00 = Getting there', sd.has && sd.kids[0] && sd.kids[0].rows.some(x => /Getting there: Math/.test(x)), JSON.stringify(sd.kids));
   await load([]);
   const e = await leader();
   ok('with no finished Quick Checks the card says so', e.has && /No Quick Checks finished in the last 6 weeks/.test(e.text), e.text);
