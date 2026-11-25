@@ -5,7 +5,7 @@ const results = []; let failed = 0;
 const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '  ' + (x || ''))); if (!p) failed++; };
 const DAY = '2026-11-16';
 (async () => {
-  const o = await h.open(), page = o.page, store = o.store, HID = h.HID;
+  const o = await h.open({ fixedSchedule: true }), page = o.page, store = o.store, HID = h.HID;
   await page.waitForTimeout(5000);
   ok('hook is absent on a normal visit', await page.evaluate(() => typeof window.__christyPrint === 'undefined'));
   store.al_assignments.length = 0;

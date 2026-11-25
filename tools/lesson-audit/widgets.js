@@ -237,24 +237,9 @@ function t(name, fn) { try { fn(); ok(name, true); } catch (e) { ok(name, false,
   const rr = await xpTest(rId);
   ok('Done on Ryan\'s long division lesson with the widget open: done and exact XP', rr.panel && rr.done1 && rr.gain === rr.xp, JSON.stringify(rr));
 
-  /* Leader switch */
-  const sw = await pg.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; __fa.renderView(); const card = [...document.querySelectorAll('.card')].find(c => /practice tools in lessons/.test(c.textContent)); return card ? card.textContent : null; });
-  ok('Leader area has the "Try it" switch card, both kids ON by default', !!sw && /Anna: ON/.test(sw) && /Ryan: ON/.test(sw), String(sw));
-  await pg.evaluate(() => { const card = [...document.querySelectorAll('.card')].find(c => /practice tools in lessons/.test(c.textContent)); [...card.querySelectorAll('button')][0].click(); });
-  await pg.waitForTimeout(1200);
-  const off = await pg.evaluate(() => { const card = [...document.querySelectorAll('.card')].find(c => /practice tools in lessons/.test(c.textContent)); return { text: card.textContent, stored: JSON.parse(localStorage.getItem('al_family_goal') || '{}').widgetsOff }; });
-  ok('turning it off for Anna: card says OFF for Anna, ON for Ryan, saved the way the other Leader switches are', /Anna: OFF/.test(off.text) && /Ryan: ON/.test(off.text) && off.stored && off.stored.kid1 === true && !off.stored.kid2, JSON.stringify(off));
-  const shared = (store.al_settings || []).map(r => JSON.stringify(r.family_goal || '')).join(' ');
-  ok('the switch is saved in al_settings.family_goal like the others (fake DB)', /widgetsOff/.test(shared), shared);
-  const offA = await pg.evaluate(id2 => { const a = state.assignments[id2]; state.activeKid = a.kidId; state.leaderMode = false; state.leaderUnlocked = false; state.lessonDetailId = id2; __fa.renderLessonDetail(); return !!document.querySelector('.fw-panel'); }, pick('Array Garden: Rows and Columns'));
-  const onR = await pg.evaluate(id2 => { const a = state.assignments[id2]; state.activeKid = a.kidId; state.lessonDetailId = id2; __fa.renderLessonDetail(); return !!document.querySelector('.fw-panel'); }, rId);
-  ok('with Anna off: her lesson has no panel (lesson itself still renders), Ryan\'s still has one', offA === false && onR === true);
-  await pg.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; __fa.renderView(); const card = [...document.querySelectorAll('.card')].find(c => /practice tools in lessons/.test(c.textContent)); [...card.querySelectorAll('button')][0].click(); });
-  await pg.waitForTimeout(800);
-  const back = await pg.evaluate(id2 => { state.leaderUnlocked = false; state.leaderMode = false; const a = state.assignments[id2]; state.activeKid = a.kidId; state.lessonDetailId = id2; __fa.renderLessonDetail(); return !!document.querySelector('.fw-panel'); }, pick('Array Garden: Rows and Columns'));
-  ok('turning it back on brings Anna\'s panel back', back === true);
-  const parentOnly = await pg.evaluate(() => { state.leaderUnlocked = false; state.leaderMode = false; state.lessonDetailId = null; __fa.renderView(); return /practice tools in lessons/.test(document.body.innerText); });
-  ok('a kid cannot see the switch (parent-only Leader area)', parentOnly === false);
+  /* Leader switch card was removed 24 Nov 2026 (Mom): the practice tools stay ON for both kids and nothing in Leader turns them off. */
+  const gone = await pg.evaluate(() => { state.leaderUnlocked = true; state.leaderMode = true; state.lessonDetailId = null; __fa.renderView(); return !/practice tools in lessons/.test(document.getElementById('view') ? document.getElementById('view').textContent : document.body.textContent); });
+  ok('the Leader area no longer has a "Try it" switch card', gone === true);
 
   /* narrow phone: every attached lesson page with its panel open does not scroll sideways */
   await pg.setViewportSize({ width: 320, height: 640 });

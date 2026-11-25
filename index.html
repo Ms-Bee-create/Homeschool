@@ -9868,7 +9868,6 @@ function renderLeaderArea(){
   els.view.appendChild(agendaCard());
   els.view.appendChild(autoReviewCard());
   els.view.appendChild(liveWorldCard());
-  els.view.appendChild(widgetsLeaderCard());
   els.view.appendChild(spectateCard());
   els.view.appendChild(standardsCheckCard());
   els.view.appendChild(gimkitExportCard());
@@ -30240,6 +30239,7 @@ function saveFamilyGoal(g, quiet){
   if(g.widgetsOff===undefined && cur.widgetsOff!==undefined) g = Object.assign({}, g, {widgetsOff:cur.widgetsOff});
   if(g.sd===undefined && cur.sd!==undefined) g = Object.assign({}, g, {sd:cur.sd});
   if(g.fixedSchedule===undefined && cur.fixedSchedule!==undefined) g = Object.assign({}, g, {fixedSchedule:cur.fixedSchedule});
+  if(g.signOut===undefined && cur.signOut!==undefined) g = Object.assign({}, g, {signOut:cur.signOut});
   state.familyGoal = g;
   try{ localStorage.setItem("al_family_goal", JSON.stringify(g)); }catch(e){}
   if(!sb || !HOUSEHOLD_ID) return Promise.resolve(false);
@@ -30248,17 +30248,53 @@ function saveFamilyGoal(g, quiet){
     return true;
   });
 }
+/* Chores count toward a great day (24 Nov 2026, Mom): from GOAL_CHORES_FROM on, a great day is every lesson done AND every Home Quest chore that belongs in that kid's school day
+   ticked (sent to Mom or approved; one Mom sent back does not count until it is sent again). Days before that date stay lessons-only, so nothing already earned is taken away.
+   The chore list comes from home_jobs (same read as the shared day), the ticks from home_job_logs. If either cannot be read, chores are not required, so a bad connection never blocks a cup. */
+var GOAL_CHORES_FROM = "2026-11-30";
+var goalChores = {logs:null, at:0, loading:false};
+var GOAL_CHORE_BLOCKS = ["sd_launch","sd_gather","sd_lunch","sd_finish","sd_reset"];
+function goalChoresLoad(){
+  if(todayISO()<GOAL_CHORES_FROM || goalChores.loading || typeof sb==="undefined" || !sb || !HOUSEHOLD_ID) return;
+  if(goalChores.logs && Date.now()-goalChores.at < 120000) return;
+  goalChores.loading = true; goalChores.at = Date.now();
+  try{ sdChoresLoad(); }catch(e){}
+  var ids = Object.keys(MM_MEMBERS).map(function(k){ return MM_MEMBERS[k]; }), p;
+  try{ p = sb.from("home_job_logs").select("job_id,member_id,day,status").in("member_id", ids).gte("day", GOAL_CHORES_FROM); }catch(e){ goalChores.loading = false; return; }
+  p.then(function(res){
+    goalChores.loading = false;
+    if(!res || res.error || !Array.isArray(res.data)) return;
+    var had = !!goalChores.logs; goalChores.logs = res.data;
+    if(!had){ try{ if(state.leaderMode && state.leaderUnlocked && state.lessonDetailId==null && !isTypingInFormField()) renderView(); else sdRefreshIfIdle(); }catch(e){} }
+  }, function(){ goalChores.loading = false; });
+}
+/* {done, total} of the chores a kid has on one school day, or null when chores are not required yet or cannot be read. */
+function goalChoreCount(kidId, iso){
+  if(iso<GOAL_CHORES_FROM || !Array.isArray(sdChores.rows) || !goalChores.logs) return null;
+  var dow = new Date(iso+"T00:00:00").getDay(), items = [];
+  GOAL_CHORE_BLOCKS.forEach(function(b){ sdChoreItems(kidId, b, dow).forEach(function(it){ items.push(it); }); });
+  var done = 0;
+  items.forEach(function(it){
+    if(goalChores.logs.some(function(l){ return l.job_id===it.id && l.day===iso && (l.status==="submitted" || l.status==="approved"); })) done++;
+  });
+  return {done:done, total:items.length};
+}
 function familyGoalProgress(g){
+  goalChoresLoad();
   var count = 0, d = new Date(g.start+"T00:00:00"), end = todayISO(), guard = 0;
   while(isoDate(d)<=end && guard++<400){
     var iso = isoDate(d);
     if(!isWeekendIso(iso)){
-      var per = KIDS.map(function(k){ return assignmentsFor(k.id, iso); }).filter(function(l){ return l.length; });
-      if(per.length && per.every(function(l){ return l.every(function(a){ return a.done; }); })) count++;
+      var per = KIDS.map(function(k){ return {k:k.id, l:assignmentsFor(k.id, iso)}; }).filter(function(x){ return x.l.length; });
+      if(per.length && per.every(function(x){
+        if(!x.l.every(function(a){ return a.done; })) return false;
+        var c = goalChoreCount(x.k, iso);
+        return !c || c.done>=c.total;
+      })) count++;
     }
     d.setDate(d.getDate()+1);
   }
-  var today = KIDS.map(function(k){ var l = assignmentsFor(k.id, todayISO()); return {name:kidData(k.id).name||k.defaultName, done:l.filter(function(a){ return a.done; }).length, total:l.length}; });
+  var today = KIDS.map(function(k){ var l = assignmentsFor(k.id, todayISO()); return {name:kidData(k.id).name||k.defaultName, done:l.filter(function(a){ return a.done; }).length, total:l.length, chores:goalChoreCount(k.id, todayISO())}; });
   return {count:count, today:today};
 }
 /* The default goal icon is drawn as a picture (not the 🧋 emoji) because older Windows fonts do not have that emoji and show nothing. */
@@ -30444,13 +30480,13 @@ function familyGoalCard(){
   card.style.cssText = "margin:8px 0 12px;padding:12px 14px;border-radius:18px;background:linear-gradient(135deg,#fff1d6,#ffe0f0);box-shadow:0 3px 10px rgba(0,0,0,.07);color:#3b2a4a";
   var cups = "";
   for(var i=0;i<g.target;i++) cups += '<span style="margin-right:2px">'+goalIconHtml(g, i<got, 34)+'</span>';
-  var todayTxt = pr.today.map(function(t){ return escapeHtml(t.name)+": "+(t.total ? (t.done===t.total ? "all done ✓" : t.done+" of "+t.total) : "no lessons today"); }).join(" &nbsp;·&nbsp; ");
+  var todayTxt = pr.today.map(function(t){ return escapeHtml(t.name)+": "+(t.total ? (t.done===t.total ? "lessons done ✓" : t.done+" of "+t.total+" lessons") : "no lessons today")+(t.chores && t.chores.total ? ", chores "+(t.chores.done>=t.chores.total ? "done ✓" : t.chores.done+" of "+t.chores.total) : ""); }).join(" &nbsp;·&nbsp; ");
   card.innerHTML =
     '<div style="font-weight:800;font-size:15px;margin-bottom:4px">'+goalIconHtml(g, true, 20)+' Family '+escapeHtml(g.name)+': '+got+' of '+g.target+' great days</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px">'+cups+'</div>'+
     (reached
       ? '<div style="font-weight:800;font-size:15px">🎉 You earned it together! Tell Mom: it is time for the '+escapeHtml(g.name)+'!</div>'
-      : '<div style="font-size:12.5px">A great day is when Anna and Ryan both finish all their lessons. Every great day fills a cup. We are doing this together!</div>')+
+      : '<div style="font-size:12.5px">A great day is when Anna and Ryan both finish all their lessons and their chores. Every great day fills a cup. We are doing this together!</div>')+
     '<div style="font-size:12.5px;margin-top:4px;opacity:.85">Today: '+todayTxt+'</div>';
   return card;
 }
@@ -30465,7 +30501,7 @@ function familyGoalLeaderCard(){
   sum.textContent = g.emoji+" Family goal — "+Math.min(pr.count,g.target)+" of "+g.target+" great days";
   det.appendChild(sum);
   var note = document.createElement("div"); note.className = "muted"; note.style.cssText = "font-size:12.5px;margin:8px 0";
-  note.textContent = "A great day is a school day where every kid who has lessons finishes all of them. Counting starts on the start date. Both kids see the same bar on their Today page.";
+  note.textContent = "A great day is a school day where every kid who has lessons finishes all of them and ticks off their Home Quest chores (chores count from 30 Nov; days before that are lessons only). Counting starts on the start date. Both kids see the same bar on their Today page.";
   det.appendChild(note);
   function field(label, type, val, w){
     var l = document.createElement("label"); l.style.cssText = "display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:6px";
@@ -30561,6 +30597,29 @@ function buildCmp(a, b){
   var pa = parts(a), pb = parts(b);
   return pa[0]<pb[0] ? -1 : pa[0]>pb[0] ? 1 : pa[1]-pb[1];
 }
+/* Force sign out (24 Nov 2026, Mom). Leader > Devices writes a time into family settings (signOut[deviceId], or signOut.all for every other device). A device that sees a time newer
+   than the last one it handled signs out of the app and returns to the login screen, so someone has to log in again. It happens the next time that device syncs (within about a minute of
+   being touched), not instantly. The first time a device sees any sign-out time it only records it, so a brand-new device is never signed out by an old request. */
+function forcedSignOutCheck(){
+  try{
+    var so = (familyGoal().signOut) || {}, id = deviceId();
+    var cut = [so[id], so.all && so.allFrom!==id ? so.all : ""].filter(Boolean).sort().pop() || "";
+    var seen = null; try{ seen = localStorage.getItem("al_signout_seen"); }catch(e){}
+    if(seen===null){ try{ localStorage.setItem("al_signout_seen", cut || "0"); }catch(e){} return; }
+    if(!cut || cut<=seen) return;
+    try{ localStorage.setItem("al_signout_seen", cut); sessionStorage.removeItem("al_leader_unlocked"); }catch(e){}
+    Promise.resolve(sb.auth.signOut()).then(function(){ location.reload(); }, function(){ location.reload(); });
+  }catch(e){ console.error(e); }
+}
+function requestSignOut(target){
+  var cur = familyGoal(), so = Object.assign({}, cur.signOut||{}), now = new Date().toISOString();
+  if(target==="all"){ so.all = now; so.allFrom = deviceId(); } else so[target] = now;
+  return saveFamilyGoal(Object.assign({}, cur, {signOut:so}), true).then(function(ok){
+    toast(ok ? "Done. That device signs out the next time it syncs (within about a minute of someone touching it)." : "Could not save. Try again when you are online.");
+    renderLeaderArea();
+    return ok;
+  });
+}
 function noteDeviceBuild(force){
   if(!sb || !HOUSEHOLD_ID) return;
   var key = "", last = null;
@@ -30616,6 +30675,19 @@ function devicesCard(){
     row.innerHTML = '<span>'+escapeHtml(d.l||"Device")+(k===deviceId() ? " (this one)" : "")+'</span><span class="mono" style="'+(old ? "color:var(--coral);font-weight:700" : "")+'">'+escapeHtml(d.b)+(old ? " · behind" : "")+' · '+escapeHtml(agoText(d.at))+'</span>';
     det.appendChild(row);
   });
+  var soRow = document.createElement("div"); soRow.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px";
+  ids.forEach(function(k){
+    if(k===deviceId()) return;
+    var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);font-size:12px;padding:5px 10px";
+    b.textContent = "Sign out "+(devs[k].l||"Device"); b.onclick = function(){ if(confirm("Sign out "+(devs[k].l||"this device")+"? Someone will need to log in again on it.")) requestSignOut(k); };
+    soRow.appendChild(b);
+  });
+  if(ids.length>1){
+    var ba = document.createElement("button"); ba.type = "button"; ba.className = "reward-skip"; ba.style.cssText = "opacity:1;border:1px solid var(--coral);color:var(--coral);font-size:12px;padding:5px 10px;font-weight:700";
+    ba.textContent = "Sign out all other devices"; ba.onclick = function(){ if(confirm("Sign out every other device? Each one will need to log in again.")) requestSignOut("all"); };
+    soRow.appendChild(ba);
+  }
+  if(soRow.children.length) det.appendChild(soRow);
   var nameRow = document.createElement("div"); nameRow.style.cssText = "display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;font-size:13px";
   var nameI = document.createElement("input"); nameI.type = "text"; nameI.maxLength = 30; nameI.placeholder = "Name this device (Anna's computer)";
   try{ nameI.value = localStorage.getItem("al_device_name")||""; }catch(e){}
@@ -37427,6 +37499,7 @@ function syncAll(force){
     if(changedSlow){
       state.leaderPinHash = settingsRow ? settingsRow.leader_pin_hash || null : null;
       state.familyGoal = settingsRow && settingsRow.family_goal ? settingsRow.family_goal : null;
+      forcedSignOutCheck();
       state.schedules = {};
       schedRows.forEach(function(r){ state.schedules[r.kid_id] = { blocks: r.blocks || [] }; });
       state.questions = qRows.map(function(r){ return Object.assign({ id: r.id }, fromRow("questions", r)); });

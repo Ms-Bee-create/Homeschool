@@ -64,7 +64,7 @@ const ok = (n, p, x) => { results.push((p ? 'PASS ' : 'FAIL ') + n + (p ? '' : '
   await page.evaluate(() => window.__fa.runAutoMigrations()); await page.waitForTimeout(2500);
   const s2 = await snap();
   const dow = new Date(s2.W1 + 'T00:00:00').getDay();
-  ok('with the switch off, opening moves the Saturday lesson to a school day as before', s2.W1 !== rows.sat && dow >= 1 && dow <= 5, s2.W1);
+  ok('with the switch off, opening the app still does not move the Saturday lesson (the weekend mover no longer runs on open, 24 Nov)', s2.W1 === rows.sat, s2.W1);
   const card2 = await page.evaluate(() => window.__fa.weekCheckCard().textContent);
   ok('and the Week check says the planner runs on open', /each time the app opens/.test(card2));
   ok('with the switch off, opening the app still does not delete repeated lessons (the cleanup no longer runs on open, 24 Nov)', ('D1' in s2) && ('D2' in s2), JSON.stringify(Object.keys(s2)));
