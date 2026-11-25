@@ -29545,6 +29545,28 @@ function agendaCard(){
   c.appendChild(b); return c;
 }
 function autoReviewOn(){ return familyGoal().autoReview !== false; }
+/* How often Mom ends up agreeing with the helper (25 Nov 2026, Mom: "track how often you agree with it"). Worked out from what is already saved on each assignment, nothing new is stored:
+   aiCheck.verdict is the helper's call for the work that was handed in (aiCheck.sub === submittedAt), reviewStatus is what happened to it. Only the final call counts, and only for work
+   the helper called "looks good" or "needs another try" ("not sure" is Mom's call by design).
+   - handled automatically and left alone = kept; automatic but Mom reversed it (approved something sent back, or sent back something approved) = changed.
+   - not automatic (helper switched off, or held back): Mom approved a "looks good" or sent back a "needs another try" = agreed; the opposite = differed.
+   Work Mom approved in one tap along with a batch counts like any other approval, so treat the rate as a guide. */
+function autoReviewStats(){
+  var out = {auto:{kept:0, changed:0}, manual:{agreed:0, differed:0}, changes:[]};
+  Object.keys(state.assignments||{}).forEach(function(id){
+    var a = state.assignments[id], c = a && a.aiCheck;
+    if(!c || !c.verdict || c.sub!==a.submittedAt || (c.verdict!=="looks_good" && c.verdict!=="needs_work")) return;
+    if(a.reviewStatus!=="approved" && a.reviewStatus!=="flagged") return;
+    var momSaid = a.reviewStatus==="approved" ? "looks_good" : "needs_work", same = momSaid===c.verdict;
+    if(c.auto){ if(same) out.auto.kept++; else out.auto.changed++; }
+    else { if(same) out.manual.agreed++; else out.manual.differed++; }
+    if(!same) out.changes.push({id:id, title:String(a.title||"").slice(0,70), kid:kidData(a.kidId).name||"", said:c.verdict, mom:momSaid, auto:!!c.auto, at:c.at||""});
+  });
+  out.changes.sort(function(x,y){ return String(y.at).localeCompare(String(x.at)); });
+  var agree = out.auto.kept + out.manual.agreed, all = agree + out.auto.changed + out.manual.differed;
+  out.total = all; out.rate = all ? Math.round(agree*100/all) : null;
+  return out;
+}
 function autoReviewCard(){
   var on = autoReviewOn(), c = document.createElement("div"); c.className = "card"; c.style.marginBottom = "10px";
   c.innerHTML = '<div style="font-weight:700">\uD83E\uDD16 Automatic work review: <span style="color:'+(on ? 'var(--green,#2a9d5c)' : 'var(--muted,#888)')+'">'+(on ? "ON" : "OFF")+'</span></div>'+
@@ -29552,6 +29574,27 @@ function autoReviewCard(){
   var b = document.createElement("button"); b.type = "button"; b.className = "reward-skip"; b.style.cssText = "opacity:1;border:1px solid var(--border);padding:6px 12px;color:var(--ink)";
   b.textContent = on ? "Turn it off" : "Turn it on";
   b.onclick = function(){ var g = Object.assign({}, familyGoal(), {autoReview:!on}); saveFamilyGoal(g, true); renderLeaderArea(); };
+  var st = autoReviewStats(), sm = document.createElement("div"); sm.className = "muted"; sm.style.cssText = "font-size:12.5px;margin:8px 0";
+  if(!st.total) sm.textContent = "How often you agree with it: nothing to count yet. It fills in as work gets reviewed.";
+  else {
+    sm.innerHTML = "<b>How often you agree with it: "+st.rate+"%</b> ("+(st.total-st.auto.changed-st.manual.differed)+" of "+st.total+" calls). "+
+      "Handled automatically: "+st.auto.kept+" left alone, "+st.auto.changed+" you changed. "+
+      "Looked at by you: "+st.manual.agreed+" agreed, "+st.manual.differed+" differed."+
+      (st.total<20 ? " (Too few to trust yet.)" : "");
+  }
+  c.appendChild(sm);
+  if(st.changes.length){
+    var dt = document.createElement("details"); dt.style.cssText = "font-size:12.5px;margin-bottom:8px";
+    var key = detailsOpenKey("leader","mom",true,"autoReviewChanges"); dt.open = isDetailsOpen(key);
+    dt.addEventListener("toggle", function(){ setDetailsOpen(key, dt.open); });
+    var sy = document.createElement("summary"); sy.textContent = "Where you changed its call ("+st.changes.length+")"; dt.appendChild(sy);
+    st.changes.slice(0, 15).forEach(function(x){
+      var d = document.createElement("div"); d.className = "muted"; d.style.margin = "3px 0";
+      d.textContent = (x.kid ? x.kid+": " : "")+x.title+" — it said "+(x.said==="looks_good" ? "looks good" : "needs another try")+", you "+(x.mom==="looks_good" ? "approved it" : "sent it back")+(x.auto ? " (it had handled it automatically)" : "");
+      dt.appendChild(d);
+    });
+    c.appendChild(dt);
+  }
   c.appendChild(b); return c;
 }
 function autoCheckSweep(){
