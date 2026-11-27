@@ -736,3 +736,6 @@ Six practice-only widgets (ten frame, arrays, clock, fractions, number line, lon
 One drawn picture can show at the top of a lesson's See It Done step; the written steps stay under it. List: LESSON_PICTURES in index.html (kid + exact lesson title), files in pictures/.
 Add one with .claude/skills/make-lesson/lesson_picture.py (local, not in this repo), then bump the build and release as usual. Test: tools/lesson-audit/lesson-pictures.js.
 Same release: Anna's one-sentence-per-line view keeps a step number with its sentence (keepStepNumbers).
+
+## Worksheet look + Anna math Unit 3 pictures (27 Nov 2026, build 2026-11-27.1)
+A "Remember" line right before "Your Turn" in a pilot lesson makes the Your Turn page a worksheet: See It Done picture again, yellow Remember box, big problem cards. Other lessons are unchanged. 12 more lesson pictures (23 total). The Unit 3 lesson text (26 Jan to 11 Feb) is in the database, not in this repo.

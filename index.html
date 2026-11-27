@@ -8516,6 +8516,15 @@ function renderLessonDetail(){
     var firstLab = -1; lines.forEach(function(l, i){ if(firstLab<0 && isLab(l)) firstLab = i; });
     var labeled = lines.length>1 && firstLab>=0 && lines.slice(firstLab).every(isLab);
     var pages = 0, paged = pilot && labeled && lines.length>1;
+    /* Worksheet look (Mom, 26 Nov 2026): a "Remember —" line right before "Your Turn —" is shown as a rule box on the same page, and each step is a problem card. Lessons without that line look as before. */
+    var remember = "";
+    if(pilot && labeled){
+      lines = lines.filter(function(l, i){
+        var rm = l.match(/^Remember — ([\s\S]*)$/);
+        if(rm && /^Your Turn — /i.test(lines[i+1]||"")){ remember = rm[1]; return false; }
+        return true;
+      });
+    }
     lines.forEach(function(l){
       var b0 = out.length;
       oneLine(l);
@@ -8529,6 +8538,9 @@ function renderLessonDetail(){
         else out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
         var lpic = lessonPictureFor(a, m[1]);
         if(lpic) out += lessonPictureHtml(lpic);
+        /* A worksheet page shows the picture again: its words say "like ... in the picture above", and she only sees one part at a time. */
+        var again = (!lpic && remember && /^Your Turn/i.test(m[1])) ? lessonPictureFor(a, "See It Done") : null;
+        if(again) out += lessonPictureHtml(again);
         var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\b\d[.)]\s+/).filter(function(x){ return x.trim(); }) : null;
         if(pilot && !(steps && steps.length>1) && !/^Check Yourself/i.test(m[1])){
           out += '<div style="border-left:5px solid '+sec[2]+';padding:2px 0 2px 12px;margin-bottom:8px">'+
@@ -8537,12 +8549,17 @@ function renderLessonDetail(){
           out += swk(m[1], m[2]);
           return;
         }
-        if(steps && steps.length>1){
+        var sheet = steps && remember;
+        if(sheet) out += '<div class="ws-rule" style="background:#fef9c3;border:3px solid #ca8a04;border-radius:14px;padding:10px 14px;margin-bottom:12px;color:#422006">'+
+          '<div style="font-weight:800;font-size:16px;margin-bottom:4px">\uD83D\uDCCC Remember</div>'+
+          remember.split(/(?<=[.!?])\s+/).map(function(sn){ return '<div style="font-size:17px;line-height:1.6">'+escapeHtml(sn)+'</div>'; }).join("")+'</div>'+
+          '<div style="font-size:15px;font-weight:700;margin-bottom:10px">\u270F\uFE0F Tick each one when you finish.</div>';
+        if(steps && (steps.length>1 || sheet)){
           var photoMsg = "";
           steps.forEach(function(st){
             if(/^\[\[book\]\]/.test(st)) photoMsg = "\uD83D\uDCF7 When you have answered in your book, take a photo of the page so Mom can see it.";
             else if(/^\[\[photo\]\]/.test(st) && !photoMsg) photoMsg = "\uD83D\uDCF7 Take a photo of it so it is saved.";
-            out += row(st, sec[2]);
+            out += sheet ? '<div class="ws-card">'+row(st, sec[2]).replace("font-size:17px;line-height:1.65", "font-size:22px;line-height:1.5;font-weight:700")+'</div>' : row(st, sec[2]);
           });
           if(photoMsg) out += '<div class="photo-wrap" data-msg="'+escapeHtml(photoMsg)+'"></div>';
         }
@@ -29327,7 +29344,19 @@ var LESSON_PICTURES = [
  {"kid": "kid1", "title": "Flower Garden: Draw Rows and Columns \ud83c\udf37", "step": "See It Done", "src": "pictures/flower-garden-array.webp", "w": 1086, "h": 1448, "alt": "See It Done: Plant an Array. 1: Draw 4 flowers across. 2: Draw 4 more under them. 3: Now you have 3 rows. 4: Rows: 4 + 4 + 4 = 12. 5: Count 4 columns. 6: 3 + 3 + 3 + 3 = 12."},
  {"kid": "kid1", "title": "Stuffie Snacks: Draw and Add Stories \ud83e\uddf8", "step": "See It Done", "src": "pictures/stuffie-snack-stories.webp", "w": 1024, "h": 1536, "alt": "See It Done: Crackers for 4 Stuffies. 1: Draw 4 plates. 2: 3 crackers on one. 3: 3 on every plate. 4: Write 3 + 3 + 3 + 3. 5: Count 12 crackers. 6: You need 12 crackers!"},
  {"kid": "kid1", "title": "Quilt Maker: Fill It With Squares \ud83d\udfe6", "step": "See It Done", "src": "pictures/quilt-squares.webp", "w": 1024, "h": 1536, "alt": "See It Done: Draw a Quilt. 1: Draw a long rectangle. 2: Draw 1 line across. 3: Draw 3 lines down. 4: Top row has 4. 5: Bottom row has 4. 6: 4 + 4 = 8 squares."},
- {"kid": "kid1", "title": "Bug Boss Game: Roll, Draw, Beat It \ud83d\udc1e", "step": "See It Done", "src": "pictures/bug-boss-game.webp", "w": 1024, "h": 1536, "alt": "See It Done: Play One Turn. 1: Roll rows: 2. 2: Roll bugs: 3. 3: Draw 2 rows of 3. 4: Write 3 + 3 = 6. 5: Circle the partners. 6: 6 is even!"}
+ {"kid": "kid1", "title": "Bug Boss Game: Roll, Draw, Beat It \ud83d\udc1e", "step": "See It Done", "src": "pictures/bug-boss-game.webp", "w": 1024, "h": 1536, "alt": "See It Done: Play One Turn. 1: Roll rows: 2. 2: Roll bugs: 3. 3: Draw 2 rows of 3. 4: Write 3 + 3 = 6. 5: Circle the partners. 6: 6 is even!"},
+ {"kid": "kid1", "title": "Big Hop, Little Hop: Add Tens First", "step": "See It Done", "src": "pictures/big-hop-little-hop.webp", "w": 1199, "h": 1312, "alt": "See It Done: 42 + 25 With Hops. 1: Draw a line. Start at 42. 2: Split 25 into 20 and 5. 3: Big hop of 20 to 62. 4: Little hop of 5 to 67. 5: 42 + 25 = 67"},
+ {"kid": "kid1", "title": "Fill the Ten: Break Apart and Make a Ten", "step": "See It Done", "src": "pictures/fill-the-ten.webp", "w": 1024, "h": 1536, "alt": "See It Done: Fill the Ten. 1: 57 + 25 2: 57 needs 3 to make 60. 3: Split 25 into 3 and 22. 4: 57 + 3 = 60 5: 60 + 22 = 82"},
+ {"kid": "kid1", "title": "Give and Take: Make a Friendly Ten", "step": "See It Done", "src": "pictures/give-and-take.webp", "w": 1086, "h": 1448, "alt": "See It Done: Give and Take. 1: 63 + 17 2: Give 3. Now 17 is 20. 3: 63 + 20 = 83 4: Take 3 back. 83 - 3 = 80 5: 63 + 17 = 80"},
+ {"kid": "kid1", "title": "Candy Math Friday: Make a Ten Treats \ud83c\udf6c", "step": "See It Done", "src": "pictures/candy-make-a-ten.webp", "w": 1024, "h": 1536, "alt": "See It Done: Make a Ten With Candy. 1: A row of 8 and a row of 5. 2: Move 2. The top row has 10. 3: 3 are left below. 4: 10 + 3 = 13 5: 8 + 5 \u2192 10 + 3 = 13"},
+ {"kid": "kid1", "title": "Greater, Less or Equal? Compare Numbers", "step": "See It Done", "src": "pictures/compare-numbers-birds.webp", "w": 1086, "h": 1448, "alt": "See It Done: Compare 46 and 65. 1: 46 and 65 2: Draw tens and ones. 3: 65 is greater. 4: Open side faces 65. 5: 46 \u003c 65"},
+ {"kid": "kid1", "title": "Tens and Ones Team-Up: Break Apart Both", "step": "See It Done", "src": "pictures/tens-ones-team-up.webp", "w": 1024, "h": 1536, "alt": "See It Done: 46 + 22. 1: 46 is 4 lines and 6 dots. 2: 22 is 2 lines and 2 dots. 3: 40 + 20 = 60 4: 6 + 2 = 8 5: 60 + 8 = 68"},
+ {"kid": "kid1", "title": "Ten Ones Make a Ten: Trade and Add", "step": "See It Done", "src": "pictures/ten-ones-trade.webp", "w": 1024, "h": 1536, "alt": "See It Done: Trade Ten Ones. 1: 17 is 1 line and 7 dots. 2: 26 is 2 lines and 6 dots. 3: 7 + 6 = 13 4: Trade 10 dots for 1 line. 5: 17 + 26 = 43"},
+ {"kid": "kid1", "title": "Shape Puzzles: Put Shapes Together", "step": "See It Done", "src": "pictures/shape-puzzles.webp", "w": 1199, "h": 1312, "alt": "See It Done: Two Triangles Make a Square. 1: Draw a square. 2: Draw corner to corner. 3: Color one part. 4: I see 2 triangles. 5: 2 triangles make 1 square."},
+ {"kid": "kid1", "title": "Column Power: Add in a Place Value Chart", "step": "See It Done", "src": "pictures/column-power-chart.webp", "w": 1086, "h": 1448, "alt": "See It Done: 27 + 45 in a Chart. 1: Tens and Ones 2: 27 and 45 3: 7 + 5 = 12 4: Write 2. Carry 1. 5: 1 + 2 + 4 = 7. Answer 72."},
+ {"kid": "kid1", "title": "Stack It Up: The Step-by-Step Way", "step": "See It Done", "src": "pictures/stack-it-up.webp", "w": 1086, "h": 1448, "alt": "See It Done: Stack 27 and 54. 1: Stack 27 and 54. 2: 7 + 4 = 11 3: Write 1. Carry 1. 4: 1 + 2 + 5 = 8 5: 27 + 54 = 81"},
+ {"kid": "kid1", "title": "Missing Number Mystery: Find the Box", "step": "See It Done", "src": "pictures/missing-number-mystery.webp", "w": 1024, "h": 1536, "alt": "See It Done: Find the Box. 1: 12 - ___ = 5 2: Draw a line from 5 to 12. 3: 7 hops 4: The box is 7. 5: 12 - 7 = 5"},
+ {"kid": "kid1", "title": "Unit 3 Boss Game: Add Within 100 Race", "step": "See It Done", "src": "pictures/add-race-boss-game.webp", "w": 1199, "h": 1312, "alt": "See It Done: One Round of the Race. 1: My number: 34 2: Stuffie's number: 23 3: 34 + 23 = 57 4: 34 > 23 5: I get 1 point."}
 ];
 function lessonPictureFor(a, label){
   if(!a || !a.title) return null;
@@ -37644,7 +37673,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-26.3";
+var APP_BUILD = "2026-11-27.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
