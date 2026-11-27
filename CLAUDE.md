@@ -2,7 +2,7 @@
 
 This file is loaded automatically at the start of every session on this repo. The rules below are
 not optional style preferences — they were established after real mistakes shipped to real kids
-(Anna, 7, and Ryan, 9-10) and are backed by the learning-science research logged in the
+and are backed by the learning-science research logged in the
 [Forge Academy Roadmap](https://claude.ai/artifact/BcVFhRpTiJ7n49PrRcsDRp) artifact's Research tab.
 Follow them on every `materials`, `video`, `passage`, and `quiz` field added to any assignment, for
 either kid, no exceptions.
@@ -43,7 +43,7 @@ Practice/apply days can be more open-ended — but the *first* exposure to a new
 ## 3. Pair a concrete/hands-on element with every new math or science skill
 
 Both kids are at ages where abstractions land better with something to touch, draw, count, or
-measure attached (Anna is concrete-operational; Ryan's executive function is still maturing).
+measure attached.
 Every new Skill Block's apply stage should have a physical or drawable task — not just another
 tap-to-answer quiz. Pure quiz-only "apply" stages are a sign the lesson wasn't finished.
 

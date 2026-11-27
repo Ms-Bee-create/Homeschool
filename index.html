@@ -7049,15 +7049,6 @@ var FAMILY_LIBRARY = [
     {name:"PBS LearningMedia (Georgia)", url:"https://ga.pbslearningmedia.org", desc:"Thousands of free videos and games by grade.", who:"both"},
     {name:"New Georgia Encyclopedia", url:"https://www.georgiaencyclopedia.org", desc:"Georgia history and places for read-alongs.", who:"ryan"}
   ]],
-  ["Augusta field trips", [
-    {name:"Phinizy Swamp Nature Park", url:"https://phinizycenter.org", desc:"Free trails and boardwalks, nature programs.", who:"both"},
-    {name:"Augusta Canal National Heritage Area", url:"https://www.augustacanal.com", desc:"Boat tours and mill history.", who:"both"},
-    {name:"Augusta Museum of History", url:"https://www.augustamuseum.org", desc:"Local history, including the James Brown exhibit.", who:"both"},
-    {name:"Lucy Craft Laney Museum of Black History", url:"https://www.lucycraftlaneymuseum.com", desc:"Local history and civil rights.", who:"ryan"},
-    {name:"Reed Creek Nature Park (Martinez)", url:"https://reedcreekpark.com", desc:"Interpretive center, animals, and trails.", who:"anna"},
-    {name:"Mistletoe State Park", url:"https://gastateparks.org/Mistletoe", desc:"Junior Ranger activities and lake trails.", who:"both"},
-    {name:"Ruth Patrick Science Education Center", url:"https://rpsec.usca.edu", desc:"Planetarium and science programs in Aiken.", who:"both"}
-  ]],
   ["Free books & reading", [
     {name:"Libby", url:"https://libbyapp.com", desc:"Free library ebooks and audiobooks.", who:"both"},
     {name:"Hoopla", url:"https://www.hoopladigital.com", desc:"Ebooks, comics, audiobooks, movies, no waitlist.", who:"both"},
@@ -7178,7 +7169,7 @@ function familyUnschoolingLibraryCard(){
   row.innerHTML =
     '<div style="width:26px;text-align:center;font-size:18px">📖</div>'+
     '<div class="task-body"><div class="task-title">Our Unschooling Library</div>'+
-    '<div class="task-sub">Every free/low-cost book, site, video &amp; Augusta field trip, filterable by kid</div></div>'+
+    '<div class="task-sub">Every free/low-cost book, site &amp; video, filterable by kid</div></div>'+
     '<div class="task-xp">↗</div>';
   wrap.appendChild(row);
   return wrap;
@@ -37673,7 +37664,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-27.1";
+var APP_BUILD = "2026-11-27.2";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }

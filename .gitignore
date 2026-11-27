@@ -2,3 +2,15 @@
 .env
 node_modules/
 tools/lesson-audit/coverage.md
+# private notes stay off the public repo (27 Nov 2026)
+/HANDOFF.md
+/RELEASE_HANDOFF*.md
+/HELPER_SAFETY_HANDOFF.md
+/LIVE_APP_CHECK.md
+/OPS_NOTES.md
+/ANTIGRAVITY_START_HERE.md
+/christy-mail-test.pdf
+/mockups/
+/tools/lesson-audit/report.md
+/tools/lesson-audit/report.json
+/tools/lesson-audit/EXPORT_AND_ROLEPLAY.md
