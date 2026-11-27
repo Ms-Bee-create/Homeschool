@@ -8527,11 +8527,13 @@ function renderLessonDetail(){
         var sec = secOf(m[1]);
         if(pilot) out += '<div style="margin:16px 0 6px"><span style="display:inline-block;background:'+sec[2]+';color:#fff;font-weight:800;font-size:15px;padding:4px 12px;border-radius:999px">'+sec[1]+' '+escapeHtml(m[1])+'</span></div>';
         else out += '<div style="font-weight:700;margin:10px 0 4px">'+escapeHtml(m[1])+'</div>';
+        var lpic = lessonPictureFor(a, m[1]);
+        if(lpic) out += lessonPictureHtml(lpic);
         var steps = /^Your Turn/i.test(m[1]) ? m[2].split(/\s*\b\d[.)]\s+/).filter(function(x){ return x.trim(); }) : null;
         if(pilot && !(steps && steps.length>1) && !/^Check Yourself/i.test(m[1])){
           out += '<div style="border-left:5px solid '+sec[2]+';padding:2px 0 2px 12px;margin-bottom:8px">'+
-            m[2].split(/(?<=[.!?])\s+/).filter(function(x){ return x.trim(); }).map(function(sn){ return '<div style="font-size:17px;line-height:1.65;margin-bottom:6px">'+pilotText(sn, sec[2])+'</div>'; }).join("")+'</div>';
-          if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
+            keepStepNumbers(m[2].split(/(?<=[.!?])\s+/).filter(function(x){ return x.trim(); })).map(function(sn){ return '<div style="font-size:17px;line-height:1.65;margin-bottom:6px">'+pilotText(sn, sec[2])+'</div>'; }).join("")+'</div>';
+          if(!lpic && /^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
           out += swk(m[1], m[2]);
           return;
         }
@@ -8547,7 +8549,7 @@ function renderLessonDetail(){
         else if(/^Check Yourself/i.test(m[1])) out += '<div class="chk-ans-wrap" data-text="'+escapeHtml(m[2])+'" style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         else out += '<div style="font-size:15px;line-height:1.5;margin-bottom:6px">'+escapeHtml(m[2])+'</div>';
         out += swk(m[1], m[2]);
-        if(/^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
+        if(!lpic && /^See It Done/i.test(m[1])) out += seeItPictureSvg(m[2]);
       } else if(labeled){
         out += '<div style="font-size:'+(pilot ? "16px" : "14.5px")+';line-height:1.5;margin:0 0 8px;color:var(--text-dim)">'+escapeHtml(l)+'</div>';
       } else {
@@ -8703,7 +8705,7 @@ function renderLessonDetail(){
       if(sCur<pgs.length-1){ sCur++; sShow(); stpNav.parentNode.scrollIntoView({behavior:"smooth", block:"start"}); }
       else { var after = stpNav.parentNode.nextElementSibling; if(after) after.scrollIntoView({behavior:"smooth", block:"start"}); }
     };
-    stpNav.querySelector(".stp-hear").onclick = function(){ var pc = pgs[sCur].cloneNode(true); Array.prototype.forEach.call(pc.querySelectorAll(".stepans-wrap,.swk-wrap,.photo-wrap"), function(x){ x.remove(); }); speak(sAll ? (annaLook ? annaSpoken(a.passage) : a.passage) : pc.textContent); };
+    stpNav.querySelector(".stp-hear").onclick = function(){ var pc = pgs[sCur].cloneNode(true); Array.prototype.forEach.call(pc.querySelectorAll(".stepans-wrap,.swk-wrap,.photo-wrap,.lpic-wrap"), function(x){ x.remove(); }); speak(sAll ? (annaLook ? annaSpoken(a.passage) : a.passage) : pc.textContent); };
     stpNav.querySelector(".stp-all").onclick = function(){ sAll = !sAll; sShow(); };
     stpNav.querySelector(".stp-stuck").onclick = function(){
       var hd = document.getElementById("lessonHelperDet");
@@ -8712,6 +8714,7 @@ function renderLessonDetail(){
     };
     sShow();
   }
+  Array.prototype.forEach.call(card.querySelectorAll(".lpic"), function(b){ b.onclick = function(){ var im = b.querySelector("img"); openLessonPicture(im.getAttribute("src"), im.alt); }; });
   var speakBtns = card.querySelectorAll(".speak-btn");
   if(speakBtns[0]) speakBtns[0].onclick = function(){ speak(a.title); };
   if(a.passage && speakBtns[1]) speakBtns[1].onclick = function(){ speak(annaLook ? annaSpoken(a.passage) : a.passage); };
@@ -29301,6 +29304,55 @@ function standardsCheckCard(){
   wrap.appendChild(det);
   return wrap;
 }
+/* One sentence per line splits "1. Draw a box." after the "1.": put a lone step number back with its sentence.
+   Only numbers that count up from 1 are step numbers, so a sentence that is just an answer ("7.") stays on its own. */
+function keepStepNumbers(parts){
+  var out = [], next = 1;
+  parts.forEach(function(p){
+    var last = out.length ? out[out.length-1].trim() : "";
+    if(last === next+"." || last === next+")"){ out[out.length-1] = last + " " + p; next++; } else out.push(p);
+  });
+  return out;
+}
+/* Lesson pictures (25 Nov 2026): one drawn page shown at the top of one lesson step, matched by kid + exact title.
+   Our own art only (rule 25), files in pictures/. A new picture needs the file plus one line here. No lesson data is read or changed. */
+var LESSON_PICTURES = [
+ {"kid": "kid1", "title": "Chapter 2: Open Your Bake Shop! \ud83e\uddc1", "step": "See It Done", "src": "pictures/bake-shop-saving.webp", "w": 1142, "h": 1378, "alt": "See It Done: Your Bake Shop. 1: You have $3. The flour costs $5. 2: You need 2 more. 3: A friend lends you $2. Write LOAN. 4: Now you have $5. Buy the flour! 5: Bake cupcakes. Sell them! 6: Give back $2. Write PAID."},
+ {"kid": "kid1", "title": "Bracelet Beads: Make a Fact Family \ud83d\udcff", "step": "See It Done", "src": "pictures/fact-family-bracelet.webp", "w": 1024, "h": 1536, "alt": "See It Done: Make a Fact Family. 1: Draw 9 pink beads. 2: Add 6 blue. That is 15. 3: Write 9 + 6 = 15. 4: Blue first: 6 + 9 = 15. 5: Cover blue: 15 - 6 = 9. 6: Cover pink: 15 - 9 = 6."}
+];
+function lessonPictureFor(a, label){
+  if(!a || !a.title) return null;
+  var t = String(a.title).replace(/\s+/g, " ").trim();
+  for(var i = 0; i < LESSON_PICTURES.length; i++){
+    var p = LESSON_PICTURES[i];
+    if(p.kid === a.kidId && p.title === t && String(label||"").trim().toLowerCase() === p.step.toLowerCase()) return p;
+  }
+  return null;
+}
+/* If the file cannot load (offline), the whole block hides and the written step is still there. */
+function lessonPictureHtml(p){
+  return '<div class="lpic-wrap" style="margin:6px 0 12px">'+
+    '<button type="button" class="lpic" aria-label="Make the picture bigger" style="display:block;width:100%;max-width:640px;padding:0;border:0;background:none;cursor:zoom-in">'+
+      '<img src="'+escapeHtml(p.src)+'" width="'+p.w+'" height="'+p.h+'" alt="'+escapeHtml(p.alt)+'" onerror="this.closest(\'.lpic-wrap\').style.display=\'none\'" style="display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--border)">'+
+    '</button>'+
+    '<div style="font-size:13px;color:var(--text-dim);margin-top:4px">\uD83D\uDD0D Tap the picture to make it bigger.</div>'+
+  '</div>';
+}
+/* Full screen view: the picture is drawn wider than a phone so the words are readable, and can be dragged around. */
+function openLessonPicture(src, alt){
+  var old = document.getElementById("lpicOverlay"); if(old) old.remove();
+  var o = document.createElement("div"); o.id = "lpicOverlay"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  o.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.92);overflow:auto;padding:64px 8px 16px";
+  var img = document.createElement("img"); img.src = src; img.alt = alt || "";
+  img.style.cssText = "display:block;margin:0 auto;width:max(100%, 720px);max-width:1142px;height:auto";
+  var x = document.createElement("button"); x.type = "button"; x.textContent = "\u2716 Close";
+  x.style.cssText = "position:fixed;top:10px;right:10px;min-height:44px;padding:8px 18px;border-radius:12px;border:0;background:#fff;color:#111;font:inherit;font-weight:800;font-size:16px;cursor:pointer";
+  function close(){ o.remove(); document.removeEventListener("keydown", key); window.removeEventListener("hashchange", close); }
+  function key(e){ if(e.key === "Escape") close(); }
+  x.onclick = close; o.onclick = function(e){ if(e.target === o) close(); };
+  document.addEventListener("keydown", key); window.addEventListener("hashchange", close);
+  o.appendChild(img); o.appendChild(x); document.body.appendChild(o); x.focus();
+}
 /* Drawn pictures for "See It Done" (CLAUDE.md rule 10). Only draws when the See It Done text clearly says what to draw; otherwise returns "" (no guessing). */
 function seeItPictureSvg(text){
   var t = String(text||"");
@@ -37583,7 +37635,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-24.1";
+var APP_BUILD = "2026-11-26.1";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }

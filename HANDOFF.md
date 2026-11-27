@@ -731,3 +731,8 @@ Update (build 2026-11-04.5, from the real-export run by the other session: repea
 
 ## Try it practice tools (build 2026-11-10.10, branch claude/widgets, not deployed)
 Six practice-only widgets (ten frame, arrays, clock, fractions, number line, long division) in index.html between the FORGE-WIDGETS markers; WIDGET_FOR lists the 16 lessons; Leader switch familyGoal().widgetsOff. See RELEASE_HANDOFF_WIDGETS.md. Tests: tools/lesson-audit/widgets.js.
+
+## Lesson pictures (26 Nov 2026, build 2026-11-26.1)
+One drawn picture can show at the top of a lesson's See It Done step; the written steps stay under it. List: LESSON_PICTURES in index.html (kid + exact lesson title), files in pictures/.
+Add one with .claude/skills/make-lesson/lesson_picture.py (local, not in this repo), then bump the build and release as usual. Test: tools/lesson-audit/lesson-pictures.js.
+Same release: Anna's one-sentence-per-line view keeps a step number with its sentence (keepStepNumbers).
