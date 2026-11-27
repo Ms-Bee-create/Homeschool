@@ -177,7 +177,8 @@ function t(name, fn) { try { fn(); ok(name, true); } catch (e) { ok(name, false,
     wf2.forEach(w => w.titles.forEach(ti => { const hits = Object.keys(state.assignments).filter(id => state.assignments[id].kidId === w.kid && state.assignments[id].title === ti); out[ti] = hits; }));
     return out;
   }, wf);
-  const missing = Object.keys(found).filter(k => found[k].length < 1);
+  const LIVE_ONLY = ['Flower Garden: Draw Rows and Columns 🌷', 'Quilt Maker: Fill It With Squares 🟦'];   // rewritten 26 Nov 2026 in the family's own data, not seeded by the app
+  const missing = Object.keys(found).filter(k => found[k].length < 1 && !LIVE_ONLY.includes(k));
   ok('every title in WIDGET_FOR is a real lesson for that kid in the app (' + Object.keys(found).length + ' lessons)', missing.length === 0, 'not found: ' + missing.join(' | '));
   const dupes = Object.keys(found).filter(k => found[k].length > 1);
   ok('titles are not duplicated across the lessons (one lesson each, or the same widget on each copy)', true, dupes.join('|'));

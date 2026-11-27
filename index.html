@@ -8351,7 +8351,7 @@ var ForgeWidgets = (function(){
 /* Which lessons get which "Try it" aid (exact titles; the lookup also needs the right kid). Nothing about a lesson is changed. */
 var WIDGET_FOR = [
  {kid:"kid1", type:"tenframe", label:"Ten frame", titles:["Fill the Ten: Break Apart and Make a Ten", "Give and Take: Make a Friendly Ten"]},
- {kid:"kid1", type:"arrays", label:"Arrays", titles:["Array Garden: Rows and Columns", "Square Tiles: Cover the Rectangle"]},
+ {kid:"kid1", type:"arrays", label:"Arrays", titles:["Array Garden: Rows and Columns", "Square Tiles: Cover the Rectangle", "Flower Garden: Draw Rows and Columns 🌷", "Quilt Maker: Fill It With Squares 🟦"]},
  {kid:"kid1", type:"clock", label:"Clock", titles:["Clock Maker: Tell Time to 5 Minutes", "Quarter Past, Half Past, Quarter Till"]},
  {kid:"kid1", type:"fractions", label:"Fractions", titles:["Fold It Fair: Halves, Thirds and Fourths", "One Half, One Third, One Fourth", "Count the Parts: Halves, Thirds and Fourths"]},
  {kid:"kid1", type:"numberline", label:"Number line", cfg:{max:20}, titles:["Hop Along the Number Line: Count On to Add", "Hop Backward: Count Back to Subtract"]},
@@ -29319,7 +29319,15 @@ function keepStepNumbers(parts){
 var LESSON_PICTURES = [
  {"kid": "kid1", "title": "Chapter 2: Open Your Bake Shop! \ud83e\uddc1", "step": "See It Done", "src": "pictures/bake-shop-saving.webp", "w": 1142, "h": 1378, "alt": "See It Done: Your Bake Shop. 1: You have $3. The flour costs $5. 2: You need 2 more. 3: A friend lends you $2. Write LOAN. 4: Now you have $5. Buy the flour! 5: Bake cupcakes. Sell them! 6: Give back $2. Write PAID."},
  {"kid": "kid1", "title": "Bracelet Beads: Make a Fact Family \ud83d\udcff", "step": "See It Done", "src": "pictures/fact-family-bracelet.webp", "w": 1024, "h": 1536, "alt": "See It Done: Make a Fact Family. 1: Draw 9 pink beads. 2: Add 6 blue. That is 15. 3: Write 9 + 6 = 15. 4: Blue first: 6 + 9 = 15. 5: Cover blue: 15 - 6 = 9. 6: Cover pink: 15 - 9 = 6."},
- {"kid": "kid1", "title": "Bug Mystery: Solve Two-Step Stories \ud83d\udc1e", "step": "See It Done", "src": "pictures/bug-mystery-two-step.webp", "w": 1024, "h": 1536, "alt": "See It Done: Solve the Bug Mystery. 1: Draw 7 dots. 2: Add 6 dots. 3: Write 7 + 6 = 13. 4: Cross out 4 dots. 5: Write 13 - 4 = 9. 6: 9 ladybugs are left!"}
+ {"kid": "kid1", "title": "Bug Mystery: Solve Two-Step Stories \ud83d\udc1e", "step": "See It Done", "src": "pictures/bug-mystery-two-step.webp", "w": 1024, "h": 1536, "alt": "See It Done: Solve the Bug Mystery. 1: Draw 7 dots. 2: Add 6 dots. 3: Write 7 + 6 = 13. 4: Cross out 4 dots. 5: Write 13 - 4 = 9. 6: 9 ladybugs are left!"},
+ {"kid": "kid1", "title": "Dance Partners: Even or Odd? \ud83d\udc83", "step": "See It Done", "src": "pictures/dance-partners-even-odd.webp", "w": 1024, "h": 1536, "alt": "See It Done: Is 9 Even or Odd?. 1: Draw 9 dots. 2: Circle 2 partners. 3: Circle more partners. 4: You made 4 pairs. 5: Find the lonely dot. 6: 1 is alone. 9 is odd."},
+ {"kid": "kid1", "title": "Twin Birds: Split It in Two \ud83d\udc26", "step": "See It Done", "src": "pictures/twin-birds-even.webp", "w": 1086, "h": 1448, "alt": "See It Done: Split 10 Birds. 1: Draw 2 trees. 2: Share 1 bird each. 3: Stop at 10 birds. 4: Each tree has 5. 5: Write 5 + 5 = 10. 6: They match. 10 is even."},
+ {"kid": "kid1", "title": "Candy Math Friday: Even or Odd Treats \ud83c\udf6c", "step": "See It Done", "src": "pictures/candy-even-odd.webp", "w": 1024, "h": 1536, "alt": "See It Done: Is 5 Even or Odd?. 1: Put out 5 candies. 2: 2 make a pair. 3: Now 2 pairs. 4: 1 has no partner. 5: 5 is odd. 6: Write 5 odd."},
+ {"kid": "kid1", "title": "Cookie Plates: Make Equal Groups \ud83c\udf6a", "step": "See It Done", "src": "pictures/cookie-plates-equal-groups.webp", "w": 1024, "h": 1536, "alt": "See It Done: 3 Plates of Cookies. 1: Draw 3 plates. 2: 4 cookies on plate one. 3: 4 on plate two. 4: 4 on plate three. 5: Write 4 + 4 + 4 = 12. 6: 3 groups of 4 make 12."},
+ {"kid": "kid1", "title": "Flower Garden: Draw Rows and Columns \ud83c\udf37", "step": "See It Done", "src": "pictures/flower-garden-array.webp", "w": 1086, "h": 1448, "alt": "See It Done: Plant an Array. 1: Draw 4 flowers across. 2: Draw 4 more under them. 3: Now you have 3 rows. 4: Rows: 4 + 4 + 4 = 12. 5: Count 4 columns. 6: 3 + 3 + 3 + 3 = 12."},
+ {"kid": "kid1", "title": "Stuffie Snacks: Draw and Add Stories \ud83e\uddf8", "step": "See It Done", "src": "pictures/stuffie-snack-stories.webp", "w": 1024, "h": 1536, "alt": "See It Done: Crackers for 4 Stuffies. 1: Draw 4 plates. 2: 3 crackers on one. 3: 3 on every plate. 4: Write 3 + 3 + 3 + 3. 5: Count 12 crackers. 6: You need 12 crackers!"},
+ {"kid": "kid1", "title": "Quilt Maker: Fill It With Squares \ud83d\udfe6", "step": "See It Done", "src": "pictures/quilt-squares.webp", "w": 1024, "h": 1536, "alt": "See It Done: Draw a Quilt. 1: Draw a long rectangle. 2: Draw 1 line across. 3: Draw 3 lines down. 4: Top row has 4. 5: Bottom row has 4. 6: 4 + 4 = 8 squares."},
+ {"kid": "kid1", "title": "Bug Boss Game: Roll, Draw, Beat It \ud83d\udc1e", "step": "See It Done", "src": "pictures/bug-boss-game.webp", "w": 1024, "h": 1536, "alt": "See It Done: Play One Turn. 1: Roll rows: 2. 2: Roll bugs: 3. 3: Draw 2 rows of 3. 4: Write 3 + 3 = 6. 5: Circle the partners. 6: 6 is even!"}
 ];
 function lessonPictureFor(a, label){
   if(!a || !a.title) return null;
@@ -37636,7 +37644,7 @@ function syncAll(force){
 /* Self-update: every device checks a tiny file (version.json) now and then. If it names a newer build than the one running, the device reloads itself
    when it is safe (no lesson open, no quiz, nobody typing, idle for a few seconds), and until then shows a small "new version ready" bar.
    Bump APP_BUILD here AND in version.json together on every release (same value). */
-var APP_BUILD = "2026-11-26.2";
+var APP_BUILD = "2026-11-26.3";
 var newBuildSeen = null;
 function reloadForNewBuild(){
   try{ location.replace(location.pathname+"?v="+encodeURIComponent(newBuildSeen||"x")+"&t="+Date.now());   /* unique every time: a copy cached under an earlier ?v= address can never come back (16 Nov 2026) */ }catch(e){ location.reload(); }
